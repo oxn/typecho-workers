@@ -233,18 +233,27 @@ ${statusHtml}
     if (!form || !container) return false;
     var widget = container.closest('.typecho-turnstile');
     if (!widget) return false;
-    if (widget.parentNode === form) {
-      widget.removeAttribute('data-typecho-turnstile-pending');
-      queueRender();
-      return true;
-    }
+    // Warm theme nests fields/actions inside .warm-comment-form__inner (centered
+    // column). Require nextSibling===anchor so a previous buggy append onto the
+    // form root is corrected into that column and stays aligned with inputs.
     var anchor = form.classList.contains('warm-comment-form')
       ? form.querySelector('.warm-comment-form__actions')
       : form.querySelector('.submit');
-    if (anchor && anchor.parentNode === form) {
+    if (anchor) {
+      if (widget.nextSibling === anchor) {
+        widget.removeAttribute('data-typecho-turnstile-pending');
+        queueRender();
+        return true;
+      }
       anchor.before(widget);
     } else {
-      form.appendChild(widget);
+      var host = form.querySelector('.warm-comment-form__inner') || form;
+      if (widget.parentNode === host) {
+        widget.removeAttribute('data-typecho-turnstile-pending');
+        queueRender();
+        return true;
+      }
+      host.appendChild(widget);
     }
     widget.removeAttribute('data-typecho-turnstile-pending');
     queueRender();

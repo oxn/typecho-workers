@@ -55,8 +55,10 @@ describe('typecho-plugin-turnstile', () => {
     expect(snippet.bodyHtml).toContain('data-typecho-turnstile-pending');
     expect(snippet.bodyHtml).toContain('cf-token');
     expect(snippet.bodyHtml).toContain('anchor.before(widget)');
-    expect(snippet.bodyHtml).toContain('form.appendChild(widget)');
-    expect(snippet.bodyHtml).toContain('anchor.parentNode === form');
+    expect(snippet.bodyHtml).toContain('widget.nextSibling === anchor');
+    expect(snippet.bodyHtml).toContain('.warm-comment-form__inner');
+    expect(snippet.bodyHtml).toContain('host.appendChild(widget)');
+    expect(snippet.bodyHtml).not.toContain('anchor.parentNode === form');
     expect(snippet.bodyHtml).toContain('window.turnstile.render(container');
     expect(snippet.bodyHtml).toContain('data-typecho-turnstile-widget-id');
     expect(snippet.bodyHtml).toContain('.warm-comment-form,[data-comment-form],#comment-form,form[action$=\\"/api/comment\\"]');
