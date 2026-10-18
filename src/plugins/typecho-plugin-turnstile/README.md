@@ -25,10 +25,14 @@ Typecho-CF Cloudflare Turnstile 验证码插件，集成 Cloudflare Turnstile �
 
 ```
 前端页面加载
-  → archive:header hook 注入 Turnstile SDK + 状态管理 JS + 样式
-  → archive:footer hook 注入 Turnstile Widget HTML
+  → archive:header hook 注入 Turnstile SDK（提前加载）+ 状态管理 JS + 样式
+  → archive:footer hook 注入同一套 bootstrap + Widget HTML（InstantClick 兼容）
   → admin:loginHead / admin:loginForm hook 同理会注入登录页面
   → only on pages that have comments (pageContext.hasComments)
+
+InstantClick / pjax
+  → 只替换 <body>，首屏 <head> 中的 SDK 不会随导航带上
+  → footer 内的 bootstrap 会重新执行，并通过 __typechoTurnstileEnsureSdk 按需注入 SDK
 
 用户提交评论
   → feedback:comment hook 触发
@@ -48,7 +52,7 @@ Typecho-CF Cloudflare Turnstile 验证码插件，集成 Cloudflare Turnstile �
 |------|------|------|
 | `feedback:comment` | filter | 评论提交时验证 Turnstile token |
 | `archive:header` | filter | 评论页面 `<head>` 注入 SDK 和状态管理 JS |
-| `archive:footer` | filter | 评论页面注入 Widget HTML |
+| `archive:footer` | filter | 评论页面注入 bootstrap（InstantClick 兼容）+ Widget HTML |
 | `admin:loginHead` | filter | 登录页 `<head>` 注入 SDK |
 | `admin:loginForm` | filter | 登录表单注入 Widget |
 | `user:login` | filter | 登录请求验证 Turnstile token |

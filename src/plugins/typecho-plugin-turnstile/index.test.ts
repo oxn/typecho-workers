@@ -38,8 +38,10 @@ describe('typecho-plugin-turnstile', () => {
     }));
 
     expect(snippet.headHtml).toContain('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit');
+    expect(snippet.headHtml).toContain('data-typecho-turnstile-sdk');
     expect(snippet.headHtml).toContain('__typechoTurnstileSubmit');
     expect(snippet.headHtml).toContain('__typechoTurnstileSetStatus');
+    expect(snippet.headHtml).toContain('__typechoTurnstileEnsureSdk');
     expect(snippet.headHtml).toContain('requestSubmit()');
     expect(snippet.headHtml).toContain('.typecho-turnstile-status:empty');
     expect(snippet.headHtml).toContain('.typecho-turnstile[data-typecho-turnstile-pending]');
@@ -47,6 +49,11 @@ describe('typecho-plugin-turnstile', () => {
     expect(snippet.headHtml).toContain('message ');
     expect(snippet.bodyHtml).toContain('cf-turnstile typecho-turnstile-widget');
     expect(snippet.headHtml).toContain('data-comment-message');
+    // InstantClick only swaps body — bootstrap (helpers + styles + EnsureSdk)
+    // must ship in bodyHtml so pjax into a comment page can still load Turnstile.
+    expect(snippet.bodyHtml).toContain('__typechoTurnstileEnsureSdk');
+    expect(snippet.bodyHtml).toContain('__typechoTurnstileReady');
+    expect(snippet.bodyHtml).toContain('.typecho-turnstile { margin: 0 0 1em; text-align: left; }');
     expect(snippet.bodyHtml).not.toContain('id="typecho-turnstile-comment-form-status"');
     expect(snippet.bodyHtml).toContain('site-key');
     expect(snippet.bodyHtml).toContain('interaction-only');
@@ -65,6 +72,19 @@ describe('typecho-plugin-turnstile', () => {
     expect(snippet.bodyHtml).toContain("widget.removeAttribute('data-typecho-turnstile-pending')");
     expect(snippet.bodyHtml).toContain('MutationObserver');
     expect(snippet.bodyHtml).toContain('watchForForm');
+  });
+
+  it('boots Turnstile from bodyHtml so InstantClick body swaps still load the SDK', () => {
+    const snippet = getClientSnippet(options({ sitekey: 'site-key' }));
+    // Static SDK tag stays in head for full-page loads; body uses EnsureSdk.
+    expect(snippet.headHtml).toContain('src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"');
+    expect(snippet.bodyHtml).toContain('__typechoTurnstileEnsureSdk');
+    expect(snippet.bodyHtml).toContain('data-typecho-turnstile-sdk');
+    expect(snippet.bodyHtml).toContain('challenges.cloudflare.com/turnstile');
+    expect(snippet.bodyHtml).toContain('document.head || document.documentElement');
+    // Avoid a second static <script src> in body — InstantClick recreates those
+    // without attributes; EnsureSdk injects once into head instead.
+    expect(snippet.bodyHtml).not.toMatch(/<script src="https:\/\/challenges\.cloudflare\.com\/turnstile/);
   });
 
   it('executes interaction-only widgets on submit so login cannot post without a token', () => {

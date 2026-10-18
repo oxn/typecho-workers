@@ -82,9 +82,24 @@ function buildSnippet(options: Record<string, unknown> | undefined, formId: stri
     return { headHtml: '', bodyHtml: '' };
   }
 
-  const headHtml = `<script is:inline>
+  // InstantClick only swaps <body> (keeps the first page's <head>). Helpers,
+  // styles, and an ensure-SDK loader must therefore live in bodyHtml so pjax
+  // navigations onto a comment page can still boot Turnstile. headHtml keeps
+  // an early static SDK tag for full document loads / login.
+  const TURNSTILE_SDK_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+  const bootstrapHtml = `<script is:inline>
 (function() {
   window.__typechoTurnstilePending = window.__typechoTurnstilePending || null;
+  window.__typechoTurnstileEnsureSdk = window.__typechoTurnstileEnsureSdk || function() {
+    if (window.turnstile && typeof window.turnstile.render === "function") return;
+    if (document.querySelector('script[data-typecho-turnstile-sdk],script[src*="challenges.cloudflare.com/turnstile"]')) return;
+    var s = document.createElement("script");
+    s.src = ${JSON.stringify(TURNSTILE_SDK_URL)};
+    s.async = true;
+    s.defer = true;
+    s.setAttribute("data-typecho-turnstile-sdk", "1");
+    (document.head || document.documentElement).appendChild(s);
+  };
   window.__typechoTurnstileSubmit = window.__typechoTurnstileSubmit || function(token) {
     var pending = window.__typechoTurnstilePending;
     if (!pending || !pending.form) return;
@@ -129,6 +144,7 @@ function buildSnippet(options: Record<string, unknown> | undefined, formId: stri
     window.__typechoTurnstilePending = null;
   };
   window.__typechoTurnstileReady = window.__typechoTurnstileReady || function(callback) {
+    window.__typechoTurnstileEnsureSdk();
     if (window.turnstile && typeof window.turnstile.render === "function") {
       callback();
       return;
@@ -144,6 +160,7 @@ function buildSnippet(options: Record<string, unknown> | undefined, formId: stri
       }
     }, 100);
   };
+  window.__typechoTurnstileEnsureSdk();
 })();
 </script><style>
 .typecho-turnstile { margin: 0 0 1em; text-align: left; }
@@ -155,7 +172,8 @@ function buildSnippet(options: Record<string, unknown> | undefined, formId: stri
 .typecho-turnstile-widget { display: inline-block; min-height: 65px; }
 .typecho-turnstile-status:empty { display: none; }
 .typecho-turnstile-status { margin: 6px 0 0; text-align: left; }
-</style><script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>`;
+</style>`;
+  const headHtml = `${bootstrapHtml}<script src="${TURNSTILE_SDK_URL}" async defer data-typecho-turnstile-sdk></script>`;
   const sitekey = escapeAttr(config.sitekey);
   const inputAttr = escapeAttr(config.input);
   const themeAttr = escapeAttr(config.theme);
@@ -274,16 +292,18 @@ ${statusHtml}
 })();
 </script>`;
 
+  // Prefix bootstrap so InstantClick (body-only swap) still defines helpers,
+  // injects styles, and ensures the Turnstile SDK after pjax into a post.
   if (!onDemand) {
     return {
       headHtml,
-      bodyHtml: widgetHtml + placementHtml,
+      bodyHtml: bootstrapHtml + widgetHtml + placementHtml,
     };
   }
 
   return {
     headHtml,
-    bodyHtml: `${widgetHtml}${placementHtml}<script is:inline>
+    bodyHtml: `${bootstrapHtml}${widgetHtml}${placementHtml}<script is:inline>
 (function() {
   var inputName = ${input};
   var formSelector = ${targetFormSelectorValue};
