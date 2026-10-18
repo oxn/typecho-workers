@@ -1,18 +1,18 @@
 /**
- * Engine admin settings page (/admin/plugin/engine).
+ * Intelligence admin settings page (/admin/plugin/intelligence).
  */
 import { escapeHtml } from 'typecho/plugin-sdk';
 import {
   maskSecretFormValues,
   toFormValues,
-  type EngineSettings,
+  type IntelligenceSettings,
   type SearchProvider,
 } from './config';
 
-export const ADMIN_PAGE_SLUG = 'engine';
-export const CONFIG_API_ROUTE = '/api/admin/plugin-engine/config';
+export const ADMIN_PAGE_SLUG = 'intelligence';
+export const CONFIG_API_ROUTE = '/api/admin/plugin-intelligence/config';
 
-export function isEngineAdminSlug(slug: string | undefined): boolean {
+export function isIntelligenceAdminSlug(slug: string | undefined): boolean {
   return slug === ADMIN_PAGE_SLUG;
 }
 
@@ -23,7 +23,7 @@ function attr(value: string): string {
 type FieldItem = { label: string; control: string; description?: string };
 
 function fieldCell(item: FieldItem): string {
-  return `<div class="engine-field">`
+  return `<div class="intelligence-field">`
     + `<label class="typecho-label">${escapeHtml(item.label)}</label>${item.control}`
     + (item.description ? `<p class="description">${item.description}</p>` : '')
     + `</div>`;
@@ -32,13 +32,13 @@ function fieldCell(item: FieldItem): string {
 /** N labeled controls in one row (desktop); stacks on narrow viewports. */
 function fieldRow(...items: FieldItem[]): string {
   const cols = items.length;
-  return `<li class="engine-row engine-row-${cols}">${items.map(fieldCell).join('')}</li>`;
+  return `<li class="intelligence-row intelligence-row-${cols}">${items.map(fieldCell).join('')}</li>`;
 }
 
 function textInput(name: string, value: string, opts: { type?: string; placeholder?: string } = {}): string {
   const type = opts.type || 'text';
   const ph = opts.placeholder ? ` placeholder="${attr(opts.placeholder)}"` : '';
-  return `<input type="${type}" name="${name}" id="engine-${name}" class="text w-100" value="${attr(value)}"${ph}>`;
+  return `<input type="${type}" name="${name}" id="intelligence-${name}" class="text w-100" value="${attr(value)}"${ph}>`;
 }
 
 function searchCards(
@@ -46,16 +46,16 @@ function searchCards(
   value: string,
   options: Array<{ value: SearchProvider; label: string; badge: string; hint: string }>,
 ): string {
-  return `<div class="engine-scope-grid" role="radiogroup" aria-label="搜索方式">${options.map((opt) => {
+  return `<div class="intelligence-scope-grid" role="radiogroup" aria-label="搜索方式">${options.map((opt) => {
     const checked = opt.value === value ? ' checked' : '';
     const active = opt.value === value ? ' is-active' : '';
-    return `<label class="engine-scope-card${active}">`
+    return `<label class="intelligence-scope-card${active}">`
       + `<input type="radio" name="${name}" value="${attr(opt.value)}"${checked}>`
-      + `<span class="engine-scope-top">`
-      + `<span class="engine-scope-title">${escapeHtml(opt.label)}</span>`
-      + `<span class="engine-scope-badge">${escapeHtml(opt.badge)}</span>`
+      + `<span class="intelligence-scope-top">`
+      + `<span class="intelligence-scope-title">${escapeHtml(opt.label)}</span>`
+      + `<span class="intelligence-scope-badge">${escapeHtml(opt.badge)}</span>`
       + `</span>`
-      + `<span class="engine-scope-hint">${escapeHtml(opt.hint)}</span>`
+      + `<span class="intelligence-scope-hint">${escapeHtml(opt.hint)}</span>`
       + `</label>`;
   }).join('')}</div>`;
 }
@@ -66,22 +66,22 @@ const SEARCH_OPTIONS: Array<{ value: SearchProvider; label: string; badge: strin
   { value: 'google', label: 'Google', badge: '外部搜索', hint: '直接跳转 Google 搜索本站，关闭内部搜索路由' },
 ];
 
-export function adminPageHtml(csrf: string, config: EngineSettings): string {
+export function adminPageHtml(csrf: string, config: IntelligenceSettings): string {
   const values = maskSecretFormValues(toFormValues(config));
   const v = (key: keyof typeof values) => values[key] || '';
 
-  return `<div class="col-mb-12" id="engine-settings-app">
-  <div id="engine-settings-notice" style="display:none" role="status" aria-live="polite"></div>
+  return `<div class="col-mb-12" id="intelligence-settings-app">
+  <div id="intelligence-settings-notice" style="display:none" role="status" aria-live="polite"></div>
 
-  <form id="engine-settings-form">
+  <form id="intelligence-settings-form">
     <input type="hidden" name="_" value="${attr(csrf)}">
 
-    <section class="engine-panel">
-      <header class="engine-panel-head">
+    <section class="intelligence-panel">
+      <header class="intelligence-panel-head">
         <h3>基础设置</h3>
         <p>连接 OpenAI 兼容接口，供写作辅助与摘要共用</p>
       </header>
-      <ul class="typecho-option engine-option-list">
+      <ul class="typecho-option intelligence-option-list">
         ${fieldRow(
           {
             label: '接口地址',
@@ -102,41 +102,41 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
       </ul>
     </section>
 
-    <section class="engine-panel" aria-labelledby="engine-summary-title">
-      <header class="engine-panel-head engine-summary-head">
-        <div class="engine-summary-title">
-          <h3 id="engine-summary-title">智能摘要</h3>
+    <section class="intelligence-panel" aria-labelledby="intelligence-summary-title">
+      <header class="intelligence-panel-head intelligence-summary-head">
+        <div class="intelligence-summary-title">
+          <h3 id="intelligence-summary-title">智能摘要</h3>
           <p>使用已保存的 AI 配置生成 80～120 字内容概览</p>
         </div>
-        <label class="engine-toggle">
-          <input type="checkbox" role="switch" name="autoSummary" id="engine-autoSummary" value="1"${v('autoSummary') === '1' ? ' checked' : ''} aria-label="自动生成智能摘要">
-          <span id="engine-auto-summary-state" aria-hidden="true">${v('autoSummary') === '1' ? '开启' : '关闭'}</span>
+        <label class="intelligence-toggle">
+          <input type="checkbox" role="switch" name="autoSummary" id="intelligence-autoSummary" value="1"${v('autoSummary') === '1' ? ' checked' : ''} aria-label="自动生成智能摘要">
+          <span id="intelligence-auto-summary-state" aria-hidden="true">${v('autoSummary') === '1' ? '开启' : '关闭'}</span>
         </label>
       </header>
-      <div class="engine-summary-batch">
-        <div class="engine-summary-batch-head">
-          <div class="engine-summary-copy">
+      <div class="intelligence-summary-batch">
+        <div class="intelligence-summary-batch-head">
+          <div class="intelligence-summary-copy">
             <h4>手动批量生成</h4>
             <p class="description">为已发布的文章和页面生成智能摘要，不受自动生成开关影响。</p>
           </div>
-          <div class="engine-summary-actions">
-            <div class="engine-batch-actions">
-              <button type="button" class="btn primary" id="engine-batch-start">批量生成</button>
-              <button type="button" class="btn" id="engine-batch-stop" disabled>停止</button>
+          <div class="intelligence-summary-actions">
+            <div class="intelligence-batch-actions">
+              <button type="button" class="btn primary" id="intelligence-batch-start">批量生成</button>
+              <button type="button" class="btn" id="intelligence-batch-stop" disabled>停止</button>
             </div>
-            <label class="engine-check"><input type="checkbox" id="engine-skip-existing" checked> 跳过已有摘要</label>
+            <label class="intelligence-check"><input type="checkbox" id="intelligence-skip-existing" checked> 跳过已有摘要</label>
           </div>
         </div>
-        <div id="engine-batch-progress" class="engine-batch-progress" hidden>
-          <div class="engine-batch-bar"><div id="engine-batch-bar-fill"></div></div>
-          <p id="engine-batch-status" class="description" role="status" aria-live="polite"></p>
-          <ul id="engine-batch-log" class="engine-batch-log"></ul>
+        <div id="intelligence-batch-progress" class="intelligence-batch-progress" hidden>
+          <div class="intelligence-batch-bar"><div id="intelligence-batch-bar-fill"></div></div>
+          <p id="intelligence-batch-status" class="description" role="status" aria-live="polite"></p>
+          <ul id="intelligence-batch-log" class="intelligence-batch-log"></ul>
         </div>
       </div>
     </section>
 
-    <section class="engine-panel">
-      <header class="engine-panel-head">
+    <section class="intelligence-panel">
+      <header class="intelligence-panel-head">
         <h3>搜索方式</h3>
         <p>选择站内搜索或直接跳转外部搜索引擎</p>
       </header>
@@ -144,69 +144,69 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
       <p class="description">外部搜索使用关键词 + site:站点域名，仅能搜索引擎已收录的内容；新文章可能延迟出现。插件停用后恢复默认站内搜索。</p>
     </section>
 
-    <p class="submit engine-submit">
-      <button type="submit" class="btn primary" id="engine-settings-save">保存设置</button>
+    <p class="submit intelligence-submit">
+      <button type="submit" class="btn primary" id="intelligence-settings-save">保存设置</button>
     </p>
   </form>
 </div>
 
 <style>
-#engine-settings-app p:last-child,
-#engine-settings-app .engine-batch-actions { margin-bottom: 0; }
-#engine-settings-app .engine-panel {
+#intelligence-settings-app p:last-child,
+#intelligence-settings-app .intelligence-batch-actions { margin-bottom: 0; }
+#intelligence-settings-app .intelligence-panel {
   background: #fff;
   border: 1px solid #e7e7e7;
   border-radius: 6px;
   padding: 1.1em 1.25em 1.25em;
   margin-bottom: 1.25em;
 }
-#engine-settings-app .engine-panel-head { margin-bottom: 1em; }
-#engine-settings-app .engine-panel-head h3 {
+#intelligence-settings-app .intelligence-panel-head { margin-bottom: 1em; }
+#intelligence-settings-app .intelligence-panel-head h3 {
   margin: 0 0 .25em;
   font-size: 1.05em;
   font-weight: 600;
 }
-#engine-settings-app .engine-panel-head p {
+#intelligence-settings-app .intelligence-panel-head p {
   margin: 0;
   color: #888;
   font-size: .92857em;
 }
-#engine-settings-app .engine-option-list { list-style: none; margin: 0; padding: 0; }
-#engine-settings-app .engine-option-list > li { margin: 0 0 1em; padding: 0; border: 0; }
-#engine-settings-app .engine-option-list > li:last-child { margin-bottom: 0; }
-#engine-settings-app .engine-row {
+#intelligence-settings-app .intelligence-option-list { list-style: none; margin: 0; padding: 0; }
+#intelligence-settings-app .intelligence-option-list > li { margin: 0 0 1em; padding: 0; border: 0; }
+#intelligence-settings-app .intelligence-option-list > li:last-child { margin-bottom: 0; }
+#intelligence-settings-app .intelligence-row {
   display: grid !important;
   gap: 1em 1.25em;
   align-items: start;
 }
-#engine-settings-app .engine-row-2 { grid-template-columns: 1fr 1fr; }
-#engine-settings-app .engine-row-3 { grid-template-columns: 1fr 1fr 1fr; }
-#engine-settings-app .engine-field { min-width: 0; }
-#engine-settings-app .engine-field .text,
-#engine-settings-app .engine-field select {
+#intelligence-settings-app .intelligence-row-2 { grid-template-columns: 1fr 1fr; }
+#intelligence-settings-app .intelligence-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+#intelligence-settings-app .intelligence-field { min-width: 0; }
+#intelligence-settings-app .intelligence-field .text,
+#intelligence-settings-app .intelligence-field select {
   width: 100%;
   box-sizing: border-box;
 }
-#engine-settings-app .engine-field select { height: 32px; }
-#engine-settings-app .engine-field .description { margin: .35em 0 0; }
+#intelligence-settings-app .intelligence-field select { height: 32px; }
+#intelligence-settings-app .intelligence-field .description { margin: .35em 0 0; }
 
-#engine-settings-app .engine-summary-head,
-#engine-settings-app .engine-summary-batch-head {
+#intelligence-settings-app .intelligence-summary-head,
+#intelligence-settings-app .intelligence-summary-batch-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 1em 1.5em;
 }
-#engine-settings-app .engine-panel-head.engine-summary-head { margin-bottom: 0; }
-#engine-settings-app .engine-summary-title,
-#engine-settings-app .engine-summary-copy { min-width: 0; }
-#engine-settings-app .engine-summary-copy h4 { margin: 0 0 .4em; font-size: 1em; font-weight: 600; }
-#engine-settings-app .engine-summary-copy .description { margin: 0; line-height: 1.6; }
-#engine-settings-app .engine-summary-batch { margin-top: 1em; padding-top: 1em; border-top: 1px solid #eee; }
-#engine-settings-app .engine-summary-actions { display: flex; flex-direction: column; align-items: flex-start; gap: .65em; }
-#engine-settings-app .engine-summary-actions .btn { white-space: nowrap; }
-#engine-settings-app .engine-toggle { display: inline-flex; align-items: center; gap: .5em; margin: 0; white-space: nowrap; cursor: pointer; color: #666; }
-#engine-settings-app .engine-toggle input {
+#intelligence-settings-app .intelligence-panel-head.intelligence-summary-head { margin-bottom: 0; }
+#intelligence-settings-app .intelligence-summary-title,
+#intelligence-settings-app .intelligence-summary-copy { min-width: 0; }
+#intelligence-settings-app .intelligence-summary-copy h4 { margin: 0 0 .4em; font-size: 1em; font-weight: 600; }
+#intelligence-settings-app .intelligence-summary-copy .description { margin: 0; line-height: 1.6; }
+#intelligence-settings-app .intelligence-summary-batch { margin-top: 1em; padding-top: 1em; border-top: 1px solid #eee; }
+#intelligence-settings-app .intelligence-summary-actions { display: flex; flex-direction: column; align-items: flex-start; gap: .65em; }
+#intelligence-settings-app .intelligence-summary-actions .btn { white-space: nowrap; }
+#intelligence-settings-app .intelligence-toggle { display: inline-flex; align-items: center; gap: .5em; margin: 0; white-space: nowrap; cursor: pointer; color: #666; }
+#intelligence-settings-app .intelligence-toggle input {
   appearance: none;
   position: relative;
   width: 2.6em;
@@ -217,7 +217,7 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
   background: #b8c0c5;
   cursor: pointer;
 }
-#engine-settings-app .engine-toggle input::before {
+#intelligence-settings-app .intelligence-toggle input::before {
   content: '';
   position: absolute;
   width: 1.1em;
@@ -228,39 +228,39 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
   background: #fff;
   transition: transform .15s ease;
 }
-#engine-settings-app .engine-toggle input:checked { background: #467B96; }
-#engine-settings-app .engine-toggle input:checked::before { transform: translateX(1.1em); }
-#engine-settings-app .engine-toggle input:focus-visible { outline: 2px solid #467B96; outline-offset: 3px; }
+#intelligence-settings-app .intelligence-toggle input:checked { background: #467B96; }
+#intelligence-settings-app .intelligence-toggle input:checked::before { transform: translateX(1.1em); }
+#intelligence-settings-app .intelligence-toggle input:focus-visible { outline: 2px solid #467B96; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
-  #engine-settings-app .engine-toggle input::before { transition: none; }
+  #intelligence-settings-app .intelligence-toggle input::before { transition: none; }
 }
-#engine-settings-app .engine-batch-actions {
+#intelligence-settings-app .intelligence-batch-actions {
   display: flex;
   flex-wrap: wrap;
   gap: .5em;
   justify-content: flex-start;
 }
-#engine-settings-app .engine-check {
+#intelligence-settings-app .intelligence-check {
   display: inline-flex;
   gap: .35em;
   align-items: center;
   color: #555;
   margin: 0;
 }
-#engine-settings-app .engine-batch-progress { margin-top: .9em; }
-#engine-settings-app .engine-batch-bar {
+#intelligence-settings-app .intelligence-batch-progress { margin-top: .9em; }
+#intelligence-settings-app .intelligence-batch-bar {
   height: 8px;
   background: #e8e8e8;
   border-radius: 4px;
   overflow: hidden;
 }
-#engine-settings-app #engine-batch-bar-fill {
+#intelligence-settings-app #intelligence-batch-bar-fill {
   height: 100%;
   width: 0;
   background: #467B96;
   transition: width .2s ease;
 }
-#engine-settings-app .engine-batch-log {
+#intelligence-settings-app .intelligence-batch-log {
   max-height: 200px;
   overflow: auto;
   margin: .55em 0 0;
@@ -272,16 +272,16 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
   font-size: .92857em;
   color: #666;
 }
-#engine-settings-app .engine-batch-log li { margin: .15em 0; }
-#engine-settings-app .engine-batch-log .ok { color: #2e7d32; }
-#engine-settings-app .engine-batch-log .err { color: #c62828; }
+#intelligence-settings-app .intelligence-batch-log li { margin: .15em 0; }
+#intelligence-settings-app .intelligence-batch-log .ok { color: #2e7d32; }
+#intelligence-settings-app .intelligence-batch-log .err { color: #c62828; }
 
-#engine-settings-app .engine-scope-grid {
+#intelligence-settings-app .intelligence-scope-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: .85em;
 }
-#engine-settings-app .engine-scope-card {
+#intelligence-settings-app .intelligence-scope-card {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -294,32 +294,32 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
   cursor: pointer;
   transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
 }
-#engine-settings-app .engine-scope-card:hover { border-color: #b7cdd8; }
-#engine-settings-app .engine-scope-card.is-active,
-#engine-settings-app .engine-scope-card:has(input:checked) {
+#intelligence-settings-app .intelligence-scope-card:hover { border-color: #b7cdd8; }
+#intelligence-settings-app .intelligence-scope-card.is-active,
+#intelligence-settings-app .intelligence-scope-card:has(input:checked) {
   border-color: #467B96;
   background: #f3f8fb;
   box-shadow: inset 0 0 0 1px #467B96;
 }
-#engine-settings-app .engine-scope-card input {
+#intelligence-settings-app .intelligence-scope-card input {
   position: absolute;
   left: .9em;
   top: 1.2em;
   margin: 0;
 }
-#engine-settings-app .engine-scope-top {
+#intelligence-settings-app .intelligence-scope-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: .5em;
   margin-right: 0;
 }
-#engine-settings-app .engine-scope-title {
+#intelligence-settings-app .intelligence-scope-title {
   font-weight: 600;
   color: #333;
   margin-right: 0;
 }
-#engine-settings-app .engine-scope-badge {
+#intelligence-settings-app .intelligence-scope-badge {
   flex-shrink: 0;
   margin: 0;
   padding: .12em .5em;
@@ -330,57 +330,57 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
   font-weight: 600;
   white-space: nowrap;
 }
-#engine-settings-app .engine-scope-card.is-active .engine-scope-badge,
-#engine-settings-app .engine-scope-card:has(input:checked) .engine-scope-badge {
+#intelligence-settings-app .intelligence-scope-card.is-active .intelligence-scope-badge,
+#intelligence-settings-app .intelligence-scope-card:has(input:checked) .intelligence-scope-badge {
   background: #467B96;
   color: #fff;
 }
-#engine-settings-app .engine-scope-hint {
+#intelligence-settings-app .intelligence-scope-hint {
   color: #888;
   font-size: .92857em;
   line-height: 1.45;
   margin-right: 0;
 }
-#engine-settings-app .engine-submit { margin: .25em 0 1.5em; }
+#intelligence-settings-app .intelligence-submit { margin: .25em 0 1.5em; }
 
-#engine-settings-notice { margin-bottom: 1em; padding: .75em 1em; border-radius: 4px; }
-#engine-settings-notice.is-ok { background: #e8f5e9; color: #2e7d32; }
-#engine-settings-notice.is-err { background: #ffebee; color: #c62828; }
+#intelligence-settings-notice { margin-bottom: 1em; padding: .75em 1em; border-radius: 4px; }
+#intelligence-settings-notice.is-ok { background: #e8f5e9; color: #2e7d32; }
+#intelligence-settings-notice.is-err { background: #ffebee; color: #c62828; }
 
 @media (max-width: 820px) {
-  #engine-settings-app .engine-row-2,
-  #engine-settings-app .engine-row-3 {
+  #intelligence-settings-app .intelligence-row-2,
+  #intelligence-settings-app .intelligence-row-3 {
     grid-template-columns: 1fr !important;
   }
-  #engine-settings-app .engine-scope-grid {
+  #intelligence-settings-app .intelligence-scope-grid {
     display: flex;
     flex-direction: column;
   }
 }
 @media (max-width: 640px) {
-  #engine-settings-app .engine-summary-head { gap: 1em; }
-  #engine-settings-app .engine-summary-batch-head { grid-template-columns: minmax(0, 1fr); gap: .85em; }
-  #engine-settings-app .engine-summary-actions { flex-direction: row; align-items: center; flex-wrap: wrap; gap: .75em 1em; }
+  #intelligence-settings-app .intelligence-summary-head { gap: 1em; }
+  #intelligence-settings-app .intelligence-summary-batch-head { grid-template-columns: minmax(0, 1fr); gap: .85em; }
+  #intelligence-settings-app .intelligence-summary-actions { flex-direction: row; align-items: center; flex-wrap: wrap; gap: .75em 1em; }
 }
 </style>
 
 <script>
 (function () {
-  var form = document.getElementById('engine-settings-form');
-  var notice = document.getElementById('engine-settings-notice');
-  var saveBtn = document.getElementById('engine-settings-save');
-  var startBtn = document.getElementById('engine-batch-start');
-  var stopBtn = document.getElementById('engine-batch-stop');
-  var skipExisting = document.getElementById('engine-skip-existing');
-  var progressBox = document.getElementById('engine-batch-progress');
-  var barFill = document.getElementById('engine-batch-bar-fill');
-  var statusEl = document.getElementById('engine-batch-status');
-  var logEl = document.getElementById('engine-batch-log');
+  var form = document.getElementById('intelligence-settings-form');
+  var notice = document.getElementById('intelligence-settings-notice');
+  var saveBtn = document.getElementById('intelligence-settings-save');
+  var startBtn = document.getElementById('intelligence-batch-start');
+  var stopBtn = document.getElementById('intelligence-batch-stop');
+  var skipExisting = document.getElementById('intelligence-skip-existing');
+  var progressBox = document.getElementById('intelligence-batch-progress');
+  var barFill = document.getElementById('intelligence-batch-bar-fill');
+  var statusEl = document.getElementById('intelligence-batch-status');
+  var logEl = document.getElementById('intelligence-batch-log');
   var csrf = ${JSON.stringify(csrf)};
   var configUrl = ${JSON.stringify(CONFIG_API_ROUTE)};
   var batchStop = false;
-  var autoSummary = document.getElementById('engine-autoSummary');
-  var autoSummaryState = document.getElementById('engine-auto-summary-state');
+  var autoSummary = document.getElementById('intelligence-autoSummary');
+  var autoSummaryState = document.getElementById('intelligence-auto-summary-state');
   if (autoSummary && autoSummaryState) {
     autoSummary.addEventListener('change', function () {
       autoSummaryState.textContent = autoSummary.checked ? '开启' : '关闭';
@@ -395,9 +395,9 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
     notice.textContent = message;
   }
 
-  form.querySelectorAll('.engine-scope-card input').forEach(function (input) {
+  form.querySelectorAll('.intelligence-scope-card input').forEach(function (input) {
     input.addEventListener('change', function () {
-      form.querySelectorAll('.engine-scope-card').forEach(function (card) {
+      form.querySelectorAll('.intelligence-scope-card').forEach(function (card) {
         card.classList.toggle('is-active', !!(card.querySelector('input') && card.querySelector('input').checked));
       });
     });
@@ -436,7 +436,7 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
       }
       showNotice(true, json.message || '设置已保存');
       if (json.settings && json.settings.apiKey !== undefined) {
-        var keyInput = document.getElementById('engine-apiKey');
+        var keyInput = document.getElementById('intelligence-apiKey');
         if (keyInput) keyInput.value = json.settings.apiKey;
       }
     } catch (err) {
@@ -456,7 +456,7 @@ export function adminPageHtml(csrf: string, config: EngineSettings): string {
       },
       body: JSON.stringify({
         _: csrf,
-        plugin: 'typecho-plugin-engine',
+        plugin: 'typecho-plugin-intelligence',
         action: action,
         payload: payload || {},
       }),

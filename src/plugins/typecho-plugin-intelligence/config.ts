@@ -1,17 +1,17 @@
 /**
- * Engine plugin persisted settings (options key: plugin:typecho-plugin-engine).
+ * Intelligence plugin persisted settings (options key: plugin:typecho-plugin-intelligence).
  */
 import { parsePluginOption } from 'typecho/plugin-sdk';
 import { normalizeSearchProvider, type SearchProvider } from './search';
 
-export const PLUGIN_ID = 'typecho-plugin-engine';
-export const ENGINE_SUMMARY_FIELD = 'engine_summary';
+export const PLUGIN_ID = 'typecho-plugin-intelligence';
+export const INTELLIGENCE_SUMMARY_FIELD = 'intelligence_summary';
 
 export { normalizeSearchProvider, type SearchProvider } from './search';
 
 export const MASKED_SECRET = '********';
 
-export interface EngineSettings {
+export interface IntelligenceSettings {
   endpoint: string;
   apiKey: string;
   model: string;
@@ -23,7 +23,7 @@ export interface EngineSettings {
   searchProvider: SearchProvider;
 }
 
-export const SETTINGS_DEFAULTS: EngineSettings = {
+export const SETTINGS_DEFAULTS: IntelligenceSettings = {
   endpoint: 'https://open.bigmodel.cn/api/paas/v4/',
   apiKey: '',
   model: 'glm-4.7-flash',
@@ -40,7 +40,7 @@ export function normalizeAutoSummary(value: unknown): string {
   return '0';
 }
 
-export function normalizeSettings(settings?: Record<string, unknown>): EngineSettings {
+export function normalizeSettings(settings?: Record<string, unknown>): IntelligenceSettings {
   return {
     endpoint: String(settings?.endpoint || '').trim(),
     apiKey: String(settings?.apiKey || '').trim(),
@@ -52,7 +52,7 @@ export function normalizeSettings(settings?: Record<string, unknown>): EngineSet
   };
 }
 
-export function loadSettings(options?: Record<string, unknown>): EngineSettings {
+export function loadSettings(options?: Record<string, unknown>): IntelligenceSettings {
   const raw = parsePluginOption(options?.[`plugin:${PLUGIN_ID}`] as string | undefined);
   return {
     ...SETTINGS_DEFAULTS,
@@ -60,14 +60,17 @@ export function loadSettings(options?: Record<string, unknown>): EngineSettings 
   };
 }
 
-/** Validate LLM + Engine settings for save. Does not hit the provider. */
-export function validateSettings(settings?: Record<string, unknown>): EngineSettings {
+/** True when endpoint, API key, and model are all present (AI features can run). */
+export function isAiConfigured(config: Pick<IntelligenceSettings, 'endpoint' | 'apiKey' | 'model'>): boolean {
+  return Boolean(config.endpoint && config.apiKey && config.model);
+}
+
+/**
+ * Validate Intelligence settings for save. Does not hit the provider.
+ * Missing endpoint/apiKey/model does not block save — AI features stay off until complete.
+ */
+export function validateSettings(settings?: Record<string, unknown>): IntelligenceSettings {
   const config = normalizeSettings(settings);
-  // External/internal search does not require an AI account.
-  const usesAi = Boolean(config.apiKey) || config.autoSummary === '1';
-  if (usesAi && (!config.endpoint || !config.apiKey || !config.model)) {
-    throw new Error('请填写接口地址、API Key 和模型名称');
-  }
 
   if (config.endpoint) {
     let url: URL;
@@ -94,7 +97,7 @@ export function validateSettings(settings?: Record<string, unknown>): EngineSett
   return config;
 }
 
-export function toFormValues(config: EngineSettings): Record<string, string> {
+export function toFormValues(config: IntelligenceSettings): Record<string, string> {
   return {
     endpoint: config.endpoint,
     apiKey: config.apiKey,
@@ -124,6 +127,6 @@ export function restoreSecretFormValues(
   return next;
 }
 
-export function isAutoSummaryEnabled(config: EngineSettings): boolean {
-  return config.autoSummary === '1';
+export function isAutoSummaryEnabled(config: IntelligenceSettings): boolean {
+  return config.autoSummary === '1' && isAiConfigured(config);
 }

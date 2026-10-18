@@ -512,8 +512,8 @@ describe('Middleware: external search stops before route rendering', () => {
       { name: 'siteUrl', user: 0, value: SITE },
       { name: 'installed', user: 0, value: '1' },
       { name: 'secret', user: 0, value: 'search-test-secret' },
-      { name: 'activatedPlugins', user: 0, value: '["typecho-plugin-engine"]' },
-      { name: 'plugin:typecho-plugin-engine', user: 0, value: '{"searchProvider":"bing"}' },
+      { name: 'activatedPlugins', user: 0, value: '["typecho-plugin-intelligence"]' },
+      { name: 'plugin:typecho-plugin-intelligence', user: 0, value: '{"searchProvider":"bing"}' },
     ]);
   });
 
@@ -541,7 +541,7 @@ describe('Middleware: external search stops before route rendering', () => {
   });
 
   it('also rejects Google search mode', async () => {
-    await testDb.update(schema.options).set({ value: '{"searchProvider":"google"}' }).where(eq(schema.options.name, 'plugin:typecho-plugin-engine'));
+    await testDb.update(schema.options).set({ value: '{"searchProvider":"google"}' }).where(eq(schema.options.name, 'plugin:typecho-plugin-intelligence'));
     advanceOptionsSnapshotGeneration(testDb as any);
     const { response, next } = await dispatch('/search/keyword/');
     expect(response.status).toBe(404);
@@ -549,7 +549,7 @@ describe('Middleware: external search stops before route rendering', () => {
   });
 
   it.each(['default', 'inactive'])('allows original search when %s', async mode => {
-    const name = mode === 'inactive' ? 'activatedPlugins' : 'plugin:typecho-plugin-engine';
+    const name = mode === 'inactive' ? 'activatedPlugins' : 'plugin:typecho-plugin-intelligence';
     const value = mode === 'inactive' ? '[]' : '{"searchProvider":"default"}';
     await testDb.update(schema.options).set({ value }).where(eq(schema.options.name, name));
     advanceOptionsSnapshotGeneration(testDb as any);

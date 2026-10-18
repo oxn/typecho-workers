@@ -1,0 +1,26 @@
+{
+  "name": "typecho-plugin-intelligence",
+  "version": "2.0.0",
+  "description": "AI intelligence for Typecho-Workers: writing assistant, auto summaries, and search providers",
+  "keywords": ["typecho", "plugin", "ai", "writer", "summary", "search"],
+  "author": "Tokinx",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-intelligence",
+      "name": "Intelligence",
+      "description": "AI 智能助手：写作辅助、自动摘要与搜索方式",
+      "author": "Tokinx",
+      "authorUrl": "https://biji.io",
+      "version": "2.0.0",
+      "homepage": "https://github.com/Tokinx/typecho-workers/tree/master/src/plugins/typecho-plugin-intelligence",
+      "license": "MIT",
+      "tags": ["ai", "writer", "llm", "summary", "search"],
+      "adminPage": "intelligence",
+      "adminPageTitle": "Intelligence 设置",
+      "adminPageIsSettings": true
+    }
+  }
+}

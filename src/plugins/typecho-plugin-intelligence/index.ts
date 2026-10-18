@@ -14,7 +14,7 @@ import { and, desc, eq, inArray, or } from 'drizzle-orm';
 import { getAuthCookies, validateAuthToken, requireAdminCSRF } from '@/lib/auth';
 import { isSameOriginRequest } from '@/lib/admin-auth';
 import {
-  PLUGIN_ID as ENGINE_PLUGIN_ID,
+  PLUGIN_ID as INTELLIGENCE_PLUGIN_ID,
   loadSettings,
   validateSettings,
   toFormValues,
@@ -27,13 +27,13 @@ import {
   listPublishedForSummary,
 } from './summary';
 
-export { readSummary, ENGINE_SUMMARY_FIELD } from './summary';
+export { readSummary, INTELLIGENCE_SUMMARY_FIELD } from './summary';
 export { upsertSummary };
 import {
   ADMIN_PAGE_SLUG,
   CONFIG_API_ROUTE,
   adminPageHtml,
-  isEngineAdminSlug,
+  isIntelligenceAdminSlug,
 } from './admin-page';
 
 import { isInternalSearchRequest, searchClientHtml, searchDisabledResponse } from './search';
@@ -44,28 +44,28 @@ import { isInternalSearchRequest, searchClientHtml, searchDisabledResponse } fro
 // 约定：函数体不使用模板字面量、不引用模块级常量（阈值等魔法数字直接内联），
 // 保证序列化后自包含可执行；转译器可能重写字符串引号风格，测试断言按值而非精确源码文本。
 // 比对视图为纯 markdown 源码对比（无 HTML 渲染层）：占位符删除词 \u0001…\u0002、新增词 \u0003…\u0004，
-// 标记文本经 HTML 转义后由 engineRestoreMarks 还原为 span——只产生文本节点内的高亮，任何语法都不会被破坏；
+// 标记文本经 HTML 转义后由 intelligenceRestoreMarks 还原为 span——只产生文本节点内的高亮，任何语法都不会被破坏；
 // 渲染效果由独立的「预览」页签负责。
-export const engineDiffAlgo = {
-  engineTokenize,
-  engineAppendLcs,
-  engineLcsOps,
-  engineWrapTokens,
-  engineRestoreMarks,
-  engineFinalizeDiff,
-  engineDiffMarkup,
+export const intelligenceDiffAlgo = {
+  intelligenceTokenize,
+  intelligenceAppendLcs,
+  intelligenceLcsOps,
+  intelligenceWrapTokens,
+  intelligenceRestoreMarks,
+  intelligenceFinalizeDiff,
+  intelligenceDiffMarkup,
 };
 
-export const ENGINE_DIFF_ALGO_JS = Object.values(engineDiffAlgo)
+export const INTELLIGENCE_DIFF_ALGO_JS = Object.values(intelligenceDiffAlgo)
   .map((fn) => fn.toString())
   .join('\n');
 
-function engineTokenize(text: string): string[] {
+function intelligenceTokenize(text: string): string[] {
   const re = /[\u4e00-\u9fffA-Za-z0-9_]+|\n|[^\u4e00-\u9fffA-Za-z0-9_\n]/g;
   return text.match(re) || [];
 }
 
-function engineAppendLcs(a: string[], b: string[], ops: DiffOp[]): void {
+function intelligenceAppendLcs(a: string[], b: string[], ops: DiffOp[]): void {
   const n = a.length;
   const m = b.length;
   if (n === 0 && m === 0) return;
@@ -122,7 +122,7 @@ function engineAppendLcs(a: string[], b: string[], ops: DiffOp[]): void {
 }
 
 // 通用 LCS diff：先裁剪相同前后缀缩小 DP 规模
-function engineLcsOps(a: string[], b: string[]): DiffOp[] {
+function intelligenceLcsOps(a: string[], b: string[]): DiffOp[] {
   let start = 0;
   while (start < a.length && start < b.length && a[start] === b[start]) start++;
   let endA = a.length;
@@ -133,7 +133,7 @@ function engineLcsOps(a: string[], b: string[]): DiffOp[] {
   }
   const ops: DiffOp[] = [];
   for (let i = 0; i < start; i++) ops.push({ t: 'e', s: a[i] });
-  engineAppendLcs(a.slice(start, endA), b.slice(start, endB), ops);
+  intelligenceAppendLcs(a.slice(start, endA), b.slice(start, endB), ops);
   for (let i = endA; i < a.length; i++) ops.push({ t: 'e', s: a[i] });
   return ops;
 }
@@ -141,7 +141,7 @@ function engineLcsOps(a: string[], b: string[]): DiffOp[] {
 // 按 ops 重建单侧文本：del 侧取 e/d token、ins 侧取 e/i token，另一侧 token 跳过；
 // 指定类型 token 用控制字符占位符包裹；连续同型 token 合并成一次包裹（\n 断开合并且不包裹），
 // 避免 markdown 语法/URL 的符号 token 被逐字符高亮成碎片
-function engineWrapTokens(ops: DiffOp[], kind: 'del' | 'ins'): string {
+function intelligenceWrapTokens(ops: DiffOp[], kind: 'del' | 'ins'): string {
   let out = '';
   let i = 0;
   while (i < ops.length) {
@@ -184,28 +184,28 @@ function engineWrapTokens(ops: DiffOp[], kind: 'del' | 'ins'): string {
 }
 
 // 把占位符还原为高亮 span（纯文本对比视图：标记文本经 HTML 转义后还原，只产生文本节点内的 span，安全）
-function engineRestoreMarks(html: string): string {
+function intelligenceRestoreMarks(html: string): string {
   return html
     .replace(/\u0001([\s\S]*?)\u0002/g, (_match, text: string) => {
-      return '<span class="typecho-engine-diff-del">' + text + '</span>';
+      return '<span class="typecho-intelligence-diff-del">' + text + '</span>';
     })
     .replace(/\u0003([\s\S]*?)\u0004/g, (_match, text: string) => {
-      return '<span class="typecho-engine-diff-ins">' + text + '</span>';
+      return '<span class="typecho-intelligence-diff-ins">' + text + '</span>';
     });
 }
 
-function engineFinalizeDiff(pending: { oldLines: string[]; newLines: string[] }): EngineDiffBlock {
+function intelligenceFinalizeDiff(pending: { oldLines: string[]; newLines: string[] }): IntelligenceDiffBlock {
   let oldText = pending.oldLines.join('\n');
   let newText = pending.newLines.join('\n');
   // words === null 表示两侧相同块；'whole' 表示超限降级、整块标记（不进入词级对齐）
   let words: DiffOp[] | 'whole' | null = null;
   if (oldText.length + newText.length <= 20000) {
-    const oldTokens = engineTokenize(oldText);
-    const newTokens = engineTokenize(newText);
+    const oldTokens = intelligenceTokenize(oldText);
+    const newTokens = intelligenceTokenize(newText);
     if (oldTokens.length * newTokens.length <= 400000) {
-      words = engineLcsOps(oldTokens, newTokens);
-      oldText = engineWrapTokens(words, 'del');
-      newText = engineWrapTokens(words, 'ins');
+      words = intelligenceLcsOps(oldTokens, newTokens);
+      oldText = intelligenceWrapTokens(words, 'del');
+      newText = intelligenceWrapTokens(words, 'ins');
       return { old: oldText, new: newText, words };
     }
   }
@@ -217,14 +217,14 @@ function engineFinalizeDiff(pending: { oldLines: string[]; newLines: string[] })
 
 // 行级 diff + 相邻差异块合并（间隔 ≤ 2 行相同行并入作上下文，避免段落被割裂渲染）
 // 返回 { hasDiff, blocks }；blocks 元素 { old, new, words }，words === null 表示两侧相同块
-function engineDiffMarkup(
+function intelligenceDiffMarkup(
   oldText: string,
   newText: string,
-): { hasDiff: boolean; blocks: EngineDiffBlock[] } {
+): { hasDiff: boolean; blocks: IntelligenceDiffBlock[] } {
   const oldLines = oldText.split('\n');
   const newLines = newText.split('\n');
-  const ops = engineLcsOps(oldLines, newLines);
-  const blocks: EngineDiffBlock[] = [];
+  const ops = intelligenceLcsOps(oldLines, newLines);
+  const blocks: IntelligenceDiffBlock[] = [];
   let pending: { oldLines: string[]; newLines: string[] } | null = null;
   let i = 0;
   while (i < ops.length) {
@@ -242,7 +242,7 @@ function engineDiffMarkup(
         }
       } else {
         if (pending) {
-          blocks.push(engineFinalizeDiff(pending));
+          blocks.push(intelligenceFinalizeDiff(pending));
           pending = null;
         }
         blocks.push({ old: eLines.join('\n'), new: eLines.join('\n'), words: null });
@@ -254,7 +254,7 @@ function engineDiffMarkup(
       i++;
     }
   }
-  if (pending) blocks.push(engineFinalizeDiff(pending));
+  if (pending) blocks.push(intelligenceFinalizeDiff(pending));
   let hasDiff = false;
   for (let b = 0; b < blocks.length; b++) {
     if (blocks[b].words !== null) {
@@ -269,7 +269,7 @@ function engineDiffMarkup(
 type DiffOp = { t: 'e' | 'd' | 'i'; s: string };
 // 渲染块：words === null 表示两侧相同块（直接渲染）；
 // words === 'whole' 表示超限降级块（old/new 已整块带占位符标记）；否则为词级差异块
-type EngineDiffBlock = { old: string; new: string; words: DiffOp[] | 'whole' | null };
+type IntelligenceDiffBlock = { old: string; new: string; words: DiffOp[] | 'whole' | null };
 
 type WriterMode = 'generate' | 'polish' | 'correct' | 'continue';
 type ContentType = 'post' | 'page';
@@ -286,7 +286,7 @@ const LENGTH_LABELS: Record<LengthPreset, string> = {
   detailed: '深入：展开背景、细节、例证和必要的小结。',
 };
 
-interface EngineConfig {
+interface IntelligenceConfig {
   endpoint: string;
   apiKey: string;
   model: string;
@@ -333,7 +333,7 @@ interface PluginActionResult {
 
 interface ConfigValidationResult {
   success: boolean;
-  settings?: EngineConfig;
+  settings?: IntelligenceConfig;
   error?: string;
 }
 
@@ -375,9 +375,9 @@ type UserContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } };
 
-const PLUGIN_ID = ENGINE_PLUGIN_ID;
+const PLUGIN_ID = INTELLIGENCE_PLUGIN_ID;
 
-const DEFAULTS: EngineConfig = {
+const DEFAULTS: IntelligenceConfig = {
   endpoint: 'https://open.bigmodel.cn/api/paas/v4/',
   apiKey: '',
   model: 'glm-4.7-flash',
@@ -393,7 +393,7 @@ const DEFAULTS: EngineConfig = {
 };
 
 // Keep the LLM request timeout below the generic plugin-action timeout so a
-// slow provider surfaces Engine's specific error instead of a generic 500.
+// slow provider surfaces Intelligence's specific error instead of a generic 500.
 const LLM_REQUEST_TIMEOUT_MS = 55_000;
 // 单次最大输出 Token 上限（512K = 512000）
 const MAX_OUTPUT_TOKENS = 512_000;
@@ -407,7 +407,7 @@ const SYSTEM_PROMPT = [
   '润色和纠错任务必须返回完整正文，不能只返回修改或新增片段。',
 ].join('\n');
 
-function normalizeConfig(settings?: Record<string, unknown>): EngineConfig {
+function normalizeConfig(settings?: Record<string, unknown>): IntelligenceConfig {
   return {
     endpoint: String(settings?.endpoint || '').trim(),
     apiKey: String(settings?.apiKey || '').trim(),
@@ -450,7 +450,7 @@ function normalizeIncludeBodyAssets(value: unknown): string {
   return String(value || DEFAULTS.includeBodyAssets).trim();
 }
 
-function applyWritingOptions(config: EngineConfig, options?: WriterWritingOptions): EngineConfig {
+function applyWritingOptions(config: IntelligenceConfig, options?: WriterWritingOptions): IntelligenceConfig {
   if (!options) return config;
 
   return {
@@ -465,7 +465,7 @@ function applyWritingOptions(config: EngineConfig, options?: WriterWritingOption
   };
 }
 
-function getConfig(options?: Record<string, unknown>): EngineConfig {
+function getConfig(options?: Record<string, unknown>): IntelligenceConfig {
   return normalizeConfig({
     ...DEFAULTS,
     ...parsePluginOption(options?.[`plugin:${PLUGIN_ID}`]),
@@ -499,7 +499,7 @@ function buildStyleContext(samples: StyleSample[]): string {
   ].join('\n')).join('\n\n');
 }
 
-function buildConfiguredUserPrompt(config: EngineConfig): string {
+function buildConfiguredUserPrompt(config: IntelligenceConfig): string {
   if (!config.userPrompt) {
     return '未配置额外写作要求。';
   }
@@ -510,7 +510,7 @@ function buildConfiguredUserPrompt(config: EngineConfig): string {
   ].join('\n');
 }
 
-function buildWritingProfile(config: EngineConfig): string {
+function buildWritingProfile(config: IntelligenceConfig): string {
   const language = config.outputLanguage === 'auto'
     ? '自动判断：优先沿用标题、正文和样本的主要语言。'
     : `固定使用：${config.outputLanguage}`;
@@ -561,7 +561,7 @@ function buildOutputContract(mode: WriterMode): string {
   return lines.map((line, index) => `${index + 1}. ${line}`).join('\n');
 }
 
-function shouldIncludeBodyAssets(config: EngineConfig): boolean {
+function shouldIncludeBodyAssets(config: IntelligenceConfig): boolean {
   return config.includeBodyAssets === '1';
 }
 
@@ -599,7 +599,7 @@ function buildPrompt(
   mode: WriterMode,
   payload: WriterPayload,
   styleSamples: StyleSample[],
-  config: EngineConfig,
+  config: IntelligenceConfig,
   assets: ContentAsset[],
 ): string {
   const typeLabel = payload.contentType === 'page' ? '页面' : '文章';
@@ -665,26 +665,26 @@ function extractErrorMessage(data: unknown): string {
   return '';
 }
 
-function validationHeaders(config: EngineConfig): HeadersInit {
+function validationHeaders(config: IntelligenceConfig): HeadersInit {
   return {
     Authorization: `Bearer ${config.apiKey}`,
   };
 }
 
-async function validateConfig(settings?: Record<string, unknown>): Promise<EngineConfig> {
+async function validateConfig(settings?: Record<string, unknown>): Promise<IntelligenceConfig> {
   const config = normalizeConfig(settings);
-  if (!config.endpoint || !config.apiKey || !config.model) {
-    throw new Error('请填写接口地址、API Key 和模型名称');
-  }
+  // Incomplete AI credentials are allowed on save; writing/summary stay off until configured.
 
-  let url: URL;
-  try {
-    url = new URL(config.endpoint);
-  } catch {
-    throw new Error('接口地址格式不正确');
-  }
-  if (!['https:', 'http:'].includes(url.protocol)) {
-    throw new Error('接口地址必须使用 http 或 https');
+  if (config.endpoint) {
+    let url: URL;
+    try {
+      url = new URL(config.endpoint);
+    } catch {
+      throw new Error('接口地址格式不正确');
+    }
+    if (!['https:', 'http:'].includes(url.protocol)) {
+      throw new Error('接口地址必须使用 http 或 https');
+    }
   }
 
   const temperature = Number(config.temperature);
@@ -849,7 +849,7 @@ async function loadAttachmentAssets(
 
 async function loadContentAssets(
   db: Database | undefined,
-  config: EngineConfig,
+  config: IntelligenceConfig,
   payload: WriterPayload,
 ): Promise<ContentAsset[]> {
   if (!shouldIncludeBodyAssets(config)) return [];
@@ -888,7 +888,7 @@ function buildUserContent(prompt: string, assets: ContentAsset[], siteUrl?: stri
 }
 
 function buildChatCompletionPayload(
-  config: EngineConfig,
+  config: IntelligenceConfig,
   mode: WriterMode,
   payload: WriterPayload,
   styleSamples: StyleSample[],
@@ -909,7 +909,7 @@ function buildChatCompletionPayload(
 }
 
 async function callLLM(
-  config: EngineConfig,
+  config: IntelligenceConfig,
   mode: WriterMode,
   payload: WriterPayload,
   styleSamples: StyleSample[],
@@ -956,7 +956,7 @@ const SUMMARY_SYSTEM_PROMPT = [
   '长度控制在 80～120 字。',
 ].join('\n');
 
-async function callLLMSummary(config: EngineConfig, title: string, body: string): Promise<string> {
+async function callLLMSummary(config: IntelligenceConfig, title: string, body: string): Promise<string> {
   if (!config.endpoint || !config.apiKey || !config.model) {
     throw new Error('请先完整配置接口地址、API Key 和模型名称');
   }
@@ -1127,7 +1127,7 @@ function createTextStreamFromLLM(response: Response): ReadableStream<Uint8Array>
 }
 
 async function callLLMStream(
-  config: EngineConfig,
+  config: IntelligenceConfig,
   mode: WriterMode,
   payload: WriterPayload,
   styleSamples: StyleSample[],
@@ -1173,8 +1173,8 @@ const PAGE_EDITOR_HTML = editorHtml('page');
 function editorHtml(contentType: ContentType): string {
   return `
 <style>
-#wmd-engine-button .typecho-engine-toolbar-icon,
-.typecho-engine-fallback-btn .typecho-engine-toolbar-icon {
+#wmd-intelligence-button .typecho-intelligence-toolbar-icon,
+.typecho-intelligence-fallback-btn .typecho-intelligence-toolbar-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1184,20 +1184,20 @@ function editorHtml(contentType: ContentType): string {
   font-weight: 700;
   color: #666;
 }
-#wmd-engine-button {
+#wmd-intelligence-button {
   position: relative;
 }
-#wmd-engine-button[aria-disabled="true"] {
+#wmd-intelligence-button[aria-disabled="true"] {
   opacity: .5;
   cursor: default;
 }
-#wmd-engine-button .typecho-engine-menu span {
+#wmd-intelligence-button .typecho-intelligence-menu span {
   display: unset;
   width: unset;
   height: unset;
 }
 
-.typecho-engine-menu {
+.typecho-intelligence-menu {
   display: none;
   position: absolute;
   top: 28px;
@@ -1215,53 +1215,53 @@ function editorHtml(contentType: ContentType): string {
   box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
   z-index: 30;
 }
-.typecho-engine-menu[aria-hidden="false"] {
+.typecho-intelligence-menu[aria-hidden="false"] {
   display: flex;
 }
-.typecho-engine-menu-button {
+.typecho-intelligence-menu-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
 }
-.typecho-engine-menu-button svg {
+.typecho-intelligence-menu-button svg {
   flex-shrink: 0;
 }
-.typecho-engine-menu-button:hover,
-.typecho-engine-menu-button:focus {
+.typecho-intelligence-menu-button:hover,
+.typecho-intelligence-menu-button:focus {
   background: #f0f0f0;
   color: #222;
   outline: none;
 }
-.typecho-engine-menu-actions {
+.typecho-intelligence-menu-actions {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
   border-top: 1px dashed #d9d9d9;
   padding-top: 8px;
 }
-.typecho-engine-menu-button[aria-disabled="true"] {
+.typecho-intelligence-menu-button[aria-disabled="true"] {
   opacity: .5;
   cursor: default;
 }
 
-.typecho-engine-writing-settings {
+.typecho-intelligence-writing-settings {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.typecho-engine-setting {
+.typecho-intelligence-setting {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.typecho-engine-setting > label {
+.typecho-intelligence-setting > label {
   font-size: 12px;
   color: #555;
 }
-.typecho-engine-setting textarea,
-.typecho-engine-setting input[type="text"],
-.typecho-engine-setting select {
+.typecho-intelligence-setting textarea,
+.typecho-intelligence-setting input[type="text"],
+.typecho-intelligence-setting select {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
@@ -1271,26 +1271,26 @@ function editorHtml(contentType: ContentType): string {
   color: #333;
   font: 13px/1.5 inherit;
 }
-.typecho-engine-setting textarea {
+.typecho-intelligence-setting textarea {
   min-height: 64px;
   padding: 5px 7px;
   resize: vertical;
 }
-.typecho-engine-setting input[type="text"] {
+.typecho-intelligence-setting input[type="text"] {
   height: 28px;
   padding: 4px 7px;
 }
-.typecho-engine-setting select {
+.typecho-intelligence-setting select {
   height: 28px;
   padding: 2px 6px;
 }
-.typecho-engine-setting textarea:focus,
-.typecho-engine-setting input[type="text"]:focus,
-.typecho-engine-setting select:focus {
+.typecho-intelligence-setting textarea:focus,
+.typecho-intelligence-setting input[type="text"]:focus,
+.typecho-intelligence-setting select:focus {
   border-color: #467b96;
   outline: none;
 }
-.typecho-engine-checkbox {
+.typecho-intelligence-checkbox {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1298,30 +1298,30 @@ function editorHtml(contentType: ContentType): string {
   color: #333;
   cursor: pointer;
 }
-.typecho-engine-advanced {
+.typecho-intelligence-advanced {
   border-top: 1px dashed #d9d9d9;
   padding-top: 8px;
 }
-.typecho-engine-advanced summary {
+.typecho-intelligence-advanced summary {
   cursor: pointer;
   font-size: 12px;
   color: #666;
   user-select: none;
 }
-.typecho-engine-advanced[open] summary {
+.typecho-intelligence-advanced[open] summary {
   color: #222;
 }
-.typecho-engine-advanced-fields {
+.typecho-intelligence-advanced-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   padding-top: 8px;
 }
-.typecho-engine-advanced-fields .typecho-engine-setting-wide {
+.typecho-intelligence-advanced-fields .typecho-intelligence-setting-wide {
   grid-column: 1 / -1;
 }
 
-.typecho-engine-modal {
+.typecho-intelligence-modal {
   display: none;
   position: fixed;
   inset: 0;
@@ -1331,10 +1331,10 @@ function editorHtml(contentType: ContentType): string {
   padding: 20px;
   background: rgba(0, 0, 0, .45);
 }
-.typecho-engine-modal[aria-hidden="false"] {
+.typecho-intelligence-modal[aria-hidden="false"] {
   display: flex;
 }
-.typecho-engine-modal-dialog {
+.typecho-intelligence-modal-dialog {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -1344,7 +1344,7 @@ function editorHtml(contentType: ContentType): string {
   border-radius: 4px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
 }
-.typecho-engine-modal-header {
+.typecho-intelligence-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1352,17 +1352,17 @@ function editorHtml(contentType: ContentType): string {
   padding: 12px 16px;
   border-bottom: 1px solid #e5e5e5;
 }
-.typecho-engine-modal-title {
+.typecho-intelligence-modal-title {
   font-size: 15px;
   font-weight: 600;
   color: #222;
 }
-.typecho-engine-modal-tabs {
+.typecho-intelligence-modal-tabs {
   display: flex;
   gap: 2px;
   margin-left: auto;
 }
-.typecho-engine-modal-tab {
+.typecho-intelligence-modal-tab {
   border: 0;
   background: none;
   padding: 4px 10px;
@@ -1372,17 +1372,17 @@ function editorHtml(contentType: ContentType): string {
   cursor: pointer;
   border-radius: 2px;
 }
-.typecho-engine-modal-tab:hover,
-.typecho-engine-modal-tab:focus {
+.typecho-intelligence-modal-tab:hover,
+.typecho-intelligence-modal-tab:focus {
   background: #f0f0f0;
   color: #222;
   outline: none;
 }
-.typecho-engine-modal-tab.active {
+.typecho-intelligence-modal-tab.active {
   background: #467b96;
   color: #fff;
 }
-.typecho-engine-modal-close {
+.typecho-intelligence-modal-close {
   border: 0;
   background: none;
   padding: 2px 8px;
@@ -1391,17 +1391,17 @@ function editorHtml(contentType: ContentType): string {
   color: #888;
   cursor: pointer;
 }
-.typecho-engine-modal-close:hover {
+.typecho-intelligence-modal-close:hover {
   color: #333;
 }
-.typecho-engine-modal-body {
+.typecho-intelligence-modal-body {
   position: relative;
   flex: 0 0 auto;
   height: 42vh;
   min-height: 200px;
   margin: 12px 16px 0;
 }
-.typecho-engine-modal-write {
+.typecho-intelligence-modal-write {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -1415,11 +1415,11 @@ function editorHtml(contentType: ContentType): string {
   white-space: pre-wrap;
   word-break: break-word;
 }
-.typecho-engine-modal-write:focus {
+.typecho-intelligence-modal-write:focus {
   border-color: #467b96;
   outline: none;
 }
-.typecho-engine-modal-preview {
+.typecho-intelligence-modal-preview {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -1434,13 +1434,13 @@ function editorHtml(contentType: ContentType): string {
   line-height: 1.7;
   color: #333;
 }
-.typecho-engine-modal-compare {
+.typecho-intelligence-modal-compare {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   height: 100%;
 }
-.typecho-engine-modal-compare-pane {
+.typecho-intelligence-modal-compare-pane {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1449,7 +1449,7 @@ function editorHtml(contentType: ContentType): string {
   background: #fff;
   overflow: hidden;
 }
-.typecho-engine-modal-compare-label {
+.typecho-intelligence-modal-compare-label {
   padding: 6px 10px;
   font-size: 12px;
   color: #666;
@@ -1457,7 +1457,7 @@ function editorHtml(contentType: ContentType): string {
   background: #fafafa;
   user-select: none;
 }
-.typecho-engine-modal-compare-content {
+.typecho-intelligence-modal-compare-content {
   flex: 1;
   overflow-y: auto;
   padding: 10px 12px;
@@ -1467,23 +1467,23 @@ function editorHtml(contentType: ContentType): string {
   line-height: 1.7;
   color: #333;
 }
-.typecho-engine-modal-compare-content.typecho-engine-modal-compare-empty {
+.typecho-intelligence-modal-compare-content.typecho-intelligence-modal-compare-empty {
   color: #999;
 }
-.typecho-engine-diff-del {
+.typecho-intelligence-diff-del {
   padding: 0 1px;
   border-radius: 2px;
   background: #ffe3e3;
   color: #b3382c;
   text-decoration: line-through;
 }
-.typecho-engine-diff-ins {
+.typecho-intelligence-diff-ins {
   padding: 0 1px;
   border-radius: 2px;
   background: #ddf3dd;
   color: #257a25;
 }
-.typecho-engine-modal-compare-md {
+.typecho-intelligence-modal-compare-md {
   width: 100%;
   height: 100%;
   margin: 0;
@@ -1493,7 +1493,7 @@ function editorHtml(contentType: ContentType): string {
   font: 13px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
   color: #333;
 }
-.typecho-engine-diff-note {
+.typecho-intelligence-diff-note {
   padding: 4px 8px;
   margin-bottom: 8px;
   font-size: 12px;
@@ -1502,16 +1502,16 @@ function editorHtml(contentType: ContentType): string {
   border: 1px dashed #ddd;
   border-radius: 2px;
 }
-.typecho-engine-tab-hidden {
+.typecho-intelligence-tab-hidden {
   display: none !important;
 }
-.typecho-engine-modal-followup {
+.typecho-intelligence-modal-followup {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 8px 16px;
 }
-.typecho-engine-modal-followup-input {
+.typecho-intelligence-modal-followup-input {
   box-sizing: border-box;
   width: 100%;
   min-height: 56px;
@@ -1524,27 +1524,27 @@ function editorHtml(contentType: ContentType): string {
   color: #333;
   font: 13px/1.5 inherit;
 }
-.typecho-engine-modal-followup-input:focus {
+.typecho-intelligence-modal-followup-input:focus {
   border-color: #467b96;
   outline: none;
 }
-.typecho-engine-modal-followup-input::placeholder {
+.typecho-intelligence-modal-followup-input::placeholder {
   color: #999;
 }
-.typecho-engine-modal-followup-hint {
+.typecho-intelligence-modal-followup-hint {
   font-size: 12px;
   color: #999;
   user-select: none;
 }
-.typecho-engine-modal-status {
+.typecho-intelligence-modal-status {
   flex: 1;
   font-size: 12px;
   color: #666;
 }
-.typecho-engine-modal-status-error {
+.typecho-intelligence-modal-status-error {
   color: #c33;
 }
-.typecho-engine-modal-footer {
+.typecho-intelligence-modal-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1552,63 +1552,63 @@ function editorHtml(contentType: ContentType): string {
   padding: 12px 16px;
   border-top: 1px solid #e5e5e5;
 }
-.typecho-engine-modal-confirm[disabled] {
+.typecho-intelligence-modal-confirm[disabled] {
   opacity: .5;
   cursor: default;
 }
 
-.typecho-engine-fallback-btn svg {
+.typecho-intelligence-fallback-btn svg {
   display: block;
   width: 16px;
   height: 16px;
 }
 </style>
-<div class="typecho-engine" data-content-type="${contentType}" hidden>
-  <span class="typecho-engine-fallback-actions"></span>
+<div class="typecho-intelligence" data-content-type="${contentType}" hidden>
+  <span class="typecho-intelligence-fallback-actions"></span>
 </div>
-<div class="typecho-engine-modal" aria-hidden="true">
-  <div class="typecho-engine-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="typecho-engine-modal-title">
-    <div class="typecho-engine-modal-header">
-      <span class="typecho-engine-modal-title" id="typecho-engine-modal-title">AI 预览</span>
-      <div class="typecho-engine-modal-tabs" role="tablist" aria-label="预览模式">
-        <button type="button" class="typecho-engine-modal-tab active" data-engine-tab="write" role="tab" aria-selected="true">撰写</button>
-        <button type="button" class="typecho-engine-modal-tab" data-engine-tab="preview" role="tab" aria-selected="false">预览</button>
-        <button type="button" class="typecho-engine-modal-tab" data-engine-tab="compare" role="tab" aria-selected="false">比对</button>
+<div class="typecho-intelligence-modal" aria-hidden="true">
+  <div class="typecho-intelligence-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="typecho-intelligence-modal-title">
+    <div class="typecho-intelligence-modal-header">
+      <span class="typecho-intelligence-modal-title" id="typecho-intelligence-modal-title">AI 预览</span>
+      <div class="typecho-intelligence-modal-tabs" role="tablist" aria-label="预览模式">
+        <button type="button" class="typecho-intelligence-modal-tab active" data-intelligence-tab="write" role="tab" aria-selected="true">撰写</button>
+        <button type="button" class="typecho-intelligence-modal-tab" data-intelligence-tab="preview" role="tab" aria-selected="false">预览</button>
+        <button type="button" class="typecho-intelligence-modal-tab" data-intelligence-tab="compare" role="tab" aria-selected="false">比对</button>
       </div>
-      <button type="button" class="typecho-engine-modal-close" aria-label="关闭预览">&times;</button>
+      <button type="button" class="typecho-intelligence-modal-close" aria-label="关闭预览">&times;</button>
     </div>
-    <div class="typecho-engine-modal-body">
-      <textarea class="typecho-engine-modal-write mono" spellcheck="false" aria-label="AI 生成内容"></textarea>
-      <div class="typecho-engine-modal-preview wmd-preview typecho-engine-tab-hidden" role="status" aria-live="polite"></div>
-      <div class="typecho-engine-modal-compare typecho-engine-tab-hidden">
-        <div class="typecho-engine-modal-compare-pane">
-          <div class="typecho-engine-modal-compare-label">原文</div>
-          <div class="typecho-engine-modal-compare-content typecho-engine-modal-compare-original"></div>
+    <div class="typecho-intelligence-modal-body">
+      <textarea class="typecho-intelligence-modal-write mono" spellcheck="false" aria-label="AI 生成内容"></textarea>
+      <div class="typecho-intelligence-modal-preview wmd-preview typecho-intelligence-tab-hidden" role="status" aria-live="polite"></div>
+      <div class="typecho-intelligence-modal-compare typecho-intelligence-tab-hidden">
+        <div class="typecho-intelligence-modal-compare-pane">
+          <div class="typecho-intelligence-modal-compare-label">原文</div>
+          <div class="typecho-intelligence-modal-compare-content typecho-intelligence-modal-compare-original"></div>
         </div>
-        <div class="typecho-engine-modal-compare-pane">
-          <div class="typecho-engine-modal-compare-label">AI 生成</div>
-          <div class="typecho-engine-modal-compare-content typecho-engine-modal-compare-generated"></div>
+        <div class="typecho-intelligence-modal-compare-pane">
+          <div class="typecho-intelligence-modal-compare-label">AI 生成</div>
+          <div class="typecho-intelligence-modal-compare-content typecho-intelligence-modal-compare-generated"></div>
         </div>
       </div>
     </div>
-    <div class="typecho-engine-modal-followup">
-      <textarea class="typecho-engine-modal-followup-input" placeholder="输入调整要求，发送后 AI 将结合原文与当前结果继续调整，结果实时显示在上方"></textarea>
-      <span class="typecho-engine-modal-followup-hint">Enter 发送 · Shift+Enter 换行</span>
+    <div class="typecho-intelligence-modal-followup">
+      <textarea class="typecho-intelligence-modal-followup-input" placeholder="输入调整要求，发送后 AI 将结合原文与当前结果继续调整，结果实时显示在上方"></textarea>
+      <span class="typecho-intelligence-modal-followup-hint">Enter 发送 · Shift+Enter 换行</span>
     </div>
-    <div class="typecho-engine-modal-footer">
-      <div class="typecho-engine-modal-status" role="status" aria-live="polite"></div>
-      <button type="button" class="btn typecho-engine-modal-cancel">取消</button>
-      <button type="button" class="btn primary typecho-engine-modal-confirm" disabled>确定</button>
+    <div class="typecho-intelligence-modal-footer">
+      <div class="typecho-intelligence-modal-status" role="status" aria-live="polite"></div>
+      <button type="button" class="btn typecho-intelligence-modal-cancel">取消</button>
+      <button type="button" class="btn primary typecho-intelligence-modal-confirm" disabled>确定</button>
     </div>
   </div>
 </div>
 <script is:inline>
 (function() {
-  if (window.__typechoEngineReady) return;
-  window.__typechoEngineReady = true;
+  if (window.__typechoIntelligenceReady) return;
+  window.__typechoIntelligenceReady = true;
 
   function clearAdminNotice() {
-    var notice = document.querySelector('.typecho-engine-notice');
+    var notice = document.querySelector('.typecho-intelligence-notice');
     if (notice && notice.parentNode) {
       notice.parentNode.removeChild(notice);
     }
@@ -1619,7 +1619,7 @@ function editorHtml(contentType: ContentType): string {
 
     var notice = document.createElement('div');
     var isError = type === 'error';
-    notice.className = 'typecho-engine-notice typecho-option-tabs notice typecho-dismissible ' + (isError ? 'notice-error' : 'notice-success');
+    notice.className = 'typecho-intelligence-notice typecho-option-tabs notice typecho-dismissible ' + (isError ? 'notice-error' : 'notice-success');
     notice.style.padding = '10px 15px';
     notice.style.marginBottom = '20px';
     notice.style.borderRadius = '3px';
@@ -1652,15 +1652,15 @@ function editorHtml(contentType: ContentType): string {
     notice.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
-  var ENGINE_ICON = '<span class="typecho-engine-toolbar-icon" aria-hidden="true">AI</span>';
+  var INTELLIGENCE_ICON = '<span class="typecho-intelligence-toolbar-icon" aria-hidden="true">AI</span>';
   var MODE_ICONS = {
     generate: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
     polish: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
     correct: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 10 2 2 4-4"/><rect width="20" height="20" x="2" y="2" rx="4" opacity=".25"/><path d="M20.5 2.5 15 20 9 17l-5.5 3L6 14Z"/></svg>'
   };
-  var engineButtons = [];
+  var intelligenceButtons = [];
   var MODE_LABELS = { generate: '生成', polish: '润色', correct: '纠错' };
-  var WRITING_STORAGE_KEY = 'typecho-engine-writing-settings';
+  var WRITING_STORAGE_KEY = 'typecho-intelligence-writing-settings';
   var WRITING_DEFAULTS = {
     userPrompt: '',
     outputLanguage: 'auto',
@@ -1711,11 +1711,11 @@ function editorHtml(contentType: ContentType): string {
     if (!container) return settings;
 
     function fieldValue(name, fallback) {
-      var field = container.querySelector('[data-engine-setting="' + name + '"]');
+      var field = container.querySelector('[data-intelligence-setting="' + name + '"]');
       return field ? field.value : fallback;
     }
 
-    var checkbox = container.querySelector('[data-engine-setting="includeBodyAssets"]');
+    var checkbox = container.querySelector('[data-intelligence-setting="includeBodyAssets"]');
     return {
       userPrompt: fieldValue('userPrompt', settings.userPrompt),
       outputLanguage: validStoredValue(fieldValue('outputLanguage', settings.outputLanguage), OUTPUT_LANGUAGE_OPTIONS, settings.outputLanguage),
@@ -1729,8 +1729,8 @@ function editorHtml(contentType: ContentType): string {
 
   function applyWritingSettings(root, settings) {
     if (!root) return;
-    root.querySelectorAll('[data-engine-setting]').forEach(function(field) {
-      var name = field.getAttribute('data-engine-setting');
+    root.querySelectorAll('[data-intelligence-setting]').forEach(function(field) {
+      var name = field.getAttribute('data-intelligence-setting');
       if (name === 'includeBodyAssets') {
         field.checked = settings.includeBodyAssets === true;
         return;
@@ -1768,7 +1768,7 @@ function editorHtml(contentType: ContentType): string {
 
   function renderMarkdown(text) {
     var source = String(text == null ? '' : text);
-    if (!source) return '<p class="typecho-engine-modal-compare-empty">（无内容）</p>';
+    if (!source) return '<p class="typecho-intelligence-modal-compare-empty">（无内容）</p>';
     if (window.HyperDown && window.DOMPurify) {
       try {
         var converter = new window.HyperDown();
@@ -1786,33 +1786,33 @@ function editorHtml(contentType: ContentType): string {
     return '<p>' + escapeHtmlText(source).replace(/\\n/g, '<br>') + '</p>';
   }
 
-${ENGINE_DIFF_ALGO_JS}
+${INTELLIGENCE_DIFF_ALGO_JS}
 
   function setModalTab(tab) {
     previewState.tab = tab;
-    var modal = document.querySelector('.typecho-engine-modal');
+    var modal = document.querySelector('.typecho-intelligence-modal');
     if (!modal) return;
-    modal.querySelectorAll('.typecho-engine-modal-tab').forEach(function(button) {
-      var isActive = button.getAttribute('data-engine-tab') === tab;
+    modal.querySelectorAll('.typecho-intelligence-modal-tab').forEach(function(button) {
+      var isActive = button.getAttribute('data-intelligence-tab') === tab;
       button.classList.toggle('active', isActive);
       button.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
-    var writeEl = modal.querySelector('.typecho-engine-modal-write');
-    var previewEl = modal.querySelector('.typecho-engine-modal-preview');
-    var compareEl = modal.querySelector('.typecho-engine-modal-compare');
-    writeEl.classList.toggle('typecho-engine-tab-hidden', tab !== 'write');
-    previewEl.classList.toggle('typecho-engine-tab-hidden', tab !== 'preview');
-    compareEl.classList.toggle('typecho-engine-tab-hidden', tab !== 'compare');
+    var writeEl = modal.querySelector('.typecho-intelligence-modal-write');
+    var previewEl = modal.querySelector('.typecho-intelligence-modal-preview');
+    var compareEl = modal.querySelector('.typecho-intelligence-modal-compare');
+    writeEl.classList.toggle('typecho-intelligence-tab-hidden', tab !== 'write');
+    previewEl.classList.toggle('typecho-intelligence-tab-hidden', tab !== 'preview');
+    compareEl.classList.toggle('typecho-intelligence-tab-hidden', tab !== 'compare');
     renderModalViews();
   }
 
   function renderModalViews() {
-    var modal = document.querySelector('.typecho-engine-modal');
+    var modal = document.querySelector('.typecho-intelligence-modal');
     if (!modal || !previewState.open) return;
-    var writeEl = modal.querySelector('.typecho-engine-modal-write');
-    var previewEl = modal.querySelector('.typecho-engine-modal-preview');
-    var originalEl = modal.querySelector('.typecho-engine-modal-compare-original');
-    var generatedEl = modal.querySelector('.typecho-engine-modal-compare-generated');
+    var writeEl = modal.querySelector('.typecho-intelligence-modal-write');
+    var previewEl = modal.querySelector('.typecho-intelligence-modal-preview');
+    var originalEl = modal.querySelector('.typecho-intelligence-modal-compare-original');
+    var generatedEl = modal.querySelector('.typecho-intelligence-modal-compare-generated');
     // 用户已开始手动编辑时，以 textarea 内容为准，流式内容不再覆盖。
     var text = previewState.userEdited ? writeEl.value : previewState.currentText;
     if (!previewState.userEdited) {
@@ -1826,15 +1826,15 @@ ${ENGINE_DIFF_ALGO_JS}
   }
 
   // 比对页签：纯 markdown 源码对比。行级/词级 diff 标记文本经 HTML 转义后
-  // 由 engineRestoreMarks 还原为高亮 span——只产生文本节点内的 span，
+  // 由 intelligenceRestoreMarks 还原为高亮 span——只产生文本节点内的 span，
   // 任何 markdown 语法（引用式图片/链接、分割线、表格、代码块）都不会被破坏；
   // 渲染效果由「预览」页签查看
   function renderComparePanes(originalEl, generatedEl, oldText, newText) {
-    var diff = engineDiffMarkup(oldText || '', newText || '');
+    var diff = intelligenceDiffMarkup(oldText || '', newText || '');
     if (!diff.hasDiff) {
-      var note = '<div class="typecho-engine-diff-note">内容无差异</div>';
-      originalEl.innerHTML = note + '<pre class="typecho-engine-modal-compare-md">' + escapeHtmlText(oldText) + '</pre>';
-      generatedEl.innerHTML = note + '<pre class="typecho-engine-modal-compare-md">' + escapeHtmlText(newText) + '</pre>';
+      var note = '<div class="typecho-intelligence-diff-note">内容无差异</div>';
+      originalEl.innerHTML = note + '<pre class="typecho-intelligence-modal-compare-md">' + escapeHtmlText(oldText) + '</pre>';
+      generatedEl.innerHTML = note + '<pre class="typecho-intelligence-modal-compare-md">' + escapeHtmlText(newText) + '</pre>';
       return;
     }
     var oldHtml = '';
@@ -1845,12 +1845,12 @@ ${ENGINE_DIFF_ALGO_JS}
         oldHtml += escapeHtmlText(block.old);
         newHtml += escapeHtmlText(block.new);
       } else {
-        oldHtml += engineRestoreMarks(escapeHtmlText(block.old));
-        newHtml += engineRestoreMarks(escapeHtmlText(block.new));
+        oldHtml += intelligenceRestoreMarks(escapeHtmlText(block.old));
+        newHtml += intelligenceRestoreMarks(escapeHtmlText(block.new));
       }
     }
-    originalEl.innerHTML = '<pre class="typecho-engine-modal-compare-md">' + oldHtml + '</pre>';
-    generatedEl.innerHTML = '<pre class="typecho-engine-modal-compare-md">' + newHtml + '</pre>';
+    originalEl.innerHTML = '<pre class="typecho-intelligence-modal-compare-md">' + oldHtml + '</pre>';
+    generatedEl.innerHTML = '<pre class="typecho-intelligence-modal-compare-md">' + newHtml + '</pre>';
     // 内容重渲染后（流式/编辑变化）按最近滚动源恢复同步，避免两侧比例漂移
     if (compareScrollSource === generatedEl) {
       syncCompareScroll(generatedEl, originalEl);
@@ -1885,11 +1885,11 @@ ${ENGINE_DIFF_ALGO_JS}
   }
 
   function scrollActiveViewToBottom() {
-    var modal = document.querySelector('.typecho-engine-modal');
+    var modal = document.querySelector('.typecho-intelligence-modal');
     if (!modal) return;
-    var el = modal.querySelector('.typecho-engine-modal-write:not(.typecho-engine-tab-hidden)')
-      || modal.querySelector('.typecho-engine-modal-preview:not(.typecho-engine-tab-hidden)')
-      || modal.querySelector('.typecho-engine-modal-compare-generated');
+    var el = modal.querySelector('.typecho-intelligence-modal-write:not(.typecho-intelligence-tab-hidden)')
+      || modal.querySelector('.typecho-intelligence-modal-preview:not(.typecho-intelligence-tab-hidden)')
+      || modal.querySelector('.typecho-intelligence-modal-compare-generated');
     if (el) el.scrollTop = el.scrollHeight;
   }
 
@@ -1898,8 +1898,8 @@ ${ENGINE_DIFF_ALGO_JS}
   }
 
   function updateModalControls() {
-    var confirmBtn = document.querySelector('.typecho-engine-modal-confirm');
-    var writeEl = document.querySelector('.typecho-engine-modal-write');
+    var confirmBtn = document.querySelector('.typecho-intelligence-modal-confirm');
+    var writeEl = document.querySelector('.typecho-intelligence-modal-write');
     var hasText = previewState.userEdited
       ? !!writeEl.value.trim()
       : !!previewState.currentText;
@@ -1908,10 +1908,10 @@ ${ENGINE_DIFF_ALGO_JS}
   }
 
   function setModalStreaming(streaming, label) {
-    var statusEl = document.querySelector('.typecho-engine-modal-status');
+    var statusEl = document.querySelector('.typecho-intelligence-modal-status');
     if (streaming) {
       statusEl.textContent = label || 'AI 正在生成...';
-      statusEl.classList.remove('typecho-engine-modal-status-error');
+      statusEl.classList.remove('typecho-intelligence-modal-status-error');
       statusEl.classList.add('loading');
     } else {
       statusEl.classList.remove('loading');
@@ -1920,28 +1920,28 @@ ${ENGINE_DIFF_ALGO_JS}
   }
 
   function showModalStatus(message) {
-    var statusEl = document.querySelector('.typecho-engine-modal-status');
+    var statusEl = document.querySelector('.typecho-intelligence-modal-status');
     statusEl.textContent = message || '';
-    statusEl.classList.remove('typecho-engine-modal-status-error');
+    statusEl.classList.remove('typecho-intelligence-modal-status-error');
     statusEl.classList.remove('loading');
     updateModalControls();
   }
 
   function showModalError(message) {
-    var statusEl = document.querySelector('.typecho-engine-modal-status');
+    var statusEl = document.querySelector('.typecho-intelligence-modal-status');
     statusEl.textContent = message || 'AI 写作失败';
-    statusEl.classList.add('typecho-engine-modal-status-error');
+    statusEl.classList.add('typecho-intelligence-modal-status-error');
     statusEl.classList.remove('loading');
     updateModalControls();
   }
 
   function openPreviewModal(mode) {
-    var modal = document.querySelector('.typecho-engine-modal');
-    modal.querySelector('.typecho-engine-modal-title').textContent = 'AI ' + modeLabel(mode) + '预览';
+    var modal = document.querySelector('.typecho-intelligence-modal');
+    modal.querySelector('.typecho-intelligence-modal-title').textContent = 'AI ' + modeLabel(mode) + '预览';
     modal.setAttribute('aria-hidden', 'false');
     previewState.open = true;
     previewState.userEdited = false;
-    closeEngineMenus();
+    closeIntelligenceMenus();
     setModalTab('write');
   }
 
@@ -1950,16 +1950,16 @@ ${ENGINE_DIFF_ALGO_JS}
     if (abort && previewState.controller) {
       previewState.controller.abort();
     }
-    var modal = document.querySelector('.typecho-engine-modal');
+    var modal = document.querySelector('.typecho-intelligence-modal');
     modal.setAttribute('aria-hidden', 'true');
-    modal.querySelector('.typecho-engine-modal-write').value = '';
-    modal.querySelector('.typecho-engine-modal-preview').innerHTML = '';
-    modal.querySelector('.typecho-engine-modal-compare-original').innerHTML = '';
-    modal.querySelector('.typecho-engine-modal-compare-generated').innerHTML = '';
-    modal.querySelector('.typecho-engine-modal-followup-input').value = '';
-    modal.querySelector('.typecho-engine-modal-status').textContent = '';
-    modal.querySelector('.typecho-engine-modal-status').classList.remove('typecho-engine-modal-status-error');
-    modal.querySelector('.typecho-engine-modal-status').classList.remove('loading');
+    modal.querySelector('.typecho-intelligence-modal-write').value = '';
+    modal.querySelector('.typecho-intelligence-modal-preview').innerHTML = '';
+    modal.querySelector('.typecho-intelligence-modal-compare-original').innerHTML = '';
+    modal.querySelector('.typecho-intelligence-modal-compare-generated').innerHTML = '';
+    modal.querySelector('.typecho-intelligence-modal-followup-input').value = '';
+    modal.querySelector('.typecho-intelligence-modal-status').textContent = '';
+    modal.querySelector('.typecho-intelligence-modal-status').classList.remove('typecho-intelligence-modal-status-error');
+    modal.querySelector('.typecho-intelligence-modal-status').classList.remove('loading');
     previewState.open = false;
     previewState.controller = null;
     previewState.userEdited = false;
@@ -2176,7 +2176,7 @@ ${ENGINE_DIFF_ALGO_JS}
   }
 
   function buildActionPayload(csrfToken) {
-    var writeEl = document.querySelector('.typecho-engine-modal-write');
+    var writeEl = document.querySelector('.typecho-intelligence-modal-write');
     var body = writeEl && writeEl.value.trim()
       ? writeEl.value
       : (previewState.currentText || previewState.oldText);
@@ -2188,7 +2188,7 @@ ${ENGINE_DIFF_ALGO_JS}
       attachmentIds: Array.prototype.slice.call(document.querySelectorAll('input[name="attachment[]"]')).map(function(input) {
         return input.value || '';
       }),
-      writingOptions: collectWritingSettings(previewState.box.querySelector('.typecho-engine-menu') || previewState.box)
+      writingOptions: collectWritingSettings(previewState.box.querySelector('.typecho-intelligence-menu') || previewState.box)
     };
     if (previewState.followUpPrompt) {
       payload.originalBody = previewState.oldText;
@@ -2209,7 +2209,7 @@ ${ENGINE_DIFF_ALGO_JS}
     // 先构建请求载荷：body 取当前 textarea 内容（上次 AI 结果或用户编辑后的内容），
     // 再清空展示区开始新一轮流式生成，避免 continue 模式把原文误当当前结果发送。
     var requestBody = JSON.stringify(buildActionPayload(csrf.value));
-    var writeEl = document.querySelector('.typecho-engine-modal-write');
+    var writeEl = document.querySelector('.typecho-intelligence-modal-write');
     writeEl.value = '';
     previewState.currentText = '';
     previewState.userEdited = false;
@@ -2248,7 +2248,7 @@ ${ENGINE_DIFF_ALGO_JS}
 
   function sendFollowUp() {
     if (!previewState.open || previewState.streaming || previewState.error) return;
-    var input = document.querySelector('.typecho-engine-modal-followup-input');
+    var input = document.querySelector('.typecho-intelligence-modal-followup-input');
     var prompt = input.value.trim();
     if (!prompt) return;
     previewState.followUpPrompt = prompt;
@@ -2258,7 +2258,7 @@ ${ENGINE_DIFF_ALGO_JS}
 
   function confirmInsert() {
     if (!previewState.open || previewState.streaming || previewState.error) return;
-    var writeEl = document.querySelector('.typecho-engine-modal-write');
+    var writeEl = document.querySelector('.typecho-intelligence-modal-write');
     if (!writeEl.value.trim() && !previewState.currentText) return;
     var text = document.getElementById('text');
     // 用户手动编辑过，则直接采用 textarea 内容；否则走智能合并。
@@ -2273,7 +2273,7 @@ ${ENGINE_DIFF_ALGO_JS}
     showAdminNotice('AI ' + modeLabel(mode) + '完成', 'success');
   }
 
-  async function runEngine(box, button, requestedMode) {
+  async function runIntelligence(box, button, requestedMode) {
     if (button && button.getAttribute('aria-disabled') === 'true') return;
 
     var title = document.getElementById('title');
@@ -2305,34 +2305,34 @@ ${ENGINE_DIFF_ALGO_JS}
     await startStream();
   }
 
-  var engineMenuOpen = false;
+  var intelligenceMenuOpen = false;
 
-  function closeEngineMenus() {
-    if (!engineMenuOpen) return;
-    engineMenuOpen = false;
-    document.querySelectorAll('.typecho-engine-menu').forEach(function(menu) {
+  function closeIntelligenceMenus() {
+    if (!intelligenceMenuOpen) return;
+    intelligenceMenuOpen = false;
+    document.querySelectorAll('.typecho-intelligence-menu').forEach(function(menu) {
       menu.setAttribute('aria-hidden', 'true');
     });
-    document.querySelectorAll('.typecho-engine-menu-trigger').forEach(function(trigger) {
+    document.querySelectorAll('.typecho-intelligence-menu-trigger').forEach(function(trigger) {
       trigger.setAttribute('aria-expanded', 'false');
     });
   }
 
-  function toggleEngineMenu(trigger) {
+  function toggleIntelligenceMenu(trigger) {
     if (!trigger || trigger.getAttribute('aria-disabled') === 'true') return;
-    var menu = trigger.querySelector('.typecho-engine-menu');
+    var menu = trigger.querySelector('.typecho-intelligence-menu');
     if (!menu) return;
     var willOpen = menu.getAttribute('aria-hidden') !== 'false';
-    closeEngineMenus();
+    closeIntelligenceMenus();
     menu.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
     trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-    engineMenuOpen = willOpen;
+    intelligenceMenuOpen = willOpen;
   }
 
   function createMenuButton(box, mode, title) {
     var button = document.createElement('button');
     button.type = 'button';
-    button.className = 'btn typecho-engine-menu-button';
+    button.className = 'btn typecho-intelligence-menu-button';
     button.innerHTML = (MODE_ICONS[mode] || '') + '<span>' + title + '</span>';
     button.title = title;
     button.setAttribute('aria-label', title);
@@ -2340,24 +2340,24 @@ ${ENGINE_DIFF_ALGO_JS}
     button.addEventListener('click', function(event) {
       event.preventDefault();
       event.stopPropagation();
-      closeEngineMenus();
-      runEngine(box, button, mode);
+      closeIntelligenceMenus();
+      runIntelligence(box, button, mode);
     });
-    engineButtons.push(button);
+    intelligenceButtons.push(button);
     return button;
   }
 
   function createWritingSettings(box) {
     var settings = document.createElement('div');
-    settings.className = 'typecho-engine-writing-settings';
+    settings.className = 'typecho-intelligence-writing-settings';
     settings.innerHTML = [
-      '<div class="typecho-engine-setting">',
-      '<label for="typecho-engine-user-prompt">User Prompt</label>',
-      '<textarea id="typecho-engine-user-prompt" data-engine-setting="userPrompt" rows="3"></textarea>',
+      '<div class="typecho-intelligence-setting">',
+      '<label for="typecho-intelligence-user-prompt">User Prompt</label>',
+      '<textarea id="typecho-intelligence-user-prompt" data-intelligence-setting="userPrompt" rows="3"></textarea>',
       '</div>',
-      '<div class="typecho-engine-setting">',
-      '<label for="typecho-engine-output-language">输出语言</label>',
-      '<select id="typecho-engine-output-language" data-engine-setting="outputLanguage">',
+      '<div class="typecho-intelligence-setting">',
+      '<label for="typecho-intelligence-output-language">输出语言</label>',
+      '<select id="typecho-intelligence-output-language" data-intelligence-setting="outputLanguage">',
       '<option value="auto">自动判断</option>',
       '<option value="zh-CN">简体中文</option>',
       '<option value="zh-TW">繁体中文</option>',
@@ -2366,39 +2366,39 @@ ${ENGINE_DIFF_ALGO_JS}
       '<option value="ko">한국어</option>',
       '</select>',
       '</div>',
-      '<details class="typecho-engine-advanced">',
+      '<details class="typecho-intelligence-advanced">',
       '<summary>高级设置</summary>',
-      '<div class="typecho-engine-advanced-fields">',
-      '<div class="typecho-engine-setting">',
-      '<label for="typecho-engine-style-post-count">参考历史文章</label>',
-      '<select id="typecho-engine-style-post-count" data-engine-setting="stylePostCount">',
+      '<div class="typecho-intelligence-advanced-fields">',
+      '<div class="typecho-intelligence-setting">',
+      '<label for="typecho-intelligence-style-post-count">参考历史文章</label>',
+      '<select id="typecho-intelligence-style-post-count" data-intelligence-setting="stylePostCount">',
       '<option value="0">不参考</option>',
       '<option value="5">5</option>',
       '<option value="10">10</option>',
       '</select>',
       '</div>',
-      '<div class="typecho-engine-setting">',
-      '<label for="typecho-engine-target-audience">目标读者</label>',
-      '<input type="text" id="typecho-engine-target-audience" data-engine-setting="targetAudience">',
+      '<div class="typecho-intelligence-setting">',
+      '<label for="typecho-intelligence-target-audience">目标读者</label>',
+      '<input type="text" id="typecho-intelligence-target-audience" data-intelligence-setting="targetAudience">',
       '</div>',
-      '<div class="typecho-engine-setting">',
-      '<label for="typecho-engine-length-preset">篇幅策略</label>',
-      '<select id="typecho-engine-length-preset" data-engine-setting="lengthPreset">',
+      '<div class="typecho-intelligence-setting">',
+      '<label for="typecho-intelligence-length-preset">篇幅策略</label>',
+      '<select id="typecho-intelligence-length-preset" data-intelligence-setting="lengthPreset">',
       '<option value="concise">偏短</option>',
       '<option value="balanced">标准</option>',
       '<option value="detailed">深入</option>',
       '</select>',
       '</div>',
-      '<div class="typecho-engine-setting">',
-      '<label for="typecho-engine-fact-policy">事实策略</label>',
-      '<select id="typecho-engine-fact-policy" data-engine-setting="factPolicy">',
+      '<div class="typecho-intelligence-setting">',
+      '<label for="typecho-intelligence-fact-policy">事实策略</label>',
+      '<select id="typecho-intelligence-fact-policy" data-intelligence-setting="factPolicy">',
       '<option value="conservative">实事求是</option>',
       '<option value="assumptive">头脑风暴</option>',
       '</select>',
       '</div>',
-      '<div class="typecho-engine-setting typecho-engine-setting-wide">',
-      '<label class="typecho-engine-checkbox">',
-      '<input type="checkbox" data-engine-setting="includeBodyAssets">',
+      '<div class="typecho-intelligence-setting typecho-intelligence-setting-wide">',
+      '<label class="typecho-intelligence-checkbox">',
+      '<input type="checkbox" data-intelligence-setting="includeBodyAssets">',
       '<span>发送正文图片和附件</span>',
       '</label>',
       '</div>',
@@ -2407,7 +2407,7 @@ ${ENGINE_DIFF_ALGO_JS}
     ].join('');
 
     function persist(event) {
-      if (event.target && event.target.hasAttribute('data-engine-setting')) {
+      if (event.target && event.target.hasAttribute('data-intelligence-setting')) {
         saveWritingSettings(collectWritingSettings(settings));
       }
     }
@@ -2417,16 +2417,16 @@ ${ENGINE_DIFF_ALGO_JS}
     return settings;
   }
 
-  function createEngineMenu(box) {
+  function createIntelligenceMenu(box) {
     var menu = document.createElement('div');
-    menu.className = 'typecho-engine-menu';
+    menu.className = 'typecho-intelligence-menu';
     menu.setAttribute('role', 'menu');
     menu.setAttribute('aria-hidden', 'true');
     menu.addEventListener('click', function(event) {
       event.stopPropagation();
     });
     var actions = document.createElement('div');
-    actions.className = 'typecho-engine-menu-actions';
+    actions.className = 'typecho-intelligence-menu-actions';
     Object.keys(MODE_LABELS).forEach(function(mode) {
       actions.appendChild(createMenuButton(box, mode, MODE_LABELS[mode]));
     });
@@ -2437,79 +2437,79 @@ ${ENGINE_DIFF_ALGO_JS}
 
   function createToolbarButton(box) {
     var item = document.createElement('li');
-    item.id = 'wmd-engine-button';
-    item.className = 'wmd-button typecho-engine-toolbar-button typecho-engine-menu-trigger';
+    item.id = 'wmd-intelligence-button';
+    item.className = 'wmd-button typecho-intelligence-toolbar-button typecho-intelligence-menu-trigger';
     item.title = '写作';
     item.tabIndex = 0;
     item.setAttribute('role', 'button');
     item.setAttribute('aria-label', '写作');
     item.setAttribute('aria-haspopup', 'menu');
     item.setAttribute('aria-expanded', 'false');
-    item.innerHTML = ENGINE_ICON;
-    item.appendChild(createEngineMenu(box));
+    item.innerHTML = INTELLIGENCE_ICON;
+    item.appendChild(createIntelligenceMenu(box));
     item.addEventListener('click', function(event) {
       event.preventDefault();
       event.stopPropagation();
-      toggleEngineMenu(item);
+      toggleIntelligenceMenu(item);
     });
     item.addEventListener('keydown', function(event) {
       // Key events from form controls inside the menu (e.g. the userPrompt
       // textarea) bubble up to this trigger; let Enter insert newlines and
       // Space type normally instead of toggling the menu.
-      if (event.target && event.target.closest && event.target.closest('.typecho-engine-menu')) return;
+      if (event.target && event.target.closest && event.target.closest('.typecho-intelligence-menu')) return;
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        toggleEngineMenu(item);
+        toggleIntelligenceMenu(item);
       } else if (event.key === 'Escape') {
-        closeEngineMenus();
+        closeIntelligenceMenus();
       }
     });
-    engineButtons.push(item);
+    intelligenceButtons.push(item);
     return item;
   }
 
   function createFallbackButton(box) {
-    var actions = box.querySelector('.typecho-engine-fallback-actions');
-    if (!actions || actions.querySelector('.typecho-engine-fallback-btn')) return;
+    var actions = box.querySelector('.typecho-intelligence-fallback-actions');
+    if (!actions || actions.querySelector('.typecho-intelligence-fallback-btn')) return;
     var wrapper = document.createElement('span');
-    wrapper.className = 'typecho-engine-fallback-menu typecho-engine-menu-trigger';
+    wrapper.className = 'typecho-intelligence-fallback-menu typecho-intelligence-menu-trigger';
     wrapper.style.position = 'relative';
     var button = document.createElement('button');
     button.type = 'button';
-    button.className = 'btn btn-xs typecho-engine-fallback-btn';
-    button.innerHTML = ENGINE_ICON;
+    button.className = 'btn btn-xs typecho-intelligence-fallback-btn';
+    button.innerHTML = INTELLIGENCE_ICON;
     button.title = '写作';
     button.setAttribute('aria-label', '写作');
     button.setAttribute('aria-haspopup', 'menu');
     button.setAttribute('aria-expanded', 'false');
     wrapper.appendChild(button);
-    wrapper.appendChild(createEngineMenu(box));
+    wrapper.appendChild(createIntelligenceMenu(box));
     button.addEventListener('click', function(event) {
       event.preventDefault();
       event.stopPropagation();
-      toggleEngineMenu(wrapper);
+      toggleIntelligenceMenu(wrapper);
     });
     actions.appendChild(wrapper);
-    engineButtons.push(button);
+    intelligenceButtons.push(button);
     box.hidden = false;
   }
 
   function mountButton(box) {
-    if (document.getElementById('wmd-engine-button')) return true;
+    if (document.getElementById('wmd-intelligence-button')) return true;
     var row = document.getElementById('wmd-button-row');
     if (!row) return false;
 
     var spacer = document.createElement('li');
-    spacer.className = 'wmd-spacer typecho-engine-spacer';
+    spacer.className = 'wmd-spacer typecho-intelligence-spacer';
     row.appendChild(spacer);
     row.appendChild(createToolbarButton(box));
     box.hidden = false;
-    box.classList.add('typecho-engine-mounted');
+    box.classList.add('typecho-intelligence-mounted');
     return true;
   }
 
   function wireModalEvents() {
-    var modal = document.querySelector('.typecho-engine-modal');
+    var modal = document.querySelector('.typecho-intelligence-modal');
     if (!modal || modal.getAttribute('data-wired') === '1') return;
     modal.setAttribute('data-wired', '1');
 
@@ -2517,30 +2517,30 @@ ${ENGINE_DIFF_ALGO_JS}
       closePreviewModal(true);
     }
 
-    modal.querySelectorAll('.typecho-engine-modal-tab').forEach(function(button) {
+    modal.querySelectorAll('.typecho-intelligence-modal-tab').forEach(function(button) {
       button.addEventListener('click', function() {
-        setModalTab(button.getAttribute('data-engine-tab') || 'write');
+        setModalTab(button.getAttribute('data-intelligence-tab') || 'write');
       });
     });
-    modal.querySelector('.typecho-engine-modal-write').addEventListener('input', function() {
+    modal.querySelector('.typecho-intelligence-modal-write').addEventListener('input', function() {
       previewState.userEdited = true;
       previewState.currentText = this.value;
       renderModalViews();
       updateModalControls();
     });
     // 比对双栏同步滚动（双向互绑；程序化赋值与用户滚动都走同一事件通道）
-    var compareOriginal = modal.querySelector('.typecho-engine-modal-compare-original');
-    var compareGenerated = modal.querySelector('.typecho-engine-modal-compare-generated');
+    var compareOriginal = modal.querySelector('.typecho-intelligence-modal-compare-original');
+    var compareGenerated = modal.querySelector('.typecho-intelligence-modal-compare-generated');
     compareOriginal.addEventListener('scroll', function() {
       onCompareScroll(compareOriginal, compareGenerated);
     });
     compareGenerated.addEventListener('scroll', function() {
       onCompareScroll(compareGenerated, compareOriginal);
     });
-    modal.querySelector('.typecho-engine-modal-close').addEventListener('click', closeModal);
-    modal.querySelector('.typecho-engine-modal-cancel').addEventListener('click', closeModal);
-    modal.querySelector('.typecho-engine-modal-confirm').addEventListener('click', confirmInsert);
-    modal.querySelector('.typecho-engine-modal-followup-input').addEventListener('keydown', function(event) {
+    modal.querySelector('.typecho-intelligence-modal-close').addEventListener('click', closeModal);
+    modal.querySelector('.typecho-intelligence-modal-cancel').addEventListener('click', closeModal);
+    modal.querySelector('.typecho-intelligence-modal-confirm').addEventListener('click', confirmInsert);
+    modal.querySelector('.typecho-intelligence-modal-followup-input').addEventListener('keydown', function(event) {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         sendFollowUp();
@@ -2551,8 +2551,8 @@ ${ENGINE_DIFF_ALGO_JS}
     });
   }
 
-  function initEngine() {
-    var box = document.querySelector('.typecho-engine');
+  function initIntelligence() {
+    var box = document.querySelector('.typecho-intelligence');
     if (!box) return;
     var attempts = 0;
     var timer = window.setInterval(function() {
@@ -2567,13 +2567,13 @@ ${ENGINE_DIFF_ALGO_JS}
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initEngine);
+    document.addEventListener('DOMContentLoaded', initIntelligence);
   } else {
-    initEngine();
+    initIntelligence();
   }
   document.addEventListener('click', function(event) {
-    if (event.target && event.target.closest && event.target.closest('.typecho-engine-menu')) return;
-    closeEngineMenus();
+    if (event.target && event.target.closest && event.target.closest('.typecho-intelligence-menu')) return;
+    closeIntelligenceMenus();
   });
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape' && previewState.open) {
@@ -2596,7 +2596,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     csrfToken?: string;
     options?: Record<string, unknown>;
   }) => {
-    if (!isEngineAdminSlug(extra?.slug)) return html;
+    if (!isIntelligenceAdminSlug(extra?.slug)) return html;
     return adminPageHtml(String(extra?.csrfToken || ''), loadSettings(extra?.options));
   });
 
@@ -2617,7 +2617,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     anchor.parentElement.insertAdjacentElement('afterend',item);
     if(focused)root.classList.add('focus');
   }
-  insertAfter(4,'/admin/options-permalink','/admin/plugin/engine','智能引擎',${active ? 'true' : 'false'});
+  insertAfter(4,'/admin/options-permalink','/admin/plugin/intelligence','智能助手',${active ? 'true' : 'false'});
 })();
 </script>`;
   });
@@ -2656,13 +2656,13 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
       try {
         const settings = await validateConfig(extra.settings || {});
-        const engineSettings = validateSettings(extra.settings || {});
+        const intelligenceSettings = validateSettings(extra.settings || {});
         return {
           success: true,
           settings: {
             ...settings,
-            autoSummary: engineSettings.autoSummary,
-            searchProvider: engineSettings.searchProvider,
+            autoSummary: intelligenceSettings.autoSummary,
+            searchProvider: intelligenceSettings.searchProvider,
           },
         };
       } catch (error) {

@@ -60,7 +60,7 @@ describe('injected browser search (actual serialized script)', () => {
   }
   function browser(provider: 'bing' | 'google' = 'bing') {
     const html = searchClientHtml(provider, SITE);
-    const config = html.match(/<script type="application\/json" data-engine-search data-no-instant>([\s\S]*?)<\/script>/)![1];
+    const config = html.match(/<script type="application\/json" data-intelligence-search data-no-instant>([\s\S]*?)<\/script>/)![1];
     const script = html.match(/<script>([\s\S]*?)<\/script>/)![1];
     const form = new Form();
     const marker = { textContent: config };
@@ -69,7 +69,7 @@ describe('injected browser search (actual serialized script)', () => {
       querySelector: () => currentMarker,
       querySelectorAll: () => [form],
       addEventListener: vi.fn(), removeEventListener: vi.fn(),
-      __typechoEngineSearch: undefined as EventListener | undefined,
+      __typechoIntelligenceSearch: undefined as EventListener | undefined,
     };
     const navigate = vi.fn();
     const location = Object.assign(new URL('https://preview.example/404'), { assign: navigate });
@@ -77,7 +77,7 @@ describe('injected browser search (actual serialized script)', () => {
     const run = () => runInNewContext(script, scope);
     const submit = (target = form) => {
       const event = { target, preventDefault: vi.fn() };
-      document.__typechoEngineSearch!(event as any);
+      document.__typechoIntelligenceSearch!(event as any);
       return event;
     };
     run();
@@ -112,7 +112,7 @@ describe('injected browser search (actual serialized script)', () => {
     expect(b.navigate).not.toHaveBeenCalled();
   });
   it('handles forms inserted later and replaces the listener if the snippet runs twice', () => {
-    const b = browser(); const first = b.document.__typechoEngineSearch;
+    const b = browser(); const first = b.document.__typechoIntelligenceSearch;
     b.run();
     expect(b.document.removeEventListener).toHaveBeenCalledWith('submit', first, true);
     expect(b.submit(new Form()).preventDefault).toHaveBeenCalled();
@@ -120,8 +120,8 @@ describe('injected browser search (actual serialized script)', () => {
   it('escapes configuration embedded in HTML and emits nothing for default mode', () => {
     const value = SITE + '/</script><script>alert(1)</script>\u2028';
     const html = searchClientHtml('bing', value);
-    const config = html.match(/data-engine-search data-no-instant>([\s\S]*?)<\/script>/)![1];
-    expect(html).toContain('type="application/json" data-engine-search data-no-instant');
+    const config = html.match(/data-intelligence-search data-no-instant>([\s\S]*?)<\/script>/)![1];
+    expect(html).toContain('type="application/json" data-intelligence-search data-no-instant');
     expect(config).not.toContain('<');
     expect(JSON.parse(config).siteUrl).toBe(value);
     expect(searchClientHtml('default', SITE)).toBe('');

@@ -12,7 +12,7 @@ let hooks: Map<string, (...args: any[]) => any>;
 let fetchMock: ReturnType<typeof vi.fn>;
 
 function options(enabled = '1') {
-  return { 'plugin:typecho-plugin-engine': JSON.stringify({
+  return { 'plugin:typecho-plugin-intelligence': JSON.stringify({
     ...SETTINGS_DEFAULTS, endpoint: 'https://ai.example/v1', apiKey: 'test-key', model: 'test-model', autoSummary: enabled,
   }) };
 }
@@ -27,7 +27,7 @@ async function seed(type = 'post') {
 beforeEach(async () => {
   db = await createTestDb();
   hooks = new Map();
-  init({ pluginId: 'typecho-plugin-engine', HookPoints, addHook(point, _plugin, handler) { hooks.set(point, handler); } });
+  init({ pluginId: 'typecho-plugin-intelligence', HookPoints, addHook(point, _plugin, handler) { hooks.set(point, handler); } });
   fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ choices: [{ message: { content: AI_SUMMARY } }] }), { status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -115,7 +115,7 @@ describe('automatic AI summaries', () => {
 
   it('manual generation remains available when the automatic switch is off', async () => {
     const content = await seed();
-    const result = await hooks.get('plugin:typecho-plugin-engine:action')!({}, { action: 'summarizeOne', payload: { cid: content.cid }, db, options: options('0') });
+    const result = await hooks.get('plugin:typecho-plugin-intelligence:action')!({}, { action: 'summarizeOne', payload: { cid: content.cid }, db, options: options('0') });
     expect(result).toMatchObject({ success: true, summary: AI_SUMMARY });
     expect(await readSummary(db, content.cid!)).toBe(AI_SUMMARY);
   });

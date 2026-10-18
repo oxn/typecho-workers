@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { transformSync } from 'esbuild';
-import init, { engineDiffAlgo, ENGINE_DIFF_ALGO_JS } from './index';
+import init, { intelligenceDiffAlgo, INTELLIGENCE_DIFF_ALGO_JS } from './index';
 
 // Config-shape fixtures share one non-credential-like placeholder value; the
 // validation logic under test does not inspect the key itself.
@@ -10,7 +10,7 @@ const TEST_API_KEY = 'x';
 function collectHooks() {
   const hooks = new Map<string, Function[]>();
   init({
-    pluginId: 'typecho-plugin-engine',
+    pluginId: 'typecho-plugin-intelligence',
     HookPoints: {} as any,
     addHook: (point: string, _pluginId: string, handler: Function) => {
       const list = hooks.get(point) || [];
@@ -21,7 +21,7 @@ function collectHooks() {
   return hooks;
 }
 
-describe('typecho-plugin-engine', () => {
+describe('typecho-plugin-intelligence', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -38,25 +38,25 @@ describe('typecho-plugin-engine', () => {
       'archive:footer',
       'page:finishPublish',
       'plugin:config:beforeSave',
-      'plugin:typecho-plugin-engine:action',
-      'plugin:typecho-plugin-engine:action:auth',
+      'plugin:typecho-plugin-intelligence:action',
+      'plugin:typecho-plugin-intelligence:action:auth',
       'post:finishPublish',
       'route:request',
     ]);
   });
 
-  it('injects the "智能引擎" link under the 设置 menu for administrators', () => {
+  it('injects the "智能助手" link under the 设置 menu for administrators', () => {
     const footer = collectHooks().get('admin:footer')![0];
-    const html = footer('', { activeMenu: 'engine', user: { group: 'administrator' } });
-    expect(html).toContain("insertAfter(4,'/admin/options-permalink','/admin/plugin/engine','智能引擎',true)");
+    const html = footer('', { activeMenu: 'intelligence', user: { group: 'administrator' } });
+    expect(html).toContain("insertAfter(4,'/admin/options-permalink','/admin/plugin/intelligence','智能助手',true)");
 
     const htmlInactive = footer('', { activeMenu: 'options', user: { group: 'administrator' } });
-    expect(htmlInactive).toContain("'智能引擎',false)");
+    expect(htmlInactive).toContain("'智能助手',false)");
 
-    const nonAdminHtml = footer('unchanged', { activeMenu: 'engine', user: { group: 'editor' } });
+    const nonAdminHtml = footer('unchanged', { activeMenu: 'intelligence', user: { group: 'editor' } });
     expect(nonAdminHtml).toBe('unchanged');
 
-    const noUserHtml = footer('unchanged', { activeMenu: 'engine', user: { group: 'visitor' } });
+    const noUserHtml = footer('unchanged', { activeMenu: 'intelligence', user: { group: 'visitor' } });
     expect(noUserHtml).toBe('unchanged');
 
     const script = html.match(/<script>([\s\S]*?)<\/script>/)![1];
@@ -68,25 +68,25 @@ describe('typecho-plugin-engine', () => {
     const postHtml = hooks.get('admin:writePost:bottom')![0]('');
     const pageHtml = hooks.get('admin:writePage:bottom')![0]('');
 
-    expect(postHtml).toContain('typecho-engine');
+    expect(postHtml).toContain('typecho-intelligence');
     expect(postHtml).toContain('data-content-type="post"');
     expect(postHtml).toContain("MODE_LABELS = { generate: '生成', polish: '润色', correct: '纠错' }");
     expect(postHtml).toContain("button.innerHTML = (MODE_ICONS[mode] || '') + '<span>' + title + '</span>'");
-    expect(postHtml).toContain('typecho-engine-menu-actions');
-    expect(postHtml).toContain('data-engine-setting="userPrompt"');
-    expect(postHtml).toContain('data-engine-setting="outputLanguage"');
-    expect(postHtml).toContain('data-engine-setting="stylePostCount"');
-    expect(postHtml).toContain('data-engine-setting="targetAudience"');
-    expect(postHtml).toContain('data-engine-setting="lengthPreset"');
-    expect(postHtml).toContain('data-engine-setting="factPolicy"');
-    expect(postHtml).toContain('data-engine-setting="includeBodyAssets"');
+    expect(postHtml).toContain('typecho-intelligence-menu-actions');
+    expect(postHtml).toContain('data-intelligence-setting="userPrompt"');
+    expect(postHtml).toContain('data-intelligence-setting="outputLanguage"');
+    expect(postHtml).toContain('data-intelligence-setting="stylePostCount"');
+    expect(postHtml).toContain('data-intelligence-setting="targetAudience"');
+    expect(postHtml).toContain('data-intelligence-setting="lengthPreset"');
+    expect(postHtml).toContain('data-intelligence-setting="factPolicy"');
+    expect(postHtml).toContain('data-intelligence-setting="includeBodyAssets"');
     // 高级设置两列 grid 布局，checkbox 项跨两列
     expect(postHtml).toContain('grid-template-columns: 1fr 1fr');
-    expect(postHtml).toContain('.typecho-engine-advanced-fields .typecho-engine-setting-wide');
-    expect(postHtml).toContain('typecho-engine-setting typecho-engine-setting-wide');
+    expect(postHtml).toContain('.typecho-intelligence-advanced-fields .typecho-intelligence-setting-wide');
+    expect(postHtml).toContain('typecho-intelligence-setting typecho-intelligence-setting-wide');
     expect(postHtml).toContain("menu.addEventListener('click', function(event) {");
     expect(postHtml).toContain(
-      "      if (event.target && event.target.closest && event.target.closest('.typecho-engine-menu')) return;",
+      "      if (event.target && event.target.closest && event.target.closest('.typecho-intelligence-menu')) return;",
     );
     expect(postHtml).toContain('参考历史文章');
     expect(postHtml).toContain('<option value="0">不参考</option>');
@@ -100,15 +100,15 @@ describe('typecho-plugin-engine', () => {
     const hooks = collectHooks();
     const postHtml = hooks.get('admin:writePost:bottom')![0]('');
 
-    expect(postHtml).toContain('typecho-engine-modal');
-    expect(postHtml).toContain('typecho-engine-modal-preview');
-    expect(postHtml).toContain('typecho-engine-modal-followup-input');
+    expect(postHtml).toContain('typecho-intelligence-modal');
+    expect(postHtml).toContain('typecho-intelligence-modal-preview');
+    expect(postHtml).toContain('typecho-intelligence-modal-followup-input');
     expect(postHtml).toContain('输入调整要求，发送后 AI 将结合原文与当前结果继续调整');
     expect(postHtml).toContain('Enter 发送 · Shift+Enter 换行');
     expect(postHtml).toContain("event.key === 'Enter' && !event.shiftKey");
     expect(postHtml).toContain('>取消</button>');
     expect(postHtml).toContain('>确定</button>');
-    expect(postHtml).toContain('typecho-engine-modal-status');
+    expect(postHtml).toContain('typecho-intelligence-modal-status');
     expect(postHtml).toContain('closePreviewModal(true)');
     expect(postHtml).toContain('action: previewState.followUpPrompt ? \'continue\' : previewState.mode');
     expect(postHtml).toContain('payload.originalBody = previewState.oldText;');
@@ -119,18 +119,18 @@ describe('typecho-plugin-engine', () => {
     const hooks = collectHooks();
     const postHtml = hooks.get('admin:writePost:bottom')![0]('');
 
-    expect(postHtml).toContain('data-engine-tab="write"');
-    expect(postHtml).toContain('data-engine-tab="preview"');
-    expect(postHtml).toContain('data-engine-tab="compare"');
-    expect(postHtml).toContain('typecho-engine-modal-write');
-    expect(postHtml).toContain('typecho-engine-modal-compare-original');
-    expect(postHtml).toContain('typecho-engine-modal-compare-generated');
-    expect(postHtml).toContain('typecho-engine-modal-compare-label');
+    expect(postHtml).toContain('data-intelligence-tab="write"');
+    expect(postHtml).toContain('data-intelligence-tab="preview"');
+    expect(postHtml).toContain('data-intelligence-tab="compare"');
+    expect(postHtml).toContain('typecho-intelligence-modal-write');
+    expect(postHtml).toContain('typecho-intelligence-modal-compare-original');
+    expect(postHtml).toContain('typecho-intelligence-modal-compare-generated');
+    expect(postHtml).toContain('typecho-intelligence-modal-compare-label');
     // 预览容器复用 #wmd-preview 排版（wmd-preview class）；比对容器为纯 markdown 源码视图
-    expect(postHtml).toContain('typecho-engine-modal-preview wmd-preview');
-    expect(postHtml).toContain('typecho-engine-modal-compare-content typecho-engine-modal-compare-original');
-    expect(postHtml).toContain('typecho-engine-modal-compare-content typecho-engine-modal-compare-generated');
-    expect(postHtml).toContain('setModalTab(button.getAttribute(\'data-engine-tab\') || \'write\')');
+    expect(postHtml).toContain('typecho-intelligence-modal-preview wmd-preview');
+    expect(postHtml).toContain('typecho-intelligence-modal-compare-content typecho-intelligence-modal-compare-original');
+    expect(postHtml).toContain('typecho-intelligence-modal-compare-content typecho-intelligence-modal-compare-generated');
+    expect(postHtml).toContain('setModalTab(button.getAttribute(\'data-intelligence-tab\') || \'write\')');
     expect(postHtml).toContain('previewState.userEdited = true;');
     expect(postHtml).toContain('renderModalViews();');
     expect(postHtml).toContain('window.HyperDown && window.DOMPurify');
@@ -159,19 +159,19 @@ describe('typecho-plugin-engine', () => {
     const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
     expect(pkg.typecho.plugin.config).toBeUndefined();
-    expect(pkg.typecho.plugin.adminPage).toBe('engine');
+    expect(pkg.typecho.plugin.adminPage).toBe('intelligence');
     expect(pkg.typecho.plugin.adminPageIsSettings).toBe(true);
-    expect(postHtml).toContain("writingOptions: collectWritingSettings(previewState.box.querySelector('.typecho-engine-menu') || previewState.box)");
+    expect(postHtml).toContain("writingOptions: collectWritingSettings(previewState.box.querySelector('.typecho-intelligence-menu') || previewState.box)");
     expect(postHtml).toContain('saveWritingSettings(collectWritingSettings(settings))');
   });
 
-  it('renders engine settings page for slug engine', async () => {
+  it('renders intelligence settings page for slug intelligence', async () => {
     const hooks = collectHooks();
     const page = await hooks.get('admin:page')![0]('', {
-      slug: 'engine',
+      slug: 'intelligence',
       csrfToken: 'csrf-token',
       options: {
-        'plugin:typecho-plugin-engine': JSON.stringify({
+        'plugin:typecho-plugin-intelligence': JSON.stringify({
           endpoint: 'https://example.com/v1/',
           apiKey: 'secret',
           model: 'demo',
@@ -183,31 +183,31 @@ describe('typecho-plugin-engine', () => {
     expect(page).toContain('基础设置');
     expect(page).toContain('智能摘要');
     expect(page).toContain('手动批量生成');
-    expect(page).toContain('role="switch" name="autoSummary" id="engine-autoSummary" value="1" checked');
+    expect(page).toContain('role="switch" name="autoSummary" id="intelligence-autoSummary" value="1" checked');
     expect(page).not.toContain('截断摘要模式');
-    expect(page).not.toContain('engine-summary-layout');
-    expect(page).toContain('class="engine-panel-head engine-summary-head"');
+    expect(page).not.toContain('intelligence-summary-layout');
+    expect(page).toContain('class="intelligence-panel-head intelligence-summary-head"');
     expect(page).toContain('aria-label="自动生成智能摘要"');
-    expect(page).not.toContain('aria-labelledby="engine-auto-summary-label"');
-    expect(page).not.toContain('engine-auto-summary-help');
+    expect(page).not.toContain('aria-labelledby="intelligence-auto-summary-label"');
+    expect(page).not.toContain('intelligence-auto-summary-help');
     expect(page).not.toContain('前台展示需要主题接入');
-    expect(page.indexOf('class="engine-summary-copy"')).toBeLessThan(page.indexOf('class="engine-summary-actions"'));
+    expect(page.indexOf('class="intelligence-summary-copy"')).toBeLessThan(page.indexOf('class="intelligence-summary-actions"'));
     expect(page).toContain('@media (max-width: 640px)');
     expect(page).toContain('搜索方式');
-    expect(page).toContain('engine-batch-start');
-    expect(page).toContain('engine-row-2');
-    expect(page).toContain('engine-row-3');
-    expect(page).toContain('engine-scope-grid');
+    expect(page).toContain('intelligence-batch-start');
+    expect(page).toContain('intelligence-row-2');
+    expect(page).toContain('intelligence-row-3');
+    expect(page).toContain('intelligence-scope-grid');
     expect(page).toContain('站内搜索');
     expect(page).toContain('Bing');
     expect(page).toContain('Google');
     expect(page).toContain('name="searchProvider" value="bing" checked');
-    expect(page).not.toContain('engine-rebuild-index');
+    expect(page).not.toContain('intelligence-rebuild-index');
     expect(page).not.toContain('searchScope');
     expect(page).toContain('Max Token');
     expect(page).toContain('grid-template-columns: 1fr 1fr');
     expect(page).toContain('grid-template-columns: 1fr 1fr 1fr');
-    expect(page).toContain('/api/admin/plugin-engine/config');
+    expect(page).toContain('/api/admin/plugin-intelligence/config');
   });
 
   it('ignores config validation for other plugins', async () => {
@@ -221,22 +221,30 @@ describe('typecho-plugin-engine', () => {
     })).resolves.toBe(original);
   });
 
-  it('rejects incomplete LLM config before saving', async () => {
+  it('allows incomplete LLM config before saving (AI stays off until configured)', async () => {
     const hooks = collectHooks();
     const validate = hooks.get('plugin:config:beforeSave')![0];
 
     const result = await validate({ success: true, settings: {} }, {
-      pluginId: 'typecho-plugin-engine',
+      pluginId: 'typecho-plugin-intelligence',
       settings: {
         endpoint: '',
         apiKey: '',
         model: '',
+        autoSummary: '1',
+        searchProvider: 'bing',
       },
     });
 
     expect(result).toMatchObject({
-      success: false,
-      error: '请填写接口地址、API Key 和模型名称',
+      success: true,
+      settings: {
+        endpoint: '',
+        apiKey: '',
+        model: '',
+        autoSummary: '1',
+        searchProvider: 'bing',
+      },
     });
   });
 
@@ -245,7 +253,7 @@ describe('typecho-plugin-engine', () => {
     const validate = hooks.get('plugin:config:beforeSave')![0];
 
     const result = await validate({ success: true, settings: {} }, {
-      pluginId: 'typecho-plugin-engine',
+      pluginId: 'typecho-plugin-intelligence',
       settings: {
         endpoint: 'https://llm.example/v1',
         apiKey: TEST_API_KEY,
@@ -265,7 +273,7 @@ describe('typecho-plugin-engine', () => {
     const validate = hooks.get('plugin:config:beforeSave')![0];
 
     const ok = await validate({ success: true, settings: {} }, {
-      pluginId: 'typecho-plugin-engine',
+      pluginId: 'typecho-plugin-intelligence',
       settings: {
         endpoint: 'https://llm.example/v1',
         apiKey: TEST_API_KEY,
@@ -276,7 +284,7 @@ describe('typecho-plugin-engine', () => {
     expect(ok).toMatchObject({ success: true, settings: { maxTokens: '512000' } });
 
     const rejected = await validate({ success: true, settings: {} }, {
-      pluginId: 'typecho-plugin-engine',
+      pluginId: 'typecho-plugin-intelligence',
       settings: {
         endpoint: 'https://llm.example/v1',
         apiKey: TEST_API_KEY,
@@ -297,7 +305,7 @@ describe('typecho-plugin-engine', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await validate({ success: true, settings: {} }, {
-      pluginId: 'typecho-plugin-engine',
+      pluginId: 'typecho-plugin-intelligence',
       settings: {
         endpoint: 'https://llm.example/v1',
         apiKey: TEST_API_KEY,
@@ -318,7 +326,7 @@ describe('typecho-plugin-engine', () => {
 
   it('returns not handled for unsupported plugin actions', async () => {
     const hooks = collectHooks();
-    const action = hooks.get('plugin:typecho-plugin-engine:action')![0];
+    const action = hooks.get('plugin:typecho-plugin-intelligence:action')![0];
     const original = { handled: false };
 
     await expect(action(original, { action: 'unknown', payload: {} })).resolves.toBe(original);
@@ -326,7 +334,7 @@ describe('typecho-plugin-engine', () => {
 
   it('grants contributor access to generate, polish, correct, and continue actions', () => {
     const hooks = collectHooks();
-    const auth = hooks.get('plugin:typecho-plugin-engine:action:auth')![0];
+    const auth = hooks.get('plugin:typecho-plugin-intelligence:action:auth')![0];
 
     expect(auth('administrator', { action: 'generate' })).toBe('contributor');
     expect(auth('administrator', { action: 'polish' })).toBe('contributor');
@@ -337,7 +345,7 @@ describe('typecho-plugin-engine', () => {
 
   it('rejects continue actions without a follow-up prompt', async () => {
     const hooks = collectHooks();
-    const action = hooks.get('plugin:typecho-plugin-engine:action')![0];
+    const action = hooks.get('plugin:typecho-plugin-intelligence:action')![0];
 
     const result = await action({ handled: false }, {
       action: 'continue',
@@ -348,7 +356,7 @@ describe('typecho-plugin-engine', () => {
         originalBody: '原文',
       },
       options: {
-        'plugin:typecho-plugin-engine': JSON.stringify({
+        'plugin:typecho-plugin-intelligence': JSON.stringify({
           endpoint: 'https://llm.example/v1',
           apiKey: TEST_API_KEY,
           model: 'demo-model',
@@ -365,7 +373,7 @@ describe('typecho-plugin-engine', () => {
 
   it('submits the original text, current result, and follow-up prompt together for continue actions', async () => {
     const hooks = collectHooks();
-    const action = hooks.get('plugin:typecho-plugin-engine:action')![0];
+    const action = hooks.get('plugin:typecho-plugin-intelligence:action')![0];
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(
       'data: {"choices":[{"delta":{"content":"调整后正文"}}]}\n\ndata: [DONE]\n\n',
       {
@@ -386,7 +394,7 @@ describe('typecho-plugin-engine', () => {
       },
       options: {
         siteUrl: 'https://blog.example',
-        'plugin:typecho-plugin-engine': JSON.stringify({
+        'plugin:typecho-plugin-intelligence': JSON.stringify({
           endpoint: 'https://llm.example/v1',
           apiKey: TEST_API_KEY,
           model: 'demo-model',
@@ -414,13 +422,13 @@ describe('typecho-plugin-engine', () => {
 
   it('handles generation action with a clear configuration error', async () => {
     const hooks = collectHooks();
-    const action = hooks.get('plugin:typecho-plugin-engine:action')![0];
+    const action = hooks.get('plugin:typecho-plugin-intelligence:action')![0];
 
     const result = await action({ handled: false }, {
       action: 'generate',
       payload: { contentType: 'post', title: 'Test' },
       options: {
-        'plugin:typecho-plugin-engine': JSON.stringify({
+        'plugin:typecho-plugin-intelligence': JSON.stringify({
           endpoint: 'https://llm.example/v1',
           apiKey: '',
           model: 'demo-model',
@@ -438,7 +446,7 @@ describe('typecho-plugin-engine', () => {
   it('reports the LLM timeout before the generic plugin action timeout', async () => {
     vi.useFakeTimers();
     const hooks = collectHooks();
-    const action = hooks.get('plugin:typecho-plugin-engine:action')![0];
+    const action = hooks.get('plugin:typecho-plugin-intelligence:action')![0];
     const fetchMock = vi.fn((_url: string, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
       init?.signal?.addEventListener('abort', () => {
         reject(new DOMException('Aborted', 'AbortError'));
@@ -450,7 +458,7 @@ describe('typecho-plugin-engine', () => {
       action: 'generate',
       payload: { contentType: 'post', title: 'Test' },
       options: {
-        'plugin:typecho-plugin-engine': JSON.stringify({
+        'plugin:typecho-plugin-intelligence': JSON.stringify({
           endpoint: 'https://llm.example/v1',
           apiKey: TEST_API_KEY,
           model: 'demo-model',
@@ -470,7 +478,7 @@ describe('typecho-plugin-engine', () => {
 
   it('sends structured writing context and output contract to the LLM', async () => {
     const hooks = collectHooks();
-    const action = hooks.get('plugin:typecho-plugin-engine:action')![0];
+    const action = hooks.get('plugin:typecho-plugin-intelligence:action')![0];
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(
       'data: {"choices":[{"delta":{"content":"正文"}}]}\n\ndata: [DONE]\n\n',
       {
@@ -488,7 +496,7 @@ describe('typecho-plugin-engine', () => {
       },
       options: {
         siteUrl: 'https://blog.example',
-        'plugin:typecho-plugin-engine': JSON.stringify({
+        'plugin:typecho-plugin-intelligence': JSON.stringify({
           endpoint: 'https://llm.example/v1',
           apiKey: TEST_API_KEY,
           model: 'demo-model',
@@ -521,7 +529,7 @@ describe('typecho-plugin-engine', () => {
 
   it('applies editor writing options from the action payload', async () => {
     const hooks = collectHooks();
-    const action = hooks.get('plugin:typecho-plugin-engine:action')![0];
+    const action = hooks.get('plugin:typecho-plugin-intelligence:action')![0];
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(
       'data: {"choices":[{"delta":{"content":"正文"}}]}\n\ndata: [DONE]\n\n',
       {
@@ -548,7 +556,7 @@ describe('typecho-plugin-engine', () => {
       },
       options: {
         siteUrl: 'https://blog.example',
-        'plugin:typecho-plugin-engine': JSON.stringify({
+        'plugin:typecho-plugin-intelligence': JSON.stringify({
           endpoint: 'https://llm.example/v1',
           apiKey: TEST_API_KEY,
           model: 'demo-model',
@@ -578,24 +586,24 @@ describe('typecho-plugin-engine', () => {
     expect(postHtml).toContain('width: min(1280px, 100%)');
     expect(pageHtml).toContain('width: min(1280px, 100%)');
     // 高亮样式与无差异提示
-    expect(postHtml).toContain('typecho-engine-diff-del');
-    expect(postHtml).toContain('typecho-engine-diff-ins');
-    expect(postHtml).toContain('typecho-engine-diff-note');
+    expect(postHtml).toContain('typecho-intelligence-diff-del');
+    expect(postHtml).toContain('typecho-intelligence-diff-ins');
+    expect(postHtml).toContain('typecho-intelligence-diff-note');
     // 比对视图走 diff 渲染管线，仅在比对页签激活时计算；纯 markdown 源码对比（pre + 转义 + span）
     expect(postHtml).toContain("if (previewState.tab === 'compare') {");
     expect(postHtml).toContain('renderComparePanes(originalEl, generatedEl, previewState.oldText, text)');
-    expect(postHtml).toContain("var diff = engineDiffMarkup(oldText || '', newText || '')");
-    expect(postHtml).toContain('engineRestoreMarks(escapeHtmlText(block.old))');
-    expect(postHtml).toContain('typecho-engine-modal-compare-md');
+    expect(postHtml).toContain("var diff = intelligenceDiffMarkup(oldText || '', newText || '')");
+    expect(postHtml).toContain('intelligenceRestoreMarks(escapeHtmlText(block.old))');
+    expect(postHtml).toContain('typecho-intelligence-modal-compare-md');
     // 比对视图不再依赖 HyperDown/DOMPurify 渲染与 wmd-preview 排版
-    expect(postHtml).toContain('<pre class="typecho-engine-modal-compare-md">' + "' + oldHtml + '</pre>'");
-    expect(postHtml).not.toContain('wmd-preview typecho-engine-modal-compare');
+    expect(postHtml).toContain('<pre class="typecho-intelligence-modal-compare-md">' + "' + oldHtml + '</pre>'");
+    expect(postHtml).not.toContain('wmd-preview typecho-intelligence-modal-compare');
     // 算法源码经 toString() 序列化注入内联脚本（可执行，语法检查由上方用例覆盖）；
     // 还原 span 的 class 与 CSS 定义一致（转译器会重写字符串引号风格，故按值断言）
-    expect(postHtml).toContain('function engineDiffMarkup(');
-    expect(ENGINE_DIFF_ALGO_JS).toContain('typecho-engine-diff-del');
-    expect(ENGINE_DIFF_ALGO_JS).toContain('typecho-engine-diff-ins');
-    expect(ENGINE_DIFF_ALGO_JS).toContain('engineRestoreMarks');
+    expect(postHtml).toContain('function intelligenceDiffMarkup(');
+    expect(INTELLIGENCE_DIFF_ALGO_JS).toContain('typecho-intelligence-diff-del');
+    expect(INTELLIGENCE_DIFF_ALGO_JS).toContain('typecho-intelligence-diff-ins');
+    expect(INTELLIGENCE_DIFF_ALGO_JS).toContain('intelligenceRestoreMarks');
   });
 
   it('binds dual-pane scroll sync for the compare view', () => {
@@ -621,10 +629,10 @@ describe('typecho-plugin-engine', () => {
   });
 
   describe('diff highlight algorithm', () => {
-    const { engineDiffMarkup, engineRestoreMarks, engineTokenize } = engineDiffAlgo;
+    const { intelligenceDiffMarkup, intelligenceRestoreMarks, intelligenceTokenize } = intelligenceDiffAlgo;
 
     it('reports no difference for identical texts', () => {
-      const result = engineDiffMarkup('同一段文字\n第二行', '同一段文字\n第二行');
+      const result = intelligenceDiffMarkup('同一段文字\n第二行', '同一段文字\n第二行');
       expect(result.hasDiff).toBe(false);
       expect(result.blocks).toHaveLength(1);
       expect(result.blocks[0].words).toBeNull();
@@ -632,7 +640,7 @@ describe('typecho-plugin-engine', () => {
     });
 
     it('marks word-level deletion and insertion around a local replacement', () => {
-      const result = engineDiffMarkup('a b c', 'a X c');
+      const result = intelligenceDiffMarkup('a b c', 'a X c');
       expect(result.hasDiff).toBe(true);
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.old).toBe('a \u0001b\u0002 c');
@@ -642,7 +650,7 @@ describe('typecho-plugin-engine', () => {
     });
 
     it('keeps unchanged markdown syntax markers unmarked', () => {
-      const result = engineDiffMarkup('**bold** text', '**bold** changed');
+      const result = intelligenceDiffMarkup('**bold** text', '**bold** changed');
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.old).toBe('**bold** \u0001text\u0002');
       expect(diffBlock.old).not.toContain('\u0001bold\u0002');
@@ -650,19 +658,19 @@ describe('typecho-plugin-engine', () => {
     });
 
     it('handles whole-block insertion and deletion', () => {
-      const inserted = engineDiffMarkup('', '新段落');
+      const inserted = intelligenceDiffMarkup('', '新段落');
       expect(inserted.hasDiff).toBe(true);
       expect(inserted.blocks[0].old).toBe('');
       expect(inserted.blocks[0].new).toBe('\u0003新段落\u0004');
 
-      const deleted = engineDiffMarkup('旧段落', '');
+      const deleted = intelligenceDiffMarkup('旧段落', '');
       expect(deleted.hasDiff).toBe(true);
       expect(deleted.blocks[0].old).toBe('\u0001旧段落\u0002');
       expect(deleted.blocks[0].new).toBe('');
     });
 
     it('keeps line-level equal runs in separate blocks', () => {
-      const result = engineDiffMarkup('a\nb', 'a\nb\nc');
+      const result = intelligenceDiffMarkup('a\nb', 'a\nb\nc');
       expect(result.blocks).toHaveLength(2);
       expect(result.blocks[0].words).toBeNull();
       expect(result.blocks[0].old).toBe('a\nb');
@@ -671,7 +679,7 @@ describe('typecho-plugin-engine', () => {
     });
 
     it('merges nearby diff blocks with short equal context into one block', () => {
-      const result = engineDiffMarkup('p1\nctx\np2', 'p1x\nctx\np2y');
+      const result = intelligenceDiffMarkup('p1\nctx\np2', 'p1x\nctx\np2y');
       const diffBlocks = result.blocks.filter((b) => b.words !== null);
       expect(diffBlocks).toHaveLength(1);
       expect(diffBlocks[0].old).toBe('\u0001p1\u0002\nctx\n\u0001p2\u0002');
@@ -680,7 +688,7 @@ describe('typecho-plugin-engine', () => {
     });
 
     it('does not wrap newline tokens inside word-level diffs', () => {
-      const result = engineDiffMarkup('x\ny', 'x y');
+      const result = intelligenceDiffMarkup('x\ny', 'x y');
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.old).toBe('x\ny');
       expect(diffBlock.new).toBe('x\u0003 \u0004y');
@@ -688,7 +696,7 @@ describe('typecho-plugin-engine', () => {
 
     it('degrades to whole-block marking for very large difference regions', () => {
       const big = 'x'.repeat(20000);
-      const result = engineDiffMarkup(big, 'y'.repeat(20000));
+      const result = intelligenceDiffMarkup(big, 'y'.repeat(20000));
       expect(result.hasDiff).toBe(true);
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.words).toBe('whole');
@@ -697,43 +705,43 @@ describe('typecho-plugin-engine', () => {
     });
 
     it('tokenizes CJK words, latin words, and punctuation separately', () => {
-      expect(engineTokenize('你好世界 abc_123.')).toEqual(['你好世界', ' ', 'abc_123', '.']);
-      expect(engineTokenize('a\nb')).toEqual(['a', '\n', 'b']);
+      expect(intelligenceTokenize('你好世界 abc_123.')).toEqual(['你好世界', ' ', 'abc_123', '.']);
+      expect(intelligenceTokenize('a\nb')).toEqual(['a', '\n', 'b']);
     });
 
     it('restores del/ins placeholders to highlight spans', () => {
-      expect(engineRestoreMarks('x\u0001y\u0002z')).toBe('x<span class="typecho-engine-diff-del">y</span>z');
-      expect(engineRestoreMarks('x\u0003y\u0004z')).toBe('x<span class="typecho-engine-diff-ins">y</span>z');
-      expect(engineRestoreMarks('plain')).toBe('plain');
+      expect(intelligenceRestoreMarks('x\u0001y\u0002z')).toBe('x<span class="typecho-intelligence-diff-del">y</span>z');
+      expect(intelligenceRestoreMarks('x\u0003y\u0004z')).toBe('x<span class="typecho-intelligence-diff-ins">y</span>z');
+      expect(intelligenceRestoreMarks('plain')).toBe('plain');
     });
 
     it('keeps unchanged images renderable (identical markdown stays in equal blocks)', () => {
-      const result = engineDiffMarkup('![图](https://x/y.png)', '![图](https://x/y.png)');
+      const result = intelligenceDiffMarkup('![图](https://x/y.png)', '![图](https://x/y.png)');
       expect(result.hasDiff).toBe(false);
       expect(result.blocks[0].words).toBeNull();
       expect(result.blocks[0].old).toBe('![图](https://x/y.png)');
     });
 
     it('marks a removed image as one del-highlighted markdown run', () => {
-      const result = engineDiffMarkup('![图](https://x/y.png)\n正文', '正文');
+      const result = intelligenceDiffMarkup('![图](https://x/y.png)\n正文', '正文');
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.old).toBe('\u0001![图](https://x/y.png)\u0002');
-      expect(engineRestoreMarks(diffBlock.old)).toBe(
-        '<span class="typecho-engine-diff-del">![图](https://x/y.png)</span>',
+      expect(intelligenceRestoreMarks(diffBlock.old)).toBe(
+        '<span class="typecho-intelligence-diff-del">![图](https://x/y.png)</span>',
       );
     });
 
     it('marks an added image as one ins-highlighted markdown run', () => {
-      const result = engineDiffMarkup('正文', '正文\n\n![新图](https://x/z.png)');
+      const result = intelligenceDiffMarkup('正文', '正文\n\n![新图](https://x/z.png)');
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.new).toBe('\n\u0003![新图](https://x/z.png)\u0004');
-      expect(engineRestoreMarks(diffBlock.new)).toBe(
-        '\n<span class="typecho-engine-diff-ins">![新图](https://x/z.png)</span>',
+      expect(intelligenceRestoreMarks(diffBlock.new)).toBe(
+        '\n<span class="typecho-intelligence-diff-ins">![新图](https://x/z.png)</span>',
       );
     });
 
     it('keeps identical markdown syntax tokens unmarked (image stays untouched)', () => {
-      const result = engineDiffMarkup('![图](https://x/y.png) 说明', '![图](https://x/y.png) 新说明');
+      const result = intelligenceDiffMarkup('![图](https://x/y.png) 说明', '![图](https://x/y.png) 新说明');
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       // 语法 token（! [ ] ( ) https://…）相等 → 不高亮；CJK 词级分词把「新说明」视为一个词
       expect(diffBlock.old).toBe('![图](https://x/y.png) \u0001说明\u0002');
@@ -741,21 +749,21 @@ describe('typecho-plugin-engine', () => {
     });
 
     it('highlights changed link URLs at word level without breaking the syntax', () => {
-      const result = engineDiffMarkup('[链接](https://x/a)', '[链接](https://x/b)');
+      const result = intelligenceDiffMarkup('[链接](https://x/a)', '[链接](https://x/b)');
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.old).toBe('[链接](https://x/\u0001a\u0002)');
       expect(diffBlock.new).toBe('[链接](https://x/\u0003b\u0004)');
     });
 
     it('highlights changed link labels while keeping the url tokens equal', () => {
-      const result = engineDiffMarkup('[旧名](https://x/u)', '[新名](https://x/u)');
+      const result = intelligenceDiffMarkup('[旧名](https://x/u)', '[新名](https://x/u)');
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.old).toBe('[\u0001旧名\u0002](https://x/u)');
       expect(diffBlock.new).toBe('[\u0003新名\u0004](https://x/u)');
     });
 
     it('highlights the changed definition URL of a reference-style image', () => {
-      const result = engineDiffMarkup('![图][1]\n\n[1]: https://x/y.png', '![图][1]\n\n[1]: https://x/z.png');
+      const result = intelligenceDiffMarkup('![图][1]\n\n[1]: https://x/y.png', '![图][1]\n\n[1]: https://x/z.png');
       // 引用行与定义语法 token 相等 → 原样；仅定义 URL 中变化的词级 token 高亮（y → z，扩展名不变）
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.old).toBe('[1]: https://x/\u0001y\u0002.png');
@@ -763,14 +771,14 @@ describe('typecho-plugin-engine', () => {
     });
 
     it('marks a replaced horizontal rule as a single highlighted run', () => {
-      const result = engineDiffMarkup('标题\n---\n正文', '标题\n***\n正文');
+      const result = intelligenceDiffMarkup('标题\n---\n正文', '标题\n***\n正文');
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.old).toBe('\u0001---\u0002');
       expect(diffBlock.new).toBe('\u0003***\u0004');
     });
 
     it('keeps table pipe tokens unmarked when only cell content changes', () => {
-      const result = engineDiffMarkup('| a | b |', '| a | c |');
+      const result = intelligenceDiffMarkup('| a | b |', '| a | c |');
       const diffBlock = result.blocks.find((b) => b.words !== null)!;
       expect(diffBlock.old).toBe('| a | \u0001b\u0002 |');
       expect(diffBlock.new).toBe('| a | \u0003c\u0004 |');
@@ -778,16 +786,16 @@ describe('typecho-plugin-engine', () => {
   });
 });
 
-describe('Engine external search hooks', () => {
+describe('Intelligence external search hooks', () => {
   const options = (provider: string) => ({
     siteUrl: 'https://example.com',
-    'plugin:typecho-plugin-engine': JSON.stringify({ searchProvider: provider, apiKey: 'do-not-expose-this-key' }),
+    'plugin:typecho-plugin-intelligence': JSON.stringify({ searchProvider: provider, apiKey: 'do-not-expose-this-key' }),
   });
 
   it('injects via archive:footer without exposing AI credentials', async () => {
     const footer = collectHooks().get('archive:footer')![0];
     const html = await footer('existing', { options: options('bing') });
-    expect(html).toContain('data-engine-search');
+    expect(html).toContain('data-intelligence-search');
     expect(html).toContain('existing');
     expect(html).not.toContain('do-not-expose-this-key');
     expect(await footer('existing', { options: options('default') })).toBe('existing');

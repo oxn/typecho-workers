@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   loadSettings,
+  isAiConfigured,
   isAutoSummaryEnabled,
   normalizeSearchProvider,
   normalizeSettings,
@@ -12,7 +13,7 @@ import {
   SETTINGS_DEFAULTS,
 } from './config';
 
-describe('engine config', () => {
+describe('intelligence config', () => {
   it('normalizes searchProvider and autoSummary', () => {
     expect(normalizeSearchProvider('google')).toBe('google');
     expect(normalizeSearchProvider('nope')).toBe('default');
@@ -21,7 +22,7 @@ describe('engine config', () => {
     expect(normalizeSettings({}).autoSummary).toBe('0');
   });
 
-  it('validates LLM settings', () => {
+  it('validates LLM settings without requiring credentials', () => {
     expect(() => validateSettings({
       endpoint: 'https://example.com/v1/',
       apiKey: 'k',
@@ -32,11 +33,32 @@ describe('engine config', () => {
       searchProvider: 'bing',
     })).not.toThrow();
 
-    expect(() => validateSettings({
+    // Incomplete AI credentials must not block save (search / summary flags still persist).
+    expect(validateSettings({
+      ...SETTINGS_DEFAULTS,
+      endpoint: '',
+      apiKey: '',
+      model: '',
+      autoSummary: '1',
+      searchProvider: 'google',
+    })).toMatchObject({
+      endpoint: '',
+      apiKey: '',
+      model: '',
+      autoSummary: '1',
+      searchProvider: 'google',
+    });
+
+    expect(validateSettings({
       ...SETTINGS_DEFAULTS,
       endpoint: '',
       apiKey: 'k',
       model: 'm',
+    }).apiKey).toBe('k');
+
+    expect(() => validateSettings({
+      ...SETTINGS_DEFAULTS,
+      endpoint: 'not-a-url',
     })).toThrow(/接口地址/);
   });
 
@@ -58,17 +80,28 @@ describe('engine config', () => {
 describe('legacy search settings', () => {
   it('ignores old searchScope instead of silently selecting an external engine', () => {
     expect(normalizeSettings({ searchScope: 'title_summary' }).searchProvider).toBe('default');
-    expect(loadSettings({ 'plugin:typecho-plugin-engine': '{"searchScope":"title"}' }).searchProvider).toBe('default');
+    expect(loadSettings({ 'plugin:typecho-plugin-intelligence': '{"searchScope":"title"}' }).searchProvider).toBe('default');
   });
   it('allows search-only configuration without an AI key', () => {
     expect(validateSettings({ ...SETTINGS_DEFAULTS, searchProvider: 'bing' }).searchProvider).toBe('bing');
-    expect(() => validateSettings({ ...SETTINGS_DEFAULTS, autoSummary: '1' })).toThrow(/API Key/);
+    expect(validateSettings({ ...SETTINGS_DEFAULTS, autoSummary: '1' }).autoSummary).toBe('1');
   });
 });
 
 
-it('keeps automatic AI generation off by default and requires AI credentials when enabled', () => {
+it('treats incomplete AI credentials as AI features off', () => {
+  expect(isAiConfigured(SETTINGS_DEFAULTS)).toBe(false);
   expect(isAutoSummaryEnabled(SETTINGS_DEFAULTS)).toBe(false);
-  expect(() => validateSettings({ ...SETTINGS_DEFAULTS, autoSummary: '1' })).toThrow(/API Key/);
-  expect(isAutoSummaryEnabled(validateSettings({ ...SETTINGS_DEFAULTS, apiKey: 'key', autoSummary: '1' }))).toBe(true);
+  expect(isAutoSummaryEnabled(validateSettings({ ...SETTINGS_DEFAULTS, autoSummary: '1' }))).toBe(false);
+  expect(isAutoSummaryEnabled(validateSettings({
+    ...SETTINGS_DEFAULTS,
+    apiKey: 'key',
+    autoSummary: '1',
+  }))).toBe(true);
+  expect(isAiConfigured(validateSettings({
+    ...SETTINGS_DEFAULTS,
+    endpoint: '',
+    apiKey: 'key',
+    model: 'm',
+  }))).toBe(false);
 });

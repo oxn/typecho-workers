@@ -14,7 +14,7 @@
         "tslib": "^2.8.1",
         "typecho-plugin-antispam": "workspace:*",
         "typecho-plugin-cache": "workspace:*",
-        "typecho-plugin-engine": "workspace:*",
+        "typecho-plugin-intelligence": "workspace:*",
         "typecho-plugin-notes": "workspace:*",
         "typecho-plugin-notifier": "workspace:*",
         "typecho-plugin-turnstile": "workspace:*",
@@ -40,8 +40,8 @@
       "name": "typecho-plugin-cache",
       "version": "1.0.0",
     },
-    "src/plugins/typecho-plugin-engine": {
-      "name": "typecho-plugin-engine",
+    "src/plugins/typecho-plugin-intelligence": {
+      "name": "typecho-plugin-intelligence",
       "version": "2.0.0",
     },
     "src/plugins/typecho-plugin-notes": {
@@ -872,7 +872,7 @@
 
     "typecho-plugin-cache": ["typecho-plugin-cache@workspace:src/plugins/typecho-plugin-cache"],
 
-    "typecho-plugin-engine": ["typecho-plugin-engine@workspace:src/plugins/typecho-plugin-engine"],
+    "typecho-plugin-intelligence": ["typecho-plugin-intelligence@workspace:src/plugins/typecho-plugin-intelligence"],
 
     "typecho-plugin-notes": ["typecho-plugin-notes@workspace:src/plugins/typecho-plugin-notes"],
 

@@ -1,4 +1,4 @@
-/** Engine-owned optional external search. No core or theme-specific configuration. */
+/** Intelligence-owned optional external search. No core or theme-specific configuration. */
 export type SearchProvider = 'default' | 'bing' | 'google';
 
 export function normalizeSearchProvider(value: unknown): SearchProvider {
@@ -52,11 +52,11 @@ export function searchDisabledResponse(): Response {
  * swaps the body. A page without the plugin marker retains native form behavior.
  */
 export function installExternalSearch(buildUrl: typeof buildExternalSearchUrl): void {
-  const state = document as Document & { __typechoEngineSearch?: EventListener };
-  if (state.__typechoEngineSearch) document.removeEventListener('submit', state.__typechoEngineSearch, true);
+  const state = document as Document & { __typechoIntelligenceSearch?: EventListener };
+  if (state.__typechoIntelligenceSearch) document.removeEventListener('submit', state.__typechoIntelligenceSearch, true);
 
   const readConfig = (): { provider: string; siteUrl: string } | null => {
-    const marker = document.querySelector('script[data-engine-search]');
+    const marker = document.querySelector('script[data-intelligence-search]');
     if (!marker?.textContent) return null;
     try { return JSON.parse(marker.textContent); } catch { return null; }
   };
@@ -73,7 +73,7 @@ export function installExternalSearch(buildUrl: typeof buildExternalSearchUrl): 
     } catch { return null; }
   };
 
-  state.__typechoEngineSearch = event => {
+  state.__typechoIntelligenceSearch = event => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
     const config = readConfig();
@@ -85,7 +85,7 @@ export function installExternalSearch(buildUrl: typeof buildExternalSearchUrl): 
     if (target) window.location.assign(target);
     else input.focus();
   };
-  document.addEventListener('submit', state.__typechoEngineSearch, true);
+  document.addEventListener('submit', state.__typechoIntelligenceSearch, true);
 
   const config = readConfig();
   if (!config || (config.provider !== 'bing' && config.provider !== 'google')) return;
@@ -108,7 +108,7 @@ export function searchClientHtml(provider: SearchProvider, siteUrl: string): str
   const engine = provider === 'bing' ? 'https://www.bing.com/search' : 'https://www.google.com/search';
   // InstantClick recreates executable script tags without preserving attributes.
   // Keep this inert JSON marker untouched when it swaps/replays a page body.
-  return `<script type="application/json" data-engine-search data-no-instant>${config}</script>`
+  return `<script type="application/json" data-intelligence-search data-no-instant>${config}</script>`
     + `<script>(${installExternalSearch.toString()})(${buildExternalSearchUrl.toString()});</script>`
     + `<noscript><p>本站使用 ${label} 搜索。请启用 JavaScript，或前往 <a href="${engine}" rel="nofollow">${label}</a> 输入关键词和 site:本站域名。</p></noscript>`;
 }

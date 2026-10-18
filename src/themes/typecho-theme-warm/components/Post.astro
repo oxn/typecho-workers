@@ -1,7 +1,7 @@
 ---
 import { env } from 'cloudflare:workers';
 import { getDb } from 'typecho/db';
-import { readSummary } from 'typecho-plugin-engine';
+import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
 import { createContext } from '@/lib/context';
 import { optimizeContentImages } from '@/lib/image-transform';
@@ -36,10 +36,10 @@ const optimizedContent = optimizeContentImages(
 const toc = isNote ? { html: optimizedContent, items: [] } : prepareArticleToc(optimizedContent);
 const displayContent = toc.html;
 const tocItems = toc.items;
-const engineSummary = !isNote && pluginCtx.activatedPlugins.has('typecho-plugin-engine')
+const intelligenceSummary = !isNote && pluginCtx.activatedPlugins.has('typecho-plugin-intelligence')
   ? await readSummary(db, post.cid)
   : null;
-const summary = isNote ? '' : warmArticleSummary(post, engineSummary);
+const summary = isNote ? '' : warmArticleSummary(post, intelligenceSummary);
 const description = isNote
   ? plainExcerpt(note.source, 160)
   : (summary || (!(post.hasPassword && !post.passwordVerified) ? plainExcerpt(post.content, 160) : ''));

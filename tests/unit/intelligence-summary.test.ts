@@ -6,17 +6,17 @@ import {
   upsertSummary,
   readSummary,
   listPublishedForSummary,
-  ENGINE_SUMMARY_FIELD,
-} from '@/plugins/typecho-plugin-engine/summary';
+  INTELLIGENCE_SUMMARY_FIELD,
+} from '@/plugins/typecho-plugin-intelligence/summary';
 
-describe('engine summary helpers', () => {
+describe('intelligence summary helpers', () => {
   let db: TestDatabase;
 
   beforeEach(async () => {
     db = await createTestDb();
   });
 
-  it('upserts and reads engine_summary field', async () => {
+  it('upserts and reads intelligence_summary field', async () => {
     const [row] = await db.insert(schema.contents).values({
       title: 'Hello',
       slug: 'hello',
@@ -35,7 +35,7 @@ describe('engine summary helpers', () => {
     expect(await readSummary(db, row.cid!)).toBe('updated summary');
 
     const field = await db.query.fields.findFirst({
-      where: and(eq(schema.fields.cid, row.cid!), eq(schema.fields.name, ENGINE_SUMMARY_FIELD)),
+      where: and(eq(schema.fields.cid, row.cid!), eq(schema.fields.name, INTELLIGENCE_SUMMARY_FIELD)),
     });
     expect(field?.str_value).toBe('updated summary');
   });

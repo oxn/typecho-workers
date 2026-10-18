@@ -273,8 +273,8 @@ describe('typecho-theme-warm', () => {
     expect(shell).toContain('>全部文章</a>');
     expect(shell.match(/<summary>[\s\S]*?<\/summary>/)?.[0]).not.toContain('<a');
     expect(post).toContain('"warm-article__hero": !isNote');
-    expect(post).toContain("const summary = isNote ? '' : warmArticleSummary(post, engineSummary);");
-    expect(post).toContain("pluginCtx.activatedPlugins.has('typecho-plugin-engine')");
+    expect(post).toContain("const summary = isNote ? '' : warmArticleSummary(post, intelligenceSummary);");
+    expect(post).toContain("pluginCtx.activatedPlugins.has('typecho-plugin-intelligence')");
     expect(post).toContain('await readSummary(db, post.cid)');
     expect(post).toContain('{summary && <p class="warm-article__summary">{summary}</p>}');
     expect(post).not.toContain('warm-post-nav');
@@ -323,7 +323,7 @@ describe('typecho-theme-warm', () => {
     expect(rule('.warm-note__images.is-expanded .warm-note__images-more')).toContain('display: none;');
   });
 
-  it('shows hero summary only from Engine 智能摘要 when readable', () => {
+  it('shows hero summary only from Intelligence 智能摘要 when readable', () => {
     const post = { hasPassword: false, passwordVerified: false };
     expect(warmArticleSummary(post, '这是智能摘要。')).toBe('这是智能摘要。');
     expect(warmArticleSummary(post, '  ')).toBe('');
@@ -372,7 +372,7 @@ describe('typecho-theme-warm', () => {
     // <style> string; inside the template literal they must be written as
     // `\\n` so the emitted script keeps literal backslash-n. Assert the
     // exported constant still parses as valid JavaScript (guards against
-    // the same template-literal newline trap that broke the Engine modal).
+    // the same template-literal newline trap that broke the Intelligence modal).
     const sourceMatch = viewImage.match(/export const viewImageSource = `([\s\S]*)`;/);
     expect(sourceMatch).toBeTruthy();
     const templateBody = sourceMatch![1];

@@ -1,16 +1,16 @@
 /**
- * Engine summary persistence helpers (typecho_fields.name = engine_summary).
+ * Intelligence summary persistence helpers (typecho_fields.name = intelligence_summary).
  */
 import { and, eq, inArray, or } from 'drizzle-orm';
 import { schema } from 'typecho/db';
 import { D1_IN_CHUNK_SIZE } from '@/lib/d1-in';
-import { ENGINE_SUMMARY_FIELD } from './config';
+import { INTELLIGENCE_SUMMARY_FIELD } from './config';
 
-export { ENGINE_SUMMARY_FIELD };
+export { INTELLIGENCE_SUMMARY_FIELD };
 
 export async function readSummary(db: any, cid: number): Promise<string | null> {
   const row = await db.query.fields.findFirst({
-    where: and(eq(schema.fields.cid, cid), eq(schema.fields.name, ENGINE_SUMMARY_FIELD)),
+    where: and(eq(schema.fields.cid, cid), eq(schema.fields.name, INTELLIGENCE_SUMMARY_FIELD)),
     columns: { str_value: true },
   });
   const value = row?.str_value?.trim();
@@ -22,20 +22,20 @@ export async function upsertSummary(db: any, cid: number, summary: string): Prom
   if (!value) return;
 
   const existing = await db.query.fields.findFirst({
-    where: and(eq(schema.fields.cid, cid), eq(schema.fields.name, ENGINE_SUMMARY_FIELD)),
+    where: and(eq(schema.fields.cid, cid), eq(schema.fields.name, INTELLIGENCE_SUMMARY_FIELD)),
     columns: { cid: true },
   });
 
   if (existing) {
     await db.update(schema.fields)
       .set({ str_value: value, type: 'str' })
-      .where(and(eq(schema.fields.cid, cid), eq(schema.fields.name, ENGINE_SUMMARY_FIELD)));
+      .where(and(eq(schema.fields.cid, cid), eq(schema.fields.name, INTELLIGENCE_SUMMARY_FIELD)));
     return;
   }
 
   await db.insert(schema.fields).values({
     cid,
-    name: ENGINE_SUMMARY_FIELD,
+    name: INTELLIGENCE_SUMMARY_FIELD,
     type: 'str',
     str_value: value,
   });
@@ -66,7 +66,7 @@ export async function listPublishedForSummary(db: any): Promise<SummaryListItem[
   const cids = (rows as Array<{ cid: number | null }>).map((r) => r.cid).filter((cid): cid is number => cid != null);
   const summarySet = new Set<number>();
   // D1 caps bound parameters at 100 per statement. Chunk IN lists so
-  // cid placeholders + the engine_summary name bind stay under the limit.
+  // cid placeholders + the intelligence_summary name bind stay under the limit.
   for (let offset = 0; offset < cids.length; offset += D1_IN_CHUNK_SIZE) {
     const chunk = cids.slice(offset, offset + D1_IN_CHUNK_SIZE);
     const fields = await db
@@ -74,7 +74,7 @@ export async function listPublishedForSummary(db: any): Promise<SummaryListItem[
       .from(schema.fields)
       .where(and(
         inArray(schema.fields.cid, chunk),
-        eq(schema.fields.name, ENGINE_SUMMARY_FIELD),
+        eq(schema.fields.name, INTELLIGENCE_SUMMARY_FIELD),
       )) as Array<{ cid: number | null; str_value: string | null }>;
     for (const field of fields) {
       if (field.cid != null && field.str_value?.trim()) summarySet.add(field.cid);

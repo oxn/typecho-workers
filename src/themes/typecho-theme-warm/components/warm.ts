@@ -124,13 +124,13 @@ export function readingMinutes(html: string): number {
   return Math.max(1, Math.ceil(characters / 420));
 }
 
-/** Hero summary: only Engine 智能摘要; empty when missing or password-locked. */
+/** Hero summary: only Intelligence 智能摘要; empty when missing or password-locked. */
 export function warmArticleSummary(
   post: Pick<ThemePostProps['post'], 'hasPassword' | 'passwordVerified'>,
-  engineSummary: string | null | undefined,
+  intelligenceSummary: string | null | undefined,
 ): string {
   if (post.hasPassword && !post.passwordVerified) return '';
-  return (engineSummary || '').trim();
+  return (intelligenceSummary || '').trim();
 }
 
 export interface WarmTocItem {
