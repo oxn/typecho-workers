@@ -257,8 +257,13 @@ describe('typecho-theme-warm', () => {
     expect(css).toMatch(/\.warm-stream-item \{[^}]*padding: var\(--warm-gutter\)/);
     expect(css).toContain('@media (max-width: 639px)');
     expect(css).toContain('animation-iteration-count: 1 !important;');
-    expect(css).toMatch(/\.warm-article__hero \{[^}]*width: min\(var\(--warm-breakout-width\), 100vw\)/);
-    expect(css).toMatch(/\.warm-comment-form \{[^}]*width: min\(var\(--warm-breakout-width\), 100vw\)/);
+    expect(css).toContain('overflow-x: clip');
+    expect(css).toMatch(
+      /\.warm-article__hero \{[^}]*width: min\(\s*var\(--warm-breakout-width\),\s*calc\(100% \+ 2 \* var\(--warm-gutter\) \+ max\(0px, 100vw - var\(--warm-page-width\)\)\)\s*\)/s,
+    );
+    expect(css).toMatch(
+      /\.warm-comment-form \{[^}]*width: min\(\s*var\(--warm-breakout-width\),\s*calc\(100% \+ 2 \* var\(--warm-gutter\) \+ max\(0px, 100vw - var\(--warm-page-width\)\)\)\s*\)/s,
+    );
     expect(css).toContain('.warm-comment-form__inner');
     expect(comments).toContain('class="warm-comment-form__inner"');
     expect(shell).toContain('class="warm-skip-link" href="#warm-content"');
@@ -467,7 +472,8 @@ describe('typecho-theme-warm', () => {
 
     expect(rule).toContain('position: relative;');
     expect(rule).toContain('left: 50%;');
-    expect(rule).toContain('max-width: min(var(--warm-breakout-width), calc(100vw - 32px));');
+    expect(rule).toContain('calc(100% + 2 * var(--warm-gutter) + max(0px, 100vw - var(--warm-page-width)))');
+    expect(rule).toContain('width: auto;');
     expect(rule).toContain('transform: translateX(-50%);');
   });
 

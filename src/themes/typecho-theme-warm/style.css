@@ -25,6 +25,7 @@
 }
 
 html {
+  overflow-x: clip;
   background: var(--warm-bg);
   color: var(--warm-text);
   scroll-behavior: smooth;
@@ -35,6 +36,7 @@ body.warm-theme {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  overflow-x: clip;
   background: var(--warm-bg);
   color: var(--warm-text);
   font-family: var(--warm-font);
@@ -644,16 +646,20 @@ body.warm-theme {
 .warm-article__hero {
   position: relative;
   left: 50%;
-  width: min(var(--warm-breakout-width), 100vw);
+  /* Prefer % + gutter so padded shells never spill past the layout viewport; only use 100vw to grow into side margins when the shell is centered. */
+  width: min(
+    var(--warm-breakout-width),
+    calc(100% + 2 * var(--warm-gutter) + max(0px, 100vw - var(--warm-page-width)))
+  );
   max-width: none;
-  padding: 44px 48px 48px;
+  padding: 44px var(--warm-gutter) 48px;
   transform: translateX(-50%);
   background: var(--warm-hover);
 }
 
 .warm-article__hero-inner {
   width: 100%;
-  max-width: calc(var(--warm-page-width) - 48px);
+  max-width: calc(var(--warm-page-width) - 2 * var(--warm-gutter));
   margin-inline: auto;
 }
 
@@ -760,7 +766,7 @@ body.warm-theme {
 }
 
 .warm-prose figcaption {
-  max-width: calc(var(--warm-page-width) - 48px);
+  max-width: calc(var(--warm-page-width) - 2 * var(--warm-gutter));
   margin: 11px auto 0;
   color: var(--warm-faint);
   font-size: 12px;
@@ -902,8 +908,11 @@ body.warm-theme {
 .warm-article:not(.is-note) .warm-prose table {
   position: relative;
   left: 50%;
-  max-width: min(var(--warm-breakout-width), calc(100vw - 32px));
-  width: none;
+  max-width: min(
+    var(--warm-breakout-width),
+    calc(100% + 2 * var(--warm-gutter) + max(0px, 100vw - var(--warm-page-width)))
+  );
+  width: auto;
   transform: translateX(-50%);
 }
 
@@ -1129,10 +1138,13 @@ body.warm-theme {
 .warm-comment-form {
   position: relative;
   left: 50%;
-  width: min(var(--warm-breakout-width), 100vw);
+  width: min(
+    var(--warm-breakout-width),
+    calc(100% + 2 * var(--warm-gutter) + max(0px, 100vw - var(--warm-page-width)))
+  );
   max-width: none;
   margin-bottom: 34px;
-  padding: 44px 48px 48px;
+  padding: 44px var(--warm-gutter) 48px;
   transform: translateX(-50%);
   border-radius: 0;
   background: var(--warm-surface);
@@ -1140,7 +1152,7 @@ body.warm-theme {
 
 .warm-comment-form__inner {
   width: 100%;
-  max-width: calc(var(--warm-page-width) - 48px);
+  max-width: calc(var(--warm-page-width) - 2 * var(--warm-gutter));
   margin-inline: auto;
 }
 .warm-comment-form .typecho-turnstile {
@@ -1560,7 +1572,7 @@ body.warm-theme {
   }
 
   .warm-article__hero {
-    padding: 34px 24px 38px;
+    padding: 34px var(--warm-gutter) 38px;
   }
 
   .warm-article__hero .warm-item-meta {
@@ -1597,7 +1609,7 @@ body.warm-theme {
   }
 
   .warm-comment-form {
-    padding: 34px 24px 38px;
+    padding: 34px var(--warm-gutter) 38px;
   }
 
   .warm-comment__content,
