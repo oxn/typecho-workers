@@ -182,11 +182,22 @@ describe('typecho-plugin-intelligence', () => {
     });
     expect(page).toContain('基础设置');
     expect(page).toContain('智能摘要');
-    expect(page).toContain('手动批量生成');
+    expect(page).not.toContain('手动批量生成');
+    expect(page).toContain('为已发布的文章和页面生成智能摘要，不受自动生成开关影响。');
     expect(page).toContain('role="switch" name="autoSummary" id="intelligence-autoSummary" value="1" checked');
+    expect(page).toContain('name="summaryLength"');
+    expect(page).toContain('value="medium" checked');
+    expect(page).toContain('intelligence-length-grid');
+    expect(page).toContain('约 80 字');
+    expect(page).toContain('约 120 字');
+    expect(page).toContain('约 200 字');
+    expect(page).toContain('.intelligence-length-hint { display: none;');
+    expect(page).toContain('.is-active .intelligence-length-hint');
     expect(page).not.toContain('截断摘要模式');
     expect(page).not.toContain('intelligence-summary-layout');
-    expect(page).toContain('class="intelligence-panel-head intelligence-summary-head"');
+    expect(page).toContain('align-items: flex-end');
+    expect(page).toContain('width: 36px');
+    expect(page).toContain('translateX(16px)');
     expect(page).toContain('aria-label="自动生成智能摘要"');
     expect(page).not.toContain('aria-labelledby="intelligence-auto-summary-label"');
     expect(page).not.toContain('intelligence-auto-summary-help');
@@ -243,7 +254,35 @@ describe('typecho-plugin-intelligence', () => {
         apiKey: '',
         model: '',
         autoSummary: '1',
+        summaryLength: 'medium',
         searchProvider: 'bing',
+      },
+    });
+  });
+
+  it('persists summaryLength through plugin config validation', async () => {
+    const hooks = collectHooks();
+    const validate = hooks.get('plugin:config:beforeSave')![0];
+
+    const result = await validate({ success: true, settings: {} }, {
+      pluginId: 'typecho-plugin-intelligence',
+      settings: {
+        endpoint: 'https://llm.example/v1',
+        apiKey: TEST_API_KEY,
+        model: 'demo',
+        temperature: '0.7',
+        maxTokens: '1024',
+        autoSummary: '1',
+        summaryLength: 'long',
+        searchProvider: 'default',
+      },
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      settings: {
+        summaryLength: 'long',
+        autoSummary: '1',
       },
     });
   });

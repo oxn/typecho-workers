@@ -5,21 +5,39 @@ import {
   isAutoSummaryEnabled,
   normalizeSearchProvider,
   normalizeSettings,
+  normalizeSummaryLength,
+  summaryMaxTokens,
+  summaryTargetChars,
   validateSettings,
   maskSecretFormValues,
   restoreSecretFormValues,
   toFormValues,
   MASKED_SECRET,
   SETTINGS_DEFAULTS,
+  SUMMARY_LENGTH_CHARS,
 } from './config';
 
 describe('intelligence config', () => {
-  it('normalizes searchProvider and autoSummary', () => {
+  it('normalizes searchProvider, autoSummary, and summaryLength', () => {
     expect(normalizeSearchProvider('google')).toBe('google');
     expect(normalizeSearchProvider('nope')).toBe('default');
     expect(normalizeSettings({ autoSummary: '1', searchProvider: 'bing' }).autoSummary).toBe('1');
     expect(normalizeSettings({ autoSummary: true }).autoSummary).toBe('1');
     expect(normalizeSettings({}).autoSummary).toBe('0');
+    expect(normalizeSummaryLength('short')).toBe('short');
+    expect(normalizeSummaryLength('long')).toBe('long');
+    expect(normalizeSummaryLength('nope')).toBe('medium');
+    expect(normalizeSettings({ summaryLength: 'long' }).summaryLength).toBe('long');
+    expect(normalizeSettings({}).summaryLength).toBe('medium');
+    expect(summaryTargetChars('short')).toBe(SUMMARY_LENGTH_CHARS.short);
+    expect(summaryTargetChars('medium')).toBe(SUMMARY_LENGTH_CHARS.medium);
+    expect(summaryTargetChars('long')).toBe(SUMMARY_LENGTH_CHARS.long);
+  });
+
+  it('sizes summary max_tokens from the target character budget', () => {
+    expect(summaryMaxTokens(80)).toBeLessThanOrEqual(512);
+    expect(summaryMaxTokens(80)).toBeGreaterThanOrEqual(96);
+    expect(summaryMaxTokens(200)).toBeGreaterThan(summaryMaxTokens(80));
   });
 
   it('validates LLM settings without requiring credentials', () => {

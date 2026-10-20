@@ -21,6 +21,9 @@ import {
   maskSecretFormValues,
   restoreSecretFormValues,
   isAutoSummaryEnabled,
+  summaryMaxTokens,
+  summaryTargetChars,
+  type SummaryLengthPreset,
 } from './config';
 import {
   upsertSummary,
@@ -948,21 +951,30 @@ async function callLLM(
   return content.trim().replace(/^```(?:markdown|md)?\s*/i, '').replace(/\s*```$/i, '').trim();
 }
 
-const SUMMARY_SYSTEM_PROMPT = [
-  '你是一位内容摘要助手。',
-  '根据标题与正文生成帮助读者快速理解内容的简明中文摘要。',
-  '摘要应覆盖主题与关键信息点，不要编造正文没有的事实。',
-  '只输出摘要正文本身，不要标题、前后缀、列表符号或引号包裹。',
-  '长度控制在 80～120 字。',
-].join('\n');
+function buildSummarySystemPrompt(targetChars: number): string {
+  return [
+    '你是一位内容摘要助手。',
+    '根据标题与正文生成帮助读者快速理解内容的简明中文摘要。',
+    '摘要应覆盖主题与关键信息点，不要编造正文没有的事实。',
+    '只输出摘要正文本身，不要标题、前后缀、列表符号或引号包裹。',
+    `硬性长度要求：全文合计不超过 ${targetChars} 个字（汉字与标点均计入）；信息写全即可提前结束，禁止凑字，禁止超过 ${targetChars} 字。`,
+  ].join('\n');
+}
 
-async function callLLMSummary(config: IntelligenceConfig, title: string, body: string): Promise<string> {
+async function callLLMSummary(
+  config: IntelligenceConfig,
+  title: string,
+  body: string,
+  summaryLength: SummaryLengthPreset = 'medium',
+): Promise<string> {
   if (!config.endpoint || !config.apiKey || !config.model) {
     throw new Error('请先完整配置接口地址、API Key 和模型名称');
   }
 
+  const targetChars = summaryTargetChars(summaryLength);
   const userPrompt = [
     `标题：${title || '（无标题）'}`,
+    `请生成不超过 ${targetChars} 字的摘要。`,
     '正文：',
     truncateText(stripTypechoMarkers(body || ''), 12000),
   ].join('\n');
@@ -977,11 +989,12 @@ async function callLLMSummary(config: IntelligenceConfig, title: string, body: s
       },
       body: JSON.stringify({
         model: config.model,
-        temperature: Math.min(Number(config.temperature) || 0.7, 0.7),
-        max_tokens: Math.min(Number(config.maxTokens) || 1024, 1024),
+        // Lower temperature keeps length discipline more stable than writing assist.
+        temperature: Math.min(Number(config.temperature) || 0.7, 0.5),
+        max_tokens: summaryMaxTokens(targetChars),
         stream: false,
         messages: [
-          { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
+          { role: 'system', content: buildSummarySystemPrompt(targetChars) },
           { role: 'user', content: userPrompt },
         ],
       }),
@@ -1014,8 +1027,8 @@ async function summarizeOneCid(db: Database, options: Record<string, unknown>, c
     throw new Error('仅支持已发布的文章或页面');
   }
 
-  const config = getConfig(options);
-  const summary = await callLLMSummary(config, row.title || '', row.text || '');
+  const settings = loadSettings(options);
+  const summary = await callLLMSummary(getConfig(options), row.title || '', row.text || '', settings.summaryLength);
   if (!summary) throw new Error('摘要为空');
   await upsertSummary(db, cid, summary);
   return summary;
@@ -1044,9 +1057,15 @@ async function scheduleSummaryMaterialize(content: ContentFinishData, extra?: Co
 
   const db = extra.db;
   const options = extra.options;
+  const summaryLength = loadSettings(options).summaryLength;
   const run = async () => {
     try {
-      const summary = await callLLMSummary(getConfig(options), content.title || '', content.text || '');
+      const summary = await callLLMSummary(
+        getConfig(options),
+        content.title || '',
+        content.text || '',
+        summaryLength,
+      );
       if (summary) await upsertSummary(db, cid, summary);
     } catch (error) {
       // Publishing succeeds even if AI fails. Never replace an existing summary
@@ -2662,6 +2681,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
           settings: {
             ...settings,
             autoSummary: intelligenceSettings.autoSummary,
+            summaryLength: intelligenceSettings.summaryLength,
             searchProvider: intelligenceSettings.searchProvider,
           },
         };

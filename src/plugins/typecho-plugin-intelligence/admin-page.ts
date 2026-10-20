@@ -5,8 +5,10 @@ import { escapeHtml } from 'typecho/plugin-sdk';
 import {
   maskSecretFormValues,
   toFormValues,
+  SUMMARY_LENGTH_CHARS,
   type IntelligenceSettings,
   type SearchProvider,
+  type SummaryLengthPreset,
 } from './config';
 
 export const ADMIN_PAGE_SLUG = 'intelligence';
@@ -39,6 +41,24 @@ function textInput(name: string, value: string, opts: { type?: string; placehold
   const type = opts.type || 'text';
   const ph = opts.placeholder ? ` placeholder="${attr(opts.placeholder)}"` : '';
   return `<input type="${type}" name="${name}" id="intelligence-${name}" class="text w-100" value="${attr(value)}"${ph}>`;
+}
+
+const SUMMARY_LENGTH_OPTIONS: Array<{ value: SummaryLengthPreset; label: string; hint: string }> = [
+  { value: 'short', label: '短', hint: `约 ${SUMMARY_LENGTH_CHARS.short} 字` },
+  { value: 'medium', label: '中', hint: `约 ${SUMMARY_LENGTH_CHARS.medium} 字` },
+  { value: 'long', label: '长', hint: `约 ${SUMMARY_LENGTH_CHARS.long} 字` },
+];
+
+function lengthCards(name: string, value: string): string {
+  return `<div class="intelligence-length-grid" role="radiogroup" aria-label="摘要长度">${SUMMARY_LENGTH_OPTIONS.map((opt) => {
+    const checked = opt.value === value ? ' checked' : '';
+    const active = opt.value === value ? ' is-active' : '';
+    return `<label class="intelligence-length-option${active}" aria-label="${attr(`${opt.label}，${opt.hint}`)}">`
+      + `<input type="radio" name="${name}" value="${attr(opt.value)}"${checked}>`
+      + `<span class="intelligence-length-name">${escapeHtml(opt.label)}</span>`
+      + `<span class="intelligence-length-hint">${escapeHtml(opt.hint)}</span>`
+      + `</label>`;
+  }).join('')}</div>`;
 }
 
 function searchCards(
@@ -106,7 +126,7 @@ export function adminPageHtml(csrf: string, config: IntelligenceSettings): strin
       <header class="intelligence-panel-head intelligence-summary-head">
         <div class="intelligence-summary-title">
           <h3 id="intelligence-summary-title">智能摘要</h3>
-          <p>使用已保存的 AI 配置生成 80～120 字内容概览</p>
+          <p>使用已保存的 AI 配置生成内容概览</p>
         </div>
         <label class="intelligence-toggle">
           <input type="checkbox" role="switch" name="autoSummary" id="intelligence-autoSummary" value="1"${v('autoSummary') === '1' ? ' checked' : ''} aria-label="自动生成智能摘要">
@@ -116,7 +136,7 @@ export function adminPageHtml(csrf: string, config: IntelligenceSettings): strin
       <div class="intelligence-summary-batch">
         <div class="intelligence-summary-batch-head">
           <div class="intelligence-summary-copy">
-            <h4>手动批量生成</h4>
+            ${lengthCards('summaryLength', v('summaryLength'))}
             <p class="description">为已发布的文章和页面生成智能摘要，不受自动生成开关影响。</p>
           </div>
           <div class="intelligence-summary-actions">
@@ -198,38 +218,95 @@ export function adminPageHtml(csrf: string, config: IntelligenceSettings): strin
   gap: 1em 1.5em;
 }
 #intelligence-settings-app .intelligence-panel-head.intelligence-summary-head { margin-bottom: 0; }
+#intelligence-settings-app .intelligence-length-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45em;
+  margin: 0;
+}
+#intelligence-settings-app .intelligence-length-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35em;
+  box-sizing: border-box;
+  width: 2.35em;
+  height: 2.35em;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+#intelligence-settings-app .intelligence-length-option:hover { border-color: #b7cdd8; }
+#intelligence-settings-app .intelligence-length-option.is-active,
+#intelligence-settings-app .intelligence-length-option:has(input:checked) {
+  width: auto;
+  padding: 0 .7em;
+  border-color: #467B96;
+  background: #f3f8fb;
+  box-shadow: inset 0 0 0 1px #467B96;
+}
+#intelligence-settings-app .intelligence-length-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+#intelligence-settings-app .intelligence-length-name { font-weight: 600; color: #333; line-height: 1; }
+#intelligence-settings-app .intelligence-length-hint { display: none; color: #467B96; font-size: .86em; line-height: 1; white-space: nowrap; }
+#intelligence-settings-app .intelligence-length-option.is-active .intelligence-length-hint,
+#intelligence-settings-app .intelligence-length-option:has(input:checked) .intelligence-length-hint { display: inline; }
 #intelligence-settings-app .intelligence-summary-title,
 #intelligence-settings-app .intelligence-summary-copy { min-width: 0; }
-#intelligence-settings-app .intelligence-summary-copy h4 { margin: 0 0 .4em; font-size: 1em; font-weight: 600; }
-#intelligence-settings-app .intelligence-summary-copy .description { margin: 0; line-height: 1.6; }
+#intelligence-settings-app .intelligence-summary-copy .description { margin: .65em 0 0; line-height: 1.6; }
 #intelligence-settings-app .intelligence-summary-batch { margin-top: 1em; padding-top: 1em; border-top: 1px solid #eee; }
-#intelligence-settings-app .intelligence-summary-actions { display: flex; flex-direction: column; align-items: flex-start; gap: .65em; }
+#intelligence-settings-app .intelligence-summary-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .65em; }
 #intelligence-settings-app .intelligence-summary-actions .btn { white-space: nowrap; }
-#intelligence-settings-app .intelligence-toggle { display: inline-flex; align-items: center; gap: .5em; margin: 0; white-space: nowrap; cursor: pointer; color: #666; }
+#intelligence-settings-app .intelligence-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  color: #666;
+  line-height: 1;
+}
+#intelligence-settings-app .intelligence-toggle span { margin: 0; }
 #intelligence-settings-app .intelligence-toggle input {
   appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
   position: relative;
-  width: 2.6em;
-  height: 1.5em;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
   margin: 0;
-  border: 1px solid transparent;
-  border-radius: 1em;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
   background: #b8c0c5;
   cursor: pointer;
+  vertical-align: middle;
 }
 #intelligence-settings-app .intelligence-toggle input::before {
   content: '';
   position: absolute;
-  width: 1.1em;
-  height: 1.1em;
-  top: calc(.2em - 1px);
-  left: calc(.2em - 1px);
+  width: 16px;
+  height: 16px;
+  top: 2px;
+  left: 2px;
   border-radius: 50%;
   background: #fff;
   transition: transform .15s ease;
 }
 #intelligence-settings-app .intelligence-toggle input:checked { background: #467B96; }
-#intelligence-settings-app .intelligence-toggle input:checked::before { transform: translateX(1.1em); }
+#intelligence-settings-app .intelligence-toggle input:checked::before { transform: translateX(16px); }
 #intelligence-settings-app .intelligence-toggle input:focus-visible { outline: 2px solid #467B96; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
   #intelligence-settings-app .intelligence-toggle input::before { transition: none; }
@@ -238,7 +315,7 @@ export function adminPageHtml(csrf: string, config: IntelligenceSettings): strin
   display: flex;
   flex-wrap: wrap;
   gap: .5em;
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 #intelligence-settings-app .intelligence-check {
   display: inline-flex;
@@ -360,7 +437,7 @@ export function adminPageHtml(csrf: string, config: IntelligenceSettings): strin
 @media (max-width: 640px) {
   #intelligence-settings-app .intelligence-summary-head { gap: 1em; }
   #intelligence-settings-app .intelligence-summary-batch-head { grid-template-columns: minmax(0, 1fr); gap: .85em; }
-  #intelligence-settings-app .intelligence-summary-actions { flex-direction: row; align-items: center; flex-wrap: wrap; gap: .75em 1em; }
+  #intelligence-settings-app .intelligence-summary-actions { flex-direction: row; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .75em 1em; }
 }
 </style>
 
@@ -395,13 +472,18 @@ export function adminPageHtml(csrf: string, config: IntelligenceSettings): strin
     notice.textContent = message;
   }
 
-  form.querySelectorAll('.intelligence-scope-card input').forEach(function (input) {
-    input.addEventListener('change', function () {
-      form.querySelectorAll('.intelligence-scope-card').forEach(function (card) {
-        card.classList.toggle('is-active', !!(card.querySelector('input') && card.querySelector('input').checked));
+  function bindChoiceCards(selector) {
+    form.querySelectorAll(selector + ' input').forEach(function (input) {
+      input.addEventListener('change', function () {
+        form.querySelectorAll(selector).forEach(function (card) {
+          var peer = card.querySelector('input');
+          card.classList.toggle('is-active', !!(peer && peer.checked));
+        });
       });
     });
-  });
+  }
+  bindChoiceCards('.intelligence-scope-card');
+  bindChoiceCards('.intelligence-length-option');
 
   function collectSettings() {
     var data = new FormData(form);
@@ -412,6 +494,7 @@ export function adminPageHtml(csrf: string, config: IntelligenceSettings): strin
       temperature: String(data.get('temperature') || ''),
       maxTokens: String(data.get('maxTokens') || ''),
       autoSummary: String(data.get('autoSummary') || '0'),
+      summaryLength: String(data.get('summaryLength') || 'medium'),
       searchProvider: String(data.get('searchProvider') || 'default'),
     };
   }

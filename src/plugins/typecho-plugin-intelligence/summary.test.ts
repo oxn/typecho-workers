@@ -45,8 +45,35 @@ describe('automatic AI summaries', () => {
     expect(await readSummary(db, content.cid!)).toBe(AI_SUMMARY);
     const request = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(request.messages[0].content).toContain('帮助读者快速理解内容');
+    expect(request.messages[0].content).toContain('不超过 120 个字');
     expect(request.messages[0].content).not.toContain('站内搜索');
     expect(request.messages[1].content).toContain(content.title);
+    expect(request.messages[1].content).toContain('不超过 120 字');
+    expect(request.max_tokens).toBeLessThanOrEqual(512);
+    expect(request.temperature).toBeLessThanOrEqual(0.5);
+  });
+
+  it('honors summaryLength preset in the prompt without post-truncating AI output', async () => {
+    const content = await seed();
+    const overlong = `${'测'.repeat(120)}。`;
+    fetchMock.mockImplementationOnce(async () => new Response(JSON.stringify({
+      choices: [{ message: { content: overlong } }],
+    }), { status: 200 }));
+    await hooks.get('post:finishPublish')!(content, {
+      db,
+      options: { 'plugin:typecho-plugin-intelligence': JSON.stringify({
+        ...SETTINGS_DEFAULTS,
+        endpoint: 'https://ai.example/v1',
+        apiKey: 'test-key',
+        model: 'test-model',
+        autoSummary: '1',
+        summaryLength: 'short',
+      }) },
+    });
+    expect(await readSummary(db, content.cid!)).toBe(overlong);
+    const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(request.messages[0].content).toContain('不超过 80 个字');
+    expect(request.messages[1].content).toContain('不超过 80 字');
   });
 
   it('awaits generation when an adapter provides no waitUntil', async () => {

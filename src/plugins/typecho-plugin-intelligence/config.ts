@@ -11,6 +11,16 @@ export { normalizeSearchProvider, type SearchProvider } from './search';
 
 export const MASKED_SECRET = '********';
 
+/** short ≈ 80 / medium ≈ 120 / long ≈ 200 Chinese characters */
+export const SUMMARY_LENGTH_PRESETS = ['short', 'medium', 'long'] as const;
+export type SummaryLengthPreset = (typeof SUMMARY_LENGTH_PRESETS)[number];
+
+export const SUMMARY_LENGTH_CHARS: Record<SummaryLengthPreset, number> = {
+  short: 80,
+  medium: 120,
+  long: 200,
+};
+
 export interface IntelligenceSettings {
   endpoint: string;
   apiKey: string;
@@ -19,6 +29,8 @@ export interface IntelligenceSettings {
   maxTokens: string;
   /** "0" | "1" — generate AI summary on publish */
   autoSummary: string;
+  /** Target summary length preset */
+  summaryLength: SummaryLengthPreset;
   /** default | bing | google */
   searchProvider: SearchProvider;
 }
@@ -30,6 +42,7 @@ export const SETTINGS_DEFAULTS: IntelligenceSettings = {
   temperature: '0.7',
   maxTokens: '128000',
   autoSummary: '0',
+  summaryLength: 'medium',
   searchProvider: 'default',
 };
 
@@ -40,6 +53,21 @@ export function normalizeAutoSummary(value: unknown): string {
   return '0';
 }
 
+export function normalizeSummaryLength(value: unknown): SummaryLengthPreset {
+  return SUMMARY_LENGTH_PRESETS.includes(value as SummaryLengthPreset)
+    ? (value as SummaryLengthPreset)
+    : SETTINGS_DEFAULTS.summaryLength;
+}
+
+export function summaryTargetChars(preset: SummaryLengthPreset): number {
+  return SUMMARY_LENGTH_CHARS[normalizeSummaryLength(preset)];
+}
+
+/** Completion budget sized to the target length so models cannot dump essays. */
+export function summaryMaxTokens(targetChars: number): number {
+  return Math.min(512, Math.max(96, Math.ceil(targetChars * 2.5) + 48));
+}
+
 export function normalizeSettings(settings?: Record<string, unknown>): IntelligenceSettings {
   return {
     endpoint: String(settings?.endpoint || '').trim(),
@@ -48,6 +76,7 @@ export function normalizeSettings(settings?: Record<string, unknown>): Intellige
     temperature: String(settings?.temperature || SETTINGS_DEFAULTS.temperature).trim(),
     maxTokens: String(settings?.maxTokens || SETTINGS_DEFAULTS.maxTokens).trim(),
     autoSummary: normalizeAutoSummary(settings?.autoSummary),
+    summaryLength: normalizeSummaryLength(settings?.summaryLength),
     searchProvider: normalizeSearchProvider(settings?.searchProvider),
   };
 }
@@ -105,6 +134,7 @@ export function toFormValues(config: IntelligenceSettings): Record<string, strin
     temperature: config.temperature,
     maxTokens: config.maxTokens,
     autoSummary: config.autoSummary,
+    summaryLength: config.summaryLength,
     searchProvider: config.searchProvider,
   };
 }
