@@ -80,14 +80,68 @@ export function optimizeImageUrl(url: string, params: string, siteUrl: string): 
  * the optimization params. Only `src` attributes of `img` elements are
  * touched; other elements keep their URLs.
  */
+
 export function optimizeContentImages(html: string, params: string, siteUrl: string): string {
+  if (!html) return html;
+
   const clean = normalizeOptimizeParams(params);
-  if (!clean || !html) return html;
-  return html.replace(
-    /(<img\b[^>]*?\ssrc\s*=\s*)(["'])(.*?)\2/gi,
-    (match: string, prefix: string, quote: string, src: string) => {
+
+  return html.replace(/<img\b[^>]*>/gi, (tag: string) => {
+    const srcMatch = tag.match(/(\ssrc\s*=\s*)(["'])(.*?)\2/i);
+    if (!srcMatch) return tag;
+
+    const src = srcMatch[3];
+
+    // 读取 URL # 后面的参数，兼容 HTML 转义的 &amp;
+    const fragment = (src.split('#', 2)[1] || '').replace(/&amp;/gi, '&');
+
+    const getDimension = (name: 'width' | 'height'): string | null => {
+      const result = fragment.match(
+        new RegExp(`(?:^|[&;])${name}=(\\d+)(?=[&;]|$)`, 'i'),
+      );
+
+      if (!result) return null;
+
+      const value = Number(result[1]);
+
+      return Number.isInteger(value) && value > 0 && value <= 10000
+        ? String(value)
+        : null;
+    };
+
+    let updated = tag;
+    let attributes = '';
+
+    // 只补充缺失的尺寸，不覆盖文章原有的 width/height
+    for (const name of ['width', 'height'] as const) {
+      const dimension = getDimension(name);
+      const hasAttribute = new RegExp(`\\s${name}\\s*=`, 'i').test(updated);
+
+      if (dimension && !hasAttribute) {
+        attributes += ` ${name}="${dimension}"`;
+      }
+    }
+
+    // 将尺寸属性加在 img 标签结束符之前
+    if (attributes) {
+      updated = updated.replace(/\/?>$/, (ending: string) => {
+        return `${attributes}${ending}`;
+      });
+    }
+
+    // 保留原来的图片优化逻辑
+    if (clean) {
       const optimized = optimizeImageUrl(src, clean, siteUrl);
-      return optimized === src ? match : `${prefix}${quote}${optimized}${quote}`;
-    },
-  );
+
+      if (optimized !== src) {
+        updated = updated.replace(
+          /(\ssrc\s*=\s*)(["'])(.*?)\2/i,
+          (_match: string, prefix: string, quote: string) =>
+            `${prefix}${quote}${optimized}${quote}`,
+        );
+      }
+    }
+
+    return updated;
+  });
 }

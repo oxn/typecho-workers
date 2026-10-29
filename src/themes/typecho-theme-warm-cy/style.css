@@ -369,6 +369,12 @@ body.warm-theme {
   margin-bottom: 0;
 }
 
+/* 笔记正文图片：限制在内容区域内，保持原始比例 */
+.warm-note__content img {
+  max-width: 100%;
+  height: auto;
+}
+
 .warm-note__content hr,
 .warm-prose hr {
   width: 42px;
@@ -781,7 +787,8 @@ body.warm-theme {
 
 .warm-prose figure img {
   display: block;
-  width: 100%;
+  max-width: 100%;
+  height: auto;
   background: var(--warm-surface);
 }
 
@@ -924,7 +931,7 @@ body.warm-theme {
 }
 
 /* Only top-level article blocks break out: never notes, comments or nested lists. */
-.warm-article:not(.is-note) .warm-prose img,
+.warm-article:not(.is-note) .warm-prose img:not([width][height]),
 .warm-article:not(.is-note) .warm-prose table {
   position: relative;
   left: 50%;
