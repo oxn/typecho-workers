@@ -1,0 +1,182 @@
+---
+import type { WarmContinuousLoadMode } from './warm';
+
+interface Props {
+  hasPrev: boolean;
+  hasNext: boolean;
+  prevUrl: string | null;
+  nextUrl: string | null;
+  mode: WarmContinuousLoadMode;
+  label: string;
+}
+
+const { hasPrev, hasNext, prevUrl, nextUrl, mode, label } = Astro.props;
+---
+<nav
+  class="warm-pagination warm-pagination--progressive"
+  aria-label={label}
+  data-warm-stream-pagination
+  data-warm-load-mode={mode}
+  data-warm-next-url={hasNext ? nextUrl || undefined : undefined}
+>
+  {hasPrev && prevUrl && <a href={prevUrl} rel="prev" aria-label="上一页">←</a>}
+  {hasNext && nextUrl ? (
+    <a href={nextUrl} rel="next" data-warm-load-more data-no-instant>
+      加载更多
+    </a>
+  ) : (
+    <a data-warm-load-more data-no-instant aria-disabled="true">
+      已加载全部内容
+    </a>
+  )}
+  {hasNext && <span class="warm-pagination__sentinel" data-warm-load-sentinel aria-hidden="true"></span>}
+</nav>
+
+<script is:inline>
+  (() => {
+    const autoLimit = mode => mode === 'auto-2' ? 2 : mode === 'infinite' ? Infinity : 0;
+
+    const initialise = pagination => {
+      if (pagination.dataset.warmBound === 'true') return;
+      pagination.dataset.warmBound = 'true';
+
+      const stream = pagination.parentElement?.querySelector('[data-warm-stream]');
+      const link = pagination.querySelector('[data-warm-load-more]');
+      const sentinel = pagination.querySelector('[data-warm-load-sentinel]');
+      const limit = autoLimit(pagination.dataset.warmLoadMode || 'manual');
+      let automaticLoads = 0;
+      let automaticPaused = false;
+      let loading = false;
+      let userHasScrolled = false;
+      let automaticCooldown = false;
+      let cooldownTimer = null;
+      let observer = null;
+      const initialScrollTop = window.scrollY;
+
+      if (!stream || !link) return;
+
+      const setStatus = message => {
+        if (link) link.textContent = message;
+      };
+
+      const canAutomaticallyLoad = () => (
+        !automaticPaused
+        && !automaticCooldown
+        && !!pagination.dataset.warmNextUrl
+        && automaticLoads < limit
+      );
+
+      const syncControls = () => {
+        const hasNext = !!pagination.dataset.warmNextUrl;
+        if (!hasNext) {
+          link.removeAttribute('href');
+          link.removeAttribute('rel');
+          link.setAttribute('aria-disabled', 'true');
+          sentinel?.remove();
+          observer?.disconnect();
+          return;
+        }
+        if (loading) {
+          link.setAttribute('aria-disabled', 'true');
+          return;
+        }
+        link.removeAttribute('aria-disabled');
+      };
+
+      const setupObserver = () => {
+        observer?.disconnect();
+        observer = null;
+        if (!userHasScrolled || !canAutomaticallyLoad() || !sentinel || !('IntersectionObserver' in window)) return;
+        observer = new IntersectionObserver(entries => {
+          if (entries.some(entry => entry.isIntersecting)) loadNext(true);
+        }, { rootMargin: '0px 0px -20% 0px' });
+        observer.observe(sentinel);
+      };
+
+      const scheduleAutomaticCooldown = () => {
+        if (cooldownTimer !== null) window.clearTimeout(cooldownTimer);
+        cooldownTimer = window.setTimeout(() => {
+          cooldownTimer = null;
+          automaticCooldown = false;
+          setupObserver();
+        }, 1_000);
+      };
+
+      const loadNext = async automatic => {
+        const nextUrl = pagination.dataset.warmNextUrl;
+        if (!nextUrl || loading || (automatic && !canAutomaticallyLoad())) return;
+        if (automatic) {
+          automaticCooldown = true;
+          observer?.disconnect();
+          observer = null;
+        }
+        loading = true;
+        link.setAttribute('aria-busy', 'true');
+        link.setAttribute('aria-disabled', 'true');
+        syncControls();
+        setStatus('正在加载...');
+        try {
+          const response = await fetch(nextUrl, {
+            credentials: 'same-origin',
+            headers: { Accept: 'text/html' },
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const html = await response.text();
+          const document = new DOMParser().parseFromString(html, 'text/html');
+          const nextStream = document.querySelector('[data-warm-stream]');
+          const nextPagination = document.querySelector('[data-warm-stream-pagination]');
+          const items = nextStream
+            ? Array.from(nextStream.children).filter(item => item.classList.contains('warm-stream-item'))
+            : [];
+          if (!items.length) throw new Error('下一页没有可加载的内容');
+
+          stream.append(...items);
+          if (typeof window.warmRepairNoteMedia === 'function') window.warmRepairNoteMedia(stream);
+          pagination.dataset.warmNextUrl = nextPagination?.getAttribute('data-warm-next-url') || '';
+          if (pagination.dataset.warmNextUrl) link.href = pagination.dataset.warmNextUrl;
+          if (automatic) automaticLoads += 1;
+          automaticPaused = false;
+          setStatus(pagination.dataset.warmNextUrl ? '加载更多' : '已加载全部内容');
+        } catch (error) {
+          automaticPaused = true;
+          setStatus('加载失败，请重试。');
+          console.error('[warm] failed to load the next stream page:', error);
+        } finally {
+          loading = false;
+          link.removeAttribute('aria-busy');
+          link.removeAttribute('aria-disabled');
+          syncControls();
+          if (automatic) scheduleAutomaticCooldown();
+        }
+      };
+
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        loadNext(false);
+      });
+
+      const onUserScroll = () => {
+        if (window.scrollY === initialScrollTop) return;
+        userHasScrolled = true;
+        window.removeEventListener('scroll', onUserScroll);
+        setupObserver();
+      };
+
+      const cleanupStalePage = () => {
+        if (pagination.isConnected) return;
+        window.removeEventListener('scroll', onUserScroll);
+        window.removeEventListener('instantclick:newpage', cleanupStalePage);
+        observer?.disconnect();
+        if (cooldownTimer !== null) window.clearTimeout(cooldownTimer);
+      };
+
+      if (limit > 0 && sentinel && 'IntersectionObserver' in window) {
+        window.addEventListener('scroll', onUserScroll, { passive: true });
+        window.addEventListener('instantclick:newpage', cleanupStalePage);
+      }
+      syncControls();
+    };
+
+    document.querySelectorAll('[data-warm-stream-pagination]').forEach(initialise);
+  })();
+</script>

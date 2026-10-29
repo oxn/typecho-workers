@@ -1,0 +1,530 @@
+---
+import type { WarmCommentComponentLoadMode, WarmCommentInitialLoadMode } from './warm';
+
+interface Props {
+  cid: number;
+  componentLoadMode: WarmCommentComponentLoadMode;
+  initialLoadMode: WarmCommentInitialLoadMode;
+  /** Seconds the submit button stays locked after a submit attempt (0 disables). */
+  cooldownSeconds?: number;
+}
+
+const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0 } = Astro.props;
+const requestedCommentPage = Astro.url.searchParams.get('commentPage');
+---
+<section
+  class="warm-comments"
+  id="comments"
+  data-comments-root
+  data-cid={cid}
+  data-comment-cooldown={cooldownSeconds > 0 ? cooldownSeconds : undefined}
+  data-comment-component-load={componentLoadMode}
+  data-current-page={requestedCommentPage || undefined}
+  data-comment-initial-load={initialLoadMode}
+></section>
+
+<script is:inline>
+  (() => {
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[character]);
+
+    const renderComment = (comment, options, avatars, depth = 0) => {
+      const author = escapeHtml(comment.author || '匿名');
+      const avatar = options.showAvatar && avatars[comment.coid]
+        ? `<img src="${escapeHtml(avatars[comment.coid])}" width="36" height="36" alt="" loading="lazy">`
+        : `<span class="warm-comment__avatar" aria-hidden="true">${author.slice(0, 1).toUpperCase()}</span>`;
+      const authorHtml = comment.url && options.showUrl
+        ? `<a href="${escapeHtml(comment.url)}" rel="${options.urlNofollow ? 'external nofollow' : 'external'}">${author}</a>`
+        : `<strong>${author}</strong>`;
+      const children = (comment.children || []).map(child => renderComment(child, options, avatars, depth + 1)).join('');
+      return `<article class="warm-comment" id="comment-${comment.coid}" data-comment-id="${comment.coid}" style="--comment-depth:${Math.min(depth, 3)}">
+        <div class="warm-comment__header"><div class="warm-comment__identity">${avatar}<div>${authorHtml}<time>${escapeHtml(comment.date || '')}</time></div></div>
+        ${options.allowComment ? `<button type="button" class="warm-comment__reply" data-reply-to="${comment.coid}" data-reply-author="${author}">回复</button>` : ''}</div>
+        ${comment.status !== 'approved' ? '<p class="warm-comment__status">评论待审核，仅你可见</p>' : ''}
+        <div class="warm-comment__content warm-prose">${comment.text}</div>
+        ${children ? `<div class="warm-comment__children">${children}</div>` : ''}
+      </article>`;
+    };
+
+    const setCommentMessage = (element, value) => {
+      if (!element) return;
+      element.textContent = value || element.dataset.defaultMessage || '';
+    };
+
+    const renderForm = (options, commenter, password, cid, antispamToken) => {
+      if (!options.allowComment) return '<p class="warm-comments__closed">评论已关闭。</p>';
+      const loggedIn = commenter?.loggedIn === true;
+      const defaultMessage = options.markdown ? '支持 Markdown 语法' : '良言善语';
+      const identity = loggedIn
+        ? `<p class="warm-comment-form__identity">以 <strong>${escapeHtml(commenter.author || '当前用户')}</strong> 的身份评论</p>`
+        : `<div class="warm-form-grid">
+            <label>
+              <span>昵称 / 姓名 <i>*</i></span>
+              <input name="author" type="text" autocomplete="name" required value="${escapeHtml(commenter?.author)}" placeholder="你的称呼">
+            </label>
+            <label>
+              <span>电子邮箱 ${options.requireMail ? '<i>*</i>' : ''}</span>
+              <input name="mail" type="email" autocomplete="email" ${options.requireMail ? 'required' : ''} value="${escapeHtml(commenter?.mail)}" placeholder="不会公开">
+            </label>
+            ${options.showUrl ? `<label>
+              <span>个人网站 ${options.requireUrl ? '<i>*</i>' : ''}</span>
+              <input name="url" type="url" autocomplete="url" ${options.requireUrl ? 'required' : ''} value="${escapeHtml(commenter?.url)}" placeholder="https://">
+            </label>` : ''}
+          </div>
+          <label class="warm-comment-form__remember"><input name="remember" type="checkbox" value="1" checked> 记住我的信息</label>`;
+      const passwordInput = password
+        ? `<input type="hidden" name="password" value="${escapeHtml(password)}">`
+        : '';
+      // antispam time token is issued with the comment list API response (the
+      // static page HTML is cached and must not carry a token that ages with it)
+      const antispamInput = antispamToken
+        ? `<input type="hidden" name="antispam_token" value="${escapeHtml(antispamToken)}">`
+        : '';
+      return `<form class="warm-comment-form" method="post" action="/api/comment" data-comment-form>
+        <div class="warm-comment-form__inner">
+          <input type="hidden" name="cid" value="${escapeHtml(cid)}">
+          <input type="hidden" name="parent" value="0" data-comment-parent>
+          <input type="hidden" name="_" value="${escapeHtml(options.securityToken)}" data-comment-token>
+          ${antispamInput}
+          ${passwordInput}
+          <div class="warm-replying" data-replying hidden><span>回复 <strong data-replying-author></strong></span><button type="button" data-cancel-reply>取消</button></div>
+          ${identity}
+          <label class="warm-comment-form__content">
+            <span>留言内容 <i>*</i></span>
+            <textarea name="text" rows="5" required maxlength="10000" placeholder="静水流深，留下你的想法..."></textarea>
+          </label>
+          <div class="warm-comment-form__actions"><span class="warm-comment-form__message" data-comment-message data-default-message="${escapeHtml(defaultMessage)}" role="status" aria-live="polite">${escapeHtml(defaultMessage)}</span><button type="submit">发送评论</button></div>
+        </div>
+      </form>`;
+    };
+
+    const renderFrame = (root, data) => {
+      const password = new URL(window.location.href).searchParams.get('password') || '';
+      root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p></div>
+        ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken)}
+        <div class="warm-comment-list" data-comment-list aria-live="polite">
+          <div class="warm-comment-deferred" data-comment-deferred>
+            <span class="warm-comments__empty" data-comment-loading data-comment-deferred-message aria-live="polite"></span>
+            <button type="button" data-comment-load-initial hidden>加载评论</button>
+          </div>
+        </div>`;
+    };
+
+    const renderComponentPrompt = (root, message, showButton, loadingState) => {
+      root.innerHTML = `<div class="warm-comment-deferred${loadingState ? ' is-loading' : ''}" data-comment-component-deferred>
+        <span class="warm-comments__empty" aria-live="polite">${escapeHtml(message)}</span>
+        <button type="button" data-comment-load-component${showButton ? '' : ' hidden'}>加载评论组件</button>
+      </div>`;
+    };
+
+    document.querySelectorAll('[data-comments-root]').forEach(root => {
+      const cid = root.dataset.cid;
+      const componentMode = root.dataset.commentComponentLoad || 'manual';
+      const initialMode = root.dataset.commentInitialLoad || 'manual';
+      const parsedPage = Number(root.dataset.currentPage);
+      let page = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+      let metadataLoaded = false;
+      let metadataRequest = null;
+      let commentsLoaded = false;
+      let loading = false;
+      let automaticLoads = 0;
+      let automaticPaused = false;
+      let activePagination = null;
+      let paginationObserver = null;
+      let dwellTimer = null;
+      let componentObserver = null;
+      let componentVisible = false;
+      let componentScrollStarted = false;
+      let componentScrollHandler = null;
+      const componentInitialScrollTop = window.scrollY;
+      const autoLimit = initialMode === 'auto-2' ? 2 : initialMode === 'infinite' ? Infinity : 0;
+
+      const cooldownMs = Math.max(0, Number(root.dataset.commentCooldown || 0) * 1000);
+      const cooldownStorageKey = `typecho-comment-cooldown:${cid}`;
+      let cooldownUntil = 0;
+      let cooldownTimer = null;
+
+      // Client-side submit cooldown mirroring the server's same-IP comment
+      // interval (the server stays authoritative). The deadline is persisted
+      // in sessionStorage so a refresh or a bfcache-restored page can't
+      // resubmit with a fresh, unlocked form.
+      const applyCooldownLock = () => {
+        const submit = root.querySelector('[data-comment-form] button[type="submit"]');
+        if (!submit) return;
+        if (cooldownUntil <= Date.now()) {
+          submit.disabled = false;
+          if (cooldownTimer) {
+            window.clearTimeout(cooldownTimer);
+            cooldownTimer = null;
+          }
+          return;
+        }
+        submit.disabled = true;
+        if (!cooldownTimer) {
+          cooldownTimer = window.setTimeout(() => {
+            cooldownTimer = null;
+            applyCooldownLock();
+          }, cooldownUntil - Date.now());
+        }
+      };
+
+      const startCooldown = () => {
+        if (cooldownMs <= 0) return;
+        cooldownUntil = Date.now() + cooldownMs;
+        try {
+          sessionStorage.setItem(cooldownStorageKey, String(cooldownUntil));
+        } catch { /* private mode — the in-memory lock still holds */ }
+        applyCooldownLock();
+      };
+
+      const restoreCooldown = () => {
+        try {
+          const stored = sessionStorage.getItem(cooldownStorageKey);
+          if (stored) {
+            const ts = Number(stored);
+            if (Number.isFinite(ts) && ts > Date.now()) cooldownUntil = ts;
+            else sessionStorage.removeItem(cooldownStorageKey);
+          }
+        } catch { /* storage unavailable */ }
+        applyCooldownLock();
+      };
+
+      const setDeferredPrompt = (text, showButton, loadingState) => {
+        const deferred = root.querySelector('[data-comment-deferred]');
+        if (!deferred) return;
+        deferred.hidden = false;
+        deferred.classList.toggle('is-loading', loadingState);
+        const deferredMessage = deferred.querySelector('[data-comment-deferred-message]');
+        const initialButton = deferred.querySelector('[data-comment-load-initial]');
+        if (deferredMessage) deferredMessage.textContent = text;
+        if (initialButton) initialButton.hidden = !showButton;
+      };
+
+      const stopInitialLoader = () => {
+        componentObserver?.disconnect();
+        componentObserver = null;
+        if (componentScrollHandler) window.removeEventListener('scroll', componentScrollHandler);
+        componentScrollHandler = null;
+        if (dwellTimer) window.clearTimeout(dwellTimer);
+        dwellTimer = null;
+        paginationObserver?.disconnect();
+        paginationObserver = null;
+      };
+
+      const canAutomaticallyLoad = () => (
+        commentsLoaded
+        && !automaticPaused
+        && automaticLoads < autoLimit
+        && !!activePagination
+        && activePagination.enabled
+        && activePagination.hasNext === true
+      );
+
+      const setPaginationStatus = text => {
+        const button = root.querySelector('[data-comment-load-more]');
+        if (button) button.textContent = text;
+      };
+
+      const syncPaginationControls = () => {
+        const button = root.querySelector('[data-comment-load-more]');
+        if (!button) return;
+        button.disabled = loading || !button.hasAttribute('data-comment-next-page');
+        if (button.disabled) button.setAttribute('aria-disabled', 'true');
+        else button.removeAttribute('aria-disabled');
+      };
+
+      const setupPaginationObserver = () => {
+        paginationObserver?.disconnect();
+        paginationObserver = null;
+        syncPaginationControls();
+        const sentinel = root.querySelector('[data-comment-load-sentinel]');
+        if (!canAutomaticallyLoad() || !sentinel || !('IntersectionObserver' in window)) return;
+        paginationObserver = new IntersectionObserver(entries => {
+          if (!entries.some(entry => entry.isIntersecting)) return;
+          const nextPage = activePagination?.currentPage + 1;
+          if (Number.isSafeInteger(nextPage)) loadComments(nextPage, true, true);
+        }, { rootMargin: '0px 0px -20% 0px' });
+        paginationObserver.observe(sentinel);
+      };
+
+      const renderPagination = pagination => {
+        let nav = root.querySelector('[data-comment-pagination]');
+        const hasNext = pagination.hasNext === true;
+        if (!nav) {
+          nav = document.createElement('nav');
+          nav.className = 'warm-comment-pagination';
+          nav.dataset.commentPagination = '';
+          nav.setAttribute('aria-label', '评论分页');
+          nav.setAttribute('data-no-instant', '');
+          root.appendChild(nav);
+        }
+        if (!hasNext) {
+          paginationObserver?.disconnect();
+          paginationObserver = null;
+          nav.innerHTML = '<button type="button" data-comment-load-more data-comment-load-status disabled aria-disabled="true" aria-live="polite">已加载全部内容</button>';
+          return;
+        }
+        nav.innerHTML = '<button type="button" data-comment-load-more data-comment-load-status data-comment-next-page="' + (pagination.currentPage + 1) + '">加载更多评论</button><span class="warm-comment-pagination__sentinel" data-comment-load-sentinel aria-hidden="true"></span>';
+        setupPaginationObserver();
+      };
+
+      const renderComments = (data, list, append, automatic) => {
+        page = data.pagination.currentPage;
+        const renderedComments = data.comments.length
+          ? data.comments.map(comment => renderComment(comment, data.options, data.gravatarMap)).join('')
+          : '<p class="warm-comments__empty">还没有评论，来留下第一句话吧。</p>';
+        if (append) {
+          if (data.comments.length) list.insertAdjacentHTML('beforeend', renderedComments);
+        } else {
+          list.innerHTML = renderedComments;
+        }
+        const tokenInput = root.querySelector('[data-comment-token]');
+        if (tokenInput) tokenInput.value = data.options.securityToken || '';
+        commentsLoaded = true;
+        activePagination = data.pagination;
+        automaticPaused = false;
+        if (automatic) automaticLoads += 1;
+        renderPagination(activePagination);
+      };
+
+      const loadComments = async (requestedPage, append = false, automatic = false) => {
+        const list = root.querySelector('[data-comment-list]');
+        if (!list || loading) return false;
+        stopInitialLoader();
+        paginationObserver?.disconnect();
+        paginationObserver = null;
+        loading = true;
+        list.setAttribute('aria-busy', 'true');
+        setPaginationStatus('正在加载...');
+        syncPaginationControls();
+        setDeferredPrompt('', false, true);
+        try {
+          const params = new URLSearchParams({ cid });
+          if (requestedPage !== null) params.set('commentPage', String(requestedPage));
+          const response = await fetch(`/api/comments?${params}`, {
+            credentials: 'same-origin', headers: { Accept: 'application/json' },
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || '评论加载失败');
+          renderComments(data, list, append, automatic);
+          return true;
+        } catch (error) {
+          const message = root.querySelector('[data-comment-message]');
+          setCommentMessage(message, error instanceof Error ? error.message : '评论加载失败');
+          if (automatic) automaticPaused = true;
+          if (!commentsLoaded) setDeferredPrompt('评论加载失败，点击重试。', true, false);
+          else {
+            renderPagination(activePagination);
+            setPaginationStatus('加载失败，请重试。');
+          }
+          return false;
+        } finally {
+          loading = false;
+          list.removeAttribute('aria-busy');
+          syncPaginationControls();
+        }
+      };
+
+      const loadMetadata = (requestedPage = null, includeComments = false) => {
+        if (metadataLoaded) return Promise.resolve();
+        if (metadataRequest) return metadataRequest;
+        metadataRequest = (async () => {
+          const params = new URLSearchParams({ cid });
+          if (!includeComments) params.set('includeComments', '0');
+          const requestedCommentPage = requestedPage === null ? root.dataset.currentPage : String(requestedPage);
+          if (requestedCommentPage) params.set('commentPage', requestedCommentPage);
+          const response = await fetch(`/api/comments?${params}`, {
+            credentials: 'same-origin', headers: { Accept: 'application/json' },
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || '评论配置加载失败');
+          renderFrame(root, data);
+          applyCooldownLock();
+          metadataLoaded = true;
+          return data;
+        })().finally(() => {
+          metadataRequest = null;
+        });
+        return metadataRequest;
+      };
+
+      const loadInitialComments = async requestedPage => {
+        if (loading) return false;
+        stopInitialLoader();
+        loading = true;
+        let list = null;
+        try {
+          const data = await loadMetadata(requestedPage, true);
+          list = root.querySelector('[data-comment-list]');
+          if (!list) throw new Error('评论组件加载失败');
+          list.setAttribute('aria-busy', 'true');
+          renderComments(data, list, false, true);
+          return true;
+        } catch (error) {
+          renderComponentPrompt(root, error instanceof Error ? error.message : '评论加载失败，点击重试。', true, false);
+          return false;
+        } finally {
+          loading = false;
+          list?.removeAttribute('aria-busy');
+          syncPaginationControls();
+        }
+      };
+
+      root.addEventListener('click', event => {
+        const target = event.target instanceof Element
+          ? event.target.closest('[data-comment-load-component], [data-reply-to], [data-cancel-reply], [data-comment-load-initial], [data-comment-load-more]')
+          : null;
+        if (!target) return;
+        if (target.hasAttribute('data-comment-load-component')) {
+          void bootstrap();
+          return;
+        }
+        if (target.hasAttribute('data-comment-load-initial')) {
+          loadComments(page);
+          return;
+        }
+        if (target.hasAttribute('data-comment-load-more')) {
+          if (target.hasAttribute('disabled') || target.getAttribute('aria-disabled') === 'true') return;
+          loadComments(Number(target.getAttribute('data-comment-next-page') || 1), true);
+          return;
+        }
+        const form = root.querySelector('[data-comment-form]');
+        const parentInput = form?.querySelector('[data-comment-parent]');
+        const replying = form?.querySelector('[data-replying]');
+        const replyingAuthor = form?.querySelector('[data-replying-author]');
+        if (!parentInput || !replying || !replyingAuthor) return;
+        if (target.hasAttribute('data-cancel-reply')) {
+          parentInput.value = '0';
+          replying.hidden = true;
+          return;
+        }
+        parentInput.value = target.getAttribute('data-reply-to') || '0';
+        replyingAuthor.textContent = target.getAttribute('data-reply-author') || '';
+        replying.hidden = false;
+        form.querySelector('textarea')?.focus();
+      });
+
+      root.addEventListener('submit', async event => {
+        const form = event.target instanceof HTMLFormElement && event.target.matches('[data-comment-form]')
+          ? event.target
+          : null;
+        if (!form) return;
+        event.preventDefault();
+        const submit = form.querySelector('button[type="submit"]');
+        const message = form.querySelector('[data-comment-message]');
+        // The cooldown fires before the request leaves, so a double-tap, a
+        // second tab, or a bfcache-restored form can't produce a duplicate.
+        if (Date.now() < cooldownUntil) {
+          setCommentMessage(message, '评论提交过于频繁，请稍后再试。');
+          return;
+        }
+        startCooldown();
+        setCommentMessage(message, '正在发送...');
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST', body: new FormData(form), credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || '评论发送失败');
+          const textarea = form.querySelector('textarea');
+          if (textarea) textarea.value = '';
+          const parentInput = form.querySelector('[data-comment-parent]');
+          const replying = form.querySelector('[data-replying]');
+          if (parentInput) parentInput.value = '0';
+          if (replying) replying.hidden = true;
+          setCommentMessage(message, data.status === 'approved' ? '评论已发布。' : '评论已提交，等待审核。');
+          page = null;
+          await loadComments(page);
+        } catch (error) {
+          setCommentMessage(message, error instanceof Error ? error.message : '评论发送失败');
+        } finally {
+          applyCooldownLock();
+        }
+      });
+
+      const bootstrap = async () => {
+        stopInitialLoader();
+        if (initialMode === 'manual') {
+          try {
+            await loadMetadata();
+          } catch (error) {
+            renderComponentPrompt(root, error instanceof Error ? error.message : '评论配置加载失败', true, false);
+            return;
+          }
+          setDeferredPrompt('', true, false);
+          return;
+        }
+        await loadInitialComments(initialMode === 'auto-first' ? 1 : page);
+      };
+
+      const startComponentLoader = () => {
+        if (componentMode === 'auto') {
+          void bootstrap();
+          return;
+        }
+        renderComponentPrompt(root, '', true, false);
+        if (componentMode === 'manual') return;
+        const deferred = root.querySelector('[data-comment-component-deferred]');
+        if (!deferred) return;
+
+        const setDwellLoading = loadingState => {
+          deferred.classList.toggle('is-loading', loadingState);
+          const button = deferred.querySelector('[data-comment-load-component]');
+          if (button) button.hidden = loadingState;
+        };
+        const stopDwellTimer = () => {
+          if (dwellTimer) window.clearTimeout(dwellTimer);
+          dwellTimer = null;
+          setDwellLoading(false);
+        };
+        const startDwellTimer = () => {
+          if (!componentScrollStarted || dwellTimer || metadataLoaded || metadataRequest) return;
+          setDwellLoading(true);
+          dwellTimer = window.setTimeout(() => {
+            dwellTimer = null;
+            if (componentVisible) void bootstrap();
+            else setDwellLoading(false);
+          }, 3_000);
+        };
+
+        componentScrollHandler = () => {
+          if (window.scrollY === componentInitialScrollTop) return;
+          componentScrollStarted = true;
+          window.removeEventListener('scroll', componentScrollHandler);
+          componentScrollHandler = null;
+          if (!componentObserver || componentVisible) startDwellTimer();
+        };
+        window.addEventListener('scroll', componentScrollHandler, { passive: true });
+
+        if (!('IntersectionObserver' in window)) {
+          componentVisible = true;
+          return;
+        }
+        componentObserver = new IntersectionObserver(entries => {
+          componentVisible = entries.some(entry => entry.isIntersecting);
+          if (!componentVisible) {
+            stopDwellTimer();
+            return;
+          }
+          startDwellTimer();
+        }, { rootMargin: '0px 0px -20% 0px' });
+        componentObserver.observe(deferred);
+      };
+
+      const cleanupStalePage = () => {
+        if (root.isConnected) return;
+        stopInitialLoader();
+        window.removeEventListener('instantclick:newpage', cleanupStalePage);
+      };
+
+      startComponentLoader();
+      restoreCooldown();
+      window.addEventListener('pageshow', event => {
+        if (event.persisted) restoreCooldown();
+      });
+      window.addEventListener('instantclick:newpage', cleanupStalePage);
+    });
+  })();
+</script>

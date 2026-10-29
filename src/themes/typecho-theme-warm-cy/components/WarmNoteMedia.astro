@@ -1,0 +1,113 @@
+---
+import type { NoteListItem } from 'typecho-plugin-notes';
+import { optimizeImageUrl } from '@/lib/image-transform';
+
+interface Props {
+  note: NoteListItem;
+  /** Detail view (note page) instead of stream card. */
+  detail?: boolean;
+  /** EdgeOne params for the full-size image the lightbox opens. */
+  optimizeParams?: string;
+  /** EdgeOne params for the grid thumbnails; falls back to optimizeParams when empty. */
+  thumbParams?: string;
+  /** Site origin used to recognize absolute same-origin upload URLs. */
+  siteUrl?: string;
+}
+
+const { note, detail = false, optimizeParams = '', thumbParams = '', siteUrl = '' } = Astro.props;
+const images = note.images || [];
+const media = [
+  ...(note.videos || []).map(video => ({ ...video, kind: 'video' as const })),
+  ...(note.music || []).map(track => ({ ...track, kind: 'audio' as const })),
+];
+const attachments = note.attachments || [];
+// Show every image in the grid. When a note has more than four images the
+// fourth cell becomes a "+N" overlay; clicking it reveals the remaining
+// images (handled by the delegated listener in WarmShell).
+const visibleImages = images.slice(0, 4);
+const extraCount = images.length - visibleImages.length;
+
+function fileExt(name: string): string {
+  const dot = String(name || '').lastIndexOf('.');
+  return dot >= 0 && dot < name.length - 1 ? name.slice(dot + 1).toUpperCase().slice(0, 8) : '文件';
+}
+---
+
+{images.length > 0 && (
+  <div
+    class:list={[
+      "warm-note__images",
+      `has-${Math.min(images.length, 4)}`,
+      { "warm-note__images--detail": detail },
+    ]}
+    view-image
+  >
+    {visibleImages.map((image, index) => (
+      <div
+        class:list={[
+          "warm-note__image",
+          { "warm-note__image--more": extraCount > 0 && index === visibleImages.length - 1 },
+        ]}
+      >
+        <a
+          class="warm-note__image-link"
+          href={optimizeImageUrl(image.url, optimizeParams, siteUrl)}
+        >
+          <img src={optimizeImageUrl(image.url, thumbParams, siteUrl)} alt={image.name || '笔记配图'} loading="lazy" />
+        </a>
+        {extraCount > 0 && index === visibleImages.length - 1 && (
+          <button
+            type="button"
+            class="warm-note__images-more"
+            data-warm-images-more
+            aria-label={`展开剩余 ${extraCount} 张图片`}
+          >
+            +{extraCount}
+          </button>
+        )}
+      </div>
+    ))}
+    {extraCount > 0 && images.slice(4).map(image => (
+      <div class="warm-note__image warm-note__image--rest" data-warm-images-rest hidden>
+        <a
+          class="warm-note__image-link"
+          href={optimizeImageUrl(image.url, optimizeParams, siteUrl)}
+        >
+          <img src={optimizeImageUrl(image.url, thumbParams, siteUrl)} alt={image.name || '笔记配图'} loading="lazy" />
+        </a>
+      </div>
+    ))}
+  </div>
+)}
+
+{media.length > 0 && (
+  <div class:list={["warm-note__media", `has-${Math.min(media.length, 2)}`]}>
+    {media.map(item => item.kind === 'video' ? (
+      <div class="warm-note__media-item">
+        <video src={item.url} controls preload="metadata"></video>
+        <span class="warm-note__media-name">{item.name || '视频'}</span>
+      </div>
+    ) : (
+      <div class="warm-note__media-item">
+        <audio src={item.url} controls preload="metadata"></audio>
+        <span class="warm-note__media-name">{item.name || '音频'}</span>
+      </div>
+    ))}
+  </div>
+)}
+
+{attachments.length > 0 && (
+  <div class:list={["warm-note__attachments", `has-${Math.min(attachments.length, 2)}`]}>
+    {attachments.map(file => (
+      <a
+        class="warm-note__attachment"
+        href={file.url}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="warm-note__attachment-ext">{fileExt(file.name)}</span>
+        <span class="warm-note__attachment-name">{file.name || '附件'}</span>
+      </a>
+    ))}
+  </div>
+)}

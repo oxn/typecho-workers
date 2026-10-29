@@ -1,0 +1,22 @@
+{
+  "name": "typecho-theme-warm-cy",
+  "version": "1.0.0",
+  "description": "Independent custom fork of Typecho Warm theme",
+  "author": "Tokinx",
+  "homepage": "",
+  "license": "MIT",
+  "keywords": [
+    "typecho",
+    "theme",
+    "warm",
+    "notes"
+  ],
+  "files": [
+    "theme.json",
+    "style.css",
+    "components/",
+    "screenshot.png",
+    "favicon.ico",
+    "assets/"
+  ]
+}

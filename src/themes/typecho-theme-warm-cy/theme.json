@@ -1,0 +1,242 @@
+{
+  "id": "typecho-theme-warm-cy",
+  "name": "Typecho Warm CY",
+  "description": "基于 Typecho Warm 的独立自定义主题。",
+  "author": "Tokinx",
+  "version": "1.0.0",
+  "stylesheet": "style.css",
+  "screenshot": "screenshot.png",
+  "homepage": "",
+  "license": "MIT",
+  "commentsMode": "api",
+  "publicHtml": true,
+  "tags": [
+    "warm",
+    "minimal",
+    "notes",
+    "single-column"
+  ],
+  "config": {
+    "pinnedIds": {
+      "type": "text",
+      "label": "首页置顶文章 ID",
+      "description": "只控制首页置顶。填写文章 ID，多个 ID 用英文逗号分隔；其他页面不受影响。",
+      "default": ""
+    },
+    "linktxt01": {
+      "type": "text",
+      "label": "页脚链接 1：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links01": {
+      "type": "text",
+      "label": "页脚链接 1：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank01": {
+      "type": "checkbox",
+      "label": "页脚链接 1：在新窗口打开",
+      "default": false
+    },
+    "linktxt02": {
+      "type": "text",
+      "label": "页脚链接 2：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links02": {
+      "type": "text",
+      "label": "页脚链接 2：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank02": {
+      "type": "checkbox",
+      "label": "页脚链接 2：在新窗口打开",
+      "default": false
+    },
+    "linktxt03": {
+      "type": "text",
+      "label": "页脚链接 3：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links03": {
+      "type": "text",
+      "label": "页脚链接 3：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank03": {
+      "type": "checkbox",
+      "label": "页脚链接 3：在新窗口打开",
+      "default": false
+    },
+    "linktxt04": {
+      "type": "text",
+      "label": "页脚链接 4：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links04": {
+      "type": "text",
+      "label": "页脚链接 4：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank04": {
+      "type": "checkbox",
+      "label": "页脚链接 4：在新窗口打开",
+      "default": false
+    },
+    "linktxt05": {
+      "type": "text",
+      "label": "页脚链接 5：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links05": {
+      "type": "text",
+      "label": "页脚链接 5：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank05": {
+      "type": "checkbox",
+      "label": "页脚链接 5：在新窗口打开",
+      "default": false
+    },
+    "linktxt06": {
+      "type": "text",
+      "label": "页脚链接 6：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links06": {
+      "type": "text",
+      "label": "页脚链接 6：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank06": {
+      "type": "checkbox",
+      "label": "页脚链接 6：在新窗口打开",
+      "default": false
+    },
+    "linktxt07": {
+      "type": "text",
+      "label": "页脚链接 7：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links07": {
+      "type": "text",
+      "label": "页脚链接 7：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank07": {
+      "type": "checkbox",
+      "label": "页脚链接 7：在新窗口打开",
+      "default": false
+    },
+    "linktxt08": {
+      "type": "text",
+      "label": "页脚链接 8：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links08": {
+      "type": "text",
+      "label": "页脚链接 8：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank08": {
+      "type": "checkbox",
+      "label": "页脚链接 8：在新窗口打开",
+      "default": false
+    },
+    "linktxt09": {
+      "type": "text",
+      "label": "页脚链接 9：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links09": {
+      "type": "text",
+      "label": "页脚链接 9：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank09": {
+      "type": "checkbox",
+      "label": "页脚链接 9：在新窗口打开",
+      "default": false
+    },
+    "linktxt10": {
+      "type": "text",
+      "label": "页脚链接 10：显示文字",
+      "default": "",
+      "description": "留空则不显示这组链接。"
+    },
+    "links10": {
+      "type": "text",
+      "label": "页脚链接 10：链接地址",
+      "default": "",
+      "description": "支持 https://、http://、mailto:；普通域名可直接填写。"
+    },
+    "linkblank10": {
+      "type": "checkbox",
+      "label": "页脚链接 10：在新窗口打开",
+      "default": false
+    },
+    "imageOptimizeParams": {
+      "type": "text",
+      "label": "图片优化参数",
+      "description": "图片优化参数，例如：?quality=80。留空表示不追加参数。",
+      "default": ""
+    },
+    "thumbOptimizeParams": {
+      "type": "text",
+      "label": "缩略图优化参数",
+      "description": "缩略图优化参数，例如：?quality=80&width=500。留空表示不追加参数。",
+      "default": ""
+    },
+    "continuousLoadMode": {
+      "type": "select",
+      "label": "内容列表",
+      "description": "控制首页、分类和笔记内容列表后续页的加载方式。",
+      "default": "manual",
+      "options": {
+        "manual": "手动加载",
+        "auto-2": "滚动加载 2 次",
+        "infinite": "无限滚动加载"
+      }
+    },
+    "commentComponentLoadMode": {
+      "type": "select",
+      "label": "评论组件",
+      "description": "控制评论框及其表单配置的加载方式。",
+      "default": "manual",
+      "options": {
+        "manual": "手动加载",
+        "dwell": "停留 3 秒加载",
+        "auto": "自动加载"
+      }
+    },
+    "commentInitialLoadMode": {
+      "type": "select",
+      "label": "评论列表",
+      "default": "manual",
+      "options": {
+        "manual": "手动加载",
+        "auto-first": "加载第一页",
+        "auto-2": "滚动加载 2 次",
+        "infinite": "无限滚动加载"
+      }
+    }
+  }
+}

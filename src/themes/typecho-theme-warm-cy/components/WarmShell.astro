@@ -1,0 +1,201 @@
+---
+import Base from '@/layouts/Base.astro';
+import type { ThemeBaseProps } from '@/lib/theme-props';
+import type { PageContext } from '@/lib/plugin';
+import { PUBLIC_HTML_HEADER } from '@/lib/cache';
+import { warmSettings, type WarmSection } from './warm';
+import { instantClickSource } from './instantclick';
+import { viewImageSource } from './viewimage';
+
+interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
+  title?: string;
+  description?: string;
+  section?: WarmSection;
+  pageContext?: PageContext;
+  detail?: boolean;
+}
+
+const {
+  title,
+  description,
+  section = 'none',
+  detail = false,
+  options,
+  urls,
+  pages,
+  sidebarData,
+  pluginCtx,
+  pageContext,
+  currentPath
+} = Astro.props;
+
+Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
+
+const settings = warmSettings(options);
+const categories = sidebarData.categories.slice(0, 8);
+const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
+const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
+const footerLinks = [
+  ...settings.footerLinks.map(link => ({ label: link.text, href: link.url, newWindow: link.newWindow })),
+  { label: 'RSS', href: urls.feedUrl, newWindow: false },
+];
+---
+<Base
+  title={title}
+  description={description}
+  options={options}
+  urls={urls}
+  pageContext={pageContext}
+  pluginCtx={pluginCtx}
+  bodyClass="warm-theme"
+>
+  <a class="warm-skip-link" href="#warm-content" data-no-instant>跳至正文</a>
+  <header class="warm-header">
+    <div class="warm-header__inner">
+      <a href={homeUrl} class="warm-brand" aria-label={`${options.title} 首页`}>
+        <span class="warm-brand__title">{options.title}</span>
+        {options.description && <span class="warm-brand__description">{options.description}</span>}
+      </a>
+
+      <nav class="warm-nav" aria-label="主导航">
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
+        <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
+          <summary>
+            文章
+            <svg class="warm-nav__chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+          </summary>
+          <div class="warm-nav__menu">
+            <a href={`${homeUrl}?stream=posts`}>全部文章</a>
+            {categories.map(category => (<a href={category.permalink}>{category.name}</a>))}
+          </div>
+        </details>
+        {notesEnabled && (
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
+        )}
+        {pages.map((page) => (
+          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && page.permalink.includes(currentPath) }]} href={page.permalink}>{page.title}</a>
+        ))}
+      </nav>
+    </div>
+  </header>
+
+  <main id="warm-content" class:list={["warm-main", { "warm-main--detail": detail }]} tabindex="-1">
+    <slot />
+  </main>
+
+  <footer class="warm-footer">
+    <div class="warm-footer__meta">
+      <div class="warm-footer__copyright">
+        <span>© {new Date().getFullYear()} {options.title}</span>
+        {options.description && <><span aria-hidden="true">·</span><span class="warm-footer__tagline">{options.description}</span></>}
+      </div>
+      <nav aria-label="页脚链接">
+        {footerLinks.map(link => <a href={link.href} target={link.newWindow ? '_blank' : undefined} rel={link.newWindow ? 'noopener noreferrer' : undefined}>{link.label}</a>)}
+      </nav>
+    </div>
+  </footer>
+  <script is:inline>
+    (() => {
+      const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
+      document.querySelectorAll('.warm-nav__dropdown').forEach(dropdown => {
+        let openedByHover = false;
+        dropdown.addEventListener('mouseenter', () => {
+          if (hoverCapable.matches && !dropdown.open) {
+            dropdown.open = true;
+            openedByHover = true;
+          }
+        });
+        dropdown.addEventListener('click', event => {
+          if (!event.target.closest('summary')) return;
+          // The first pointer click must not undo the preceding hover-open.
+          // Keyboard activation (detail=0) keeps the native details toggle.
+          if (openedByHover && event.detail > 0) event.preventDefault();
+          openedByHover = false;
+        });
+        dropdown.addEventListener('mouseleave', () => {
+          openedByHover = false;
+          if (hoverCapable.matches && !dropdown.contains(document.activeElement)) dropdown.open = false;
+        });
+        dropdown.addEventListener('keydown', event => {
+          if (event.key !== 'Escape') return;
+          dropdown.open = false;
+          dropdown.querySelector('summary')?.focus();
+        });
+        dropdown.addEventListener('focusout', event => {
+          // iOS Safari can report a null relatedTarget while a touch tap moves
+          // from <summary> to a menu link. Closing synchronously then removes
+          // the link before its synthetic click, so retain the menu until the
+          // document-level outside-click handler decides it should close.
+          if (event.relatedTarget && !dropdown.contains(event.relatedTarget)) dropdown.open = false;
+        });
+      });
+    })();
+  </script>
+  <Fragment slot="head">
+    <meta name="theme-color" content="#ffffff" />
+
+    <link
+      rel="icon"
+      href="/themes/typecho-theme-warm-cy/assets/favicon.svg"
+      type="image/svg+xml"
+    />
+    <link
+      rel="icon"
+      href="/themes/typecho-theme-warm-cy/assets/favicon.ico"
+      sizes="any"
+    />
+
+    <script is:inline data-instant-track data-no-instant set:html={instantClickSource}></script>
+    <script is:inline data-instant-track data-no-instant set:html={viewImageSource}></script>
+  </Fragment>
+  <script is:inline data-no-instant>
+    (() => {
+      // Delegation also covers navigation inserted by InstantClick.
+      document.addEventListener('click', event => {
+        document.querySelectorAll('.warm-nav__dropdown[open]').forEach(dropdown => {
+          if (!dropdown.contains(event.target)) dropdown.open = false;
+        });
+      });
+      // ViewImage lightbox: click any note image to view it fullscreen.
+      // init() re-registers its document-level listener idempotently, so
+      // re-running it after an InstantClick page swap is safe.
+      const expandNoteImages = event => {
+        const button = event.target.closest('[data-warm-images-more]');
+        if (!button) return;
+        const grid = button.closest('.warm-note__images');
+        if (!grid) return;
+        grid.classList.add('is-expanded');
+        button.setAttribute('aria-expanded', 'true');
+        grid.querySelectorAll('[data-warm-images-rest]').forEach(item => {
+          item.hidden = false;
+        });
+      };
+      // Collect lightbox targets from image links (a wrapping an img — the
+      // note-grid thumbnails) and bare content images. Plain text links must
+      // keep navigating, so only `a:has(> img)` qualifies. Engines without
+      // :has() fall back to collecting bare images, which keeps the lightbox
+      // working and never hijacks links.
+      const viewImageSelector = CSS.supports('selector(a:has(> img))')
+        ? '[view-image] a:has(> img), [view-image] img:not(a img)'
+        : '[view-image] img';
+      if (window.ViewImage) ViewImage.init(viewImageSelector);
+      document.addEventListener('click', expandNoteImages);
+      const repairNoteMedia = root => {
+        const scope = root && root.querySelectorAll ? root : document;
+        scope.querySelectorAll('.warm-note__media video, .warm-note__media audio').forEach(media => {
+          if (typeof media.load !== 'function') return;
+          const reused = media.dataset.warmRepaired === '1';
+          if (media.readyState === 0 || reused) {
+            media.dataset.warmRepaired = '1';
+            media.load();
+          }
+        });
+      };
+      window.warmRepairNoteMedia = repairNoteMedia;
+      window.addEventListener('instantclick:newpage', () => repairNoteMedia(document));
+      if (window.InstantClick?.supported) window.InstantClick.init('mousedown');
+    })();
+  </script>
+</Base>
