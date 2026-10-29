@@ -21,11 +21,35 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
     'del', 'ins', 'details', 'summary', 'figure', 'figcaption',
     'video', 'audio', 'source', 'iframe',
+    // Safe structural HTML and SVG primitives used by article cards/buttons.
+    'div', 'span', 'section', 'article', 'aside', 'header', 'footer', 'nav',
+    'svg', 'path', 'polyline', 'line', 'circle', 'rect', 'g', 'defs', 'radialgradient', 'lineargradient', 'linearGradient', 'radialGradient', 'stop',
   ]),
   allowedAttributes: {
     ...sanitizeHtml.defaults.allowedAttributes,
     img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
-    a: ['href', 'title', 'target', 'rel'],
+    a: ['href', 'title', 'target', 'rel', 'style'],
+    div: ['class', 'id', 'style'],
+    span: ['class', 'id', 'style'],
+    section: ['class', 'id', 'style'],
+    article: ['class', 'id', 'style'],
+    aside: ['class', 'id', 'style'],
+    header: ['class', 'id', 'style'],
+    footer: ['class', 'id', 'style'],
+    nav: ['class', 'id', 'style'],
+    svg: ['width', 'height', 'viewbox', 'xmlns', 'xmlns:xlink', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style'],
+    path: ['id', 'd', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity', 'style'],
+    polyline: ['points', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity'],
+    line: ['x1', 'y1', 'x2', 'y2', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity'],
+    circle: ['id', 'cx', 'cy', 'r', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'opacity', 'style'],
+    rect: ['id', 'x', 'y', 'width', 'height', 'rx', 'ry', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'opacity', 'style'],
+    g: ['id', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity', 'transform'],
+    defs: ['id'],
+    radialgradient: ['id', 'cx', 'cy', 'fx', 'fy', 'r', 'gradientunits', 'gradienttransform', 'spreadmethod'],
+    lineargradient: ['id', 'x1', 'y1', 'x2', 'y2', 'gradientunits', 'gradienttransform', 'spreadmethod'],
+    radialGradient: ['id', 'cx', 'cy', 'fx', 'fy', 'r', 'gradientUnits', 'gradientTransform', 'spreadMethod'],
+    linearGradient: ['id', 'x1', 'y1', 'x2', 'y2', 'gradientUnits', 'gradientTransform', 'spreadMethod'],
+    stop: ['offset', 'stop-color', 'stop-opacity', 'style'],
     code: ['class'],
     pre: ['class'],
     // GFM alerts (`> [!NOTE]`) render as classed blockquotes.
@@ -37,6 +61,40 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     video: ['src', 'controls', 'width', 'height'],
     audio: ['src', 'controls'],
     source: ['src', 'type'],
+  },
+  // A restricted subset of inline CSS for authored article cards and buttons.
+  // Scripts, event-handler attributes, and arbitrary CSS properties stay blocked.
+  allowedStyles: {
+    '*': {
+      color: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
+      fill: [/^(?:#[0-9a-f]{3,8}|none|currentColor|[a-zA-Z]+)$/i],
+      'fill-rule': [/^(?:nonzero|evenodd)$/i],
+      'background-color': [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
+      background: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
+      'font-weight': [/^(?:normal|bold|bolder|lighter|[1-9]00)$/i],
+      'font-size': [/^(?:[0-9.]+(?:px|em|rem|%|pt)|small|medium|large|larger|smaller)$/i],
+      'font-family': [/^[a-zA-Z0-9_,\s"'()-]+$/],
+      'text-decoration': [/^(?:none|underline|overline|line-through)(?:\s+(?:solid|dotted|dashed|wavy))?$/i],
+      'word-break': [/^(?:normal|break-all|keep-all|break-word)$/i],
+      'white-space': [/^(?:normal|nowrap|pre|pre-wrap|pre-line|break-spaces)$/i],
+      display: [/^(?:inline|inline-block|inline-flex|block|flex|none)$/i],
+      position: [/^(?:static|relative|absolute)$/i],
+      top: [/^[0-9.]+(?:px|em|rem|%)?$/i],
+      right: [/^[0-9.]+(?:px|em|rem|%)?$/i],
+      bottom: [/^[0-9.]+(?:px|em|rem|%)?$/i],
+      left: [/^[0-9.]+(?:px|em|rem|%)?$/i],
+      'align-items': [/^(?:center|start|end|flex-start|flex-end|baseline|stretch)$/i],
+      'vertical-align': [/^(?:middle|baseline|top|bottom|text-top|text-bottom)$/i],
+      gap: [/^[0-9.]+(?:px|em|rem|%)$/i],
+      padding: [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
+      margin: [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
+      'margin-top': [/^[0-9.]+(?:px|em|rem|%)?$/i],
+      'border-radius': [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
+      border: [/^[0-9.]+px\s+(?:solid|dashed|dotted)\s+(?:#[0-9a-f]{3,8}|[a-zA-Z]+)$/i],
+      'border-bottom-left-radius': [/^[0-9.]+(?:px|em|rem|%)?$/i],
+      'line-height': [/^(?:[0-9.]+|[0-9.]+(?:px|em|rem|%))$/i],
+      overflow: [/^(?:hidden|auto|visible|scroll)$/i],
+    },
   },
   allowedIframeHostnames: ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'],
 };
@@ -140,7 +198,7 @@ export function renderContent(text: string, maxExcerptLength = 200): RenderedCon
   }
 
   const content = stripMarkdownPrefix(text).replace(MORE_COMMENT_RE, '');
-  const parsed = transformGithubAlerts(marked.parse(content, { async: false }) as string);
+  const parsed = transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string);
   const html = sanitizeHtml(parsed, SANITIZE_OPTIONS);
   const plain = stripHtmlTags(parsed);
   const plainExcerpt = plain.length <= maxExcerptLength
@@ -164,7 +222,7 @@ export function renderCommentText(text: string, options: CommentRenderOptions = 
   const sanitizeOptions = buildCommentSanitizeOptions(options.htmlTagAllowed, !!options.markdown);
   if (options.markdown) {
     const html = transformGithubAlerts(
-      marked.parse(stripMarkdownPrefix(text), { async: false }) as string,
+      marked.parse(stripMarkdownPrefix(text), { async: false, breaks: true }) as string,
     );
     return sanitizeHtml(html, sanitizeOptions);
   }
@@ -210,7 +268,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
     console.error('[markdown] content:markdown filter failed:', error);
   }
 
-  const html = transformGithubAlerts(marked.parse(content, { async: false }) as string);
+  const html = transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string);
   let sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   try {
@@ -264,7 +322,7 @@ export function renderContentExcerpt(
   // regardless of whether the author placed <!--more--> inline or between
   // paragraphs — enabling a clean split on the rendered output.
   const withPlaceholder = content.replace(MORE_COMMENT_RE, '\n\n' + MORE_PLACEHOLDER + '\n\n');
-  const html = transformGithubAlerts(marked.parse(withPlaceholder, { async: false }) as string);
+  const html = transformGithubAlerts(marked.parse(withPlaceholder, { async: false, breaks: true }) as string);
   const sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   // Split on the rendered placeholder and keep only the excerpt (part before it).

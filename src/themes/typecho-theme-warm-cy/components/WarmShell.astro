@@ -135,18 +135,6 @@ const footerLinks = [
   </script>
   <Fragment slot="head">
     <meta name="theme-color" content="#ffffff" />
-
-    <link
-      rel="icon"
-      href="/themes/typecho-theme-warm-cy/assets/favicon.svg"
-      type="image/svg+xml"
-    />
-    <link
-      rel="icon"
-      href="/themes/typecho-theme-warm-cy/assets/favicon.ico"
-      sizes="any"
-    />
-
     <script is:inline data-instant-track data-no-instant set:html={instantClickSource}></script>
     <script is:inline data-instant-track data-no-instant set:html={viewImageSource}></script>
   </Fragment>
@@ -195,6 +183,82 @@ const footerLinks = [
       };
       window.warmRepairNoteMedia = repairNoteMedia;
       window.addEventListener('instantclick:newpage', () => repairNoteMedia(document));
+      // Safe article controls: support interactive HTML without executing
+      // arbitrary scripts embedded in article content.
+      const initArticleControls = (root = document) => {
+        const scope = root && root.querySelectorAll ? root : document;
+
+        // Site-age counter used by older posts.
+        const updateDays = () => {
+          const counters = [];
+          if (scope.matches?.('#days')) counters.push(scope);
+          scope.querySelectorAll?.('#days').forEach(node => counters.push(node));
+          counters.forEach(node => {
+            const start = node.getAttribute('data-start-date') || '2011-11-19';
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(start);
+            if (!match) return;
+            const startDay = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+            const today = new Date();
+            const todayDay = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+            node.textContent = String(Math.max(0, Math.floor((todayDay - startDay) / 86400000)));
+          });
+        };
+
+        // A disclosure/toggle control can use data-disclaimer-toggle="#target"
+        // and the target can use data-disclaimer. This is delegated, so it also
+        // works after InstantClick navigation.
+        scope.querySelectorAll?.('[data-disclaimer-toggle]').forEach(button => {
+          if (button.dataset.disclaimerBound === '1') return;
+          button.dataset.disclaimerBound = '1';
+          button.addEventListener('click', event => {
+            event.preventDefault();
+            const selector = button.getAttribute('data-disclaimer-toggle');
+            if (!selector) return;
+            let target = null;
+            try { target = document.querySelector(selector); } catch {}
+            if (!target) return;
+            const opening = target.hidden || target.getAttribute('aria-hidden') === 'true';
+            target.hidden = !opening;
+            target.setAttribute('aria-hidden', opening ? 'false' : 'true');
+            button.setAttribute('aria-expanded', opening ? 'true' : 'false');
+          });
+        });
+
+        // Generic target-date countdown: data-countdown-target="YYYY-MM-DDTHH:mm:ss"
+        // and children with data-countdown-days/hours/minutes/seconds.
+        scope.querySelectorAll?.('[data-countdown-target]').forEach(rootNode => {
+          if (rootNode.dataset.countdownBound === '1') return;
+          rootNode.dataset.countdownBound = '1';
+          const targetText = rootNode.getAttribute('data-countdown-target');
+          const targetTime = Date.parse(targetText || '');
+          if (!Number.isFinite(targetTime)) return;
+          const update = () => {
+            let left = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
+            const values = {
+              days: Math.floor(left / 86400),
+              hours: Math.floor((left % 86400) / 3600),
+              minutes: Math.floor((left % 3600) / 60),
+              seconds: left % 60
+            };
+            Object.entries(values).forEach(([unit, value]) => {
+              rootNode.querySelectorAll('[data-countdown-' + unit + ']').forEach(el => {
+                el.textContent = String(value).padStart(unit === 'days' ? 1 : 2, '0');
+              });
+            });
+          };
+          update();
+          const timer = window.setInterval(() => {
+            if (!rootNode.isConnected) {
+              window.clearInterval(timer);
+              return;
+            }
+            update();
+          }, 1000);
+        });
+        updateDays();
+      };
+      initArticleControls(document);
+      window.addEventListener('instantclick:newpage', () => initArticleControls(document));
       if (window.InstantClick?.supported) window.InstantClick.init('mousedown');
     })();
   </script>
