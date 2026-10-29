@@ -1664,3 +1664,46 @@ body.warm-theme {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Markdown 表格：完整边框、横竖分隔线、内容垂直居中 */
+.warm-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #d9dfe7;
+  table-layout: auto;
+}
+
+/* 表头与单元格 */
+.warm-prose table th,
+.warm-prose table td {
+  border: 1px solid #d9dfe7;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* 表头 */
+.warm-prose table th {
+  font-weight: 600;
+  background-color: #f5f7fa;
+}
+
+/* 表格中的图标 */
+.warm-prose table td img {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+/* 深色模式 */
+.dark .warm-prose table th {
+  background-color: #252a32;
+}
+
+.dark .warm-prose table,
+.dark .warm-prose table th,
+.dark .warm-prose table td {
+  border-color: #444b57;
+}
