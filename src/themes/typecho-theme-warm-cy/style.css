@@ -1823,3 +1823,10 @@ body.warm-theme {
 .warm-prose table td[align="right"] {
   text-align: right;
 }
+
+.warm-prose iframe {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border: 0;
+}
