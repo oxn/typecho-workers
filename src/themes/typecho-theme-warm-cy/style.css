@@ -856,7 +856,20 @@ body.warm-theme {
   line-height: 1.5;
   letter-spacing: 0;
 }
-
+/* Markdown Alerts 标题图标 */
+.warm-prose .markdown-alert-title .markdown-alert-icon,
+.warm-note__content .markdown-alert-title .markdown-alert-icon {
+  display: inline-block !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  max-width: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+  flex: 0 0 18px !important;
+  margin: 0 8px 0 0 !important;
+  vertical-align: middle;
+}
 /* 提示框正文 */
 .warm-prose .markdown-alert p,
 .warm-note__content .markdown-alert p {
@@ -1795,3 +1808,18 @@ body.warm-theme {
   border-color: #444b57;
 }
 
+/* Markdown 表格对齐支持 */
+.warm-prose table th[align="left"],
+.warm-prose table td[align="left"] {
+  text-align: left;
+}
+
+.warm-prose table th[align="center"],
+.warm-prose table td[align="center"] {
+  text-align: center;
+}
+
+.warm-prose table th[align="right"],
+.warm-prose table td[align="right"] {
+  text-align: right;
+}

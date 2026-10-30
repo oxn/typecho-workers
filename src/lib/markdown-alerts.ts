@@ -67,40 +67,69 @@ export function transformGithubAlerts(html: string): string {
  * Turn a merged HyperDown / marked blockquote into a sequence of normal
  * quotes and alert quotes, keyed off paragraphs that start with `[!label]`.
  */
+
 function splitMergedBlockquote(cleaned: string, paragraphs: string[]): string {
   const alertParaRe = new RegExp(
     `^<p(?:\\s[^>]*)?>\\s*\\[!${LABEL_CAPTURE}\\]${MARKER_TAIL_RE}([\\s\\S]*?)<\\/p>$`,
     'i',
   );
 
-  type Segment =
-    | { kind: 'quote'; html: string }
-    | { kind: 'alert'; label: string; body: string };
+  type QuoteSegment = { kind: 'quote'; html: string };
+  type AlertSegment = { kind: 'alert'; label: string; body: string };
+  type Segment = QuoteSegment | AlertSegment;
 
   const segments: Segment[] = [];
   let cursor = 0;
+  let activeAlert: AlertSegment | null = null;
 
   for (const para of paragraphs) {
     const index = cleaned.indexOf(para, cursor);
     if (index === -1) continue;
-    const before = cleaned.slice(cursor, index).trim();
-    if (before) pushQuote(segments, before);
+
+    const before = cleaned.slice(cursor, index);
     cursor = index + para.length;
 
     const match = para.match(alertParaRe);
+
     if (match) {
       const label = match[1].trim();
+
       if (label) {
+        if (before.trim()) {
+          if (activeAlert) {
+            activeAlert.body += before;
+          } else {
+            pushQuote(segments, before.trim());
+          }
+        }
+
         const body = match[2].trim();
-        segments.push({ kind: 'alert', label, body: body ? `<p>${body}</p>` : '' });
+        activeAlert = {
+          kind: 'alert',
+          label,
+          body: body ? `<p>${body}</p>` : '',
+        };
+        segments.push(activeAlert);
         continue;
       }
     }
-    pushQuote(segments, para);
+
+    if (activeAlert) {
+      activeAlert.body += before + para;
+    } else {
+      if (before.trim()) pushQuote(segments, before.trim());
+      pushQuote(segments, para);
+    }
   }
 
-  const after = cleaned.slice(cursor).trim();
-  if (after) pushQuote(segments, after);
+  const after = cleaned.slice(cursor);
+  if (after.trim()) {
+    if (activeAlert) {
+      activeAlert.body += after;
+    } else {
+      pushQuote(segments, after.trim());
+    }
+  }
 
   if (!segments.some(seg => seg.kind === 'alert')) {
     return `<blockquote>${cleaned}</blockquote>`;
@@ -111,6 +140,7 @@ function splitMergedBlockquote(cleaned: string, paragraphs: string[]): string {
     return `<blockquote>${seg.html}</blockquote>`;
   }).join('');
 }
+
 
 function pushQuote(segments: Array<{ kind: 'quote'; html: string } | { kind: 'alert'; label: string; body: string }>, html: string): void {
   const last = segments[segments.length - 1];
@@ -133,16 +163,40 @@ export function alertColorVariant(label: string): AlertColorVariant | null {
   return null;
 }
 
+
+function alertIcon(label: string): string {
+  const icons: Record<string, string> = {
+    note:
+      '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+    tip:
+      '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14a6 6 0 1 0-6.18 0c.65.45 1.09 1.06 1.09 1.75V17h4v-1.25c0-.69.44-1.3 1.09-1.75Z"/>',
+    important:
+      '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-4-.9L3 21l1.5-4.5A8.4 8.4 0 1 1 21 11.5Z"/><path d="M12 8v4"/><path d="M12 15h.01"/>',
+    warning:
+      '<path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    caution:
+      '<path d="M12 22s9-4 9-11V5l-9-3-9 3v6c0 7 9 11 9 11Z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  };
+
+  const key = label.trim().toLowerCase();
+  const paths = icons[key] || icons.note;
+
+  return `<svg class="markdown-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+}
+
 function renderAlert(label: string, body: string): string {
   const variant = alertColorVariant(label);
   const classes = variant
     ? `markdown-alert markdown-alert-${variant}`
     : 'markdown-alert';
   const safeLabel = escapeHtml(label);
+  const icon = alertIcon(label);
+
   return (
     `<blockquote class="${classes}" data-alert="${safeLabel}">` +
-    `<p class="markdown-alert-title">${safeLabel}</p>` +
+    `<p class="markdown-alert-title">${icon}<span>${safeLabel}</span></p>` +
     (body ? body : '') +
     `</blockquote>`
   );
 }
+
