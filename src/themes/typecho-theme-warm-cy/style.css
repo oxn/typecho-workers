@@ -829,52 +829,139 @@ body.warm-theme {
 }
 
 /* GitHub-style markdown alerts (`> [!NOTE]` …) — same panel as quote, plus title */
+
+/* GitHub-style Markdown Alerts：五种提示框 */
 .warm-prose .markdown-alert,
 .warm-note__content .markdown-alert {
-  line-height: 1;
+  margin: 1.7em 0;
+  padding: 16px 18px;
+  border: 1px solid;
+  border-left-width: 3px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95em;
+  line-height: 1.75;
   letter-spacing: 0;
-  color: #403d39;
 }
 
+/* 提示框标题 */
 .warm-prose .markdown-alert-title,
 .warm-note__content .markdown-alert-title {
-  margin: 0 0 .5rem !important;
-  font-weight: 650;
-  font-size: .92rem;
-  letter-spacing: .02em;
+  display: flex;
+  align-items: center;
+  margin: 0 0 8px !important;
+  font-family: var(--warm-font);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
 }
 
+/* 提示框正文 */
 .warm-prose .markdown-alert p,
 .warm-note__content .markdown-alert p {
-  margin-bottom: .85em;
+  margin-top: 0;
+  margin-bottom: 0.75em;
+  line-height: inherit;
 }
 
+.warm-prose .markdown-alert p:last-child,
+.warm-note__content .markdown-alert p:last-child {
+  margin-bottom: 0;
+}
+
+/* NOTE - 蓝紫色 */
 .warm-prose .markdown-alert-note,
 .warm-note__content .markdown-alert-note {
-  border-left-color: #5b8ab5;
-}
-.warm-prose .markdown-alert-note .markdown-alert-title,
-.warm-note__content .markdown-alert-note .markdown-alert-title {
-  color: #5b8ab5;
+  border-color: #c7d2fe;
+  border-left-color: #818cf8;
+  background: #eef2ff;
+  color: #4338ca;
 }
 
+/* TIP - 绿色 */
 .warm-prose .markdown-alert-tip,
 .warm-note__content .markdown-alert-tip {
-  border-left-color: #6a9a6e;
-}
-.warm-prose .markdown-alert-tip .markdown-alert-title,
-.warm-note__content .markdown-alert-tip .markdown-alert-title {
-  color: #6a9a6e;
+  border-color: #bbf7d0;
+  border-left-color: #4ade80;
+  background: #f0fdf4;
+  color: #15803d;
 }
 
+/* IMPORTANT - 紫色 */
+.warm-prose .markdown-alert[data-alert="IMPORTANT" i],
+.warm-note__content .markdown-alert[data-alert="IMPORTANT" i] {
+  border-color: #e9d5ff;
+  border-left-color: #c084fc;
+  background: #faf5ff;
+  color: #9333ea;
+}
+
+/* WARNING - 黄色 */
 .warm-prose .markdown-alert-warning,
 .warm-note__content .markdown-alert-warning {
-  border-left-color: #c4a035;
+  border-color: #fde68a;
+  border-left-color: #facc15;
+  background: #fefce8;
+  color: #a16207;
 }
-.warm-prose .markdown-alert-warning .markdown-alert-title,
-.warm-note__content .markdown-alert-warning .markdown-alert-title {
-  color: #c4a035;
+
+/* CAUTION - 红色 */
+.warm-prose .markdown-alert[data-alert="CAUTION" i],
+.warm-note__content .markdown-alert[data-alert="CAUTION" i] {
+  border-color: #fecaca;
+  border-left-color: #f87171;
+  background: #fef2f2;
+  color: #dc2626;
 }
+
+/* 五种提示框标题继承对应颜色 */
+.warm-prose .markdown-alert-title,
+.warm-note__content .markdown-alert-title {
+  color: inherit;
+}
+
+/* 深色模式 */
+.dark .warm-prose .markdown-alert-note,
+.dark .warm-note__content .markdown-alert-note {
+  border-color: #312e81;
+  border-left-color: #818cf8;
+  background: #312e81;
+  color: #c7d2fe;
+}
+
+.dark .warm-prose .markdown-alert-tip,
+.dark .warm-note__content .markdown-alert-tip {
+  border-color: #14532d;
+  border-left-color: #4ade80;
+  background: #14532d;
+  color: #bbf7d0;
+}
+
+.dark .warm-prose .markdown-alert[data-alert="IMPORTANT" i],
+.dark .warm-note__content .markdown-alert[data-alert="IMPORTANT" i] {
+  border-color: #581c87;
+  border-left-color: #c084fc;
+  background: #581c87;
+  color: #e9d5ff;
+}
+
+.dark .warm-prose .markdown-alert-warning,
+.dark .warm-note__content .markdown-alert-warning {
+  border-color: #713f12;
+  border-left-color: #facc15;
+  background: #713f12;
+  color: #fef08a;
+}
+
+.dark .warm-prose .markdown-alert[data-alert="CAUTION" i],
+.dark .warm-note__content .markdown-alert[data-alert="CAUTION" i] {
+  border-color: #7f1d1d;
+  border-left-color: #f87171;
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
 
 .warm-prose code {
   padding: .12em .35em;
@@ -1707,3 +1794,4 @@ body.warm-theme {
 .dark .warm-prose table td {
   border-color: #444b57;
 }
+
