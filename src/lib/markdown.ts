@@ -407,6 +407,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     },
   },
 
+
   allowedIframeHostnames: [
     'www.youtube.com',
     'youtube.com',
@@ -415,7 +416,31 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     'player.bilibili.com',
     'player.vimeo.com',
   ],
+
+  // Normalize embedded video iframes, following Rin's rendering approach.
+  transformTags: {
+    iframe: (tagName, attribs) => ({
+      tagName,
+      attribs: {
+        ...attribs,
+
+        // Supply defaults without overwriting author-provided values.
+        title: attribs.title || 'Embedded content',
+        loading: attribs.loading || 'lazy',
+
+        // Preserve existing inline styles, then enforce video layout.
+        style: [
+          attribs.style,
+          'display:block',
+          'width:100%',
+          'min-height:400px',
+          'margin:1rem 0',
+        ].filter(Boolean).join(';'),
+      },
+    }),
+  },
 };
+
 
 
 const COMMENT_MARKDOWN_OPTIONS: sanitizeHtml.IOptions = {

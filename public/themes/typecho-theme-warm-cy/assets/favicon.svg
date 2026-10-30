@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 211.76 211.76">
+    <defs>
+        <style>
+.b1,.b2,.b3{fill:#ea4335;}
+.c1{fill:#9400d3;}
+.d1,.d2,.d3{fill:#4285f4;}
+.e1,.e2,.e3{fill:#34a853;}
+
+.cycyfun path{
+    transform-box:fill-box;
+    transform-origin:center;
+    animation-duration:10s;
+    animation-delay:2s;
+    animation-timing-function:linear;
+    animation-iteration-count:infinite;
+    animation-fill-mode:both;
+}
+
+.cycyfun .e1{animation-name:e1jump;}
+.cycyfun .d1{animation-name:d1jump;}
+.cycyfun .b1{animation-name:b1jump;}
+.cycyfun .c1{animation-name:c1jump;}
+.cycyfun .d2{animation-name:d2jump;}
+.cycyfun .e2{animation-name:e2jump;}
+.cycyfun .b2{animation-name:b2jump;}
+.cycyfun .b3{animation-name:b3jump;}
+.cycyfun .e3{animation-name:e3jump;}
+.cycyfun .d3{animation-name:d3jump;}
+
+@keyframes e1jump{0%{transform:translateY(0)}0%{transform:translateY(0)}1.5%{transform:translateY(-10px)}3.5%{transform:translateY(0)}5%{transform:translateY(-3px)}10%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes d1jump{0%{transform:translateY(0)}10%{transform:translateY(0)}11.5%{transform:translateY(-10px)}13.5%{transform:translateY(0)}15%{transform:translateY(-3px)}20%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes b1jump{0%{transform:translateY(0)}10%{transform:translateY(0)}11.5%{transform:translateY(-10px)}13.5%{transform:translateY(0)}15%{transform:translateY(-3px)}20%{transform:translateY(0)}20%{transform:translateY(0)}21.5%{transform:translateY(-10px)}23.5%{transform:translateY(0)}25%{transform:translateY(-3px)}30%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes c1jump{0%{transform:translateY(0)}10%{transform:translateY(0)}11.5%{transform:translateY(-10px)}13.5%{transform:translateY(0)}15%{transform:translateY(-3px)}20%{transform:translateY(0)}60%{transform:translateY(0)}61.5%{transform:translateY(-10px)}63.5%{transform:translateY(0)}65%{transform:translateY(-3px)}70%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes d2jump{0%{transform:translateY(0)}30%{transform:translateY(0)}31.5%{transform:translateY(-10px)}33.5%{transform:translateY(0)}35%{transform:translateY(-3px)}40%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes e2jump{0%{transform:translateY(0)}40%{transform:translateY(0)}41.5%{transform:translateY(-10px)}43.5%{transform:translateY(0)}45%{transform:translateY(-3px)}50%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes b2jump{0%{transform:translateY(0)}50%{transform:translateY(0)}51.5%{transform:translateY(-10px)}53.5%{transform:translateY(0)}55%{transform:translateY(-3px)}60%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes b3jump{0%{transform:translateY(0)}70%{transform:translateY(0)}71.5%{transform:translateY(-10px)}73.5%{transform:translateY(0)}75%{transform:translateY(-3px)}80%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes e3jump{0%{transform:translateY(0)}80%{transform:translateY(0)}81.5%{transform:translateY(-10px)}83.5%{transform:translateY(0)}85%{transform:translateY(-3px)}90%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes d3jump{0%{transform:translateY(0)}90%{transform:translateY(0)}91.5%{transform:translateY(-10px)}93.5%{transform:translateY(0)}95%{transform:translateY(-3px)}100%{transform:translateY(0)}100%{transform:translateY(0)}}
+</style>
+    </defs>
+    <g class="cycyfun" transform="translate(0,28)">
+    <path class="e1"
+        d="M120.85,10.32l-9.97,12.24c-27.2-14.92-63.07-6.81-80.9,18.44l32.94.27c7.06,1.19,10.48,8.87,6.98,15.08-4.16,5.42-9.1,10.25-13.79,15.23l4.3,4.08c12.96,15.93,2.79,38.44-16.01,43.44-6.98,1.86-14.26.61-21.39,1.15,11.24,15.59,29.21,26.05,48.34,28.38,23.2,2.83,47.25-5.9,62.12-23.95,2.54-.36,5.09-.11,7.63-.22,3.17-.14,8.3-.88,11.26-.49.33.04.41-.13.35.36-19.02,31.3-55.59,46.58-91.54,38.56-25.72-5.74-49.98-24.4-59.09-49.52-.46-1.26-2.22-6.26-2.1-7.24.03-.26.14-.47.34-.64l36.94-.22c12.09-1.01,18.34-16.29,6.67-22.97-4.92-2.82-10.35-1.78-15.77-1.97-.53-.07-.91-.51-.86-1.06l21.83-23.63-41.96-1.2C14.02,31.85,31.38,13.12,53.59,5.04c22.26-8.09,46.68-6.53,67.26,5.28Z" />
+    <path class="d1"
+        d="M73.62,78.89c4.66-5.69,9.24-11.46,13.91-17.14,10.95-13.31,21.94-26.66,33.09-39.8,1.32-1.55,3.77-4.89,5.11-6.04.92-.78,2.14-.9,3.21-.37,1.12.55,5.95,5.09,6.5,6.21s.67,2.09.5,3.29c-.37,2.7-5.53,8.47-7.42,10.8-11.71,14.47-23.93,28.54-35.6,43.04h-19.3Z" />
+    <path class="b1"
+        d="M91.6,91.36h-17.86c-3.31-2.85-3.4-7.22-1.16-10.8h43.84c1.11.03,1.77.92,1.5,1.98l-19.73,25.84-36.68,25.66-.25-.72,30.34-41.96Z" />
+    <path class="c1"
+        d="M108.8,67.2l13.84-.05c1.46.45,1.39,2.1.46,3.09l-6.5,7.89-16.97.05-.58-.39c-.11-.43.06-.77.25-1.14.52-.98,4.92-6.41,5.84-7.35.98-1.01,2.33-1.68,3.66-2.1Z" />
+    <path class="d2"
+        d="M132.6,78.17h-10.67c-.57,0-.3-1.12-.09-1.53.51-.96,4.93-6.42,5.84-7.35s2.2-1.6,3.47-2.05l22.91-.1c1.08.29,1.35,1.38.95,2.38l-36.54,46.41c-3.73,3.64-10.52,1.66-15.25,2.52-.73.08-1.57-.39-1.19-1.2l30.57-39.09Z" />
+    <path class="e2"
+        d="M162.09,77.7l-10.08.13-.1-1.33c2.71-2.5,5.2-8.1,8.86-9.13l21.83-.22c1.28.53,1.63,1.57.85,2.75-1.12,1.69-3.23,3.81-4.55,5.52-10.44,13.51-20.98,26.98-31.65,40.28-2.71,2.12-5.15,1.41-8.29,1.54-1.17.05-6.13.62-6.84.14-.24-.16-.26-.45-.23-.71l30.21-38.98Z" />
+    <path class="b2"
+        d="M190.15,77.7h-9.47c-.2,0-.87-.87-.48-1.19,2.55-2.43,5.43-8.52,8.98-9.25l21.47-.1c1.08.29,1.35,1.38.95,2.38l-35.46,45.1c-3.34,3.17-10.1,1.52-14.41,2.16-.73.08-1.57-.4-1.19-1.21l29.62-37.89Z" />
+    <path class="b3"
+        d="M135.12,42.21c.4.13,1.57,4.5,1.93,5.28.13.29-.02.58.47.48l3.72-5.76h6.59l.33.56-6.89,9.2,3.76,9.59c.17.26-.15.78-.32.78h-6.83c-.32-.88-1.5-5.73-2.04-5.99-.39-.19-1.11,1.63-1.51,1.84l-2.73,4.1c-.26.15-5.42.14-6.08.06-1.08-.13-.96-.45-.47-1.22,1.95-3.04,5.01-5.95,7.03-9.02l-3.66-9.18.12-.74h6.59Z" />
+    <path class="e3"
+        d="M157.78,42.21l1.92,6.71,4.91-6.71h6.35l.12.72-9.09,11.77-1.34,7.65h-5.87c-.26,0-.36-.53-.35-.8.09-2.08,1.09-4.58,1.18-6.73l-4.77-12.22.34-.39h6.59Z" />
+    <path class="d3"
+        d="M180.07,56.84h8.27c.26,0,.36.53.35.8-.05,1.26-.81,2.94-.75,4.31l-.31.4h-16.06c-.84-1.34.18-3.71.5-5.26l9.45-9.37h-6.83c-.06,0-.47-.41-.5-.59l.86-4.93h14.99c.25,0,.37.56.37.83,0,.62-.66,4.13-.96,4.58-.27.4-.95.67-1.34,1.06-2.69,2.71-5.44,5.35-8.03,8.16Z" />
+    </g>
+    </svg>

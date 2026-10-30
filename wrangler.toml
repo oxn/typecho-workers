@@ -1,0 +1,45 @@
+name = "typecho-workers"
+main = "@astrojs/cloudflare/entrypoints/server"
+compatibility_date = "2026-04-21"
+compatibility_flags = [ "nodejs_compat" ]
+
+[vars]
+# Workers Free only: lowers PBKDF2 from the 600,000 default so password
+# operations fit the 10ms CPU budget. Remove this value on Workers Paid.
+# PBKDF2_ITERATIONS = "50000"
+
+[assets]
+directory = "dist"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "typecho-db"
+database_id = "<YOUR_D1_DATABASE_ID>"
+migrations_dir = "drizzle"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "typecho-uploads"
+
+# Optional: required by the Edge Cache plugin for cross-PoP L2 caching.
+[[kv_namespaces]]
+binding = "TYPECHO_CACHE"
+id = "<YOUR_KV_NAMESPACE_ID>"
+
+# Workers Logs persistence: [metrics] phase samples need to land in the
+# stored logs to be queryable; real-time tail alone keeps them invisible.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = false
+persist = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1
