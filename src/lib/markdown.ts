@@ -15,89 +15,375 @@ export function escapeHtml(str: string): string {
 
 // ─── Shared sanitize config ──────────────────────────────────────────────────
 
+
 const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+    // Markdown and text
     'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-    'del', 'ins', 'details', 'summary', 'figure', 'figcaption',
-    'video', 'audio', 'source', 'iframe',
-    // Safe structural HTML and SVG primitives used by article cards/buttons.
-    'div', 'span', 'section', 'article', 'aside', 'header', 'footer', 'nav',
-    'svg', 'path', 'polyline', 'line', 'circle', 'rect', 'g', 'defs', 'radialgradient', 'lineargradient', 'linearGradient', 'radialGradient', 'stop',
+    'pre', 'code', 'del', 'ins', 'mark', 'small',
+    'sub', 'sup', 'abbr', 'wbr', 'kbd', 'samp',
+
+    // Tables
+    'table', 'caption', 'colgroup', 'col',
+    'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+
+    // Lists
+    'dl', 'dt', 'dd',
+
+    // Semantic HTML
+    'div', 'span', 'section', 'article', 'aside',
+    'header', 'footer', 'nav', 'main', 'address',
+
+    // Interactive presentation
+    'button', 'details', 'summary',
+
+    // Media
+    'figure', 'figcaption', 'picture',
+    'video', 'audio', 'source', 'track',
+
+    // Existing iframe support remains hostname-restricted
+    'iframe',
+
+    // SVG
+    'svg', 'title', 'desc',
+    'path', 'polyline', 'polygon', 'line',
+    'circle', 'ellipse', 'rect', 'g',
+    'defs', 'clipPath', 'clippath',
+    'radialgradient', 'lineargradient',
+    'radialGradient', 'linearGradient', 'stop',
   ]),
+
   allowedAttributes: {
     ...sanitizeHtml.defaults.allowedAttributes,
-    img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
-    a: ['href', 'title', 'target', 'rel', 'style'],
-    div: ['class', 'id', 'style'],
-    span: ['class', 'id', 'style'],
-    section: ['class', 'id', 'style'],
-    article: ['class', 'id', 'style'],
-    aside: ['class', 'id', 'style'],
-    header: ['class', 'id', 'style'],
-    footer: ['class', 'id', 'style'],
-    nav: ['class', 'id', 'style'],
-    svg: ['width', 'height', 'viewbox', 'xmlns', 'xmlns:xlink', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style'],
-    path: ['id', 'd', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity', 'style'],
-    polyline: ['points', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity'],
-    line: ['x1', 'y1', 'x2', 'y2', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity'],
-    circle: ['id', 'cx', 'cy', 'r', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'opacity', 'style'],
-    rect: ['id', 'x', 'y', 'width', 'height', 'rx', 'ry', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'opacity', 'style'],
-    g: ['id', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity', 'transform'],
-    defs: ['id'],
-    radialgradient: ['id', 'cx', 'cy', 'fx', 'fy', 'r', 'gradientunits', 'gradienttransform', 'spreadmethod'],
-    lineargradient: ['id', 'x1', 'y1', 'x2', 'y2', 'gradientunits', 'gradienttransform', 'spreadmethod'],
-    radialGradient: ['id', 'cx', 'cy', 'fx', 'fy', 'r', 'gradientUnits', 'gradientTransform', 'spreadMethod'],
-    linearGradient: ['id', 'x1', 'y1', 'x2', 'y2', 'gradientUnits', 'gradientTransform', 'spreadMethod'],
-    stop: ['offset', 'stop-color', 'stop-opacity', 'style'],
+
+    img: [
+      'src', 'alt', 'title', 'width', 'height',
+      'loading', 'decoding',
+    ],
+
+    a: [
+      'href', 'title', 'target', 'rel',
+      'download', 'class', 'id', 'style',
+    ],
+
+    button: [
+      'type', 'disabled', 'class', 'id', 'title', 'style',
+    ],
+
+    div: ['class', 'id', 'title', 'style'],
+    span: ['class', 'id', 'title', 'style'],
+    section: ['class', 'id', 'title', 'style'],
+    article: ['class', 'id', 'title', 'style'],
+    aside: ['class', 'id', 'title', 'style'],
+    header: ['class', 'id', 'title', 'style'],
+    footer: ['class', 'id', 'title', 'style'],
+    nav: ['class', 'id', 'title', 'style'],
+    main: ['class', 'id', 'title', 'style'],
+    address: ['class', 'id', 'title', 'style'],
+
+    table: ['class', 'id', 'style'],
+    caption: ['class', 'id', 'style'],
+    colgroup: ['span'],
+    col: ['span', 'width'],
+
+    td: ['align', 'valign', 'colspan', 'rowspan', 'class', 'style'],
+    th: ['align', 'valign', 'colspan', 'rowspan', 'scope', 'class', 'style'],
+
     code: ['class'],
     pre: ['class'],
-    // GFM alerts (`> [!NOTE]`) render as classed blockquotes.
+    p: ['class', 'style'],
+
     blockquote: ['class', 'data-alert'],
-    p: ['class'],
-    td: ['align', 'valign'],
-    th: ['align', 'valign'],
-    iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen'],
-    video: ['src', 'controls', 'width', 'height'],
-    audio: ['src', 'controls'],
-    source: ['src', 'type'],
+
+    video: [
+      'src', 'controls', 'width', 'height',
+      'poster', 'preload', 'muted', 'loop',
+      'autoplay', 'playsinline',
+    ],
+
+    audio: [
+      'src', 'controls', 'preload',
+      'muted', 'loop', 'autoplay',
+    ],
+
+    source: ['src', 'type', 'media'],
+    track: ['kind', 'src', 'srclang', 'label', 'default'],
+
+    iframe: [
+      'src', 'width', 'height',
+      'frameborder', 'allowfullscreen',
+    ],
+
+    svg: [
+      'width', 'height', 'viewbox', 'xmlns',
+      'fill', 'stroke', 'stroke-width',
+      'stroke-linecap', 'stroke-linejoin',
+      'style', 'class', 'id', 'role',
+      'aria-label',
+    ],
+
+    path: [
+      'id', 'd', 'fill', 'fill-rule',
+      'stroke', 'stroke-width',
+      'stroke-linecap', 'stroke-linejoin',
+      'opacity', 'style',
+    ],
+
+    polyline: [
+      'points', 'fill', 'stroke',
+      'stroke-width', 'stroke-linecap',
+      'stroke-linejoin', 'opacity',
+    ],
+
+    polygon: [
+      'points', 'fill', 'stroke',
+      'stroke-width', 'stroke-linejoin',
+      'opacity',
+    ],
+
+    line: [
+      'x1', 'y1', 'x2', 'y2',
+      'fill', 'stroke', 'stroke-width',
+      'stroke-linecap', 'stroke-linejoin', 'opacity',
+    ],
+
+    circle: [
+      'id', 'cx', 'cy', 'r', 'fill',
+      'fill-rule', 'stroke', 'stroke-width',
+      'opacity', 'style',
+    ],
+
+    ellipse: [
+      'id', 'cx', 'cy', 'rx', 'ry',
+      'fill', 'stroke', 'stroke-width', 'opacity',
+    ],
+
+    rect: [
+      'id', 'x', 'y', 'width', 'height',
+      'rx', 'ry', 'fill', 'fill-rule',
+      'stroke', 'stroke-width', 'opacity', 'style',
+      'clip-path',
+    ],
+
+    g: [
+      'id', 'fill', 'stroke', 'stroke-width',
+      'stroke-linecap', 'stroke-linejoin',
+      'opacity', 'transform',
+    ],
+
+    defs: ['id'],
+    clipPath: ['id', 'clipPathUnits'],
+    title: ['class'],
+
+    radialgradient: [
+      'id', 'cx', 'cy', 'fx', 'fy', 'r',
+      'gradientunits', 'gradienttransform', 'spreadmethod',
+    ],
+
+    lineargradient: [
+      'id', 'x1', 'y1', 'x2', 'y2',
+      'gradientunits', 'gradienttransform', 'spreadmethod',
+    ],
+
+    radialGradient: [
+      'id', 'cx', 'cy', 'fx', 'fy', 'r',
+      'gradientUnits', 'gradientTransform', 'spreadMethod',
+    ],
+
+    linearGradient: [
+      'id', 'x1', 'y1', 'x2', 'y2',
+      'gradientUnits', 'gradientTransform', 'spreadMethod',
+    ],
+
+    stop: ['offset', 'stop-color', 'stop-opacity', 'style'],
   },
-  // A restricted subset of inline CSS for authored article cards and buttons.
-  // Scripts, event-handler attributes, and arbitrary CSS properties stay blocked.
+
   allowedStyles: {
     '*': {
-      color: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
-      fill: [/^(?:#[0-9a-f]{3,8}|none|currentColor|[a-zA-Z]+)$/i],
+      color: [
+        /^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i,
+      ],
+
+      fill: [
+        /^(?:#[0-9a-f]{3,8}|none|currentColor|[a-zA-Z]+)$/i,
+      ],
+
       'fill-rule': [/^(?:nonzero|evenodd)$/i],
-      'background-color': [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
-      background: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
-      'font-weight': [/^(?:normal|bold|bolder|lighter|[1-9]00)$/i],
-      'font-size': [/^(?:[0-9.]+(?:px|em|rem|%|pt)|small|medium|large|larger|smaller)$/i],
-      'font-family': [/^[a-zA-Z0-9_,\s"'()-]+$/],
-      'text-decoration': [/^(?:none|underline|overline|line-through)(?:\s+(?:solid|dotted|dashed|wavy))?$/i],
-      'word-break': [/^(?:normal|break-all|keep-all|break-word)$/i],
-      'white-space': [/^(?:normal|nowrap|pre|pre-wrap|pre-line|break-spaces)$/i],
-      display: [/^(?:inline|inline-block|inline-flex|block|flex|none)$/i],
-      position: [/^(?:static|relative|absolute)$/i],
+
+      'background-color': [
+        /^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i,
+      ],
+
+      background: [
+        /^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i,
+      ],
+
+      'font-weight': [
+        /^(?:normal|bold|bolder|lighter|[1-9]00)$/i,
+      ],
+
+      'font-size': [
+        /^(?:[0-9.]+(?:px|em|rem|%|pt)|small|medium|large|larger|smaller)$/i,
+      ],
+
+      'font-family': [
+        /^[a-zA-Z0-9_,\s"'()-]+$/,
+      ],
+
+      'text-decoration': [
+        /^(?:none|underline|overline|line-through)(?:\s+(?:solid|dotted|dashed|wavy))?$/i,
+      ],
+
+      'text-align': [
+        /^(?:left|right|center|justify|start|end)$/i,
+      ],
+
+      'letter-spacing': [
+        /^(?:normal|[0-9.-]+(?:px|em|rem))$/i,
+      ],
+
+      'word-break': [
+        /^(?:normal|break-all|keep-all|break-word)$/i,
+      ],
+
+      'white-space': [
+        /^(?:normal|nowrap|pre|pre-wrap|pre-line|break-spaces)$/i,
+      ],
+
+      display: [
+        /^(?:inline|inline-block|inline-flex|block|flex|grid|none|table|table-cell)$/i,
+      ],
+
+      position: [
+        /^(?:static|relative|absolute)$/i,
+      ],
+
       top: [/^[0-9.]+(?:px|em|rem|%)?$/i],
       right: [/^[0-9.]+(?:px|em|rem|%)?$/i],
       bottom: [/^[0-9.]+(?:px|em|rem|%)?$/i],
       left: [/^[0-9.]+(?:px|em|rem|%)?$/i],
-      'align-items': [/^(?:center|start|end|flex-start|flex-end|baseline|stretch)$/i],
-      'vertical-align': [/^(?:middle|baseline|top|bottom|text-top|text-bottom)$/i],
+
+      width: [/^(?:auto|[0-9.]+(?:px|em|rem|%|vw))$/i],
+      height: [/^(?:auto|[0-9.]+(?:px|em|rem|%|vh))$/i],
+
+      'min-width': [/^(?:0|[0-9.]+(?:px|em|rem|%|vw))$/i],
+      'max-width': [/^(?:none|100%|[0-9.]+(?:px|em|rem|%|vw))$/i],
+      'min-height': [/^(?:0|[0-9.]+(?:px|em|rem|%|vh))$/i],
+      'max-height': [/^(?:none|100%|[0-9.]+(?:px|em|rem|%|vh))$/i],
+
+      'flex-direction': [
+        /^(?:row|row-reverse|column|column-reverse)$/i,
+      ],
+
+      'flex-wrap': [
+        /^(?:nowrap|wrap|wrap-reverse)$/i,
+      ],
+
+      flex: [
+        /^(?:none|auto|initial|[0-9.]+(?:\s+[0-9.]+){0,2})$/i,
+      ],
+
+      'justify-content': [
+        /^(?:start|end|center|flex-start|flex-end|space-between|space-around|space-evenly)$/i,
+      ],
+
+      'align-items': [
+        /^(?:center|start|end|flex-start|flex-end|baseline|stretch)$/i,
+      ],
+
+      'align-self': [
+        /^(?:auto|center|start|end|flex-start|flex-end|baseline|stretch)$/i,
+      ],
+
+      'grid-template-columns': [
+        /^(?:none|repeat\([0-9]+,\s*(?:[0-9.]+fr|[0-9.]+px|[0-9.]+%|auto)\)|(?:[0-9.]+fr|[0-9.]+px|[0-9.]+%|auto)(?:\s+(?:[0-9.]+fr|[0-9.]+px|[0-9.]+%|auto)){0,5})$/i,
+      ],
+
       gap: [/^[0-9.]+(?:px|em|rem|%)$/i],
-      padding: [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
-      margin: [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
-      'margin-top': [/^[0-9.]+(?:px|em|rem|%)?$/i],
-      'border-radius': [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
-      border: [/^[0-9.]+px\s+(?:solid|dashed|dotted)\s+(?:#[0-9a-f]{3,8}|[a-zA-Z]+)$/i],
-      'border-bottom-left-radius': [/^[0-9.]+(?:px|em|rem|%)?$/i],
-      'line-height': [/^(?:[0-9.]+|[0-9.]+(?:px|em|rem|%))$/i],
-      overflow: [/^(?:hidden|auto|visible|scroll)$/i],
+
+      padding: [
+        /^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i,
+      ],
+
+      'padding-top': [/^[0-9.]+(?:px|em|rem|%)?$/i],
+      'padding-right': [/^[0-9.]+(?:px|em|rem|%)?$/i],
+      'padding-bottom': [/^[0-9.]+(?:px|em|rem|%)?$/i],
+      'padding-left': [/^[0-9.]+(?:px|em|rem|%)?$/i],
+
+      margin: [
+        /^(?:auto|[0-9.]+(?:px|em|rem|%)?)(?:\s+(?:auto|[0-9.]+(?:px|em|rem|%)?)){0,3}$/i,
+      ],
+
+      'margin-top': [/^(?:auto|[0-9.]+(?:px|em|rem|%)?)$/i],
+      'margin-right': [/^(?:auto|[0-9.]+(?:px|em|rem|%)?)$/i],
+      'margin-bottom': [/^(?:auto|[0-9.]+(?:px|em|rem|%)?)$/i],
+      'margin-left': [/^(?:auto|[0-9.]+(?:px|em|rem|%)?)$/i],
+
+      'border-radius': [
+        /^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i,
+      ],
+
+      border: [
+        /^[0-9.]+px\s+(?:solid|dashed|dotted)\s+(?:#[0-9a-f]{3,8}|[a-zA-Z]+)$/i,
+      ],
+
+      'border-color': [
+        /^(?:#[0-9a-f]{3,8}|[a-zA-Z]+)$/i,
+      ],
+
+      'border-width': [
+        /^[0-9.]+(?:px|em|rem)$/i,
+      ],
+
+      'border-style': [
+        /^(?:none|solid|dashed|dotted|double)$/i,
+      ],
+
+      'border-bottom-left-radius': [
+        /^[0-9.]+(?:px|em|rem|%)?$/i,
+      ],
+
+      'line-height': [
+        /^(?:[0-9.]+|[0-9.]+(?:px|em|rem|%))$/i,
+      ],
+
+      'vertical-align': [
+        /^(?:middle|baseline|top|bottom|text-top|text-bottom)$/i,
+      ],
+
+      opacity: [
+        /^(?:0|1|0?\.[0-9]+)$/i,
+      ],
+
+      overflow: [
+        /^(?:hidden|auto|visible|scroll)$/i,
+      ],
+
+      'overflow-x': [
+        /^(?:hidden|auto|visible|scroll)$/i,
+      ],
+
+      'overflow-y': [
+        /^(?:hidden|auto|visible|scroll)$/i,
+      ],
+
+      'object-fit': [
+        /^(?:contain|cover|fill|none|scale-down)$/i,
+      ],
+
+      'object-position': [
+        /^(?:center|top|bottom|left|right)$/i,
+      ],
     },
   },
-  allowedIframeHostnames: ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'],
+
+  allowedIframeHostnames: [
+    'www.youtube.com',
+    'player.bilibili.com',
+    'player.vimeo.com',
+  ],
 };
+
 
 const COMMENT_MARKDOWN_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'pre', 'code']),
