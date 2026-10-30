@@ -1,10 +1,152 @@
-import { marked } from 'marked';
+import { Marked, marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 import { applyFilter, type HookContext } from '@/lib/plugin';
 import { escapeHtml as escapeHtmlShared } from '@/lib/escape';
 import { transformGithubAlerts } from '@/lib/markdown-alerts';
 
 export { transformGithubAlerts } from '@/lib/markdown-alerts';
+
+// ─── Custom inline Markdown extensions ──────────────────────────────────────
+
+/**
+ * 自定义内联语法：
+ *
+ * ==文字==   高亮
+ * ++文字++   下划线
+ * ~!文字!~   波浪线
+ * ^文字^     上标
+ * ~2~        下标
+ *
+ * 扩展只在模块初始化时注册一次。
+ */
+const articleMarkdown = new Marked({
+  extensions: [
+    {
+      name: 'customHighlight',
+      level: 'inline',
+
+      start(src) {
+        return src.indexOf('==');
+      },
+
+      tokenizer(src) {
+        const match = /^==([^=\n]+)==/.exec(src);
+
+        if (!match) return;
+
+        return {
+          type: 'customHighlight',
+          raw: match[0],
+          tokens: this.lexer.inlineTokens(match[1]),
+        };
+      },
+
+      renderer(token) {
+        return `<mark>${this.parser.parseInline(token.tokens)}</mark>`;
+      },
+    },
+
+    {
+      name: 'customUnderline',
+      level: 'inline',
+
+      start(src) {
+        return src.indexOf('++');
+      },
+
+      tokenizer(src) {
+        const match = /^\+\+([^+\n]+)\+\+/.exec(src);
+
+        if (!match) return;
+
+        return {
+          type: 'customUnderline',
+          raw: match[0],
+          tokens: this.lexer.inlineTokens(match[1]),
+        };
+      },
+
+      renderer(token) {
+        return `<u>${this.parser.parseInline(token.tokens)}</u>`;
+      },
+    },
+
+    {
+      name: 'customWavyUnderline',
+      level: 'inline',
+
+      start(src) {
+        return src.indexOf('~!');
+      },
+
+      tokenizer(src) {
+        const match = /^~!([^!\n]+)!~/.exec(src);
+
+        if (!match) return;
+
+        return {
+          type: 'customWavyUnderline',
+          raw: match[0],
+          tokens: this.lexer.inlineTokens(match[1]),
+        };
+      },
+
+      renderer(token) {
+        return `<span style="text-decoration: underline wavy">${this.parser.parseInline(token.tokens)}</span>`;
+      },
+    },
+
+    {
+      name: 'customSuperscript',
+      level: 'inline',
+
+      start(src) {
+        return src.indexOf('^');
+      },
+
+      tokenizer(src) {
+        const match = /^\^([^^\n]+)\^/.exec(src);
+
+        if (!match) return;
+
+        return {
+          type: 'customSuperscript',
+          raw: match[0],
+          tokens: this.lexer.inlineTokens(match[1]),
+        };
+      },
+
+      renderer(token) {
+        return `<sup>${this.parser.parseInline(token.tokens)}</sup>`;
+      },
+    },
+
+    {
+      name: 'customSubscript',
+      level: 'inline',
+
+      start(src) {
+        return src.indexOf('~');
+      },
+
+      tokenizer(src) {
+        const match = /^~([A-Za-z0-9]+)~/.exec(src);
+
+        if (!match) return;
+
+        return {
+          type: 'customSubscript',
+          raw: match[0],
+          tokens: this.lexer.inlineTokens(match[1]),
+        };
+      },
+
+      renderer(token) {
+        return `<sub>${this.parser.parseInline(token.tokens)}</sub>`;
+      },
+    },
+  ],
+});
 
 // ─── HTML escape helper ─────────────────────────────────────────────────────
 
@@ -20,7 +162,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: sanitizeHtml.defaults.allowedTags.concat([
     // Markdown and text
     'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'pre', 'code', 'del', 'ins', 'mark', 'small',
+    'pre', 'code', 'del', 'ins', 'mark', 'u', 'small',
     'sub', 'sup', 'abbr', 'wbr', 'kbd', 'samp',
 
     // Tables
@@ -484,7 +626,7 @@ export function renderContent(text: string, maxExcerptLength = 200): RenderedCon
   }
 
   const content = stripMarkdownPrefix(text).replace(MORE_COMMENT_RE, '');
-  const parsed = transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string);
+  const parsed = transformGithubAlerts(articleMarkdown.parse(content, { async: false, breaks: true }) as string);
   const html = sanitizeHtml(parsed, SANITIZE_OPTIONS);
   const plain = stripHtmlTags(parsed);
   const plainExcerpt = plain.length <= maxExcerptLength
@@ -554,7 +696,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
     console.error('[markdown] content:markdown filter failed:', error);
   }
 
-  const html = transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string);
+  const html = transformGithubAlerts(articleMarkdown.parse(content, { async: false, breaks: true }) as string);
   let sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   try {
@@ -608,7 +750,7 @@ export function renderContentExcerpt(
   // regardless of whether the author placed <!--more--> inline or between
   // paragraphs — enabling a clean split on the rendered output.
   const withPlaceholder = content.replace(MORE_COMMENT_RE, '\n\n' + MORE_PLACEHOLDER + '\n\n');
-  const html = transformGithubAlerts(marked.parse(withPlaceholder, { async: false, breaks: true }) as string);
+  const html = transformGithubAlerts(articleMarkdown.parse(withPlaceholder, { async: false, breaks: true }) as string);
   const sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   // Split on the rendered placeholder and keep only the excerpt (part before it).
