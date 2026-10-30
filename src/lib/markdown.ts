@@ -110,8 +110,38 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     track: ['kind', 'src', 'srclang', 'label', 'default'],
 
     iframe: [
-      'src', 'width', 'height',
-      'frameborder', 'allowfullscreen',
+      'src',
+      'width',
+      'height',
+      'frameborder',
+      'allowfullscreen',
+      'scrolling',
+      'border',
+      'framespacing',
+      'allow',
+      'title',
+      'class',
+      'style',
+
+      // Restrict referrer policy values.
+      {
+        name: 'referrerpolicy',
+        values: [
+          'no-referrer',
+          'no-referrer-when-downgrade',
+          'origin',
+          'origin-when-cross-origin',
+          'same-origin',
+          'strict-origin',
+          'strict-origin-when-cross-origin',
+        ],
+      },
+
+      // Only permit standard loading modes.
+      {
+        name: 'loading',
+        values: ['lazy', 'eager'],
+      },
     ],
 
     svg: [
@@ -377,12 +407,40 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     },
   },
 
+
   allowedIframeHostnames: [
     'www.youtube.com',
+    'youtube.com',
+    'www.youtube-nocookie.com',
+    'youtube-nocookie.com',
     'player.bilibili.com',
     'player.vimeo.com',
   ],
+
+  // Normalize embedded video iframes, following Rin's rendering approach.
+  transformTags: {
+    iframe: (tagName, attribs) => ({
+      tagName,
+      attribs: {
+        ...attribs,
+
+        // Supply defaults without overwriting author-provided values.
+        title: attribs.title || 'Embedded content',
+        loading: attribs.loading || 'lazy',
+
+        // Preserve existing inline styles, then enforce video layout.
+        style: [
+          attribs.style,
+          'display:block',
+          'width:100%',
+          'min-height:400px',
+          'margin:1rem 0',
+        ].filter(Boolean).join(';'),
+      },
+    }),
+  },
 };
+
 
 
 const COMMENT_MARKDOWN_OPTIONS: sanitizeHtml.IOptions = {
