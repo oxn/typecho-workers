@@ -114,9 +114,7 @@ const description = isNote
                 aria-pressed={settings.pinnedIds.includes(post.cid)}
                 title={settings.pinnedIds.includes(post.cid) ? '取消置顶' : '置顶文章'}
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m16 3 5 5-4 1-4 4-1 5-2 2-2-7-7-2 2-2 5-1 4-4 1-4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M2 8.99997H5V21H2C1.44772 21 1 20.5523 1 20V9.99997C1 9.44769 1.44772 8.99997 2 8.99997ZM7.29289 7.70708L13.6934 1.30661C13.8693 1.13066 14.1479 1.11087 14.3469 1.26016L15.1995 1.8996C15.6842 2.26312 15.9026 2.88253 15.7531 3.46966L14.5998 7.99997H21C22.1046 7.99997 23 8.8954 23 9.99997V12.1043C23 12.3656 22.9488 12.6243 22.8494 12.8658L19.755 20.3807C19.6007 20.7554 19.2355 21 18.8303 21H8C7.44772 21 7 20.5523 7 20V8.41419C7 8.14897 7.10536 7.89462 7.29289 7.70708Z"/></svg>
               </button>
 
               {/* 编辑 */}
@@ -127,9 +125,7 @@ const description = isNote
                 aria-label="编辑文章"
                 title="编辑文章"
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m14 5 5 5M4 20l4.5-1 11-11a2.12 2.12 0 0 0-3-3l-11 11L4 20Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M9.24264 18.9967H21V20.9967H3V16.754L12.8995 6.85453L17.1421 11.0972L9.24264 18.9967ZM14.3137 5.44032L16.435 3.319C16.8256 2.92848 17.4587 2.92848 17.8492 3.319L20.6777 6.14743C21.0682 6.53795 21.0682 7.17112 20.6777 7.56164L18.5563 9.68296L14.3137 5.44032Z"/></svg>
               </a>
 
               {/* 删除 */}
@@ -140,9 +136,7 @@ const description = isNote
                 aria-label="删除文章"
                 title="删除文章"
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17 4H22V6H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V6H2V4H7V2H17V4ZM9 9V17H11V9H9ZM13 9V17H15V9H13Z"/></svg>
               </button>
             </div>
           )}
@@ -202,9 +196,9 @@ const description = isNote
       <!-- 删除确认对话框 -->
       <dialog class="warm-manage-dialog" data-warm-dialog="delete">
         <div class="warm-manage-dialog__panel">
-          <h2>删除文章</h2>
-          <p>此操作无法撤销，确定要删除这篇文章吗？</p>
-          <p>请输入中文“确认”以继续。</p>
+          <h2 data-warm-dialog-title>删除文章</h2>
+          <p data-warm-dialog-message>此操作无法撤销，确定要删除这篇文章吗？</p>
+          <p data-warm-dialog-message>请输入中文“确认”以继续。</p>
           <input
             type="text"
             class="warm-manage-dialog__input"

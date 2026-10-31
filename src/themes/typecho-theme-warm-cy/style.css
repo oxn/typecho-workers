@@ -1845,37 +1845,414 @@ body.warm-theme {
   }
 }
 
-/* 管理员快捷编辑按钮 */
-.warm-article__hero-inner {
-  position: relative;
+/* ========================================
+   CY 管理弹窗：统一 Rin 字体规范
+   置顶、删除弹窗共用
+   ======================================== */
+
+/* 弹窗标题 */
+.warm-manage-dialog__panel [data-warm-dialog-title] {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.warm-edit-link {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 12px;
-  border: 1px solid var(--warm-border);
-  border-radius: 5px;
-  color: var(--warm-muted);
-  background: var(--warm-bg);
+/* 弹窗正文 */
+.warm-manage-dialog__panel [data-warm-dialog-message] {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
+/* 删除确认输入框 */
+.warm-manage-dialog__input {
+  font-size: 16px;
+}
+
+/* 确认和取消按钮 */
+.warm-manage-dialog__actions button {
+  font-size: 16px;
+}
+
+/* 错误提示 */
+.warm-manage-dialog__error {
   font-size: 12px;
-  line-height: 1.5;
-  text-decoration: none;
-  transition: color .2s, border-color .2s, background .2s;
 }
 
-.warm-edit-link:hover {
-  color: var(--warm-accent);
-  border-color: var(--warm-accent);
-}
 
-@media (max-width: 640px) {
-  .warm-edit-link {
-    padding: 4px 9px;
-    font-size: 11px;
+/* ========================================
+   CY 管理员文章操作按钮
+   ======================================== */
+
+   .warm-article__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
   }
+  
+  .warm-action-button {
+    position: static;
+    display: inline-flex;
+    width: 32px;
+    height: 30px;
+    min-width: 32px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--warm-border);
+    border-radius: 6px;
+    background: var(--warm-bg);
+    color: var(--warm-muted);
+    cursor: pointer;
+    transition:
+      color .2s ease,
+      border-color .2s ease,
+      background-color .2s ease;
+  }
+  
+  .warm-action-button:hover {
+    border-color: var(--warm-accent);
+    background: var(--warm-surface);
+    color: var(--warm-accent);
+  }
+  
+  .warm-action-button svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+  }
+  
+  .warm-action-button.is-pinned {
+    border-color: var(--warm-accent);
+    color: var(--warm-accent);
+  }
+  
+  /* ========================================
+     CY 管理弹窗：基础容器
+     ======================================== */
+  
+  .warm-manage-dialog {
+    position: fixed;
+    inset: 0;
+    width: min(420px, calc(100% - 32px));
+    max-width: 420px;
+    max-height: calc(100% - 40px);
+    margin: auto;
+    padding: 0;
+    overflow: auto;
+    border: 1px solid var(--warm-border);
+    border-radius: 12px;
+    background: var(--warm-bg);
+    color: var(--warm-text);
+    box-shadow:
+      0 24px 80px rgb(0 0 0 / 18%),
+      0 4px 16px rgb(0 0 0 / 8%);
+    font-family: var(--warm-font);
+  }
+  
+  .warm-manage-dialog[open] {
+    display: block;
+    animation: warm-manage-dialog-in .2s ease-out;
+  }
+  
+  .warm-manage-dialog::backdrop {
+    background: rgb(20 19 18 / 55%);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+  
+  .warm-manage-dialog__panel {
+    padding: 28px;
+  }
+  
+  /* 弹窗进入动画 */
+  @keyframes warm-manage-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  /* ========================================
+     CY 管理弹窗：标题与正文
+     ======================================== */
+  
+  .warm-manage-dialog__panel h2,
+  .warm-manage-dialog__panel [data-warm-dialog-title] {
+    margin: 0 0 16px;
+    color: var(--warm-text);
+    font-family: var(--warm-font);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -.02em;
+  }
+  
+  .warm-manage-dialog__panel p,
+  .warm-manage-dialog__panel [data-warm-dialog-message] {
+    margin: 0 0 12px;
+    color: var(--warm-muted);
+    font-family: var(--warm-font);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+    overflow-wrap: anywhere;
+  }
+  
+  /* 删除弹窗第二段说明 */
+  .warm-manage-dialog[data-warm-dialog="delete"] .warm-manage-dialog__panel p:not(.warm-manage-dialog__error) {
+    margin-bottom: 12px;
+  }
+  
+  /* ========================================
+     CY 管理弹窗：输入框
+     ======================================== */
+  
+  .warm-manage-dialog__input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    margin: 16px 0 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--warm-border);
+    border-radius: 7px;
+    outline: none;
+    background: var(--warm-surface);
+    color: var(--warm-text);
+    font-family: var(--warm-font);
+    font-size: 15px;
+    line-height: 22px;
+    transition:
+      border-color .2s ease,
+      background-color .2s ease,
+      box-shadow .2s ease;
+  }
+  
+  .warm-manage-dialog__input::placeholder {
+    color: var(--warm-faint);
+  }
+  
+  .warm-manage-dialog__input:hover {
+    border-color: #c9c4bd;
+  }
+  
+  .warm-manage-dialog__input:focus {
+    border-color: var(--warm-accent);
+    background: var(--warm-bg);
+    box-shadow: 0 0 0 3px rgb(104 95 87 / 10%);
+  }
+  
+  /* ========================================
+     CY 管理弹窗：错误提示
+     ======================================== */
+  
+  .warm-manage-dialog__error {
+    min-height: 0;
+    margin: 8px 0 0 !important;
+    color: #dc4545 !important;
+    font-size: 13px !important;
+    line-height: 20px !important;
+  }
+  
+  .warm-manage-dialog__error:empty {
+    display: none;
+  }
+  
+  /* ========================================
+     CY 管理弹窗：操作按钮
+     ======================================== */
+  
+  .warm-manage-dialog__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  
+  .warm-manage-dialog__actions button {
+    display: inline-flex;
+    min-width: 82px;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border: 1px solid var(--warm-border);
+    border-radius: 7px;
+    background: var(--warm-bg);
+    color: var(--warm-muted);
+    font-family: var(--warm-font);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    cursor: pointer;
+    transition:
+      color .2s ease,
+      border-color .2s ease,
+      background-color .2s ease,
+      opacity .2s ease;
+  }
+  
+  .warm-manage-dialog__actions button:hover:not(:disabled) {
+    border-color: #c9c4bd;
+    background: var(--warm-surface);
+    color: var(--warm-text);
+  }
+  
+  /* 确认按钮 */
+  .warm-manage-dialog__actions [data-warm-dialog-confirm] {
+    border-color: var(--warm-accent);
+    background: var(--warm-accent);
+    color: #fff;
+  }
+  
+  .warm-manage-dialog__actions [data-warm-dialog-confirm]:hover:not(:disabled) {
+    border-color: var(--warm-text);
+    background: var(--warm-text);
+    color: #fff;
+  }
+  
+  /* 禁用状态 */
+  .warm-manage-dialog__actions button:disabled {
+    cursor: not-allowed;
+    opacity: .4;
+  }
+  
+  /* ========================================
+     CY 管理弹窗：深色模式
+     ======================================== */
+  
+  .dark .warm-manage-dialog {
+    border-color: #393939;
+    background: #202020;
+    color: #ededed;
+    box-shadow: 0 24px 80px rgb(0 0 0 / 45%);
+  }
+  
+  .dark .warm-manage-dialog__panel h2,
+  .dark .warm-manage-dialog__panel [data-warm-dialog-title] {
+    color: #f2f2f2;
+  }
+  
+  .dark .warm-manage-dialog__panel p,
+  .dark .warm-manage-dialog__panel [data-warm-dialog-message] {
+    color: #b5b5b5;
+  }
+  
+  .dark .warm-manage-dialog__input {
+    border-color: #414141;
+    background: #292929;
+    color: #ededed;
+  }
+  
+  .dark .warm-manage-dialog__input::placeholder {
+    color: #777;
+  }
+  
+  .dark .warm-manage-dialog__input:focus {
+    border-color: #a49a8f;
+    background: #252525;
+    box-shadow: 0 0 0 3px rgb(255 255 255 / 6%);
+  }
+  
+  .dark .warm-manage-dialog__actions button {
+    border-color: #414141;
+    background: #292929;
+    color: #ccc;
+  }
+  
+  .dark .warm-manage-dialog__actions button:hover:not(:disabled) {
+    border-color: #777;
+    background: #353535;
+    color: #fff;
+  }
+  
+  .dark .warm-manage-dialog__actions [data-warm-dialog-confirm] {
+    border-color: #777;
+    background: #777;
+    color: #fff;
+  }
+  
+  .dark .warm-manage-dialog__actions [data-warm-dialog-confirm]:hover:not(:disabled) {
+    border-color: #999;
+    background: #999;
+  }
+  
+  /* ========================================
+     CY 管理弹窗：手机端适配
+     ======================================== */
+  
+  @media (max-width: 640px) {
+    .warm-article__actions {
+      gap: 5px;
+    }
+  
+    .warm-action-button {
+      width: 30px;
+      height: 29px;
+      min-width: 30px;
+    }
+  
+    .warm-action-button svg {
+      width: 15px;
+      height: 15px;
+      flex-basis: 15px;
+    }
+  
+    .warm-manage-dialog {
+      width: calc(100% - 32px);
+      max-width: 380px;
+      border-radius: 11px;
+    }
+  
+    .warm-manage-dialog__panel {
+      padding: 24px 20px;
+    }
+  
+    .warm-manage-dialog__panel h2,
+    .warm-manage-dialog__panel [data-warm-dialog-title] {
+      font-size: 20px;
+      line-height: 28px;
+    }
+  
+    .warm-manage-dialog__panel p,
+    .warm-manage-dialog__panel [data-warm-dialog-message] {
+      font-size: 16px;
+      line-height: 24px;
+    }
+  
+    .warm-manage-dialog__actions {
+      gap: 8px;
+    }
+  
+    .warm-manage-dialog__actions button {
+      min-width: 76px;
+    }
+  }
+  
+  /* 减少动态效果 */
+  @media (prefers-reduced-motion: reduce) {
+    .warm-manage-dialog[open] {
+      animation: none;
+    }
+  }
+
+  .warm-manage-dialog__input:focus,
+.warm-manage-dialog__input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--theme-rgb, #11b031);
+}
+
+/* 删除图标：橙色 */
+.warm-action-button[data-warm-action="delete"] {
+  color: #f59e0b;
 }
