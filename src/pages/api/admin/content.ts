@@ -13,6 +13,7 @@ import { parseTrackbackUrls, sendTrackbacks, TrackbackInputError } from '@/lib/t
 import { eq, and, sql } from 'drizzle-orm';
 import { parseBoundedIds, sqlInChunks } from '@/lib/d1-in';
 import { SLUG_RESOLVE_MAX_SUFFIX } from '@/lib/constants';
+import { pinyin } from 'pinyin-pro';
 
 // Typecho convention: visibility dropdown maps to db status column.
 // 'password' visibility stores the password in a separate column, status falls back to 'publish'.
@@ -95,6 +96,22 @@ function buildCustomFieldStatements(db: any, cid: number, formData: FormData): a
 
 function parseTagNames(tags: string): string[] {
   return [...new Set(tags.split(',').map((t) => t.trim()).filter(Boolean))];
+}
+
+/**
+ * Generate a URL-safe pinyin slug for newly created posts and pages.
+ * Preserve English words and numbers; existing slugs are never regenerated.
+ */
+function generateContentSlug(title: string): string {
+  return pinyin(title, {
+    toneType: 'none',
+    nonZh: 'consecutive',
+    v: true,
+  })
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 150);
 }
 
 function trackbackExcerpt(text: string): string {
@@ -551,7 +568,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const finalSlug = await claimUniqueSlug(
       db,
       newCid,
-      canEditSlug && hasSubmittedSlug && slugInput ? slugInput : generateSlug(title) || String(newCid),
+      canEditSlug && hasSubmittedSlug && slugInput
+        ? slugInput
+        : generateContentSlug(title) || String(newCid),
     );
     // Finish hooks and the flash notice must see the claimed slug, not the
     // throwaway temp value used for the insert.
