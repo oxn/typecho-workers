@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Bilibili 文章正文样式测试</title>
+  <link rel="stylesheet" href="/themes/typecho-theme-warm-cy/style.css">
+  <style>
+    /* 仅用于模拟文章页外层结构；不覆盖播放器尺寸与显示规则。 */
+    body { margin: 0; }
+    .warm-article { max-width: 860px; margin: 0 auto; padding: 24px 20px; }
+    .warm-article__body { position: relative; min-width: 0; }
+    .warm-prose { color: #3d3a37; font-size: 17px; line-height: 2; }
+    .test-status { margin: 12px 0 20px; padding: 10px 12px; background: #f3f4f6; color: #333; font: 14px/1.6 system-ui,sans-serif; overflow-wrap: anywhere; }
+    .test-frame { display: block; width: 100%; min-height: 400px; margin: 1rem 0; border: 0; }
+    @media (max-width: 639px) { .warm-article { padding: 20px; } }
+  </style>
+</head>
+<body class="warm-theme">
+  <main class="warm-article">
+    <h1>文章正文样式模拟测试</h1>
+    <p>此页面仅用于排查移动端 Bilibili iframe 白屏，不会修改任何文章。</p>
+    <div id="status" class="test-status">正在检测主题样式加载状态与播放器容器尺寸……</div>
+    <div class="warm-article__body">
+      <div class="warm-prose" view-image itemprop="articleBody">
+        <p>下面的播放器放在与文章正文相同的主要容器层级中。</p>
+        <iframe
+          class="test-frame"
+          src="https://player.bilibili.com/player.html?bvid=BV1GGMC6YEMc"
+          title="Bilibili video player"
+          loading="eager"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen>
+        </iframe>
+      </div>
+    </div>
+  </main>
+  <script>
+    (() => {
+      const status = document.getElementById('status');
+      const frame = document.querySelector('iframe');
+      const css = [...document.styleSheets].some(sheet => {
+        try { return sheet.href && sheet.href.includes('/themes/typecho-theme-warm-cy/style.css'); }
+        catch { return false; }
+      });
+      const report = () => {
+        const rect = frame.getBoundingClientRect();
+        const style = getComputedStyle(frame);
+        status.textContent =
+          '主题样式表：' + (css ? '已加载（检测到链接）' : '未检测到，请检查样式表地址') +
+          '；iframe display：' + style.display +
+          '；宽度：' + Math.round(rect.width) + 'px' +
+          '；高度：' + Math.round(rect.height) + 'px' +
+          '。请观察播放器是否正常显示。';
+      };
+      if (document.readyState === 'complete') report();
+      else window.addEventListener('load', report, { once: true });
+    })();
+  </script>
+</body>
+</html>
