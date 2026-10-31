@@ -419,25 +419,52 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
 
   // Normalize embedded video iframes, following Rin's rendering approach.
   transformTags: {
-    iframe: (tagName, attribs) => ({
-      tagName,
-      attribs: {
-        ...attribs,
+    iframe: (tagName, attribs) => {
+      let isBilibili = false;
 
-        // Supply defaults without overwriting author-provided values.
-        title: attribs.title || 'Embedded content',
-        loading: attribs.loading || 'lazy',
+      try {
+        const iframeUrl = new URL(
+          attribs.src || '',
+          'https://placeholder.invalid'
+        );
 
-        // Preserve existing inline styles, then enforce video layout.
-        style: [
-          attribs.style,
-          'display:block',
-          'width:100%',
-          'min-height:400px',
-          'margin:1rem 0',
-        ].filter(Boolean).join(';'),
-      },
-    }),
+        isBilibili = iframeUrl.hostname === 'player.bilibili.com';
+      } catch {
+        isBilibili = false;
+      }
+
+      return {
+        tagName,
+        attribs: {
+          ...attribs,
+
+          // Supply defaults without overwriting author-provided values.
+          title: attribs.title || 'Embedded content',
+
+          // Load Bilibili players immediately; keep other providers unchanged.
+          loading: isBilibili
+            ? 'eager'
+            : (attribs.loading || 'lazy'),
+
+          // Use a compatible referrer policy for Bilibili.
+          ...(isBilibili && (
+            !attribs.referrerpolicy ||
+            attribs.referrerpolicy === 'no-referrer'
+          )
+            ? { referrerpolicy: 'strict-origin-when-cross-origin' }
+            : {}),
+
+          // Preserve existing inline styles, then enforce video layout.
+          style: [
+            attribs.style,
+            'display:block',
+            'width:100%',
+            'min-height:400px',
+            'margin:1rem 0',
+          ].filter(Boolean).join(';'),
+        },
+      };
+    },
   },
 };
 

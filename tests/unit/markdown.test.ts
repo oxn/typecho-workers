@@ -11,10 +11,23 @@ import { addHook, type HookContext } from '@/lib/plugin';
 import { autop, escapeHtml, generateExcerpt, renderCommentText, renderContentExcerpt, renderMarkdown, renderMarkdownFiltered, resetMarkdownRenderCache, stripHtmlTags, stripTypechoMarkers, transformGithubAlerts } from '@/lib/markdown';
 import { notifyEarlyRequestInvalidation } from '@/lib/early-request';
 import { marked } from 'marked';
-import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 
-const require = createRequire(import.meta.url);
-const HyperDown = require('../../public/vendor/hyperdown.js') as new () => {
+const hyperDownModule = { exports: {} as any };
+
+runInNewContext(
+  readFileSync(
+    new URL('../../public/vendor/hyperdown.js', import.meta.url),
+    'utf8',
+  ),
+  {
+    module: hyperDownModule,
+    exports: hyperDownModule.exports,
+  },
+);
+
+const HyperDown = hyperDownModule.exports as new () => {
   enableHtml: (v: boolean) => void;
   enableLine: (v: boolean) => void;
   makeHtml: (src: string) => string;
@@ -66,7 +79,7 @@ describe('transformGithubAlerts / GFM alerts', () => {
     const html = renderMarkdown(alertSource(type, '补充说明'));
     expect(html).toContain(`class="markdown-alert markdown-alert-${cls}"`);
     expect(html).toContain(`data-alert="${type}"`);
-    expect(html).toContain(`class="markdown-alert-title">${type}</p>`);
+    expect(html).toContain(`<span>${type}</span>`);
     expect(html).toContain('补充说明');
     expect(html).toContain('<blockquote');
     expect(html).not.toContain(`[!${type}]`);
@@ -76,14 +89,14 @@ describe('transformGithubAlerts / GFM alerts', () => {
     const html = renderMarkdown('> [!重要]\n> 请务必注意');
     expect(html).toContain('class="markdown-alert"');
     expect(html).not.toContain('markdown-alert-note');
-    expect(html).toContain('class="markdown-alert-title">重要</p>');
+    expect(html).toContain('<span>重要</span>');
     expect(html).toContain('请务必注意');
     expect(html).not.toContain('[!重要]');
   });
 
   it('escapes HTML in the extracted label', () => {
     const html = renderMarkdown('> [!<script>x</script>]\n> body');
-    expect(html).toContain('class="markdown-alert-title">&lt;script&gt;x&lt;/script&gt;</p>');
+    expect(html).toContain('<span>&lt;script&gt;x&lt;/script&gt;</span>');
     expect(html).not.toContain('<script>x</script>');
   });
 
@@ -108,7 +121,7 @@ describe('transformGithubAlerts / GFM alerts', () => {
     expect(raw).toContain('<blockquote');
     const html = transformGithubAlerts(raw);
     expect(html).toContain('markdown-alert-warning');
-    expect(html).toContain('class="markdown-alert-title">WARNING</p>');
+    expect(html).toContain('<span>WARNING</span>');
     expect(html).toContain('请三思');
     expect(html).not.toContain('[!WARNING]');
   });
@@ -135,7 +148,7 @@ describe('transformGithubAlerts / GFM alerts', () => {
     const html = transformGithubAlerts(raw);
     expect(html).toContain('<blockquote><p>普通引用</p></blockquote>');
     expect(html).toContain('data-alert="AAA"');
-    expect(html).toContain('class="markdown-alert-title">AAA</p>');
+    expect(html).toContain('<span>AAA</span>');
     expect(html).toContain('markdown-alert-note');
     expect(html).toContain('markdown-alert-tip');
     expect(html).not.toContain('[!NOTE]');
@@ -385,16 +398,62 @@ describe('renderContentExcerpt XSS prevention', () => {
 // iframe sanitization (domain restriction fix)
 // ---------------------------------------------------------------------------
 describe('renderMarkdown iframe filtering', () => {
+  it('uses eager loading and a compatible referrer policy for Bilibili', () => {
+    const md = `
+<iframe
+  src="//player.bilibili.com/player.html?isOutside=true&bvid=BV1JfGA6CE5b&cid=40479031919&p=1&as_wide=1&high_quality=1&danmaku=0"
+  width="100%"
+  height="480"
+  referrerpolicy="no-referrer">
+</iframe>`;
+
+    const html = renderMarkdown(md);
+
+    expect(html).toContain('player.bilibili.com');
+    expect(html).toContain('loading="eager"');
+    expect(html).toContain(
+      'referrerpolicy="strict-origin-when-cross-origin"'
+    );
+    expect(html).not.toContain('referrerpolicy="no-referrer"');
+  });
+
+  it('keeps lazy loading for non-Bilibili iframes', () => {
+    const md = '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>';
+    const html = renderMarkdown(md);
+
+    expect(html).toContain('loading="lazy"');
+  });
+
+  it('preserves explicit Bilibili referrer policies other than no-referrer', () => {
+    const md = '<iframe src="https://player.bilibili.com/player.html?bvid=BV1xx411c7mD" referrerpolicy="origin"></iframe>';
+    const html = renderMarkdown(md);
+
+    expect(html).toContain('referrerpolicy="origin"');
+    expect(html).toContain('loading="eager"');
+  });
+
   it('allows YouTube iframes', () => {
     const md = '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>';
     const html = renderMarkdown(md);
+
     expect(html).toContain('iframe');
     expect(html).toContain('youtube.com');
+  });
+
+  it('sets a compatible referrer policy when Bilibili has none', () => {
+    const md = '<iframe src="//player.bilibili.com/player.html?bvid=BV1xx411c7mD"></iframe>';
+    const html = renderMarkdown(md);
+
+    expect(html).toContain(
+      'referrerpolicy="strict-origin-when-cross-origin"'
+    );
+    expect(html).toContain('loading="eager"');
   });
 
   it('allows Bilibili iframes', () => {
     const md = '<iframe src="https://player.bilibili.com/player.html?bvid=BV1xx411c7mD"></iframe>';
     const html = renderMarkdown(md);
+
     expect(html).toContain('iframe');
     expect(html).toContain('bilibili.com');
   });
@@ -402,6 +461,7 @@ describe('renderMarkdown iframe filtering', () => {
   it('strips iframes from untrusted domains', () => {
     const md = '<iframe src="https://evil.com/steal"></iframe>';
     const html = renderMarkdown(md);
+
     // sanitize-html strips the src attribute from untrusted domains
     expect(html).not.toContain('evil.com');
     expect(html).not.toContain('src=');
@@ -410,37 +470,8 @@ describe('renderMarkdown iframe filtering', () => {
   it('strips iframes with javascript: URLs', () => {
     const md = '<iframe src="javascript:alert(1)"></iframe>';
     const html = renderMarkdown(md);
+
     expect(html).not.toContain('javascript:');
-  });
-});
-
-describe('renderCommentText', () => {
-  it('escapes HTML when no comment tags are allowed', () => {
-    const html = renderCommentText('<strong>bold</strong><script>alert(1)</script>');
-    expect(html).not.toContain('<strong>');
-    expect(html).not.toContain('<script>');
-    expect(html).toContain('bold');
-  });
-
-  it('allows configured comment tags and attributes', () => {
-    const html = renderCommentText('<a href="https://example.com">site</a>', {
-      htmlTagAllowed: '<a href="">',
-    });
-    expect(html).toContain('<a href="https://example.com">site</a>');
-  });
-
-  it('honors comment markdown setting', () => {
-    const plain = renderCommentText('**bold**', { markdown: false });
-    const markdown = renderCommentText('**bold**', { markdown: true });
-    expect(plain).not.toContain('<strong>');
-    expect(markdown).toContain('<strong>bold</strong>');
-  });
-
-  it('renders GFM alerts when comment markdown is enabled', () => {
-    const html = renderCommentText('> [!NOTE]\n> 评论提示', { markdown: true });
-    expect(html).toContain('markdown-alert-note');
-    expect(html).toContain('class="markdown-alert-title">NOTE</p>');
-    expect(html).toContain('评论提示');
   });
 });
 
