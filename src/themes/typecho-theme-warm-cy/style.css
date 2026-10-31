@@ -1823,3 +1823,24 @@ body.warm-theme {
 .warm-prose table td[align="right"] {
   text-align: right;
 }
+
+/* Article iframe player */
+.warm-prose iframe {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  margin: 1.5rem 0;
+  border: 0;
+  border-radius: 10px;
+  background: #000;
+}
+
+/* Keep iframe players responsive on mobile */
+@media (max-width: 640px) {
+  .warm-prose iframe {
+    margin: 1rem 0;
+    border-radius: 8px;
+  }
+}

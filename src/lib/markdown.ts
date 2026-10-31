@@ -112,6 +112,8 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     iframe: [
       'src', 'width', 'height',
       'frameborder', 'allowfullscreen',
+      'title', 'loading', 'referrerpolicy',
+      'sandbox', 'style',
     ],
 
     svg: [
@@ -382,8 +384,38 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     'player.bilibili.com',
     'player.vimeo.com',
   ],
-};
 
+  transformTags: {
+    iframe: (tagName, attribs) => {
+      let src = attribs.src || '';
+
+      // Force Bilibili iframe to use HTTPS.
+      src = src.replace(
+        /^(?:http:)?\/\/player\.bilibili\.com/i,
+        'https://player.bilibili.com'
+      );
+
+      return {
+        tagName,
+        attribs: {
+          ...attribs,
+          src,
+          title: attribs.title || 'Embedded content',
+          loading: 'lazy',
+          referrerpolicy: 'no-referrer',
+          
+          style: [
+            attribs.style,
+            'display:block',
+            'width:100%',
+            'min-height:400px',
+            'margin:1rem 0',
+          ].filter(Boolean).join(';'),
+        },
+      };
+    },
+  },
+};
 
 const COMMENT_MARKDOWN_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'pre', 'code']),
