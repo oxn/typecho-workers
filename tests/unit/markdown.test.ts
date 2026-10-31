@@ -8,13 +8,38 @@
  */
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { addHook, type HookContext } from '@/lib/plugin';
-import { autop, escapeHtml, generateExcerpt, renderCommentText, renderContentExcerpt, renderMarkdown, renderMarkdownFiltered, resetMarkdownRenderCache, stripHtmlTags, stripTypechoMarkers, transformGithubAlerts } from '@/lib/markdown';
+import {
+  autop,
+  escapeHtml,
+  generateExcerpt,
+  renderCommentText,
+  renderContentExcerpt,
+  renderMarkdown,
+  renderMarkdownFiltered,
+  resetMarkdownRenderCache,
+  stripHtmlTags,
+  stripTypechoMarkers,
+  transformGithubAlerts,
+} from '@/lib/markdown';
 import { notifyEarlyRequestInvalidation } from '@/lib/early-request';
 import { marked } from 'marked';
-import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 
-const require = createRequire(import.meta.url);
-const HyperDown = require('../../public/vendor/hyperdown.js') as new () => {
+const hyperDownModule: { exports: unknown } = { exports: {} };
+
+runInNewContext(
+  readFileSync(
+    new URL('../../public/vendor/hyperdown.js', import.meta.url),
+    'utf8',
+  ),
+  {
+    module: hyperDownModule,
+    exports: hyperDownModule.exports,
+  },
+);
+
+const HyperDown = hyperDownModule.exports as new () => {
   enableHtml: (v: boolean) => void;
   enableLine: (v: boolean) => void;
   makeHtml: (src: string) => string;
@@ -66,7 +91,7 @@ describe('transformGithubAlerts / GFM alerts', () => {
     const html = renderMarkdown(alertSource(type, '补充说明'));
     expect(html).toContain(`class="markdown-alert markdown-alert-${cls}"`);
     expect(html).toContain(`data-alert="${type}"`);
-    expect(html).toContain(`class="markdown-alert-title">${type}</p>`);
+    expect(html).toContain(`<span>${type}</span></p>`);
     expect(html).toContain('补充说明');
     expect(html).toContain('<blockquote');
     expect(html).not.toContain(`[!${type}]`);
@@ -76,14 +101,14 @@ describe('transformGithubAlerts / GFM alerts', () => {
     const html = renderMarkdown('> [!重要]\n> 请务必注意');
     expect(html).toContain('class="markdown-alert"');
     expect(html).not.toContain('markdown-alert-note');
-    expect(html).toContain('class="markdown-alert-title">重要</p>');
+    expect(html).toContain('<span>重要</span></p>');
     expect(html).toContain('请务必注意');
     expect(html).not.toContain('[!重要]');
   });
 
   it('escapes HTML in the extracted label', () => {
     const html = renderMarkdown('> [!<script>x</script>]\n> body');
-    expect(html).toContain('class="markdown-alert-title">&lt;script&gt;x&lt;/script&gt;</p>');
+    expect(html).toContain('<span>&lt;script&gt;x&lt;/script&gt;</span>');
     expect(html).not.toContain('<script>x</script>');
   });
 
@@ -108,7 +133,7 @@ describe('transformGithubAlerts / GFM alerts', () => {
     expect(raw).toContain('<blockquote');
     const html = transformGithubAlerts(raw);
     expect(html).toContain('markdown-alert-warning');
-    expect(html).toContain('class="markdown-alert-title">WARNING</p>');
+    expect(html).toContain('<span>WARNING</span></p>');
     expect(html).toContain('请三思');
     expect(html).not.toContain('[!WARNING]');
   });
@@ -135,7 +160,7 @@ describe('transformGithubAlerts / GFM alerts', () => {
     const html = transformGithubAlerts(raw);
     expect(html).toContain('<blockquote><p>普通引用</p></blockquote>');
     expect(html).toContain('data-alert="AAA"');
-    expect(html).toContain('class="markdown-alert-title">AAA</p>');
+    expect(html).toContain('<span>AAA</span></p>');
     expect(html).toContain('markdown-alert-note');
     expect(html).toContain('markdown-alert-tip');
     expect(html).not.toContain('[!NOTE]');
@@ -439,7 +464,7 @@ describe('renderCommentText', () => {
   it('renders GFM alerts when comment markdown is enabled', () => {
     const html = renderCommentText('> [!NOTE]\n> 评论提示', { markdown: true });
     expect(html).toContain('markdown-alert-note');
-    expect(html).toContain('class="markdown-alert-title">NOTE</p>');
+    expect(html).toContain('<span>NOTE</span></p>');
     expect(html).toContain('评论提示');
   });
 });

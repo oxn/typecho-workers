@@ -17,7 +17,7 @@ type Props = ThemePostProps;
 
 const {
   options, urls, pages, sidebarData, currentPath, pluginCtx,
-  user, isLoggedIn,
+  user, isLoggedIn, csrfToken,
   post, author, categories, tags, commentPagination,
 } = Astro.props;
 
@@ -47,6 +47,7 @@ const description = isNote
   ? plainExcerpt(note.source, 160)
   : (summary || (!(post.hasPassword && !post.passwordVerified) ? plainExcerpt(post.content, 160) : ''));
 ---
+
 <WarmShell
   title={isNote ? '笔记' : post.title}
   description={description}
@@ -65,6 +66,7 @@ const description = isNote
   <article class:list={["warm-article", { "is-note": isNote, "has-toc": tocItems.length > 0 }]} itemscope itemtype="https://schema.org/BlogPosting">
     <header class:list={["warm-article__header", { "warm-article__hero": !isNote }]}>
       <div class:list={{ "warm-article__hero-inner": !isNote }}>
+
         <div class="warm-item-meta">
           {isNote ? (
             <span class="warm-note-label">笔记</span>
@@ -73,21 +75,85 @@ const description = isNote
           ) : (
             <span>文章</span>
           )}
+
           <span aria-hidden="true">·</span>
+
           <time datetime={new Date(post.created * 1000).toISOString()} itemprop="datePublished">{formatWarmDate(post.created, options.postDateFormat, options.timezone, isNote)}</time>
-          {!isNote && <><span aria-hidden="true">·</span><span>约 {readingMinutes(post.content)} 分钟阅读</span></>}
+
+          {!isNote && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>约 {readingMinutes(post.content)} 分钟阅读</span>
+            </>
+          )}
+
           {isNote && canEdit && (
-            <a class="warm-edit-link warm-edit-link--note" href={`${urls.adminUrl}plugin/notes?cid=${post.cid}`} data-no-instant>编辑笔记</a>
+            <a
+              class="warm-edit-link warm-edit-link--note"
+              href={`${urls.adminUrl}plugin/notes?cid=${post.cid}`}
+              data-no-instant
+            >
+              编辑笔记
+            </a>
+          )}
+
+          {/* 文章管理按钮：显示在文章元信息行最右侧 */}
+          {!isNote && canEdit && (
+            <div
+              class="warm-article__actions"
+              data-cid={post.cid}
+              data-csrf-token={csrfToken ?? ''}
+              data-admin-url={urls.adminUrl}
+            >
+              {/* 置顶 */}
+              <button
+                type="button"
+                class:list={["warm-edit-link", "warm-action-button", { "is-pinned": settings.pinnedIds.includes(post.cid) }]}
+                data-warm-action="pin"
+                aria-label={settings.pinnedIds.includes(post.cid) ? '取消置顶' : '置顶文章'}
+                aria-pressed={settings.pinnedIds.includes(post.cid)}
+                title={settings.pinnedIds.includes(post.cid) ? '取消置顶' : '置顶文章'}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m16 3 5 5-4 1-4 4-1 5-2 2-2-7-7-2 2-2 5-1 4-4 1-4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+
+              {/* 编辑 */}
+              <a
+                class="warm-edit-link warm-action-button"
+                href={`${urls.adminUrl}write-post?cid=${post.cid}`}
+                data-no-instant
+                aria-label="编辑文章"
+                title="编辑文章"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m14 5 5 5M4 20l4.5-1 11-11a2.12 2.12 0 0 0-3-3l-11 11L4 20Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </a>
+
+              {/* 删除 */}
+              <button
+                type="button"
+                class="warm-edit-link warm-action-button"
+                data-warm-action="delete"
+                aria-label="删除文章"
+                title="删除文章"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           )}
         </div>
+
         {!isNote && (
           <div class="warm-article__title-row">
             <h1 itemprop="headline">{post.title}</h1>
-            {canEdit && (
-              <a class="warm-edit-link" href={`${urls.adminUrl}write-post?cid=${post.cid}`} data-no-instant aria-label="编辑文章">编辑</a>
-            )}
           </div>
         )}
+
         {summary && <p class="warm-article__summary">{summary}</p>}
       </div>
     </header>
@@ -118,6 +184,44 @@ const description = isNote
     )}
   </article>
 
+  {canEdit && (
+    <>
+      <!-- 置顶确认对话框 -->
+      <dialog class="warm-manage-dialog" data-warm-dialog="pin">
+        <div class="warm-manage-dialog__panel">
+          <h2 data-warm-dialog-title>文章置顶</h2>
+          <p data-warm-dialog-message>确定要置顶这篇文章吗？</p>
+          <p class="warm-manage-dialog__error" data-warm-dialog-error></p>
+          <div class="warm-manage-dialog__actions">
+            <button type="button" data-warm-dialog-cancel>取消</button>
+            <button type="button" data-warm-dialog-confirm>确定</button>
+          </div>
+        </div>
+      </dialog>
+
+      <!-- 删除确认对话框 -->
+      <dialog class="warm-manage-dialog" data-warm-dialog="delete">
+        <div class="warm-manage-dialog__panel">
+          <h2>删除文章</h2>
+          <p>此操作无法撤销，确定要删除这篇文章吗？</p>
+          <p>请输入中文“确认”以继续。</p>
+          <input
+            type="text"
+            class="warm-manage-dialog__input"
+            data-warm-delete-input
+            placeholder="请输入确认"
+            autocomplete="off"
+          />
+          <p class="warm-manage-dialog__error" data-warm-dialog-error></p>
+          <div class="warm-manage-dialog__actions">
+            <button type="button" data-warm-dialog-cancel>取消</button>
+            <button type="button" data-warm-dialog-confirm disabled>删除</button>
+          </div>
+        </div>
+      </dialog>
+    </>
+  )}
+
   {(post.allowComment || commentPagination.totalComments > 0) && (
     <WarmComments
       cid={post.cid}
@@ -128,3 +232,178 @@ const description = isNote
   )}
 
 </WarmShell>
+
+<script>
+  const actions = document.querySelector<HTMLElement>('.warm-article__actions');
+
+  if (actions) {
+    const cid = actions.dataset.cid || '';
+    const csrfToken = actions.dataset.csrfToken || '';
+    const adminUrl = actions.dataset.adminUrl || '/admin/';
+
+    const pinButton = actions.querySelector<HTMLButtonElement>('[data-warm-action="pin"]');
+    const deleteButton = actions.querySelector<HTMLButtonElement>('[data-warm-action="delete"]');
+
+    const pinDialog = document.querySelector<HTMLDialogElement>('[data-warm-dialog="pin"]');
+    const deleteDialog = document.querySelector<HTMLDialogElement>('[data-warm-dialog="delete"]');
+
+    const pinConfirm = pinDialog?.querySelector<HTMLButtonElement>('[data-warm-dialog-confirm]');
+    const deleteConfirm = deleteDialog?.querySelector<HTMLButtonElement>('[data-warm-dialog-confirm]');
+
+    const deleteInput = deleteDialog?.querySelector<HTMLInputElement>('[data-warm-delete-input]');
+
+    let targetPinned = false;
+
+    function showError(dialog: HTMLDialogElement | null, message: string) {
+      const error = dialog?.querySelector<HTMLElement>('[data-warm-dialog-error]');
+      if (error) error.textContent = message;
+    }
+
+    function openDialog(dialog: HTMLDialogElement | null) {
+      if (!dialog) return;
+      showError(dialog, '');
+      dialog.showModal();
+    }
+
+    function closeDialog(dialog: HTMLDialogElement | null) {
+      if (!dialog?.open) return;
+      dialog.close();
+    }
+
+    // 关闭按钮、点击遮罩关闭
+    document.querySelectorAll<HTMLDialogElement>('.warm-manage-dialog').forEach(dialog => {
+      dialog.querySelectorAll<HTMLButtonElement>('[data-warm-dialog-cancel]').forEach(button => {
+        button.addEventListener('click', () => closeDialog(dialog));
+      });
+
+      dialog.addEventListener('click', event => {
+        if (event.target === dialog) closeDialog(dialog);
+      });
+    });
+
+    // 置顶按钮
+    pinButton?.addEventListener('click', () => {
+      targetPinned = pinButton.getAttribute('aria-pressed') !== 'true';
+
+      const title = pinDialog?.querySelector<HTMLElement>('[data-warm-dialog-title]');
+      const message = pinDialog?.querySelector<HTMLElement>('[data-warm-dialog-message]');
+
+      if (title) title.textContent = targetPinned ? '文章置顶' : '取消置顶';
+      if (message) {
+        message.textContent = targetPinned
+          ? '确定要置顶这篇文章吗？'
+          : '确定要取消这篇文章的置顶吗？';
+      }
+
+      if (pinConfirm) pinConfirm.textContent = targetPinned ? '确定置顶' : '取消置顶';
+
+      openDialog(pinDialog);
+    });
+
+    // 确认置顶
+    pinConfirm?.addEventListener('click', async () => {
+      if (pinConfirm.disabled) return;
+
+      if (!csrfToken || !cid) {
+        showError(pinDialog, '缺少必要的安全验证信息，请刷新页面后重试');
+        return;
+      }
+
+      pinConfirm.disabled = true;
+      pinConfirm.textContent = '处理中…';
+      showError(pinDialog, '');
+
+      try {
+        const response = await fetch('/api/admin/theme-pin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify({
+            cid: Number(cid),
+            pinned: targetPinned,
+          }),
+        });
+
+        const result = await response.json() as { success?: boolean; error?: string };
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || '置顶操作失败，请稍后重试');
+        }
+
+        pinButton?.classList.toggle('is-pinned', targetPinned);
+        pinButton?.setAttribute('aria-pressed', String(targetPinned));
+        pinButton?.setAttribute('aria-label', targetPinned ? '取消置顶' : '置顶文章');
+        pinButton?.setAttribute('title', targetPinned ? '取消置顶' : '置顶文章');
+
+        closeDialog(pinDialog);
+      } catch (error) {
+        showError(
+          pinDialog,
+          error instanceof Error ? error.message : '置顶操作失败，请稍后重试',
+        );
+      } finally {
+        pinConfirm.disabled = false;
+        pinConfirm.textContent = targetPinned ? '确定置顶' : '取消置顶';
+      }
+    });
+
+    // 删除按钮
+    deleteButton?.addEventListener('click', () => {
+      if (deleteInput) deleteInput.value = '';
+      if (deleteConfirm) deleteConfirm.disabled = true;
+      openDialog(deleteDialog);
+      deleteInput?.focus();
+    });
+
+    // 必须输入完整的“确认”才能删除
+    deleteInput?.addEventListener('input', () => {
+      if (deleteConfirm) {
+        deleteConfirm.disabled = deleteInput.value !== '确认';
+      }
+    });
+
+    // 确认删除
+    deleteConfirm?.addEventListener('click', async () => {
+      if (deleteInput?.value !== '确认' || deleteConfirm.disabled) return;
+
+      if (!csrfToken || !cid) {
+        showError(deleteDialog, '缺少必要的安全验证信息，请刷新页面后重试');
+        return;
+      }
+
+      deleteConfirm.disabled = true;
+      deleteConfirm.textContent = '正在删除…';
+      showError(deleteDialog, '');
+
+      try {
+        const formData = new FormData();
+        formData.append('do', 'delete');
+        formData.append('cid', cid);
+
+        const response = await fetch('/api/admin/content', {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': csrfToken,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('删除失败，请检查登录状态或稍后重试');
+        }
+
+        window.location.href = `${adminUrl.replace(/\/?$/, '/')}manage-posts`;
+      } catch (error) {
+        showError(
+          deleteDialog,
+          error instanceof Error ? error.message : '删除失败，请稍后重试',
+        );
+
+        deleteConfirm.disabled = false;
+        deleteConfirm.textContent = '删除';
+      }
+    });
+  }
+</script>

@@ -83,7 +83,7 @@ async function loadCommon(ctx: RequestContext, requestUrl: string) {
     loadNavPages(db, urls.siteUrl, options.pagePattern as string | undefined, options.cacheVersion),
   ]);
   const currentPath = new URL(requestUrl).pathname;
-  return { options, urls, user, isLoggedIn, pages, sidebarData, currentPath, pluginCtx: ctx };
+  return { options, urls, user, isLoggedIn, csrfToken: ctx.csrfToken, pages, sidebarData, currentPath, pluginCtx: ctx };
 }
 
 async function loadThemeCommentPage(

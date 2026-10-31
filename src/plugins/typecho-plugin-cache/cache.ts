@@ -1,3 +1,4 @@
+import { hasAuthCookies } from '@/lib/auth';
 import type {
   EarlyRequestContext,
   EarlyRequestLifecycleEvent,
@@ -957,33 +958,39 @@ export function shouldBypassPageCacheInDevelopment(mode = import.meta.env.MODE):
 }
 
 function requestCachePolicy(request: Request): RequestCacheDecision {
-  // Publish-time warm-up self-requests send Cache-Control: no-cache to defeat
-  // stale platform-cache entries, yet must render into the shared cache
-  // layers. Forging the marker only warms public pages, so it is safe to
-  // honor from any client.
-  if (request.headers.get(CACHE_WARMUP_HEADER) === '1') return { policy: 'read-write' };
+  // Authenticated frontend requests must never enter shared page caches.
+  // This check must run before the warm-up marker check.
+  if (hasAuthCookies(request.headers.get('Cookie'))) {
+    return { policy: 'bypass', reason: 'authorization' };
+  }
+
   if (request.headers.has('Authorization')) {
     return { policy: 'bypass', reason: 'authorization' };
   }
+
+  // Publish-time warm-up requests may populate shared caches,
+  // but only when they are anonymous.
+  if (request.headers.get(CACHE_WARMUP_HEADER) === '1') {
+    return { policy: 'read-write' };
+  }
+
   const cacheControl = request.headers.get('Cache-Control')?.toLowerCase() || '';
-  // no-store: client forbids shared reuse — full bypass.
+
   if (cacheControl.includes('no-store')) {
     return { policy: 'bypass', reason: 'cache-control' };
   }
-  // no-cache (browser hard-refresh): read warm L1/L2/L3 entries but never write
-  // a new variant. Cold miss still SSRs and returns BYPASS.
+
   if (cacheControl.includes('no-cache')) {
     return { policy: 'read-only', reason: 'cache-control' };
   }
 
   const cookieNames = parseCookieNames(request.headers.get('Cookie'));
-  // Frontend HTML is deliberately decoupled from the authenticated viewer.
-  // Authentication cookies may therefore share the public page cache. An
-  // unapproved-comment cookie remains read-only because it can reveal a
-  // submitter's pending comment on an otherwise public page.
+
+  // Pending comments may reveal private content to their submitter.
   if (cookieNames.has('__typecho_unapproved_comment')) {
     return { policy: 'read-only', reason: 'unapproved-comment' };
   }
+
   return { policy: 'read-write' };
 }
 
