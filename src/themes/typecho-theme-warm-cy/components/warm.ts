@@ -97,25 +97,70 @@ export function normalizeCommentInitialLoadMode(value: unknown): WarmCommentInit
 
 export function safeExternalUrl(value: unknown): string {
   if (typeof value !== 'string' || !value.trim()) return '';
+
   const input = value.trim();
 
-  // Email links must keep the mailto: scheme. Treating `mailto:...` as a
-  // hostname and prepending https:// would incorrectly send users to a website.
+  // 邮件地址
   if (/^mailto:/i.test(input)) {
     const address = input.slice(input.indexOf(':') + 1).trim();
     if (!address || /[\s<>]/.test(address) || !address.includes('@')) return '';
+
     try {
       const url = new URL(`mailto:${address}`);
-      return url.protocol === 'mailto:' && url.pathname.includes('@') ? url.toString() : '';
+      return url.protocol === 'mailto:' && url.pathname.includes('@')
+        ? url.toString()
+        : '';
     } catch {
       return '';
     }
   }
 
+  // 完整 HTTP / HTTPS 地址
+  if (/^https?:\/\//i.test(input)) {
+    try {
+      const url = new URL(input);
+      return url.protocol === 'https:' || url.protocol === 'http:'
+        ? url.toString()
+        : '';
+    } catch {
+      return '';
+    }
+  }
+
+  // //example.com 形式的协议相对外部地址
+  if (input.startsWith('//')) {
+    try {
+      const url = new URL(`https:${input}`);
+      return url.protocol === 'https:' ? url.toString() : '';
+    } catch {
+      return '';
+    }
+  }
+
+  // 判断是否为未填写协议的外部域名
+  const isDomain = /^(?:localhost|(?:[a-z0-9-]+\.)+[a-z]{2,})(?::\d+)?(?:[/?#].*)?$/i.test(input);
+
+  if (isDomain) {
+    try {
+      const url = new URL(`https://${input}`);
+      return url.protocol === 'https:' ? url.toString() : '';
+    } catch {
+      return '';
+    }
+  }
+
+  // 拒绝其他协议，例如 javascript:、ftp:
+  if (/^[a-z][a-z\d+.-]*:/i.test(input)) return '';
+
+  // 普通路径按当前网站根目录解析
   try {
-    const normalized = /^[a-z][a-z\d+.-]*:/i.test(input) ? input : `https://${input}`;
-    const url = new URL(normalized);
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : '';
+    const path = input.startsWith('/')
+      ? input
+      : `/${input.replace(/^\.\/+/, '')}`;
+
+    const url = new URL(path, 'https://relative.invalid');
+
+    return `${url.pathname}${url.search}${url.hash}`;
   } catch {
     return '';
   }
@@ -228,4 +273,62 @@ function plainHeadingText(inner: string): string {
     .replace(/&#39;/g, "'")
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Normalize iframe attributes in article content.
+ *
+ * Only applies to iframe elements that have already passed
+ * the application's HTML sanitizer.
+ */
+export function renderWarmIframes(html: string): string {
+  return html.replace(/<iframe\b([^>]*)>/gi, (match, rawAttributes: string) => {
+    const attributes = rawAttributes;
+
+    // Extract the original iframe source.
+    const srcMatch = attributes.match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    const src = srcMatch?.[1] ?? srcMatch?.[2] ?? srcMatch?.[3] ?? '';
+
+    if (!src) return match;
+
+    // Restrict processing to the supported video providers.
+    let hostname = '';
+
+    try {
+      hostname = new URL(src, 'https://localhost').hostname.toLowerCase();
+    } catch {
+      return match;
+    }
+
+    const allowedHosts = [
+      'www.youtube.com',
+      'player.bilibili.com',
+      'player.vimeo.com',
+    ];
+
+    if (!allowedHosts.includes(hostname)) return match;
+
+    // Add or replace an iframe attribute without duplicating it.
+    const setAttribute = (name: string, value: string) => {
+      const pattern = new RegExp(`\\s${name}\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]+)`, 'i');
+
+      if (pattern.test(attributes)) {
+        return attributes.replace(pattern, ` ${name}="${value}"`);
+      }
+
+      return `${attributes} ${name}="${value}"`;
+    };
+
+    let result = attributes;
+
+    result = setAttribute('loading', 'lazy');
+    result = setAttribute('allowfullscreen', '');
+    result = setAttribute(
+      'allow',
+      'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+    );
+    result = setAttribute('title', '视频播放器');
+
+    return `<iframe${result}>`;
+  });
 }

@@ -1,6 +1,7 @@
 ---
 import { env } from 'cloudflare:workers';
 import { getDb } from 'typecho/db';
+import { hasPermission } from '@/lib/auth';
 import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
 import { createContext } from '@/lib/context';
@@ -16,9 +17,11 @@ type Props = ThemePostProps;
 
 const {
   options, urls, pages, sidebarData, currentPath, pluginCtx,
+  user, isLoggedIn,
   post, author, categories, tags, commentPagination,
 } = Astro.props;
 
+const canEdit = Boolean(isLoggedIn && user && hasPermission(user.group || 'visitor', 'administrator'));
 const db = getDb(env.DB);
 const noteContext = pluginCtx.activatedPlugins.has('typecho-plugin-notes')
   ? await createContext(Astro.locals, Astro.request)
@@ -49,6 +52,8 @@ const description = isNote
   description={description}
   options={options}
   urls={urls}
+  user={user}
+  isLoggedIn={isLoggedIn}
   pages={pages}
   sidebarData={sidebarData}
   currentPath={currentPath}
@@ -71,8 +76,18 @@ const description = isNote
           <span aria-hidden="true">·</span>
           <time datetime={new Date(post.created * 1000).toISOString()} itemprop="datePublished">{formatWarmDate(post.created, options.postDateFormat, options.timezone, isNote)}</time>
           {!isNote && <><span aria-hidden="true">·</span><span>约 {readingMinutes(post.content)} 分钟阅读</span></>}
+          {isNote && canEdit && (
+            <a class="warm-edit-link warm-edit-link--note" href={`${urls.adminUrl}plugin/notes?cid=${post.cid}`} data-no-instant>编辑笔记</a>
+          )}
         </div>
-        {!isNote && <h1 itemprop="headline">{post.title}</h1>}
+        {!isNote && (
+          <div class="warm-article__title-row">
+            <h1 itemprop="headline">{post.title}</h1>
+            {canEdit && (
+              <a class="warm-edit-link" href={`${urls.adminUrl}write-post?cid=${post.cid}`} data-no-instant aria-label="编辑文章">编辑</a>
+            )}
+          </div>
+        )}
         {summary && <p class="warm-article__summary">{summary}</p>}
       </div>
     </header>

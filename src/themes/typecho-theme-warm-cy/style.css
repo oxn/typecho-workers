@@ -1844,3 +1844,38 @@ body.warm-theme {
     border-radius: 8px;
   }
 }
+
+/* 管理员快捷编辑按钮 */
+.warm-article__hero-inner {
+  position: relative;
+}
+
+.warm-edit-link {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  border: 1px solid var(--warm-border);
+  border-radius: 5px;
+  color: var(--warm-muted);
+  background: var(--warm-bg);
+  font-size: 12px;
+  line-height: 1.5;
+  text-decoration: none;
+  transition: color .2s, border-color .2s, background .2s;
+}
+
+.warm-edit-link:hover {
+  color: var(--warm-accent);
+  border-color: var(--warm-accent);
+}
+
+@media (max-width: 640px) {
+  .warm-edit-link {
+    padding: 4px 9px;
+    font-size: 11px;
+  }
+}

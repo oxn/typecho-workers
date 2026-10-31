@@ -1,4 +1,5 @@
 ---
+import { hasPermission } from '@/lib/auth';
 import type { ThemePageProps } from '@/lib/theme-props';
 import { optimizeContentImages } from '@/lib/image-transform';
 import WarmShell from './WarmShell.astro';
@@ -8,8 +9,10 @@ import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
 type Props = ThemePageProps;
 const {
   options, urls, pages, sidebarData, currentPath, pluginCtx,
+  user, isLoggedIn,
   page, commentPagination,
 } = Astro.props;
+const canEdit = Boolean(isLoggedIn && user && hasPermission(user.group || 'visitor', 'administrator'));
 const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
 const settings = warmSettings(options);
 ---
@@ -18,6 +21,8 @@ const settings = warmSettings(options);
   description={plainExcerpt(page.content, 160)}
   options={options}
   urls={urls}
+  user={user}
+  isLoggedIn={isLoggedIn}
   pages={pages}
   sidebarData={sidebarData}
   currentPath={currentPath}
@@ -30,7 +35,12 @@ const settings = warmSettings(options);
     <header class="warm-article__header warm-article__hero">
       <div class="warm-article__hero-inner">
         <div class="warm-item-meta"><span class="warm-note-label">独立页面</span><span aria-hidden="true">·</span><time>{formatWarmDate(page.created, options.postDateFormat, options.timezone)}</time></div>
-        <h1 itemprop="headline">{page.title}</h1>
+        <div class="warm-article__title-row">
+          <h1 itemprop="headline">{page.title}</h1>
+          {canEdit && (
+            <a class="warm-edit-link" href={`${urls.adminUrl}write-page?cid=${page.cid}`} data-no-instant aria-label="编辑独立页面">编辑</a>
+          )}
+        </div>
       </div>
     </header>
     <div class="warm-prose" view-image itemprop="articleBody" set:html={optimizeContentImages(page.content, settings.imageOptimizeParams, urls.siteUrl)} />
