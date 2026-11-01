@@ -1732,10 +1732,26 @@ body.warm-theme {
     font-size: 13px;
   }
 
-  .warm-comments__heading,
+  .warm-comments__heading {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  
   .warm-footer__meta {
     align-items: flex-start;
     flex-direction: column;
+  }
+  
+  .warm-comments__heading h2 {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  
+  .warm-article__actions {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
   .warm-comments__heading p {

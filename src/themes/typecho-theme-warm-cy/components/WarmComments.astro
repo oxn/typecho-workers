@@ -52,12 +52,12 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       element.textContent = value || element.dataset.defaultMessage || '';
     };
 
-    const renderForm = (options, commenter, password, cid, antispamToken) => {
+    const renderForm = (options, commenter, password, cid, antispamToken, management) => {
       if (!options.allowComment) return '<p class="warm-comments__closed">评论已关闭。</p>';
       const loggedIn = commenter?.loggedIn === true;
       const defaultMessage = options.markdown ? '支持 Markdown 语法' : '良言善语';
       const identity = loggedIn
-        ? `<p class="warm-comment-form__identity">以 <strong>${escapeHtml(commenter.author || '当前用户')}</strong> 的身份评论</p>`
+        ? `<p class="warm-comment-form__identity">以 ${management?.canManage ? `<a href="${escapeHtml(management.adminUrl)}" data-no-instant><strong>${escapeHtml(commenter.author || '当前用户')}</strong></a>` : `<strong>${escapeHtml(commenter.author || '当前用户')}</strong>`} 的身份评论</p>`
         : `<div class="warm-form-grid">
             <label>
               <span>昵称 / 姓名 <i>*</i></span>
@@ -99,10 +99,101 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       </form>`;
     };
 
+const renderManagement = (management, cid) => {
+  if (!management?.canManage) return '';
+
+  const contentType = management.contentType;
+  if (contentType !== 'post' && contentType !== 'page') return '';
+
+  const isPost = contentType === 'post';
+  const adminUrl = escapeHtml(management.adminUrl || '/admin/');
+  const safeCid = escapeHtml(cid);
+  const editUrl = `${adminUrl}${isPost ? 'write-post' : 'write-page'}?cid=${safeCid}`;
+
+  const pinButton = isPost
+    ? `<button
+        type="button"
+        class="warm-edit-link warm-action-button${management.isPinned ? ' is-pinned' : ''}"
+        data-warm-action="pin"
+        aria-label="${management.isPinned ? '取消置顶' : '置顶文章'}"
+        aria-pressed="${management.isPinned ? 'true' : 'false'}"
+        title="${management.isPinned ? '取消置顶' : '置顶文章'}"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M2 8.99997H5V21H2C1.44772 21 1 20.5523 1 20V9.99997C1 9.44769 1.44772 8.99997 2 8.99997ZM7.29289 7.70708L13.6934 1.30661C13.8693 1.13066 14.1479 1.11087 14.3469 1.26016L15.1995 1.8996C15.6842 2.26312 15.9026 2.88253 15.7531 3.46966L14.5998 7.99997H21C22.1046 7.99997 23 8.8954 23 9.99997V12.1043C23 12.3656 22.9488 12.6243 22.8494 12.8658L19.755 20.3807C19.6007 20.7554 19.2355 21 18.8303 21H8C7.44772 21 7 20.5523 7 20V8.41419C7 8.14897 7.10536 7.89462 7.29289 7.70708Z"/></svg>
+      </button>`
+    : '';
+
+  return `
+    <div
+      class="warm-article__actions"
+      data-cid="${safeCid}"
+      data-csrf-token="${escapeHtml(management.csrfToken || '')}"
+      data-admin-url="${adminUrl}"
+      data-content-type="${contentType}"
+    >
+      ${pinButton}
+      <a
+        class="warm-edit-link warm-action-button"
+        href="${editUrl}"
+        data-no-instant
+        aria-label="${isPost ? '编辑文章' : '编辑独立页面'}"
+        title="${isPost ? '编辑文章' : '编辑独立页面'}"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M9.24264 18.9967H21V20.9967H3V16.754L12.8995 6.85453L17.1421 11.0972L9.24264 18.9967ZM14.3137 5.44032L16.435 3.319C16.8256 2.92848 17.4587 2.92848 17.8492 3.319L20.6777 6.14743C21.0682 6.53795 21.0682 7.17112 20.6777 7.56164L18.5563 9.68296L14.3137 5.44032Z"/></svg>
+      </a>
+      <button
+        type="button"
+        class="warm-edit-link warm-action-button"
+        data-warm-action="delete"
+        aria-label="${isPost ? '删除文章' : '删除独立页面'}"
+        title="${isPost ? '删除文章' : '删除独立页面'}"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17 4H22V6H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V6H2V4H7V2H17V4ZM9 9V17H11V9H9ZM13 9V17H15V9H13Z"/></svg>
+      </button>
+    </div>
+
+    ${isPost ? `
+      <dialog class="warm-manage-dialog" data-warm-dialog="pin">
+        <div class="warm-manage-dialog__panel">
+          <h2 data-warm-dialog-title>文章置顶</h2>
+          <p data-warm-dialog-message>确定要置顶这篇文章吗？</p>
+          <p class="warm-manage-dialog__error" data-warm-dialog-error></p>
+          <div class="warm-manage-dialog__actions">
+            <button type="button" data-warm-dialog-cancel>取消</button>
+            <button type="button" data-warm-dialog-confirm>确定</button>
+          </div>
+        </div>
+      </dialog>
+    ` : ''}
+
+    <dialog class="warm-manage-dialog" data-warm-dialog="delete">
+      <div class="warm-manage-dialog__panel">
+        <h2 data-warm-dialog-title>${isPost ? '删除文章' : '删除独立页面'}</h2>
+        <p data-warm-dialog-message>${isPost ? '此操作无法撤销，确定要删除这篇文章吗？' : '此操作无法撤销，确定要删除这个独立页面吗？'}</p>
+        <p>请输入中文“确认”以继续。</p>
+        <input
+          type="text"
+          class="warm-manage-dialog__input"
+          data-warm-delete-input
+          placeholder="请输入确认"
+          autocomplete="off"
+        />
+        <p class="warm-manage-dialog__error" data-warm-dialog-error></p>
+        <div class="warm-manage-dialog__actions">
+          <button type="button" data-warm-dialog-cancel>取消</button>
+          <button type="button" data-warm-dialog-confirm disabled>删除</button>
+        </div>
+      </div>
+    </dialog>
+  `;
+};
+
     const renderFrame = (root, data) => {
       const password = new URL(window.location.href).searchParams.get('password') || '';
-      root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p></div>
-        ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken)}
+      root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
+          ${renderManagement(data.management, root.dataset.cid)}
+        </div>
+        ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken, data.management)}
         <div class="warm-comment-list" data-comment-list aria-live="polite">
           <div class="warm-comment-deferred" data-comment-deferred>
             <span class="warm-comments__empty" data-comment-loading data-comment-deferred-message aria-live="polite"></span>
@@ -371,6 +462,198 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         }
       };
 
+            // 管理按钮：打开和关闭确认弹窗
+      root.addEventListener('click', async event => {
+        const element = event.target instanceof Element ? event.target : null;
+        if (!element) return;
+
+        // 点击弹窗遮罩关闭
+        if (
+          element instanceof HTMLDialogElement &&
+          element.classList.contains('warm-manage-dialog')
+        ) {
+          element.close();
+          return;
+        }
+
+        // 取消按钮
+        const cancelButton = element.closest('[data-warm-dialog-cancel]');
+        if (cancelButton) {
+          cancelButton.closest('dialog')?.close();
+          return;
+        }
+
+        // 置顶按钮
+        const pinButton = element.closest('[data-warm-action="pin"]');
+        if (pinButton) {
+          const dialog = root.querySelector('[data-warm-dialog="pin"]');
+          if (!dialog) return;
+
+          const targetPinned = pinButton.getAttribute('aria-pressed') !== 'true';
+          const title = dialog.querySelector('[data-warm-dialog-title]');
+          const message = dialog.querySelector('[data-warm-dialog-message]');
+          const confirm = dialog.querySelector('[data-warm-dialog-confirm]');
+
+          if (title) title.textContent = targetPinned ? '文章置顶' : '取消置顶';
+          if (message) {
+            message.textContent = targetPinned
+              ? '确定要置顶这篇文章吗？'
+              : '确定要取消这篇文章的置顶吗？';
+          }
+          if (confirm) {
+            confirm.textContent = targetPinned ? '确定置顶' : '取消置顶';
+            confirm.dataset.targetPinned = String(targetPinned);
+          }
+
+          const error = dialog.querySelector('[data-warm-dialog-error]');
+          if (error) error.textContent = '';
+
+          dialog.showModal();
+          return;
+        }
+
+        // 删除按钮
+        const deleteButton = element.closest('[data-warm-action="delete"]');
+        if (deleteButton) {
+          const dialog = root.querySelector('[data-warm-dialog="delete"]');
+          const input = dialog?.querySelector('[data-warm-delete-input]');
+          const confirm = dialog?.querySelector('[data-warm-dialog-confirm]');
+          const error = dialog?.querySelector('[data-warm-dialog-error]');
+
+          if (input) input.value = '';
+          if (confirm) confirm.disabled = true;
+          if (error) error.textContent = '';
+
+          dialog?.showModal();
+          input?.focus();
+          return;
+        }
+
+        // 确认执行置顶或删除
+        const confirmButton = element.closest('[data-warm-dialog-confirm]');
+        if (!confirmButton || confirmButton.disabled) return;
+
+        const dialog = confirmButton.closest('dialog');
+        if (!dialog) return;
+
+        const actions = root.querySelector('.warm-article__actions');
+        const cid = actions?.dataset.cid || root.dataset.cid || '';
+        const csrfToken = actions?.dataset.csrfToken || '';
+        const adminUrl = actions?.dataset.adminUrl || '/admin/';
+        const contentType = actions?.dataset.contentType || '';
+
+        const errorElement = dialog.querySelector('[data-warm-dialog-error]');
+        const showError = message => {
+          if (errorElement) errorElement.textContent = message;
+        };
+
+        if (!cid || !csrfToken) {
+          showError('缺少必要的安全验证信息，请刷新页面后重试');
+          return;
+        }
+
+        // 确认置顶
+        if (dialog.dataset.warmDialog === 'pin') {
+          if (contentType !== 'post') return;
+
+          const targetPinned = confirmButton.dataset.targetPinned === 'true';
+          const pinButton = actions.querySelector('[data-warm-action="pin"]');
+
+          confirmButton.disabled = true;
+          confirmButton.textContent = '处理中…';
+          showError('');
+
+          try {
+            const response = await fetch('/api/admin/theme-pin', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+              },
+              body: JSON.stringify({
+                cid: Number(cid),
+                pinned: targetPinned,
+              }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+              throw new Error(result.error || '置顶操作失败，请稍后重试');
+            }
+
+            pinButton?.classList.toggle('is-pinned', targetPinned);
+            pinButton?.setAttribute('aria-pressed', String(targetPinned));
+            pinButton?.setAttribute('aria-label', targetPinned ? '取消置顶' : '置顶文章');
+            pinButton?.setAttribute('title', targetPinned ? '取消置顶' : '置顶文章');
+
+            dialog.close();
+          } catch (error) {
+            showError(
+              error instanceof Error ? error.message : '置顶操作失败，请稍后重试'
+            );
+          } finally {
+            confirmButton.disabled = false;
+            confirmButton.textContent = targetPinned ? '确定置顶' : '取消置顶';
+          }
+
+          return;
+        }
+
+        // 确认删除
+        if (dialog.dataset.warmDialog === 'delete') {
+          const input = dialog.querySelector('[data-warm-delete-input]');
+          if (input?.value !== '确认') return;
+
+          confirmButton.disabled = true;
+          confirmButton.textContent = '正在删除…';
+          showError('');
+
+          try {
+            const formData = new FormData();
+            formData.append('do', 'delete');
+            formData.append('cid', cid);
+
+            const response = await fetch('/api/admin/content', {
+              method: 'POST',
+              headers: {
+                'X-CSRF-Token': csrfToken,
+              },
+              body: formData,
+            });
+
+            if (!response.ok) {
+              throw new Error('删除失败，请检查登录状态或稍后重试');
+            }
+
+            const managePath = contentType === 'page'
+              ? 'manage-pages'
+              : 'manage-posts';
+
+            window.location.href = `${adminUrl.replace(/\/?$/, '/')}${managePath}`;
+          } catch (error) {
+            showError(
+              error instanceof Error ? error.message : '删除失败，请稍后重试'
+            );
+
+            confirmButton.disabled = false;
+            confirmButton.textContent = '删除';
+          }
+        }
+      });
+
+      // 删除确认：必须完整输入“确认”
+      root.addEventListener('input', event => {
+        const input = event.target instanceof HTMLInputElement
+          && event.target.matches('[data-warm-delete-input]')
+          ? event.target
+          : null;
+
+        if (!input) return;
+
+        const confirm = input.closest('dialog')?.querySelector('[data-warm-dialog-confirm]');
+        if (confirm) confirm.disabled = input.value !== '确认';
+      });
       root.addEventListener('click', event => {
         const target = event.target instanceof Element
           ? event.target.closest('[data-comment-load-component], [data-reply-to], [data-cancel-reply], [data-comment-load-initial], [data-comment-load-more]')

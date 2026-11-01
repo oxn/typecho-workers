@@ -7,7 +7,7 @@ import { warmSettings, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
 
-interface Props extends ThemeBaseProps {
+interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
   title?: string;
   description?: string;
   section?: WarmSection;
@@ -22,8 +22,6 @@ const {
   detail = false,
   options,
   urls,
-  user,
-  isLoggedIn = false,
   pages,
   sidebarData,
   pluginCtx,
@@ -47,8 +45,6 @@ const footerLinks = [
   description={description}
   options={options}
   urls={urls}
-  user={user}
-  isLoggedIn={isLoggedIn}
   pageContext={pageContext}
   pluginCtx={pluginCtx}
   bodyClass="warm-theme"
@@ -81,32 +77,6 @@ const footerLinks = [
         {pages.map((page) => (
           <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && page.permalink.includes(currentPath) }]} href={page.permalink}>{page.title}</a>
         ))}
-              <a
-          class="warm-nav__link warm-nav__account"
-          href={isLoggedIn ? urls.profileUrl : urls.loginUrl}
-          data-no-instant
-          aria-label={isLoggedIn ? `已登录：${user?.screenName || user?.name || '用户'}` : '登录'}
-          title={isLoggedIn ? (user?.screenName || user?.name || '用户') : '登录'}
-        >
-          {isLoggedIn ? (
-            <span>{user?.screenName || user?.name || '用户'}</span>
-          ) : (
-            <svg
-              class="warm-nav__account-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
-              <path d="M3 12h12" />
-              <path d="m10 7 5 5-5 5" />
-            </svg>
-          )}
-        </a>
       </nav>
     </div>
   </header>

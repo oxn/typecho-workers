@@ -1,6 +1,4 @@
-
 ---
-import { hasPermission } from '@/lib/auth';
 import type { ThemePageProps } from '@/lib/theme-props';
 import { optimizeContentImages } from '@/lib/image-transform';
 import WarmShell from './WarmShell.astro';
@@ -8,30 +6,18 @@ import WarmComments from './WarmComments.astro';
 import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
 
 type Props = ThemePageProps;
-
 const {
   options, urls, pages, sidebarData, currentPath, pluginCtx,
-  user, isLoggedIn, csrfToken,
   page, commentPagination,
 } = Astro.props;
-
-const canEdit = Boolean(
-  isLoggedIn &&
-  user &&
-  hasPermission(user.group || 'visitor', 'administrator')
-);
-
 const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
 const settings = warmSettings(options);
 ---
-
 <WarmShell
   title={page.title}
   description={plainExcerpt(page.content, 160)}
   options={options}
   urls={urls}
-  user={user}
-  isLoggedIn={isLoggedIn}
   pages={pages}
   sidebarData={sidebarData}
   currentPath={currentPath}
@@ -43,87 +29,12 @@ const settings = warmSettings(options);
   <article class="warm-article warm-page" itemscope itemtype="https://schema.org/Article">
     <header class="warm-article__header warm-article__hero">
       <div class="warm-article__hero-inner">
-        <div class="warm-item-meta">
-          <span class="warm-note-label">独立页面</span>
-          <span aria-hidden="true">·</span>
-          <time>{formatWarmDate(page.created, options.postDateFormat, options.timezone)}</time>
-
-          {/* 独立页面管理按钮：编辑、删除 */}
-          {canEdit && (
-            <div
-              class="warm-article__actions"
-              data-cid={page.cid}
-              data-csrf-token={csrfToken ?? ''}
-              data-admin-url={urls.adminUrl}
-            >
-              {/* 编辑 */}
-              <a
-                class="warm-edit-link warm-action-button"
-                href={`${urls.adminUrl}write-page?cid=${page.cid}`}
-                data-no-instant
-                aria-label="编辑独立页面"
-                title="编辑独立页面"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M9.24264 18.9967H21V20.9967H3V16.754L12.8995 6.85453L17.1421 11.0972L9.24264 18.9967ZM14.3137 5.44032L16.435 3.319C16.8256 2.92848 17.4587 2.92848 17.8492 3.319L20.6777 6.14743C21.0682 6.53795 21.0682 7.17112 20.6777 7.56164L18.5563 9.68296L14.3137 5.44032Z"/></svg>
-              </a>
-
-              {/* 删除 */}
-              <button
-                type="button"
-                class="warm-edit-link warm-action-button"
-                data-warm-action="delete"
-                aria-label="删除独立页面"
-                title="删除独立页面"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17 4H22V6H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V6H2V4H7V2H17V4ZM9 9V17H11V9H9ZM13 9V17H15V9H13Z"/></svg>
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div class="warm-article__title-row">
-          <h1 itemprop="headline">{page.title}</h1>
-        </div>
+        <div class="warm-item-meta"><span class="warm-note-label">独立页面</span><span aria-hidden="true">·</span><time>{formatWarmDate(page.created, options.postDateFormat, options.timezone)}</time></div>
+        <h1 itemprop="headline">{page.title}</h1>
       </div>
     </header>
-
-    <div
-      class="warm-prose"
-      view-image
-      itemprop="articleBody"
-      set:html={optimizeContentImages(
-        page.content,
-        settings.imageOptimizeParams,
-        urls.siteUrl
-      )}
-    />
+    <div class="warm-prose" view-image itemprop="articleBody" set:html={optimizeContentImages(page.content, settings.imageOptimizeParams, urls.siteUrl)} />
   </article>
-
-  {/* 独立页面删除确认对话框 */}
-  {canEdit && (
-    <dialog class="warm-manage-dialog" data-warm-dialog="delete">
-      <div class="warm-manage-dialog__panel">
-        <h2>删除独立页面</h2>
-        <p>此操作无法撤销，确定要删除这个独立页面吗？</p>
-        <p>请输入中文“确认”以继续。</p>
-
-        <input
-          type="text"
-          class="warm-manage-dialog__input"
-          data-warm-delete-input
-          placeholder="请输入确认"
-          autocomplete="off"
-        />
-
-        <p class="warm-manage-dialog__error" data-warm-dialog-error></p>
-
-        <div class="warm-manage-dialog__actions">
-          <button type="button" data-warm-dialog-cancel>取消</button>
-          <button type="button" data-warm-dialog-confirm disabled>删除</button>
-        </div>
-      </div>
-    </dialog>
-  )}
 
   {(page.allowComment || commentPagination.totalComments > 0) && (
     <WarmComments
@@ -134,128 +45,3 @@ const settings = warmSettings(options);
     />
   )}
 </WarmShell>
-
-<script>
-  const actions = document.querySelector<HTMLElement>('.warm-article__actions');
-
-  if (actions) {
-    const cid = actions.dataset.cid || '';
-    const csrfToken = actions.dataset.csrfToken || '';
-    const adminUrl = actions.dataset.adminUrl || '/admin/';
-
-    const deleteButton = actions.querySelector<HTMLButtonElement>(
-      '[data-warm-action="delete"]'
-    );
-
-    const deleteDialog = document.querySelector<HTMLDialogElement>(
-      '[data-warm-dialog="delete"]'
-    );
-
-    const deleteConfirm = deleteDialog?.querySelector<HTMLButtonElement>(
-      '[data-warm-dialog-confirm]'
-    );
-
-    const deleteInput = deleteDialog?.querySelector<HTMLInputElement>(
-      '[data-warm-delete-input]'
-    );
-
-    function showError(message: string) {
-      const error = deleteDialog?.querySelector<HTMLElement>(
-        '[data-warm-dialog-error]'
-      );
-
-      if (error) error.textContent = message;
-    }
-
-    function closeDialog() {
-      if (deleteDialog?.open) {
-        deleteDialog.close();
-      }
-    }
-
-    // 打开删除确认框
-    deleteButton?.addEventListener('click', () => {
-      if (deleteInput) {
-        deleteInput.value = '';
-      }
-
-      if (deleteConfirm) {
-        deleteConfirm.disabled = true;
-      }
-
-      showError('');
-
-      deleteDialog?.showModal();
-      deleteInput?.focus();
-    });
-
-    // 取消删除
-    deleteDialog?.querySelectorAll<HTMLButtonElement>(
-      '[data-warm-dialog-cancel]'
-    ).forEach(button => {
-      button.addEventListener('click', closeDialog);
-    });
-
-    // 点击遮罩关闭
-    deleteDialog?.addEventListener('click', event => {
-      if (event.target === deleteDialog) {
-        closeDialog();
-      }
-    });
-
-    // 必须完整输入中文“确认”
-    deleteInput?.addEventListener('input', () => {
-      if (deleteConfirm) {
-        deleteConfirm.disabled = deleteInput.value !== '确认';
-      }
-    });
-
-    // 确认删除
-    deleteConfirm?.addEventListener('click', async () => {
-      if (deleteInput?.value !== '确认' || deleteConfirm.disabled) {
-        return;
-      }
-
-      if (!csrfToken || !cid) {
-        showError('缺少必要的安全验证信息，请刷新页面后重试');
-        return;
-      }
-
-      deleteConfirm.disabled = true;
-      deleteConfirm.textContent = '正在删除…';
-      showError('');
-
-      try {
-        const formData = new FormData();
-        formData.append('do', 'delete');
-        formData.append('cid', cid);
-
-        const response = await fetch('/api/admin/content', {
-          method: 'POST',
-          headers: {
-            'X-CSRF-Token': csrfToken,
-          },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error('删除失败，请检查登录状态或稍后重试');
-        }
-
-        // 删除成功，返回后台独立页面管理列表
-        window.location.href =
-          `${adminUrl.replace(/\/?$/, '/')}manage-pages`;
-
-      } catch (error) {
-        showError(
-          error instanceof Error
-            ? error.message
-            : '删除失败，请稍后重试'
-        );
-
-        deleteConfirm.disabled = false;
-        deleteConfirm.textContent = '删除';
-      }
-    });
-  }
-</script>
