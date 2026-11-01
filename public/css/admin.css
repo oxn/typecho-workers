@@ -202,7 +202,7 @@ select { border: 1px solid #CCC; height: 28px; }
 .typecho-head-nav nav > menu > li.operate .logout-form .exit:hover, .typecho-head-nav nav > menu > li.operate .logout-form .exit:focus { background-color: #202328; }
 
 @media (max-width: 575px) {
-  .typecho-head-nav { padding: 0; flex-flow: column; }
+  .typecho-head-nav { padding: 0; flex-flow: column; min-height: 20px; }
 
   .typecho-head-nav .menu-bar { display: block; font-size: 14px; position: sticky; top: 0; background: #292D33; z-index: 10; }
 

@@ -24,6 +24,7 @@ const { options, urls, user, csrfToken } = ctx;
 const themeId = String(options.theme || 'typecho-theme-warm');
 const theme = getActiveTheme(themeId);
 const configDef = getThemeConfigDefinition(theme.id);
+const isCyTheme = theme.id === 'typecho-theme-warm-cy';
 
 if (!themeHasConfig(theme.id) || !configDef) {
   return Astro.redirect('/admin/themes');
@@ -34,19 +35,26 @@ let message = '';
 let messageType: 'success' | 'error' = 'success';
 
 if (Astro.request.method === 'POST') {
-  const csrfError = await requireAdminCSRF(Astro.request, options.secret as string, user!.authCode!, user!.uid);
+  const csrfError = await requireAdminCSRF(
+    Astro.request,
+    options.secret as string,
+    user!.authCode!,
+    user!.uid,
+  );
   if (csrfError) return csrfError;
 
   try {
     const formData = await Astro.request.formData();
     const settings = parseThemeConfigFormData(configDef, formData);
     const sanitized: Record<string, unknown> = {};
+
     for (const key of Object.keys(configDef)) {
       sanitized[key] = settings[key];
     }
 
     const { setOption } = await import('@/lib/options');
     await setOption(ctx.db, `theme:${theme.id}`, JSON.stringify(sanitized));
+
     return new Response(null, {
       status: 302,
       headers: createAdminNoticeRedirectHeaders(
@@ -77,7 +85,9 @@ function selected(actual: unknown, expected: string): true | undefined {
 }
 
 function isChecked(value: unknown, expected: string): boolean {
-  return Array.isArray(value) ? value.map(String).includes(expected) : optionValue(value) === expected;
+  return Array.isArray(value)
+    ? value.map(String).includes(expected)
+    : optionValue(value) === expected;
 }
 
 function optionsFor(field: PluginConfigField): Record<string, string> {
@@ -88,7 +98,20 @@ function optionId(key: string, value: string): string {
   const filtered = value.match(/[_0-9a-z-]+/gi)?.join('-') || '';
   return `${key}-${filtered}`;
 }
+
+function hasLinkGroupValue(group: number): boolean {
+  const suffix = String(group).padStart(2, '0');
+
+  return Boolean(
+    fieldValue(configValues[`linktxt${suffix}`]).trim() ||
+    fieldValue(configValues[`links${suffix}`]).trim() ||
+    configValues[`linkblank${suffix}`] === true ||
+    configValues[`linkblank${suffix}`] === '1' ||
+    configValues[`linkblank${suffix}`] === 1,
+  );
+}
 ---
+
 <Admin title="设置外观" options={options} urls={urls} user={user} activeMenu="themes" pluginCtx={ctx}>
   <Fragment slot="before-main">
     <ul class="typecho-option-tabs fix-tabs">
@@ -96,7 +119,16 @@ function optionId(key: string, value: string): string {
       <li class="current"><a href="/admin/options-theme">设置外观</a></li>
     </ul>
   </Fragment>
-  <div class="col-mb-12 col-tb-8 col-tb-offset-2" role="form">
+
+  <div
+    class:list={[
+      'col-mb-12',
+      'col-tb-8',
+      'col-tb-offset-2',
+      { 'cy-theme-settings': isCyTheme },
+    ]}
+    role="form"
+  >
     {message && (
       <div class={`notice typecho-dismissible ${messageType === 'error' ? 'notice-error' : ''}`}>
         <p>{message}</p>
@@ -106,16 +138,210 @@ function optionId(key: string, value: string): string {
 
     <form method="post" action="/admin/options-theme">
       <input type="hidden" name="_" value={csrfToken} />
+
       {Object.entries(configDef).map(([key, field]: [string, PluginConfigField], index) => {
         const value = configValues[key] ?? field.default ?? '';
         const id = `${key}-0-${index + 1}`;
         const isBoolean = field.type === 'checkbox' && !field.options;
         const labelFor = field.type === 'checkbox' || field.type === 'radio' ? undefined : id;
 
+        if (isCyTheme) {
+          // 首页置顶文章 ID
+          if (key === 'pinnedIds') {
+            return (
+              <ul class="typecho-option cy-pinned-row">
+                <li>
+                  <div class="cy-inline-field">
+                    <label class="typecho-label" for={id}>{field.label}</label>
+                    <input
+                      id={id}
+                      name={key}
+                      type="text"
+                      class="text cy-green-focus"
+                      value={fieldValue(value)}
+                    />
+                  </div>
+                  {field.description && (
+                    <p class="description" set:html={field.description}></p>
+                  )}
+                </li>
+              </ul>
+            );
+          }
+
+          // 页脚链接：只在第一个字段位置集中输出十组
+          if (key === 'linktxt01') {
+            return (
+              <section class="cy-link-section">
+                <div class="cy-section-heading">页脚链接</div>
+
+                <div class="cy-link-groups">
+                  {Array.from({ length: 10 }, (_, groupIndex) => {
+                    const group = groupIndex + 1;
+                    const suffix = String(group).padStart(2, '0');
+                    const textKey = `linktxt${suffix}`;
+                    const urlKey = `links${suffix}`;
+                    const blankKey = `linkblank${suffix}`;
+
+                    const textValue = configValues[textKey] ?? configDef[textKey]?.default ?? '';
+                    const urlValue = configValues[urlKey] ?? configDef[urlKey]?.default ?? '';
+                    const blankValue = configValues[blankKey] ?? configDef[blankKey]?.default ?? false;
+
+                    const visible = group === 1 || hasLinkGroupValue(group);
+
+                    return (
+                      <div
+                        class="cy-link-group"
+                        data-link-group={group}
+                        hidden={!visible}
+                      >
+                        <div class="cy-link-text-row">
+                          <label for={`${textKey}-input`}>文字：</label>
+                          <input
+                            id={`${textKey}-input`}
+                            type="text"
+                            name={textKey}
+                            class="text cy-link-text-input"
+                            value={fieldValue(textValue)}
+                          />
+                          <label class="cy-link-blank">
+                            <input
+                              type="checkbox"
+                              name={blankKey}
+                              value="1"
+                              checked={
+                                blankValue === true ||
+                                blankValue === '1' ||
+                                blankValue === 1
+                              }
+                            />
+                            在新窗口打开
+                          </label>
+                        </div>
+
+                        <div class="cy-link-url-row">
+                          <label for={`${urlKey}-input`}>链接：</label>
+                          <input
+                            id={`${urlKey}-input`}
+                            type="text"
+                            name={urlKey}
+                            class="text cy-link-url-input"
+                            value={fieldValue(urlValue)}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button type="button" class="btn cy-add-link-button" id="cy-add-link">
+                  ＋ 添加一组链接
+                </button>
+              </section>
+            );
+          }
+
+          // 其余页脚链接字段已经集中输出，避免重复
+          if (/^(linktxt|links|linkblank)\d{2}$/.test(key)) {
+            return null;
+          }
+
+          // 图片优化参数
+          if (key === 'imageOptimizeParams') {
+            return (
+              <ul class="typecho-option cy-image-row">
+                <li>
+                  <div class="cy-section-heading"></div>
+                  <div class="cy-inline-field">
+                    <label class="typecho-label" for={id}>{field.label}</label>
+                    <input
+                      id={id}
+                      name={key}
+                      type="text"
+                      class="text cy-green-focus"
+                      value={fieldValue(value)}
+                    />
+                  </div>
+                  {field.description && (
+                    <p class="description" set:html={field.description}></p>
+                  )}
+                </li>
+              </ul>
+            );
+          }
+
+          // 缩略图优化参数
+          if (key === 'thumbOptimizeParams') {
+            return (
+              <ul class="typecho-option cy-thumb-row">
+                <li>
+                  <div class="cy-thumb-divider"></div>
+                  <div class="cy-inline-field">
+                    <label class="typecho-label" for={id}>{field.label}</label>
+                    <input
+                      id={id}
+                      name={key}
+                      type="text"
+                      class="text cy-green-focus"
+                      value={fieldValue(value)}
+                    />
+                  </div>
+                  {field.description && (
+                    <p class="description" set:html={field.description}></p>
+                  )}
+                </li>
+              </ul>
+            );
+          }
+
+          // 三个下拉菜单：标签、下拉框、说明文字同行
+          if (
+            key === 'continuousLoadMode' ||
+            key === 'commentComponentLoadMode' ||
+            key === 'commentInitialLoadMode'
+          ) {
+            return (
+              <ul class:list={['typecho-option', 'cy-select-option', { 'cy-select-first': key === 'continuousLoadMode' }]}>
+                <li>
+                  {key === 'continuousLoadMode' && (
+                    <div class="cy-section-heading"></div>
+                  )}
+
+                  {key !== 'continuousLoadMode' && (
+                    <div class="cy-select-divider"></div>
+                  )}
+
+                  <div class="cy-select-inline">
+                    <label class="typecho-label" for={id}>{field.label}</label>
+
+                    <select id={id} name={key}>
+                      {Object.entries(optionsFor(field)).map(([option, label]) => (
+                        <option value={option} selected={selected(value, option)}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {field.description && (
+                      <p class="description cy-select-description" set:html={field.description}></p>
+                    )}
+                  </div>
+                </li>
+              </ul>
+            );
+          }
+        }
+
         if (field.type === 'hidden') {
           return (
-            <ul class="typecho-option" id={`typecho-option-item-${key}-${index}`} style="display:none">
-              <li><input type="hidden" id={id} name={key} value={fieldValue(value)} /></li>
+            <ul
+              class="typecho-option"
+              id={`typecho-option-item-${key}-${index}`}
+              style="display:none"
+            >
+              <li>
+                <input type="hidden" id={id} name={key} value={fieldValue(value)} />
+              </li>
             </ul>
           );
         }
@@ -123,54 +349,357 @@ function optionId(key: string, value: string): string {
         return (
           <ul class="typecho-option" id={`typecho-option-item-${key}-${index}`}>
             <li>
-              {!isBoolean && <label class="typecho-label" for={labelFor}>{field.label}</label>}
+              {!isBoolean && (
+                <label class="typecho-label" for={labelFor}>{field.label}</label>
+              )}
 
-              {field.type === 'text' && <input id={id} name={key} type="text" class="text" value={fieldValue(value)} />}
-              {field.type === 'password' && <input id={id} name={key} type="password" class="text" value={fieldValue(value)} />}
-              {field.type === 'textarea' && <textarea id={id} name={key}>{fieldValue(value)}</textarea>}
+              {field.type === 'text' && (
+                <input id={id} name={key} type="text" class="text" value={fieldValue(value)} />
+              )}
+
+              {field.type === 'password' && (
+                <input id={id} name={key} type="password" class="text" value={fieldValue(value)} />
+              )}
+
+              {field.type === 'textarea' && (
+                <textarea id={id} name={key}>{fieldValue(value)}</textarea>
+              )}
+
               {field.type === 'select' && (
                 <select id={id} name={key}>
                   {Object.entries(optionsFor(field)).map(([option, label]) => (
-                    <option value={option} selected={selected(value, option)}>{label}</option>
+                    <option value={option} selected={selected(value, option)}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               )}
+
               {field.type === 'radio' && (
                 Object.entries(optionsFor(field)).map(([option, label]) => {
                   const inputId = optionId(key, option);
+
                   return (
                     <span class:list={{ multiline: field.multiline }}>
-                      <input type="radio" id={inputId} name={key} value={option} checked={optionValue(value) === option} />
+                      <input
+                        type="radio"
+                        id={inputId}
+                        name={key}
+                        value={option}
+                        checked={optionValue(value) === option}
+                      />
                       <label for={inputId}>{label}</label>
                     </span>
                   );
                 })
               )}
+
               {isBoolean && (
                 <label class="typecho-label" for={id}>
-                  <input type="checkbox" id={id} name={key} value="1" checked={value === true || value === '1'} />
+                  <input
+                    type="checkbox"
+                    id={id}
+                    name={key}
+                    value="1"
+                    checked={value === true || value === '1'}
+                  />
                   {' '}{field.label}
                 </label>
               )}
+
               {field.type === 'checkbox' && field.options && (
                 Object.entries(optionsFor(field)).map(([option, label]) => {
                   const inputId = optionId(key, option);
+
                   return (
                     <span class:list={{ multiline: field.multiline }}>
-                      <input type="checkbox" id={inputId} name={`${key}[]`} value={option} checked={isChecked(value, option)} />
+                      <input
+                        type="checkbox"
+                        id={inputId}
+                        name={`${key}[]`}
+                        value={option}
+                        checked={isChecked(value, option)}
+                      />
                       <label for={inputId}>{label}</label>
                     </span>
                   );
                 })
               )}
-              {field.description && <p class="description" set:html={field.description}></p>}
+
+              {field.description && (
+                <p class="description" set:html={field.description}></p>
+              )}
             </li>
           </ul>
         );
       })}
-      <ul class="typecho-option typecho-option-submit" id={`typecho-option-item--${Object.keys(configDef).length}`}>
-        <li><button type="submit" class="btn primary">保存设置</button></li>
+
+      {isCyTheme && <div class="cy-section-heading cy-save-divider"></div>}
+
+      <ul
+        class="typecho-option typecho-option-submit"
+        id={`typecho-option-item--${Object.keys(configDef).length}`}
+      >
+        <li>
+          <button type="submit" class="btn primary">保存设置</button>
+        </li>
       </ul>
     </form>
   </div>
 </Admin>
+
+{isCyTheme && (
+  <style>
+    .cy-theme-settings .cy-section-heading {
+      font-weight: 700;
+      border-top: 2px solid var(--border-color, #999);
+      padding-top: 12px;
+      margin: 18px 0 12px;
+    }
+
+    .cy-theme-settings .cy-save-divider {
+      padding-top: 0;
+      margin: 18px 0 12px;
+    }
+
+    .cy-theme-settings .cy-thumb-divider {
+      height: 0;
+      border-bottom: 1px solid var(--border-color, #ddd);
+      margin: 18px 0 12px;
+    }
+
+    .cy-theme-settings .cy-select-divider {
+      height: 0;
+      border-bottom: 1px solid var(--border-color, #ddd);
+      margin: 18px 0 12px;
+    }
+
+    .cy-theme-settings .cy-pinned-row {
+      background: linear-gradient(
+        to bottom,
+        var(--border-color, #999) 0,
+        var(--border-color, #999) 2px,
+        transparent 2px
+      );
+      margin-top: 12px;
+      padding-top: 16px;
+    }
+
+    .cy-theme-settings .cy-inline-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .cy-theme-settings .cy-inline-field .typecho-label {
+      flex: 0 0 auto;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .cy-theme-settings .cy-inline-field input.text {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .cy-theme-settings .cy-green-focus:focus {
+      border: 1px solid #299b55 !important;
+      outline: none;
+      box-shadow: none;
+    }
+
+    .cy-theme-settings .cy-link-section {
+      margin: 18px 0;
+    }
+
+    .cy-theme-settings .cy-link-section > .cy-section-heading {
+      margin-top: 0;
+    }
+
+    .cy-theme-settings .cy-link-group {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color, #ddd);
+    }
+
+    .cy-theme-settings .cy-link-group[hidden] {
+      display: none !important;
+    }
+
+    .cy-theme-settings .cy-link-text-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .cy-theme-settings .cy-link-text-row > label:first-child,
+    .cy-theme-settings .cy-link-url-row > label {
+      flex: 0 0 auto;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .cy-theme-settings .cy-link-text-input {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .cy-theme-settings .cy-link-text-input:focus {
+      border: 1px solid #999 !important;
+      outline: none;
+      box-shadow: none;
+    }
+
+    .cy-theme-settings .cy-link-blank {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      font-weight: normal;
+    }
+
+    .cy-theme-settings .cy-link-url-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cy-theme-settings .cy-link-url-row > label {
+      font-style: italic;
+    }
+
+    .cy-theme-settings .cy-link-url-input {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .cy-theme-settings .cy-link-url-input:focus {
+      border: 1px solid #c33 !important;
+      outline: none;
+      box-shadow: none;
+    }
+
+    .cy-theme-settings .cy-add-link-button {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    .cy-theme-settings .cy-image-row,
+    .cy-theme-settings .cy-thumb-row {
+      margin-top: 18px;
+    }
+
+    .cy-theme-settings .cy-select-option {
+      margin-bottom: 12px;
+    }
+
+    .cy-theme-settings .cy-select-first {
+      margin-top: 0;
+    }
+
+    /* 三个下拉菜单：仅控制同行排列，不覆盖原生下拉菜单外观 */
+    .cy-theme-settings .cy-select-inline {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .cy-theme-settings .cy-select-inline .typecho-label {
+      flex: 0 0 auto;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .cy-theme-settings .cy-select-inline select {
+      flex: 0 0 auto;
+      width: auto;
+      max-width: 100%;
+    }
+
+    .cy-theme-settings .cy-select-description {
+      display: inline-block;
+      margin: 0;
+      flex: 0 1 auto;
+    }
+
+    @media (max-width: 600px) {
+      .cy-theme-settings .cy-link-text-row {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .cy-theme-settings .cy-link-text-row > label:first-child {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      .cy-theme-settings .cy-link-text-input {
+        flex: 1 1 0;
+        min-width: 0;
+        width: auto;
+      }
+
+      .cy-theme-settings .cy-link-blank {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        gap: 3px;
+      }
+
+      .cy-theme-settings .cy-link-url-row {
+        align-items: flex-start;
+      }
+
+      .cy-theme-settings .cy-select-inline {
+        gap: 6px;
+      }
+    }
+  </style>
+)}
+
+{isCyTheme && (
+  <script>
+    const addButton = document.querySelector<HTMLButtonElement>('#cy-add-link');
+
+    if (addButton) {
+      const groups = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-link-group]'),
+      );
+
+      const updateButton = () => {
+        const nextGroup = groups.find((group) => group.hidden);
+
+        addButton.disabled = !nextGroup;
+        addButton.textContent = nextGroup
+          ? '＋ 添加一组链接'
+          : '已达到链接数量上限';
+      };
+
+      addButton.addEventListener('click', () => {
+        const nextGroup = groups.find((group) => group.hidden);
+
+        if (!nextGroup) {
+          updateButton();
+          return;
+        }
+
+        nextGroup.hidden = false;
+        updateButton();
+      });
+
+      updateButton();
+    }
+  </script>
+)}
