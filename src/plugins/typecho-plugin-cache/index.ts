@@ -130,6 +130,98 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     extra?: { request?: Request; options?: Record<string, unknown> },
   ) => rewriteAvatarUrl(avatarUrl, pluginId, extra));
 
+  // Frontend administrator identity synchronization.
+  // Only activated Cache plugin sessions with an administrator receive this script.
+  addHook('archive:footer', pluginId, (html: string, extra?: {
+    user?: { uid?: number; group?: string } | null;
+    isLoggedIn?: boolean;
+    csrfToken?: string | null;
+  }) => {
+    if (
+      !extra?.isLoggedIn ||
+      extra.user?.group !== 'administrator' ||
+      !extra.user.uid ||
+      !extra.csrfToken
+    ) {
+      return html;
+    }
+
+    const uid = extra.user.uid;
+    const csrfToken = JSON.stringify(extra.csrfToken);
+
+    return html + `<script>
+(function () {
+  if (window.__typechoCacheIdentitySync) return;
+  window.__typechoCacheIdentitySync = true;
+
+  var expectedUid = ${JSON.stringify(uid)};
+  var csrfToken = ${csrfToken};
+  var checking = false;
+  var lastCheck = 0;
+  var reloadKey = '__typechoCacheIdentityReload';
+
+  function reloadOnce() {
+    try {
+      if (sessionStorage.getItem(reloadKey) === '1') return;
+      sessionStorage.setItem(reloadKey, '1');
+    } catch (error) {}
+
+    window.location.reload();
+  }
+
+  async function checkIdentity() {
+    if (checking || Date.now() - lastCheck < 3000) return;
+
+    checking = true;
+    lastCheck = Date.now();
+
+    try {
+      var response = await fetch('/api/admin/plugin-action', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify({
+          plugin: 'typecho-plugin-cache',
+          action: 'identity'
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          reloadOnce();
+        }
+        return;
+      }
+
+      var result = await response.json();
+
+      if (
+        !result ||
+        result.success !== true ||
+        Number(result.uid) !== Number(expectedUid)
+      ) {
+        reloadOnce();
+      } else {
+        try {
+          sessionStorage.removeItem(reloadKey);
+        } catch (error) {}
+      }
+    } catch (error) {
+      console.error('[Cache] Identity check failed:', error);
+    } finally {
+      checking = false;
+    }
+  }
+
+  window.addEventListener('focus', checkIdentity);
+  document.addEventListener('instantclick:newpage', checkIdentity);
+})();
+</script>`;
+  });
+
   addHook('comment:avatarMap', pluginId, (
     avatars: Record<string, string>,
     extra?: { request?: Request; options?: Record<string, unknown> },
@@ -175,7 +267,18 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   });
 
   addHook(`plugin:${pluginId}:action:auth`, pluginId, () => 'administrator');
-  addHook(`plugin:${pluginId}:action`, pluginId, async (result: any, extra?: { action?: string; payload?: any }) => {
+  addHook(`plugin:${pluginId}:action`, pluginId, async (result: any, extra?: {
+    action?: string;
+    payload?: any;
+    user?: { uid?: number };
+  }) => {
+    if (extra?.action === 'identity') {
+      return {
+        handled: true,
+        success: true,
+        uid: extra.user?.uid ?? null,
+      };
+    }
     if (extra?.action === 'compact') {
       const d1 = env.DB as D1Database | undefined;
       if (!d1 || typeof d1.prepare !== 'function') {

@@ -28,6 +28,7 @@ type WarmNoteItem = NoteListItem & { type: 'note' };
 
 const {
   options, urls, pages, sidebarData, currentPath, pluginCtx,
+  user, isLoggedIn,
   posts, pagination,
 } = Astro.props;
 
@@ -220,6 +221,8 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
   <WarmShell
   options={options}
   urls={urls}
+  user={user}
+  isLoggedIn={isLoggedIn}
   pages={pages}
   sidebarData={sidebarData}
   currentPath={currentPath}
