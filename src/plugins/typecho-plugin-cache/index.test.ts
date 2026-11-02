@@ -12,9 +12,9 @@ import {
   resetEarlyRequestProvidersForTests,
 } from '@/lib/early-request';
 import { loadQueryCache } from '@/lib/query-cache';
+import { CACHE_WARMUP_HEADER } from '@/lib/cache';
 import {
   CACHE_BYPASS_REASON_HEADER,
-  CACHE_WARMUP_HEADER,
   CACHE_CONTROL_KEY,
   CACHE_PLUGIN_ID,
   buildControlDocument,
