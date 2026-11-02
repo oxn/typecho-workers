@@ -14,6 +14,7 @@ import {
 import { loadQueryCache } from '@/lib/query-cache';
 import {
   CACHE_BYPASS_REASON_HEADER,
+  CACHE_WARMUP_HEADER,
   CACHE_CONTROL_KEY,
   CACHE_PLUGIN_ID,
   buildControlDocument,
@@ -653,8 +654,9 @@ describe('typecho-plugin-cache provider', () => {
     // The private response must not replace the shared public entry.
     const anonymous = await earlyRequestProvider.handle(requestContext(url), publicNext);
     expect(anonymous.headers.get('X-Typecho-Cache')).toBe('L1');
-    expect(await anonymous.text()).toContain('public page');
-    expect(await anonymous.text()).not.toContain('pending comment');
+    const anonymousBody = await anonymous.text();
+    expect(anonymousBody).toContain('public page');
+    expect(anonymousBody).not.toContain('pending comment');
     expect(publicNext).toHaveBeenCalledOnce();
   });
 
