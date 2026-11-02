@@ -961,8 +961,16 @@ function requestCachePolicy(request: Request): RequestCacheDecision {
     return { policy: 'bypass', reason: 'authorization' };
   }
 
+  const cookieNames = parseCookieNames(request.headers.get('Cookie'));
+
+  // The submitter must receive a fresh page containing their pending comment.
+  // Bypass both cache reads and writes so private content cannot enter shared layers.
+  if (cookieNames.has('__typecho_unapproved_comment')) {
+    return { policy: 'bypass', reason: 'unapproved-comment' };
+  }
+
   // Publish-time warm-up requests may populate shared caches,
-  // but only when they are anonymous.
+  // but only when they are anonymous and have no private comment context.
   if (request.headers.get(CACHE_WARMUP_HEADER) === '1') {
     return { policy: 'read-write' };
   }
@@ -975,13 +983,6 @@ function requestCachePolicy(request: Request): RequestCacheDecision {
 
   if (cacheControl.includes('no-cache')) {
     return { policy: 'read-only', reason: 'cache-control' };
-  }
-
-  const cookieNames = parseCookieNames(request.headers.get('Cookie'));
-
-  // Pending comments may reveal private content to their submitter.
-  if (cookieNames.has('__typecho_unapproved_comment')) {
-    return { policy: 'read-only', reason: 'unapproved-comment' };
   }
 
   return { policy: 'read-write' };
