@@ -1,3 +1,4 @@
+
 {
   "id": "typecho-theme-warm-cy",
   "name": "Typecho Warm CY",
@@ -203,6 +204,12 @@
       "type": "text",
       "label": "缩略图优化参数",
       "description": "缩略图优化参数，例如：?quality=80&width=500。留空表示不追加参数。",
+      "default": ""
+    },
+    "footerCustomHtml": {
+      "type": "textarea",
+      "label": "站点底部内容",
+      "description": "设置显示于站点底部的内容（HTML）",
       "default": ""
     },
     "continuousLoadMode": {

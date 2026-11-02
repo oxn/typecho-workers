@@ -1,3 +1,4 @@
+
 ---
 import Admin from '@/layouts/Admin.astro';
 import { createContext, requireAuth } from '@/lib/context';
@@ -146,6 +147,9 @@ function hasLinkGroupValue(group: number): boolean {
         const labelFor = field.type === 'checkbox' || field.type === 'radio' ? undefined : id;
 
         if (isCyTheme) {
+          // 底部自定义 HTML 在保存按钮上方单独渲染
+          if (key === 'footerCustomHtml') return null;
+
           // 首页置顶文章 ID
           if (key === 'pinnedIds') {
             return (
@@ -434,6 +438,30 @@ function hasLinkGroupValue(group: number): boolean {
         );
       })}
 
+      {isCyTheme && configDef.footerCustomHtml && (
+        <ul class="typecho-option cy-footer-custom-row">
+          <li>
+            <div class="cy-footer-custom-heading">
+              <label class="typecho-label" for="footerCustomHtml-input">
+                {configDef.footerCustomHtml.label}
+              </label>
+              {configDef.footerCustomHtml.description && (
+                <p
+                  class="description cy-footer-custom-description"
+                  set:html={configDef.footerCustomHtml.description}
+                ></p>
+              )}
+            </div>
+
+            <textarea
+              id="footerCustomHtml-input"
+              name="footerCustomHtml"
+              class="cy-footer-custom-textarea"
+            >{fieldValue(configValues.footerCustomHtml ?? configDef.footerCustomHtml.default ?? '')}</textarea>
+          </li>
+        </ul>
+      )}
+
       {isCyTheme && <div class="cy-section-heading cy-save-divider"></div>}
 
       <ul
@@ -472,6 +500,45 @@ function hasLinkGroupValue(group: number): boolean {
       height: 0;
       border-bottom: 1px solid var(--border-color, #ddd);
       margin: 18px 0 12px;
+    }
+
+    /* 站点底部内容 */
+    .cy-theme-settings .cy-footer-custom-row {
+      margin-top: 18px;
+      padding-top: 1px;
+      border-top: 1px solid var(--border-color, #ddd);
+    }
+
+    .cy-theme-settings .cy-footer-custom-heading {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 4px 10px;
+      margin-bottom: 8px;
+    }
+
+    .cy-theme-settings .cy-footer-custom-heading .typecho-label {
+      margin: 0;
+      flex: 0 0 auto;
+    }
+
+    .cy-theme-settings .cy-footer-custom-description {
+      margin: 0;
+      flex: 1 1 auto;
+    }
+
+    .cy-theme-settings .cy-footer-custom-textarea {
+      display: block;
+      width: 100%;
+      min-height: 180px;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+
+    .cy-theme-settings .cy-footer-custom-textarea:focus {
+      border: 1px solid #299b55 !important;
+      outline: none;
+      box-shadow: none;
     }
 
     .cy-theme-settings .cy-pinned-row {

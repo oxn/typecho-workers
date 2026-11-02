@@ -1,3 +1,4 @@
+
 import type { ThemeBaseProps, ThemePostProps } from '@/lib/theme-props';
 import { loadThemeConfig } from '@/lib/theme';
 import { normalizeOptimizeParams } from '@/lib/image-transform';
@@ -14,6 +15,7 @@ export type WarmCommentInitialLoadMode = 'manual' | 'auto-first' | 'auto-2' | 'i
 export interface WarmSettings {
   pinnedIds: number[];
   footerLinks: Array<{ text: string; url: string; newWindow: boolean }>;
+  footerCustomHtml: string;
   continuousLoadMode: WarmContinuousLoadMode;
   commentComponentLoadMode: WarmCommentComponentLoadMode;
   commentInitialLoadMode: WarmCommentInitialLoadMode;
@@ -34,6 +36,9 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
       : settings.commentComponentLoadMode;
   const imageOptimizeParams = normalizeOptimizeParams(settings.imageOptimizeParams);
   const pinnedIds = parsePinnedIds(settings.pinnedIds);
+  const footerCustomHtml = typeof settings.footerCustomHtml === 'string'
+    ? settings.footerCustomHtml
+    : '';
   const footerLinks = Array.from({ length: 10 }, (_, index) => {
     const suffix = String(index + 1).padStart(2, '0');
     const text = typeof settings[`linktxt${suffix}`] === 'string' ? String(settings[`linktxt${suffix}`]).trim() : '';
@@ -44,6 +49,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
   return {
     pinnedIds,
     footerLinks,
+    footerCustomHtml,
     continuousLoadMode: normalizeContinuousLoadMode(settings.continuousLoadMode),
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
     commentInitialLoadMode: normalizeCommentInitialLoadMode(settings.commentInitialLoadMode),
@@ -266,11 +272,11 @@ function plainHeadingText(inner: string): string {
   return inner
     .replace(/<[^>]*>/g, '')
     .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
     .replace(/\s+/g, ' ')
     .trim();
 }

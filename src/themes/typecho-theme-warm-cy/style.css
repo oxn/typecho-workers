@@ -1633,6 +1633,10 @@ body.warm-theme {
   padding-bottom: 48px;
 }
 
+.warm-footer__custom {
+  margin-bottom: 18px;
+}
+
 .warm-footer__meta {
   display: flex;
   align-items: center;
@@ -1649,14 +1653,41 @@ body.warm-theme {
   gap: 6px;
 }
 
+/* 页脚自定义链接 */
 .warm-footer__meta nav {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 20px;
+  align-items: center;
+  column-gap: 18px;
   row-gap: 4px;
 }
 
-.warm-footer__meta a:hover {
+/* 页脚链接 */
+.warm-footer__meta nav > a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--warm-faint);
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+/* 页脚链接中的图标容器 */
+.warm-footer__meta nav > a > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 页脚 SVG 图标 */
+.warm-footer__meta nav > a > span > svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* 页脚图标和文字统一悬停颜色 */
+.warm-footer__meta nav > a:hover {
   color: var(--warm-accent);
 }
 
@@ -2283,3 +2314,4 @@ body.warm-theme {
 .warm-action-button[data-warm-action="delete"] {
   color: #f59e0b;
 }
+

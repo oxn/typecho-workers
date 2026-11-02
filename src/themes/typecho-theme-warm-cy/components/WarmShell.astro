@@ -1,3 +1,4 @@
+
 ---
 import Base from '@/layouts/Base.astro';
 import type { ThemeBaseProps } from '@/lib/theme-props';
@@ -86,13 +87,26 @@ const footerLinks = [
   </main>
 
   <footer class="warm-footer">
+    {settings.footerCustomHtml.trim() && (
+      <div class="warm-footer__custom" set:html={settings.footerCustomHtml}></div>
+    )}
     <div class="warm-footer__meta">
       <div class="warm-footer__copyright">
         <span>© {new Date().getFullYear()} {options.title}</span>
         {options.description && <><span aria-hidden="true">·</span><span class="warm-footer__tagline">{options.description}</span></>}
       </div>
       <nav aria-label="页脚链接">
-        {footerLinks.map(link => <a href={link.href} target={link.newWindow ? '_blank' : undefined} rel={link.newWindow ? 'noopener noreferrer' : undefined}>{link.label}</a>)}
+        {footerLinks.map(link => (
+  <a
+    href={link.href}
+    target={link.newWindow ? '_blank' : undefined}
+    rel={link.newWindow ? 'noopener noreferrer' : undefined}
+  >
+    {/<[a-z][\s\S]*>/i.test(link.label)
+      ? <span set:html={link.label}></span>
+      : link.label}
+  </a>
+))}
       </nav>
     </div>
   </footer>
