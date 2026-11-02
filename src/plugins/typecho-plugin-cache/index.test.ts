@@ -451,42 +451,34 @@ describe('typecho-plugin-cache provider', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('bypasses shared page cache for authenticated requests', async () => {
+  it('lets an authenticated cold request populate the shared public page cache', async () => {
     const kv = new MemoryKv();
     await activate(kv);
+    const publicNext = vi.fn(async () => new Response('<html>public</html>', {
+      headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
+    }));
+    await earlyRequestProvider.handle(requestContext(), publicNext);
 
-    const authenticated = requestContext('https://example.com/archives/1/');
-    authenticated.request = new Request(authenticated.request, {
+    const authenticatedHit = requestContext();
+    authenticatedHit.request = new Request(authenticatedHit.request, {
       headers: { Cookie: '__typecho_uid=1; __typecho_authCode=token' },
     });
+    const hit = await earlyRequestProvider.handle(authenticatedHit, publicNext);
+    expect(hit.headers.get('X-Typecho-Cache')).toBe('L1');
 
-    const authenticatedNext = vi.fn(async () => new Response('<html>admin page</html>', {
+    await earlyRequestProvider.invalidate!({ reason: 'test', domains: ['all'] });
+    const authenticatedNext = vi.fn(async () => new Response('<html>public after login</html>', {
       headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
     }));
+    const miss = await earlyRequestProvider.handle(authenticatedHit, authenticatedNext);
+    expect(miss.headers.get('X-Typecho-Cache')).toBe('MISS');
+    expect(await miss.text()).toContain('public after login');
 
-    const response = await earlyRequestProvider.handle(authenticated, authenticatedNext);
-
-    expect(response.headers.get('X-Typecho-Cache')).toBe('BYPASS');
-    expect(response.headers.get(CACHE_BYPASS_REASON_HEADER)).toBe('authorization');
-    expect(response.headers.get('Cache-Control')).toBe('no-store, no-cache, must-revalidate');
-    expect(response.headers.has('Cloudflare-CDN-Cache-Control')).toBe(false);
-    expect(response.headers.has('Cache-Tag')).toBe(false);
-    expect(await response.text()).toContain('admin page');
+    const anonymous = await earlyRequestProvider.handle(requestContext(), publicNext);
+    expect(anonymous.headers.get('X-Typecho-Cache')).toBe('L1');
+    expect(await anonymous.text()).toContain('public after login');
     expect(authenticatedNext).toHaveBeenCalledOnce();
-    expect([...kv.store.keys()].some(key => key.includes(':p:'))).toBe(false);
-
-    const anonymousNext = vi.fn(async () => new Response('<html>public page</html>', {
-      headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
-    }));
-
-    const anonymous = await earlyRequestProvider.handle(
-      requestContext('https://example.com/archives/1/'),
-      anonymousNext,
-    );
-
-    expect(anonymous.headers.get('X-Typecho-Cache')).toBe('MISS');
-    expect(await anonymous.text()).toContain('public page');
-    expect(anonymousNext).toHaveBeenCalledOnce();
+    expect(publicNext).toHaveBeenCalledOnce();
   });
 
   it('treats publish-time warm-up requests as read-write despite no-cache', async () => {
@@ -557,99 +549,78 @@ describe('typecho-plugin-cache provider', () => {
     expect([...kv.store.keys()].some(key => key.includes(':p:'))).toBe(false);
   });
 
-  it('bypasses L1 and L2 for authenticated frontend requests', async () => {
+  it('serves an authenticated request from L2 after the local L1 is cold', async () => {
     const kv = new MemoryKv();
     await activate(kv);
-
-    const next = vi.fn(async () => new Response('<html>public page</html>', {
+    const next = vi.fn(async () => new Response('<html>public</html>', {
       headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
     }));
-
-    const url = 'https://example.com/archives/2/';
-
-    // Anonymous request populates the shared cache.
-    const anonymous = await earlyRequestProvider.handle(requestContext(url), next);
-    expect(anonymous.headers.get('X-Typecho-Cache')).toBe('MISS');
-
-    // Clear local L1 to ensure the authenticated request cannot use L2 either.
+    await earlyRequestProvider.handle(requestContext(), next);
     _resetCaches();
 
-    const authenticated = requestContext(url);
+    const authenticated = requestContext();
     authenticated.request = new Request(authenticated.request, {
       headers: { Cookie: '__typecho_uid=1; __typecho_authCode=token' },
     });
-
     const response = await earlyRequestProvider.handle(authenticated, next);
-
-    expect(response.headers.get('X-Typecho-Cache')).toBe('BYPASS');
-    expect(response.headers.get(CACHE_BYPASS_REASON_HEADER)).toBe('authorization');
-    expect(await response.text()).toContain('public page');
-
-    // The authenticated request must render independently instead of using L1/L2.
-    expect(next).toHaveBeenCalledTimes(2);
+    expect(response.headers.get('X-Typecho-Cache')).toBe('L2');
+    expect(next).toHaveBeenCalledOnce();
   });
 
-  it('does not coalesce authenticated and anonymous cold page renders', async () => {
+  it('coalesces authenticated and anonymous cold requests into one public render', async () => {
     const kv = new MemoryKv();
     await activate(kv);
-
-    const url = 'https://example.com/archives/3/';
-
-    const authenticated = requestContext(url);
+    let releaseRender!: () => void;
+    const renderGate = new Promise<void>(resolve => { releaseRender = resolve; });
+    let markRenderStarted!: () => void;
+    const renderStarted = new Promise<void>(resolve => { markRenderStarted = resolve; });
+    const authenticated = requestContext();
     authenticated.request = new Request(authenticated.request, {
       headers: { Cookie: '__typecho_uid=1; __typecho_authCode=token' },
     });
-
-    const authenticatedNext = vi.fn(async () => new Response('<html>admin content</html>', {
+    const authenticatedNext = vi.fn(async () => {
+      markRenderStarted();
+      await renderGate;
+      return new Response('<html>public from login</html>', { headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' } });
+    });
+    const publicNext = vi.fn(async () => new Response('<html>public</html>', {
       headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
     }));
 
-    const anonymousNext = vi.fn(async () => new Response('<html>public content</html>', {
-      headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
-    }));
-
-    const [authenticatedResponse, anonymousResponse] = await Promise.all([
-      earlyRequestProvider.handle(authenticated, authenticatedNext),
-      earlyRequestProvider.handle(requestContext(url), anonymousNext),
+    const authenticatedResponsePromise = earlyRequestProvider.handle(authenticated, authenticatedNext);
+    await renderStarted;
+    const publicResponsePromise = earlyRequestProvider.handle(requestContext(), publicNext);
+    releaseRender();
+    const [authenticatedResponse, publicResponse] = await Promise.all([
+      authenticatedResponsePromise,
+      publicResponsePromise,
     ]);
 
-    expect(authenticatedResponse.headers.get('X-Typecho-Cache')).toBe('BYPASS');
-    expect(await authenticatedResponse.text()).toContain('admin content');
-
-    expect(anonymousResponse.headers.get('X-Typecho-Cache')).toBe('MISS');
-    expect(await anonymousResponse.text()).toContain('public content');
-
+    expect(['MISS', 'L1']).toContain(publicResponse.headers.get('X-Typecho-Cache'));
+    expect(await publicResponse.text()).toContain('public from login');
+    expect(authenticatedResponse.headers.get('X-Typecho-Cache')).toBe('MISS');
+    expect(await authenticatedResponse.text()).toContain('public from login');
     expect(authenticatedNext).toHaveBeenCalledOnce();
-    expect(anonymousNext).toHaveBeenCalledOnce();
+    expect(publicNext).not.toHaveBeenCalled();
   });
 
-  it('never stores authenticated warm-up requests in shared page cache', async () => {
+  it('stores a marked Warm response from a sensitive cookie request', async () => {
     const kv = new MemoryKv();
     await activate(kv);
-
-    const context = requestContext('https://example.com/archives/4/');
+    const context = requestContext('https://example.com/archives/1/');
     context.request = new Request(context.request, {
-      headers: {
-        Cookie: '__typecho_uid=1; __typecho_authCode=token',
-        'X-Typecho-Cache-Warmup': '1',
-        'Cache-Control': 'no-cache',
-      },
+      headers: { Cookie: '__typecho_uid=1; __typecho_authCode=token' },
     });
-
-    const next = vi.fn(async () => new Response('<html>admin warm-up</html>', {
+    const next = vi.fn(async () => new Response('<html>warm public</html>', {
       headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
     }));
 
     const response = await earlyRequestProvider.handle(context, next);
 
-    expect(response.headers.get('X-Typecho-Cache')).toBe('BYPASS');
-    expect(response.headers.get(CACHE_BYPASS_REASON_HEADER)).toBe('authorization');
-    expect(response.headers.get('Cache-Control')).toBe('no-store, no-cache, must-revalidate');
-    expect(response.headers.has('Cloudflare-CDN-Cache-Control')).toBe(false);
-    expect(response.headers.has('Cache-Tag')).toBe(false);
-    expect(await response.text()).toContain('admin warm-up');
-    expect(next).toHaveBeenCalledOnce();
-    expect([...kv.store.keys()].some(key => key.includes(':p:'))).toBe(false);
+    expect(response.headers.get('X-Typecho-Cache')).toBe('MISS');
+    expect(response.headers.has(PUBLIC_HTML_HEADER)).toBe(false);
+    expect([...kv.store.keys()].some(key => key.includes(':p:'))).toBe(true);
+    expect(await response.text()).toContain('warm public');
   });
 
   it('treats an unapproved-comment cookie as read-only on a cold cache', async () => {

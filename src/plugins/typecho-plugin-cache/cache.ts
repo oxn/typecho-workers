@@ -1,4 +1,3 @@
-import { hasAuthCookies } from '@/lib/auth';
 import type {
   EarlyRequestContext,
   EarlyRequestLifecycleEvent,
@@ -958,12 +957,6 @@ export function shouldBypassPageCacheInDevelopment(mode = import.meta.env.MODE):
 }
 
 function requestCachePolicy(request: Request): RequestCacheDecision {
-  // Authenticated frontend requests must never enter shared page caches.
-  // This check must run before the warm-up marker check.
-  if (hasAuthCookies(request.headers.get('Cookie'))) {
-    return { policy: 'bypass', reason: 'authorization' };
-  }
-
   if (request.headers.has('Authorization')) {
     return { policy: 'bypass', reason: 'authorization' };
   }
