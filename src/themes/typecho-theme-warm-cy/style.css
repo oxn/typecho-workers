@@ -1629,12 +1629,12 @@ body.warm-theme {
 }
 
 .warm-footer {
-  margin-top: 80px;
-  padding-bottom: 48px;
+  margin-top: 36px;
+  padding-bottom: 36px;
 }
 
 .warm-footer__custom {
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .warm-footer__meta {
@@ -1803,8 +1803,8 @@ body.warm-theme {
   }
 
   .warm-footer {
-    margin-top: 64px;
-    padding-bottom: 40px;
+    margin-top: 36px;
+    padding-bottom: 36px;
   }
 }
 
