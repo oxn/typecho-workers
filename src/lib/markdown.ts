@@ -205,8 +205,8 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
       'type', 'disabled', 'class', 'id', 'title', 'style',
     ],
 
-    div: ['class', 'id', 'title', 'style'],
-    span: ['class', 'id', 'title', 'style'],
+    div: ['class', 'id', 'title', 'style', 'data-tex'],
+    span: ['class', 'id', 'title', 'style', 'data-tex'],
     section: ['class', 'id', 'title', 'style', 'data-footnotes'],
     article: ['class', 'id', 'title', 'style'],
     aside: ['class', 'id', 'title', 'style'],
