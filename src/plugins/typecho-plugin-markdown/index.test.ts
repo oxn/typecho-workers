@@ -54,7 +54,7 @@ describe('typecho-plugin-markdown', () => {
     expect(hooks.get('content:markdown')!('$x$')).toContain('`$x$`');
     expect(hooks.get('archive:footer')!('')).toContain('markdown-loader.js');
     const adminFooter = hooks.get('admin:footer')!;
-    expect(adminFooter('', { activeMenu: 'write-page', title: '创建页面' })).toContain('markdown-loader.js');
+    expect(adminFooter('', { activeMenu: 'write-page', title: '创建新页面' })).toContain('markdown-loader.js');
     expect(adminFooter('', { activeMenu: 'manage-posts', title: '编辑文章' })).toContain('markdown-loader.js');
     expect(adminFooter('', { activeMenu: 'manage-pages', title: '编辑页面' })).toContain('markdown-loader.js');
     expect(adminFooter('', { activeMenu: 'manage-posts', title: '文章管理' })).toBe('');
