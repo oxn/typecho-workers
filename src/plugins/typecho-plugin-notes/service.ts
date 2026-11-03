@@ -226,17 +226,17 @@ export function topicSlug(name: string): string {
 export function linkifyNoteContent(html: string, source: string, topicBaseUrl = ''): string {
   const topics = new Set(extractTopicNames(source).map(topicKey));
   const topicHref = topicBaseUrl
-    ? `${topicBaseUrl.replace(/\\/$/, '')}/?stream=notes&topic=`
+    ? `${topicBaseUrl.replace(/\/$/, '')}/?stream=notes&topic=`
     : '?topic=';
   let protectedDepth = 0;
   return html.split(/(<[^>]+>)/g).map(part => {
     if (part.startsWith('<')) {
-      const tag = part.match(/^<\\s*(\\/?)\\s*([a-z0-9]+)/i);
+      const tag = part.match(/^<\s*(\/?)\s*([a-z0-9]+)/i);
       if (tag) {
         const closing = tag[1] === '/';
         const name = tag[2].toLowerCase();
         if (closing && (name === 'a' || name === 'code' || name === 'pre')) protectedDepth = Math.max(0, protectedDepth - 1);
-        if (!closing && (name === 'a' || name === 'code' || name === 'pre') && !/\\/>$/.test(part)) protectedDepth += 1;
+        if (!closing && (name === 'a' || name === 'code' || name === 'pre') && !/\/>$/.test(part)) protectedDepth += 1;
       }
       return part;
     }
