@@ -866,6 +866,44 @@ body.warm-theme {
   line-height: 1.5;
   letter-spacing: 0;
 }
+/* The fixed upstream renderer supplies a plain alert title; restore the
+   Warm CY icon treatment in the theme without changing core Markdown HTML. */
+.warm-prose .markdown-alert-title::before,
+.warm-note__content .markdown-alert-title::before {
+  content: "ⓘ";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.warm-prose .markdown-alert[data-alert="TIP" i] .markdown-alert-title::before,
+.warm-note__content .markdown-alert[data-alert="TIP" i] .markdown-alert-title::before {
+  content: "✦";
+}
+
+.warm-prose .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title::before,
+.warm-note__content .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title::before {
+  content: "❗";
+}
+
+.warm-prose .markdown-alert[data-alert="WARNING" i] .markdown-alert-title::before,
+.warm-note__content .markdown-alert[data-alert="WARNING" i] .markdown-alert-title::before {
+  content: "⚠";
+}
+
+.warm-prose .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title::before,
+.warm-note__content .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title::before {
+  content: "⛔";
+}
+
 /* Markdown Alerts 标题图标 */
 .warm-prose .markdown-alert-title .markdown-alert-icon,
 .warm-note__content .markdown-alert-title .markdown-alert-icon {
