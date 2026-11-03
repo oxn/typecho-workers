@@ -125,7 +125,7 @@ function optionId(key: string, value: string): string {
             <li>
               {!isBoolean && <label class="typecho-label" for={labelFor}>{field.label}</label>}
 
-              {field.type === 'text' && <input id={id} name={key} type="text" class="text" value={fieldValue(value)} />}
+              {field.type === 'text' && <input id={id} name={key} type="text" class="text" value={fieldValue(value)} data-normalize-commas={key === 'pinnedIds' ? 'true' : undefined} />}
               {field.type === 'password' && <input id={id} name={key} type="password" class="text" value={fieldValue(value)} />}
               {field.type === 'textarea' && <textarea id={id} name={key}>{fieldValue(value)}</textarea>}
               {field.type === 'select' && (
@@ -173,4 +173,19 @@ function optionId(key: string, value: string): string {
       </ul>
     </form>
   </div>
+  <script>
+    // Keep the Warm CY pinned-ID field canonical while typing.
+    document.addEventListener('input', (event) => {
+      const target = event.target;
+      if (target instanceof HTMLInputElement && target.dataset.normalizeCommas === 'true') {
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        const normalized = target.value.replace(/，/g, ',');
+        if (normalized !== target.value) {
+          target.value = normalized;
+          if (start !== null && end !== null) target.setSelectionRange(start, end);
+        }
+      }
+    });
+  </script>
 </Admin>
