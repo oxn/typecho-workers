@@ -128,3 +128,16 @@
 - CI 首轮暴露的拼音英文分词、Warm CY iframe 属性连续覆盖、TOC slug 测试预期，以及 HyperDown UMD 在 ESM 测试环境中的加载问题均已修复后复测通过。
 - 当前分支相对固定基线 `6f268808f4f510852887f18cf43fd88567d69e15` 仍为 ahead 48 / behind 0。逐个比较核心目录与文件的 Blob SHA：基线 158 个、当前 158 个，差异 0。
 - 本次 CI 是单元测试和 Astro 构建验证，不是 `build:cloudflare`、Wrangler 部署验证或线上功能验收；尚未合并主分支，也未部署。
+
+
+### 最新复核与插件验证（2026-11-03，CI run 41629790555）
+
+- 最新分支 HEAD：\`01ec8a3ad034d0b0a52d3ed36bb88cedf7057680\`。
+- 最新 GitHub Actions：依赖安装成功；130 个测试文件、1508 项测试全部通过；Astro build 成功。该验证不包含 Wrangler 部署或线上浏览器验收。
+- Markdown 增强插件 \`typecho-plugin-markdown\` 已加入 workspace，包含数学公式、Mermaid 和 Prism 代码高亮客户端入口。文章/页面公式语法通过 \`content:markdown\` 转为普通 Markdown code span / fenced code block，不注入 HTML、不修改 sanitizer。
+- 数学公式支持 \`$...$\`、\`\\(...\\)\`、\`$$...$$\` 和 \`\\[...\\]\`；已补充行内代码保护、美元符号、单行/多行公式及方括号块公式测试。KaTeX 输出原生 MathML，使用 \`trust: false\`，并由本站 DOMPurify 清理。
+- CI 日志确认 Markdown 的 4 个 JS 客户端入口（loader、math、Mermaid、highlighter）均由现有 client-loader 打包。尚未完成真实浏览器页面验收；不据此宣称所有主题、Notes 页面和编辑器预览都已端到端验证。
+- 拼音别名插件 \`typecho-plugin-pinyin\` 已独立实现并登记 workspace 与锁文件。只在永久链接包含 \`{slug}\` 时注入；新建且 slug 为空时自动建议；已有文章不自动覆盖；用户手动修改后停止覆盖；通过显式按钮可重新生成。转换在 Worker 本地依赖中完成，不使用第三方 CDN。
+- 拼音插件专用 API 只接受 POST，复用 \`requireAdminAction(request, 'editor')\` 的现有权限、同源和 CSRF 校验；最终 slug 仍由原有表单提交和上游唯一性逻辑保存。该能力限后台编辑器路径，不能覆盖绕过浏览器编辑器的导入/API 写入路径。
+- 固定核心基线 \`6f268808f4f510852887f18cf43fd88567d69e15\` 与当前分支再次逐个 Blob SHA 比较：158 个核心文件对 158 个，差异 0。
+- 当前仍未完成：真实站点/浏览器验收、Warm CY 全部主题功能逐项验收、缓存边界复测、完整迁移清单收尾。没有合并主分支，没有部署正式站点。
