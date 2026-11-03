@@ -35,3 +35,16 @@ jobs:
 
       - name: Build Astro application
         run: bun run build
+
+      - name: Verify Markdown plugin client assets
+        run: |
+          for asset in \
+            markdown-loader.js \
+            markdown-math.js markdown-math.css \
+            markdown-mermaid-core.js markdown-mermaid-core.css \
+            markdown-highlighter.js markdown-highlighter.css; do
+            test -s "public/plugin-assets/typecho-plugin-markdown/$asset" || {
+              echo "Missing Markdown client asset: $asset"
+              exit 1
+            }
+          done
