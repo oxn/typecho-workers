@@ -223,21 +223,20 @@ export function topicSlug(name: string): string {
 }
 
 /** Convert reference text into an anchor after Markdown sanitation. */
-export function renderNoteContent(value: string, topicBaseUrl = ''): string {
-  const html = renderMarkdown(value);
-  const topics = new Set(extractTopicNames(value).map(topicKey));
+export function linkifyNoteContent(html: string, source: string, topicBaseUrl = ''): string {
+  const topics = new Set(extractTopicNames(source).map(topicKey));
   const topicHref = topicBaseUrl
-    ? `${topicBaseUrl.replace(/\/$/, '')}/?stream=notes&topic=`
+    ? `${topicBaseUrl.replace(/\\/$/, '')}/?stream=notes&topic=`
     : '?topic=';
   let protectedDepth = 0;
   return html.split(/(<[^>]+>)/g).map(part => {
     if (part.startsWith('<')) {
-      const tag = part.match(/^<\s*(\/?)\s*([a-z0-9]+)/i);
+      const tag = part.match(/^<\\s*(\\/?)\\s*([a-z0-9]+)/i);
       if (tag) {
         const closing = tag[1] === '/';
         const name = tag[2].toLowerCase();
         if (closing && (name === 'a' || name === 'code' || name === 'pre')) protectedDepth = Math.max(0, protectedDepth - 1);
-        if (!closing && (name === 'a' || name === 'code' || name === 'pre') && !/\/>$/.test(part)) protectedDepth += 1;
+        if (!closing && (name === 'a' || name === 'code' || name === 'pre') && !/\\/>$/.test(part)) protectedDepth += 1;
       }
       return part;
     }
@@ -252,6 +251,10 @@ export function renderNoteContent(value: string, topicBaseUrl = ''): string {
         `${prefix}<a class="note-reference" href="/note/${cid}" data-note-ref="${cid}">/note/${cid}</a>`
       ));
   }).join('');
+}
+
+export function renderNoteContent(value: string, topicBaseUrl = ''): string {
+  return linkifyNoteContent(renderMarkdown(value), value, topicBaseUrl);
 }
 
 async function requireTopic(db: Database, mid: number): Promise<void> {
