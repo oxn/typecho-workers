@@ -11,6 +11,7 @@ export {
   getNotesForTheme,
   getNotesStreamForTheme,
   handleNotesRequest,
+  linkifyNoteContent,
   normalizeNoteInput,
   renderNoteContent,
   topicSlug,
