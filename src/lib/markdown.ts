@@ -78,6 +78,8 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     a: [
       'href', 'title', 'target', 'rel',
       'download', 'class', 'id', 'style',
+      'data-footnote-ref', 'data-footnote-backref',
+      'aria-label', 'aria-describedby',
     ],
 
     button: [
@@ -94,6 +96,14 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     nav: ['class', 'id', 'title', 'style'],
     main: ['class', 'id', 'title', 'style'],
     address: ['class', 'id', 'title', 'style'],
+    h1: ['class', 'id'],
+    h2: ['class', 'id'],
+    h3: ['class', 'id'],
+    h4: ['class', 'id'],
+    h5: ['class', 'id'],
+    h6: ['class', 'id'],
+    li: ['id'],
+    section: ['class', 'id', 'title', 'style', 'data-footnotes'],
 
     table: ['class', 'id', 'style'],
     caption: ['class', 'id', 'style'],
