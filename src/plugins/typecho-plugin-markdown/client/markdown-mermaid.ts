@@ -1,5 +1,4 @@
 import mermaid from 'mermaid';
-import './markdown.css';
 
 declare global {
   interface Window {
@@ -68,9 +67,9 @@ const observer = new MutationObserver((records) => {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const element = node as Element;
     if (element.matches('pre code.language-mermaid, pre code.lang-mermaid')) {
-      renderMermaid(element.parentElement ?? element);
+      renderMermaid(document);
     } else if (element.querySelector('pre code.language-mermaid, pre code.lang-mermaid')) {
-      renderMermaid(element);
+      renderMermaid(document);
     }
   }));
 });
