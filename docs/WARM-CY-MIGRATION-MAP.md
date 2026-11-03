@@ -141,3 +141,12 @@
 - 拼音插件专用 API 只接受 POST，复用 \`requireAdminAction(request, 'editor')\` 的现有权限、同源和 CSRF 校验；最终 slug 仍由原有表单提交和上游唯一性逻辑保存。该能力限后台编辑器路径，不能覆盖绕过浏览器编辑器的导入/API 写入路径。
 - 固定核心基线 \`6f268808f4f510852887f18cf43fd88567d69e15\` 与当前分支再次逐个 Blob SHA 比较：158 个核心文件对 158 个，差异 0。
 - 当前仍未完成：真实站点/浏览器验收、Warm CY 全部主题功能逐项验收、缓存边界复测、完整迁移清单收尾。没有合并主分支，没有部署正式站点。
+
+### 提示块与缓存停用行为复核（2026-11-03）
+
+- GitHub 风格提示块并非完全缺失：固定上游 markdown-alerts.ts 已实现 [!LABEL] 解析、NOTE/TIP/WARNING 样式 class 和 HTML label 转义；Warm CY 样式已覆盖 NOTE、TIP、IMPORTANT、WARNING、CAUTION 五类配色。
+- 旧项目相对固定基线对 markdown-alerts.ts 的差异包括连续合并 blockquote 的段落归属处理，以及 NOTE/TIP/IMPORTANT/WARNING/CAUTION 的内联 SVG 图标。不能把旧版整份 helper 复制进核心；当前仅在 Warm CY 样式层增加标题伪元素图标，不改变 sanitizer、Markdown HTML 或核心文件。该视觉微调需要真实浏览器验收。
+- typecho-plugin-cache 停用路径已检查：early-request provider 的 deactivate lifecycle 删除 KV control document、清空 control/generation memo、将 runtimeConfig 置空，并尝试清除平台缓存 tag；后续 sync(active:false) 将请求 runtime 标记为 null。现有 index.test.ts 的停用测试覆盖停用后请求不添加缓存响应头、不重建 control document。
+- 重新启用路径有对应测试：activated sync 后若 KV control document 缺失，首次请求可从已同步的 runtime config 重建 control document。这里测试的是缓存控制状态恢复，不代表所有 KV/D1 业务数据都在停用时删除；页面缓存条目可能仍留在 KV，是否读取取决于控制文档和 runtime active 状态。
+- 当前 CI run 41631020504（HEAD 8f6fcca6）已通过：130 个测试文件、1508 项测试；Astro build；Markdown 插件 4 个 JS 入口打包；CI 明确检查 Markdown 资源文件存在。此验证不含线上浏览器验收或 Wrangler 部署。
+- Warm CY 标题图标 CSS 修正提交 bb1339492629f34fa54d5aeb61eadb966eadd84d 正在独立 CI 验证；在结果返回前不标记为通过。
