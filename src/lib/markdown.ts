@@ -88,7 +88,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
 
     div: ['class', 'id', 'title', 'style'],
     span: ['class', 'id', 'title', 'style'],
-    section: ['class', 'id', 'title', 'style'],
+    section: ['class', 'id', 'title', 'style', 'data-footnotes'],
     article: ['class', 'id', 'title', 'style'],
     aside: ['class', 'id', 'title', 'style'],
     header: ['class', 'id', 'title', 'style'],
@@ -103,7 +103,6 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     h5: ['class', 'id'],
     h6: ['class', 'id'],
     li: ['id'],
-    section: ['class', 'id', 'title', 'style', 'data-footnotes'],
 
     table: ['class', 'id', 'style'],
     caption: ['class', 'id', 'style'],
