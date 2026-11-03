@@ -15,7 +15,7 @@
 import { escapeHtml } from '@/lib/escape';
 
 /** Labels that receive a colored left border (others keep the default). */
-export const ALERT_COLOR_VARIANTS = ['note', 'tip', 'warning'] as const;
+export const ALERT_COLOR_VARIANTS = ['note', 'tip', 'important', 'warning', 'caution'] as const;
 export type AlertColorVariant = (typeof ALERT_COLOR_VARIANTS)[number];
 
 /** HyperDown injects empty `<span class="line" …>` markers for scroll sync. */
@@ -159,7 +159,7 @@ function wrapAlertBody(body: string): string {
 
 export function alertColorVariant(label: string): AlertColorVariant | null {
   const key = label.trim().toLowerCase();
-  if (key === 'note' || key === 'tip' || key === 'warning') return key;
+  if ((ALERT_COLOR_VARIANTS as readonly string[]).includes(key)) return key as AlertColorVariant;
   return null;
 }
 
