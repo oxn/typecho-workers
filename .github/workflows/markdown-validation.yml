@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   test-and-build:
+    if: github.event_name == 'push' || github.head_ref == 'feature/markdown-full-support'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -58,3 +59,12 @@ jobs:
       - name: Build application
         if: always()
         run: bun run build
+
+      - name: Verify local Markdown assets
+        if: always()
+        run: |
+          test -s public/js/markdown-highlighter.js
+          test -s public/js/markdown-math.js
+          test -s public/js/markdown-math.css
+          test -s public/js/markdown-mermaid.js
+          find public/js -maxdepth 1 -type f -name 'KaTeX_*.woff2' -print -quit | grep -q .
