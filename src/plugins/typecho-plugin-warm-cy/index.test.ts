@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   requireAdminAction: vi.fn(),
   setOption: vi.fn(),
+  getOption: vi.fn(),
   generateSecurityToken: vi.fn(),
   registerPluginAdminPath: vi.fn(),
   computeUrls: vi.fn(() => ({ adminUrl: '/admin/' })),
@@ -17,6 +18,7 @@ vi.mock('@/lib/auth', () => ({
 }));
 vi.mock('@/lib/options', () => ({
   computeUrls: mocks.computeUrls,
+  getOption: mocks.getOption,
 }));
 vi.mock('typecho/plugin-sdk', () => ({
   registerPluginAdminPath: mocks.registerPluginAdminPath,
@@ -75,6 +77,7 @@ describe('typecho-plugin-warm-cy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requireAdminAction.mockResolvedValue(adminContext());
+    mocks.getOption.mockResolvedValue(JSON.stringify({ pinnedIds: '8,12,20', footerCustomHtml: '<strong>keep</strong>' }));
     mocks.generateSecurityToken.mockResolvedValue('fresh-csrf-token');
   });
 
