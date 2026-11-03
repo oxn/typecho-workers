@@ -41,6 +41,7 @@
     "@simplewebauthn/server": "^14.0.1",
     "astro": "^7.1.4",
     "drizzle-orm": "^0.45.2",
+    "dompurify": "^3.3.3",
     "katex": "^0.19.1",
     "marked": "^18.0.7",
     "marked-footnote": "^1.4.0",
