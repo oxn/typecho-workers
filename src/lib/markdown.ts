@@ -103,7 +103,7 @@ const mathInlineExtension = {
         index = close + marker.length;
         continue;
       }
-      if (source[index] === '
+      if (source[index] === '$' && source[index + 1] !== '$' && source[index - 1] !== '$') return index;
       index += 1;
     }
     return undefined;
