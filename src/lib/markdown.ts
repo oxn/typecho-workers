@@ -2,6 +2,7 @@ import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 import { applyFilter, type HookContext } from '@/lib/plugin';
 import { escapeHtml as escapeHtmlShared } from '@/lib/escape';
+import { generateSlug } from '@/lib/content';
 import { transformGithubAlerts } from '@/lib/markdown-alerts';
 import markedFootnote from 'marked-footnote';
 
@@ -81,9 +82,31 @@ const mathInlineExtension = {
   },
 };
 
+function addMarkdownHeadingAnchors(html: string): string {
+  const used = new Set<string>();
+  return html.replace(/<h([1-6])([^>]*)>([\\s\\S]*?)<\\/h\\1>/gi, (full, level: string, attributes: string, inner: string) => {
+    const existingId = /\\bid\\s*=\\s*(["'])(.*?)\\1/i.exec(attributes);
+    if (existingId) {
+      used.add(existingId[2]);
+      return full;
+    }
+
+    const headingText = inner.replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();
+    const base = generateSlug(headingText) || 'heading-' + level;
+    let id = base;
+    let suffix = 1;
+    while (used.has(id)) {
+      id = base + '-' + suffix;
+      suffix += 1;
+    }
+    used.add(id);
+    return '<h' + level + attributes + ' id="' + id + '">' + inner + '</h' + level + '>';
+  });
+}
+
 function parseContentMarkdown(source: string): string {
   const footnoteExtension = markedFootnote();
-  return marked.parse(source, {
+  const html = marked.parse(source, {
     ...footnoteExtension,
     async: false,
     breaks: true,
@@ -93,6 +116,7 @@ function parseContentMarkdown(source: string): string {
       mathInlineExtension,
     ],
   }) as string;
+  return addMarkdownHeadingAnchors(html);
 }
 // ─── HTML escape helper ─────────────────────────────────────────────────────
 
