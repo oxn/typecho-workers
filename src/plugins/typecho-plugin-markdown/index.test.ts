@@ -25,6 +25,8 @@ describe('typecho-plugin-markdown', () => {
   it('converts display math blocks into ordinary fenced code blocks', () => {
     const result = transformMathSource('开始\n$$\nx^2 + y^2\n$$\n结束');
     expect(result).toContain('```math\nx^2 + y^2\n```');
+    const bracketBlock = transformMathSource('开始\n\\[\nx + y\n\\]\n结束');
+    expect(bracketBlock).toContain('```math\nx + y\n```');
   });
 
   it('supports one-line display math', () => {
