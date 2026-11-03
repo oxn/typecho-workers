@@ -20,10 +20,13 @@ mermaid.initialize({
   mindmap: { useMaxWidth: true },
 });
 
-const ROOT_SELECTOR = [
+const CONTENT_ROOTS = [
   '.warm-prose', '.note-body', '#wmd-preview', '.wmd-preview',
   '.markdown-body', '.post-content', '.entry-content', '.typecho-content',
-].join(', ');
+];
+const ROOT_SELECTOR = CONTENT_ROOTS.join(', ');
+const scopedSelector = (selector: string) =>
+  CONTENT_ROOTS.map((root) => root + ' ' + selector).join(', ');
 
 async function renderDiagram(code: HTMLElement): Promise<void> {
   if (code.dataset.markdownMermaidRendered === '1' || code.dataset.markdownMermaidPending === '1') return;
@@ -55,7 +58,7 @@ async function renderDiagram(code: HTMLElement): Promise<void> {
 
 function renderMermaid(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>(
-    ROOT_SELECTOR + ' pre code.language-mermaid, ' + ROOT_SELECTOR + ' pre code.lang-mermaid',
+    scopedSelector('pre code.language-mermaid, pre code.lang-mermaid'),
   ).forEach((code) => void renderDiagram(code));
 }
 
