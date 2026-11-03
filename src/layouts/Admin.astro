@@ -391,13 +391,13 @@ if (adminNotice) {
       const loadMarkdownPreviewAssets = () => {
         loadAsset(
           'highlighter',
-          '#wmd-preview, .wmd-preview pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid), .note-body pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid)',
+          '#wmd-preview pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid), .note-body pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid)',
           '/js/markdown-highlighter.js',
         );
         loadAsset('math', '.markdown-math[data-tex]', '/js/markdown-math.js', '/js/markdown-math.css');
         loadAsset(
           'mermaid',
-          '#wmd-preview, .wmd-preview pre code.language-mermaid, #wmd-preview, .wmd-preview pre code.lang-mermaid, .note-body pre code.language-mermaid, .note-body pre code.lang-mermaid',
+          '#wmd-preview pre code.language-mermaid, #wmd-preview pre code.lang-mermaid, .note-body pre code.language-mermaid, .note-body pre code.lang-mermaid',
           '/js/markdown-mermaid.js',
         );
       };
