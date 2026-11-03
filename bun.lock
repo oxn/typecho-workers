@@ -77,6 +77,9 @@
     "src/themes/typecho-theme-warm-cy": {
       "name": "typecho-theme-warm-cy",
       "version": "1.0.0",
+      "dependencies": {
+        "typecho-plugin-warm-cy": "workspace:*",
+      },
     },
   },
   "packages": {

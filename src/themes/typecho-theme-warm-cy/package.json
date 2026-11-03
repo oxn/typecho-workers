@@ -1,7 +1,7 @@
 {
   "name": "typecho-theme-warm-cy",
   "version": "1.0.0",
-  "description": "Independent custom fork of Typecho Warm theme",
+  "description": "Independent custom fork of Typecho Warm theme; requires the CY Theme Functions companion plugin.",
   "author": "怸歪",
   "homepage": "https://oook.top",
   "license": "MIT",
@@ -18,5 +18,8 @@
     "screenshot.png",
     "favicon.ico",
     "assets/"
-  ]
+  ],
+  "dependencies": {
+    "typecho-plugin-warm-cy": "workspace:*"
+  }
 }
