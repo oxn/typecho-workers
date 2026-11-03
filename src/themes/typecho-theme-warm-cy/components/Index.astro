@@ -57,8 +57,7 @@ let hasPrev = pagination.hasPrev;
 let hasNext = pagination.hasNext;
 
 if (notesEnabled && stream !== 'posts') {
-  const noteContext = await createContext(Astro.locals, Astro.request);
-  const notesDb = noteContext.db ?? getDb(env.DB);
+  const notesDb = getDb(env.DB);
   const result = await getNotesStreamForTheme(
     notesDb,
     stream,
