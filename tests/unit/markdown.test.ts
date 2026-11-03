@@ -598,3 +598,20 @@ describe('GFM footnotes', () => {
     expect(withoutFootnote).not.toContain('First document note.');
   });
 });
+
+
+describe('LaTeX math placeholders', () => {
+  it('recognizes inline and display math without rendering unsafe HTML on the server', () => {
+    const html = renderMarkdown('Inline $x^2 + y^2$ formula.\\n\\n$$\\nx^2 + y^2 = z^2\\n$$');
+    expect(html).toContain('class="markdown-math"');
+    expect(html).toContain('data-tex="x^2 + y^2"');
+    expect(html).toContain('markdown-math--block');
+    expect(html).toContain('x^2 + y^2 = z^2');
+  });
+
+  it('does not interpret math delimiters inside code spans or fenced code', () => {
+    const html = renderMarkdown('Use `$x^2$` in code.\\n\\n```text\\n$y^2$\\n```');
+    expect(html).not.toContain('class="markdown-math"');
+    expect(html).toContain('<code>$x^2$</code>');
+  });
+});
