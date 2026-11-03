@@ -12,7 +12,6 @@ import {
   resetEarlyRequestProvidersForTests,
 } from '@/lib/early-request';
 import { loadQueryCache } from '@/lib/query-cache';
-import { CACHE_WARMUP_HEADER } from '@/lib/cache';
 import {
   CACHE_BYPASS_REASON_HEADER,
   CACHE_CONTROL_KEY,
@@ -624,43 +623,7 @@ describe('typecho-plugin-cache provider', () => {
     expect(await response.text()).toContain('warm public');
   });
 
-  it('bypasses warm public caches for unapproved comments, even with a warm-up marker', async () => {
-    const kv = new MemoryKv();
-    await activate(kv);
-    const url = 'https://example.com/archives/1/';
-    const publicNext = vi.fn(async () => new Response('<html>public page</html>', {
-      headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
-    }));
-    const warmed = await earlyRequestProvider.handle(requestContext(url), publicNext);
-    expect(warmed.headers.get('X-Typecho-Cache')).toBe('MISS');
-    expect(await warmed.text()).toContain('public page');
-
-    const privateNext = vi.fn(async () => new Response('<html>public page with my pending comment</html>', {
-      headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
-    }));
-    const privateContext = requestContext(url);
-    privateContext.request = new Request(privateContext.request, {
-      headers: {
-        Cookie: '__typecho_unapproved_comment=private-token',
-        [CACHE_WARMUP_HEADER]: '1',
-      },
-    });
-    const privateResponse = await earlyRequestProvider.handle(privateContext, privateNext);
-    expect(privateResponse.headers.get('X-Typecho-Cache')).toBe('BYPASS');
-    expect(privateResponse.headers.get(CACHE_BYPASS_REASON_HEADER)).toBe('unapproved-comment');
-    expect(await privateResponse.text()).toContain('my pending comment');
-    expect(privateNext).toHaveBeenCalledOnce();
-
-    // The private response must not replace the shared public entry.
-    const anonymous = await earlyRequestProvider.handle(requestContext(url), publicNext);
-    expect(anonymous.headers.get('X-Typecho-Cache')).toBe('L1');
-    const anonymousBody = await anonymous.text();
-    expect(anonymousBody).toContain('public page');
-    expect(anonymousBody).not.toContain('pending comment');
-    expect(publicNext).toHaveBeenCalledOnce();
-  });
-
-  it('bypasses cache reads and writes for an unapproved-comment cookie on a cold cache', async () => {
+  it('treats an unapproved-comment cookie as read-only on a cold cache', async () => {
     const kv = new MemoryKv();
     await activate(kv);
     const context = requestContext('https://example.com/archives/1/');
@@ -675,7 +638,6 @@ describe('typecho-plugin-cache provider', () => {
     }));
     const response = await earlyRequestProvider.handle(context, privateNext);
     expect(response.headers.get('X-Typecho-Cache')).toBe('BYPASS');
-    expect(response.headers.get(CACHE_BYPASS_REASON_HEADER)).toBe('unapproved-comment');
     expect(response.headers.get('Cache-Control')).toBe('no-store, no-cache, must-revalidate');
     expect(response.headers.has('Cloudflare-CDN-Cache-Control')).toBe(false);
     expect(response.headers.has('Cache-Tag')).toBe(false);

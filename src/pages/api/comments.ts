@@ -2,19 +2,14 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '@/db';
-import { computeUrls, loadOptions } from '@/lib/options';
-import { loadThemeConfig } from '@/lib/theme';
-import { parsePinnedIds, WARM_THEME_ID } from '@/themes/typecho-theme-warm-cy/components/warm';
+import { loadOptions } from '@/lib/options';
 import {
   getAuthCookies,
   getCookieValue,
   generateCommentToken,
-  generateSecurityToken,
-  hasPermission,
   validateAuthToken,
   validateUnapprovedCommentToken,
 } from '@/lib/auth';
-
 import { getRequestCoreContextFromLocals } from '@/lib/context';
 import {
   applyFilter,
@@ -97,33 +92,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
 
   const content = await db.query.contents.findFirst({ where: eq(schema.contents.cid, cid) });
   if (!content) return jsonError(404, '内容不存在', PRIVATE_HEADERS);
-  // 复用上面已经完成的登录验证，不再发起额外身份请求。
-  // 管理员 CSRF Token 只返回给具有管理员权限的用户。
-  const isAdministrator = Boolean(
-    authResult &&
-    hasPermission(authResult.user.group || 'visitor', 'administrator')
-  );
 
-  const themeSettings = loadThemeConfig(options, WARM_THEME_ID);
-  const pinnedIds = parsePinnedIds(themeSettings.pinnedIds);
-
-  const management = {
-    canManage: isAdministrator,
-    adminUrl: computeUrls(options).adminUrl,
-    contentType: content.type === 'post'
-      ? 'post'
-      : content.type === 'page'
-        ? 'page'
-        : 'none',
-        isPinned: content.type === 'post' && pinnedIds.includes(cid),
-        csrfToken: isAdministrator && authResult && options.secret
-      ? await generateSecurityToken(
-          options.secret,
-          authResult.user.authCode!,
-          authResult.uid,
-        )
-      : '',
-  };
   const now = Math.floor(Date.now() / 1000);
   const corePublicContent =
     (content.type === 'post' || content.type === 'page') &&
@@ -168,7 +137,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
       gravatarMap: {},
       options: { ...buildCommentOptions(options, securityToken), allowComment },
       commenter,
-      management,
     };
     const extendedPayload = await applyFilterSafely(
       pluginCtx, 'comment:list', payload, { request, options, cid },
@@ -250,7 +218,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     pagination: commentData.pagination,
     options: { ...buildCommentOptions(options, securityToken), allowComment },
     commenter,
-    management,
   };
   const extendedPayload = await applyFilterSafely(
     pluginCtx, 'comment:list', payload, { request, options, cid },

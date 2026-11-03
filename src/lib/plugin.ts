@@ -661,26 +661,13 @@ export interface PageContext {
   pageType?: 'index' | 'post' | 'page' | 'archive' | 'search' | 'notfound';
 }
 
-export interface ClientSnippetContext {
-  user?: { uid?: number; group?: string } | null;
-  isLoggedIn?: boolean;
-  csrfToken?: string | null;
-}
-
 export async function getClientSnippets(
   ctx: HookContext,
   options: Record<string, any>,
   pageContext?: PageContext,
-  clientContext?: ClientSnippetContext,
 ): Promise<{ headHtml: string; bodyHtml: string }> {
-  const extra = {
-    options,
-    pageContext,
-    ...clientContext,
-    csrfToken: (ctx as HookContext & { csrfToken?: string | null }).csrfToken,
-  };
-  let headHtml = await applyFilterSafely(ctx, 'archive:header', '', extra);
-  let bodyHtml = await applyFilterSafely(ctx, 'archive:footer', '', extra);
+  let headHtml = await applyFilterSafely(ctx, 'archive:header', '', { options, pageContext });
+  let bodyHtml = await applyFilterSafely(ctx, 'archive:footer', '', { options, pageContext });
   return { headHtml, bodyHtml };
 }
 

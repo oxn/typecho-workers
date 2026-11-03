@@ -59,9 +59,6 @@ export interface ThemeIndexProps extends ThemeBaseProps {
 // ─── Post detail ────────────────────────────────────────────────────────
 
 export interface ThemePostProps extends ThemeBaseProps {
-  /** CSRF token for authenticated article management actions. */
-  csrfToken: string | null;
-
   post: {
     cid: number;
     title: string;

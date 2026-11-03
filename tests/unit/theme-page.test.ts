@@ -21,10 +21,7 @@ describe('admin theme pages', () => {
 
   it('renders each appearance field as its own Typecho option list', () => {
     const source = readPage('options-theme');
-    expect(source).toContain("'col-mb-12'");
-    expect(source).toContain("'col-tb-8'");
-    expect(source).toContain("'col-tb-offset-2'");
-    expect(source).toContain('class:list={[');
+    expect(source).toContain('col-mb-12 col-tb-8 col-tb-offset-2');
     expect(source).toContain('<ul class="typecho-option" id={`typecho-option-item-${key}-${index}`}>');
     expect(source).toContain('typecho-option-submit');
     expect(source).toContain('parseThemeConfigFormData');

@@ -175,10 +175,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   });
 
   addHook(`plugin:${pluginId}:action:auth`, pluginId, () => 'administrator');
-  addHook(`plugin:${pluginId}:action`, pluginId, async (result: any, extra?: {
-    action?: string;
-    payload?: any;
-  }) => {
+  addHook(`plugin:${pluginId}:action`, pluginId, async (result: any, extra?: { action?: string; payload?: any }) => {
     if (extra?.action === 'compact') {
       const d1 = env.DB as D1Database | undefined;
       if (!d1 || typeof d1.prepare !== 'function') {
