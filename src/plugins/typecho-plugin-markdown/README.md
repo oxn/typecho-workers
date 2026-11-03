@@ -8,7 +8,7 @@
 - 块级公式：独立行 `$$` / `\[` 开始、`$$` / `\]` 结束；单行 `$$...$$` 也支持。
 - Mermaid：标准 fenced code block，例如 ```mermaid。
 - 代码高亮：通过 Prism.js 处理带语言标记的 fenced code block。
-- 前台与文章/页面编辑器预览区域均加载本地脚本和样式，不依赖第三方 CDN。
+- 前台与文章/页面编辑器预览区域按需加载本地脚本和样式；没有数学公式、Mermaid 图表或带语言代码块时，不加载对应大型运行库。
 
 ## 安全边界
 
@@ -21,4 +21,4 @@
 
 ## 资源
 
-客户端资源放在插件自己的 `client/` 目录，由项目现有 client-loader 本地打包至 `/plugin-assets/typecho-plugin-markdown/`。
+客户端资源放在插件自己的 `client/` 目录，由项目现有 client-loader 本地打包至 `/plugin-assets/typecho-plugin-markdown/`。KaTeX、Mermaid 与 Prism 通过轻量 loader 按页面内容懒加载，避免每次访问都下载全部库。
