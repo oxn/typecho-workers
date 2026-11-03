@@ -1,11 +1,29 @@
 
 import type { ThemeBaseProps, ThemePostProps } from '@/lib/theme-props';
-import { loadThemeConfig } from '@/lib/theme';
 import { normalizeOptimizeParams } from './warm-image';
 import { escapeHtml, formatDate } from 'typecho/plugin-sdk';
-import { generateSlug } from '@/lib/content';
 
 export const WARM_THEME_ID = 'typecho-theme-warm-cy';
+
+const DEFAULT_WARM_SETTINGS: Record<string, unknown> = {
+  pinnedIds: '',
+  footerCustomHtml: '',
+  continuousLoadMode: 'manual',
+  commentComponentLoadMode: 'manual',
+  commentInitialLoadMode: 'manual',
+  imageOptimizeParams: '',
+  thumbOptimizeParams: '',
+  ...Object.fromEntries(
+    Array.from({ length: 10 }, (_, index) => {
+      const suffix = String(index + 1).padStart(2, '0');
+      return [
+        [`linktxt${suffix}`, ''],
+        [`links${suffix}`, ''],
+        [`linkblank${suffix}`, false],
+      ];
+    }).flat(),
+  ),
+};
 
 export type WarmSection = 'home' | 'articles' | 'notes' | 'about' | 'none';
 export type WarmContinuousLoadMode = 'manual' | 'auto-2' | 'infinite';
@@ -26,8 +44,8 @@ export interface WarmSettings {
 }
 
 export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
-  const settings = loadThemeConfig(options, WARM_THEME_ID);
   const savedSettings = readSavedWarmSettings(options);
+  const settings = { ...DEFAULT_WARM_SETTINGS, ...(savedSettings || {}) };
   const legacyCommentMode = savedSettings?.commentInitialLoadMode;
   const componentLoadMode = Object.prototype.hasOwnProperty.call(savedSettings || {}, 'commentComponentLoadMode')
     ? settings.commentComponentLoadMode
@@ -247,7 +265,7 @@ export function prepareArticleToc(html: string): { html: string; items: WarmTocI
 
     const level = Number(tag.slice(1)) as 2 | 3;
     const existing = TOC_EXISTING_ID_RE.exec(attrs)?.slice(1).find(Boolean)?.trim();
-    let id = existing || generateSlug(text) || `section-${items.length + 1}`;
+    let id = existing || generateWarmSlug(text) || `section-${items.length + 1}`;
     const base = id;
     let suffix = 2;
     while (used.has(id)) id = `${base}-${suffix++}`;
@@ -266,6 +284,16 @@ export function prepareArticleToc(html: string): { html: string; items: WarmTocI
 
   if (items.length < TOC_MIN_ITEMS) return { html: nextHtml, items: [] };
   return { html: nextHtml, items };
+}
+
+function generateWarmSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^\\w\\u4e00-\\u9fff\\s-]/g, '')
+    .replace(/\\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 150);
 }
 
 function plainHeadingText(inner: string): string {
