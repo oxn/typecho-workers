@@ -343,25 +343,26 @@ export function renderWarmIframes(html: string): string {
     if (!allowedHosts.includes(hostname)) return match;
 
     // Add or replace an iframe attribute without duplicating it.
-    const setAttribute = (name: string, value: string) => {
-      const pattern = new RegExp(`\s${name}\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)`, 'i');
+    const setAttribute = (source: string, name: string, value: string) => {
+      const pattern = new RegExp(`\\s${name}\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]+)`, 'i');
 
-      if (pattern.test(attributes)) {
-        return attributes.replace(pattern, ` ${name}="${value}"`);
+      if (pattern.test(source)) {
+        return source.replace(pattern, ` ${name}="${value}"`);
       }
 
-      return `${attributes} ${name}="${value}"`;
+      return `${source} ${name}="${value}"`;
     };
 
     let result = attributes;
 
-    result = setAttribute('loading', 'lazy');
-    result = setAttribute('allowfullscreen', '');
+    result = setAttribute(result, 'loading', 'lazy');
+    result = setAttribute(result, 'allowfullscreen', '');
     result = setAttribute(
+      result,
       'allow',
       'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
     );
-    result = setAttribute('title', '视频播放器');
+    result = setAttribute(result, 'title', '视频播放器');
 
     return `<iframe${result}>`;
   });
