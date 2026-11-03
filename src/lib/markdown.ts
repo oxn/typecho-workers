@@ -3,8 +3,22 @@ import sanitizeHtml from 'sanitize-html';
 import { applyFilter, type HookContext } from '@/lib/plugin';
 import { escapeHtml as escapeHtmlShared } from '@/lib/escape';
 import { transformGithubAlerts } from '@/lib/markdown-alerts';
+import markedFootnote from 'marked-footnote';
 
 export { transformGithubAlerts } from '@/lib/markdown-alerts';
+
+/**
+ * Parse article/page/note Markdown with a fresh footnote extension instance.
+ * A new instance per parse keeps reference state isolated between requests.
+ * Comment Markdown intentionally continues to use the separate basic parser.
+ */
+function parseContentMarkdown(source: string): string {
+  return marked.parse(source, {
+    ...markedFootnote(),
+    async: false,
+    breaks: true,
+  }) as string;
+}
 
 // ─── HTML escape helper ─────────────────────────────────────────────────────
 
@@ -498,7 +512,7 @@ export function renderContent(text: string, maxExcerptLength = 200): RenderedCon
   }
 
   const content = stripMarkdownPrefix(text).replace(MORE_COMMENT_RE, '');
-  const parsed = normalizeTaskListCheckboxes(transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string));
+  const parsed = normalizeTaskListCheckboxes(transformGithubAlerts(parseContentMarkdown(content)));
   const html = sanitizeHtml(parsed, SANITIZE_OPTIONS);
   const plain = stripHtmlTags(parsed);
   const plainExcerpt = plain.length <= maxExcerptLength
@@ -622,7 +636,7 @@ export function renderContentExcerpt(
   // regardless of whether the author placed <!--more--> inline or between
   // paragraphs — enabling a clean split on the rendered output.
   const withPlaceholder = content.replace(MORE_COMMENT_RE, '\n\n' + MORE_PLACEHOLDER + '\n\n');
-  const html = normalizeTaskListCheckboxes(transformGithubAlerts(marked.parse(withPlaceholder, { async: false, breaks: true }) as string));
+  const html = normalizeTaskListCheckboxes(transformGithubAlerts(parseContentMarkdown(withPlaceholder)));
   const sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   // Split on the rendered placeholder and keep only the excerpt (part before it).
