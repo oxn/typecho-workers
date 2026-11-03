@@ -4,6 +4,8 @@ import {
   normalizeCommentInitialLoadMode,
   normalizeContinuousLoadMode,
   parsePinnedIds,
+  renderWarmIframes,
+  warmArticleSummary,
   plainExcerpt,
   prepareArticleToc,
   readingMinutes,
@@ -98,4 +100,22 @@ describe('Warm CY theme helpers', () => {
     expect(readingMinutes('')).toBe(1);
     expect(readingMinutes('<p>' + '字'.repeat(421) + '</p>')).toBe(2);
   });
+  it('hides intelligence summaries behind an unverified password', () => {
+    expect(warmArticleSummary({ hasPassword: true, passwordVerified: false }, 'private summary')).toBe('');
+    expect(warmArticleSummary({ hasPassword: true, passwordVerified: true }, '  visible summary  ')).toBe('visible summary');
+    expect(warmArticleSummary({ hasPassword: false, passwordVerified: false }, null)).toBe('');
+  });
+
+  it('adds safe loading attributes only to supported video iframe providers', () => {
+    const youtube = '<iframe src="https://www.youtube.com/embed/demo"></iframe>';
+    const result = renderWarmIframes(youtube);
+    expect(result).toContain('loading="lazy"');
+    expect(result).toContain('allowfullscreen=""');
+    expect(result).toContain('title="视频播放器"');
+
+    const external = '<iframe src="https://video.example/embed/demo"></iframe>';
+    expect(renderWarmIframes(external)).toBe(external);
+    expect(renderWarmIframes('<p>plain content</p>')).toBe('<p>plain content</p>');
+  });
+
 });
