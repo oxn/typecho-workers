@@ -78,7 +78,7 @@ function renderTextMath(root: ParentNode): void {
 
     nodes.forEach((node) => {
       const value = node.nodeValue || '';
-      const expression = /\\\((.+?)\\\)|(?<!\\)\$(?!\$)([^$\n]+?)(?<!\\)\$(?!\$)/g;
+      const expression = /\\\\(true+?\\\\)|(?<!\\)\$(?!\$)([^$\n]+?)(?<!\\)\$(?!\$)/g;
       let match: RegExpExecArray | null;
       let cursor = 0;
       let changed = false;
