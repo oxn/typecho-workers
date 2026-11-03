@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isCurrentPageLink,
   normalizeCommentComponentLoadMode,
   normalizeCommentInitialLoadMode,
   normalizeContinuousLoadMode,
@@ -37,6 +38,13 @@ describe('Warm CY theme helpers', () => {
     expect(safeExternalUrl('mailto:hello@example.com')).toBe('mailto:hello@example.com');
     expect(safeExternalUrl('javascript:alert(1)')).toBe('');
     expect(safeExternalUrl('ftp://example.com/file')).toBe('');
+  });
+
+  it('matches navigation pages by exact normalized path', () => {
+    expect(isCurrentPageLink('https://example.com/about/', '/about', 'https://example.com')).toBe(true);
+    expect(isCurrentPageLink('/about', '/about/', 'https://example.com')).toBe(true);
+    expect(isCurrentPageLink('/about-me/', '/about', 'https://example.com')).toBe(false);
+    expect(isCurrentPageLink('https://other.example/about/', '/about', 'https://example.com')).toBe(false);
   });
 
   it('validates email addresses', () => {
