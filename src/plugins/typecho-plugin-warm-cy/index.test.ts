@@ -203,7 +203,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(mocks.generateSecurityToken).not.toHaveBeenCalled();
 
     const noContent = adminContext();
-    noContent.db.query.contents.findFirst = vi.fn(async () => null);
+    noContent.db.query.contents.findFirst = vi.fn(async () => null) as any;
     mocks.requireAdminAction.mockResolvedValueOnce(noContent);
     expect(await handler(payload, {
       request: new Request('https://example.com/api/comments?cid=12'),
