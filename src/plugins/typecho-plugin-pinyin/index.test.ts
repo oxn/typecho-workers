@@ -109,6 +109,19 @@ describe('typecho-plugin-pinyin', () => {
     );
     expect(malformed.response.status).toBe(400);
 
+    const blank = await route(
+      { handled: false },
+      {
+        path: '/api/admin/pinyin-slug',
+        request: new Request('https://example.com/api/admin/pinyin-slug', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'test-token' },
+          body: JSON.stringify({ title: '   ' }),
+        }),
+      },
+    );
+    expect(blank.response.status).toBe(400);
+
     const oversized = await route(
       { handled: false },
       {
