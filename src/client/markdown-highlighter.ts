@@ -44,7 +44,7 @@ languages.dockerfile = languages.docker;
 
 function highlight(root: ParentNode = document): void {
   const blocks = root.querySelectorAll<HTMLElement>(
-    '.warm-prose pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid), .wmd-preview pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid), .note-body pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid)',
+    '.warm-prose pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid), #wmd-preview pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid), .note-body pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid)',
   );
 
   blocks.forEach((code) => {
