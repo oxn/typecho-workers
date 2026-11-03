@@ -95,3 +95,10 @@
 - 已确认缓存标记和宿主 Props / PageContext 类型依赖应保留；本轮没有修改这些核心接口。
 - 尚未实现独立 Markdown 插件。数学公式、Mermaid、PrismJS 的插件方案仍需逐项验证文章/页面/笔记/评论/预览覆盖范围，以及依赖与 CSS/字体资源的构建方式。
 - 当前 GitHub 测试分支没有配置 Actions workflow；此前不能把无 CI 记录解释为构建通过。需要在本地/可执行构建环境运行测试，或在后续专门建立受控 CI 后再验收。
+
+### 拼音别名插件 Hook 覆盖核验
+
+- 固定基线的内容保存 API 在调用 post:write / page:write filter 后，仍会根据“用户提交的 slug”或核心 generateSlug(title) 计算最终 slug，并通过 claimUniqueSlug() 覆盖数据库 slug。也就是说，post:write / page:write 当前不能可靠地改变自动生成 slug；插件只在 Hook 中写 contentData.slug 会被后续最终 slug 逻辑覆盖。
+- 这意味着纯服务端拼音别名插件不能只依赖 post:write / page:write。不能提交一个表面可用、实际保存后又被覆盖的插件。
+- 可行方向需进一步验证：在后台编辑器使用插件的 admin:writePost:bottom / admin:writePage:bottom 注入客户端拼音输入辅助；只在 slug 输入为空或仍处于插件自动生成状态时更新，用户手动编辑后立即停止覆盖；保存时通过现有表单提交显式 slug。必须确认 permalink 不含 {slug} 时 UI 不存在 slug 字段的降级行为，并确保编辑旧文章时不覆盖现有 slug。
+- 若要求无浏览器脚本的 API、批量导入、自动化写入也统一生成拼音，则固定基线没有足够的公开 Hook；在“不修改核心”的前提下无法保证全路径一致，需明确标记能力边界，而不是暗中复制核心保存流程。
