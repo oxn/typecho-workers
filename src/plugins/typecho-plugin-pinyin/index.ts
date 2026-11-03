@@ -28,7 +28,7 @@ export function titleToPinyinSlug(title: string): string {
   const source = title.trim();
   if (!source) return '';
 
-  return pinyin(source, { toneType: 'none' })
+  return pinyin(source, { toneType: 'none', nonZh: 'consecutive' })
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
