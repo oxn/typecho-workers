@@ -44,6 +44,12 @@ function extractDisplayMathBlocks(source: string): { source: string; blocks: str
       continue;
     }
 
+    const indentation = line.length - trimmed.length;
+    if (indentation > 3) {
+      output.push(line);
+      continue;
+    }
+
     const delimiter = line.trim();
     const inlineBlock = /^\s*\$\$(.+?)\$\$\s*$/.exec(line);
     if (inlineBlock) {
