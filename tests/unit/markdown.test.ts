@@ -562,7 +562,7 @@ describe('autop', () => {
 
 describe('GFM task lists', () => {
   it('renders checked and unchecked items as inert visual markers', () => {
-    const html = renderMarkdown('- [x] finished\\n- [ ] pending');
+    const html = renderMarkdown('- [x] finished\n- [ ] pending');
     expect(html).toContain('class="markdown-task-checkbox is-checked"');
     expect(html).toContain('class="markdown-task-checkbox"');
     expect(html).not.toContain('<input');
@@ -574,6 +574,6 @@ describe('GFM task lists', () => {
     const html = renderMarkdown('<input type="checkbox" checked><script>alert(1)</script>');
     expect(html).not.toContain('<input');
     expect(html).not.toContain('<script');
-    expect(html).toContain('alert(1)');
+    expect(html).not.toContain('alert(1)');
   });
 });
