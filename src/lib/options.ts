@@ -184,54 +184,14 @@ function cacheVersionUpsert(db: Database) {
  * than picking up a race-generated value that varies between requests.
  */
 export async function loadOptions(db: Database): Promise<SiteOptions> {
-  const now = Date.now();
-  const generation = getOptionsSnapshotGeneration(db);
-  const snapshot = optionSnapshots.get(db);
-  let cachedOptions: CachedSiteOptions;
-  if (
-    snapshot &&
-    snapshot.generation === generation &&
-    snapshot.expiresAt > now
-  ) {
-    cachedOptions = snapshot.value;
-  } else {
-    const existingLoad = pendingOptionLoads.get(db);
-    if (existingLoad?.generation === generation) {
-      cachedOptions = await existingLoad.promise;
-    } else {
-      const pending = loadCachedOptionsFresh(db);
-      const pendingRecord = { promise: pending, generation };
-      pendingOptionLoads.set(db, pendingRecord);
-      try {
-        cachedOptions = await pending;
-        if (getOptionsSnapshotGeneration(db) === generation) {
-          optionSnapshots.set(db, {
-            value: cachedOptions,
-            expiresAt: Date.now() + OPTIONS_SNAPSHOT_TTL_MS,
-            generation,
-          });
-        }
-      } finally {
-        if (pendingOptionLoads.get(db) === pendingRecord) {
-          pendingOptionLoads.delete(db);
-        }
-      }
-    }
-  }
+  // DIAGNOSTIC ONLY: bypass local snapshots, early-request providers, KV,
+  // D1 shared-data cache, and the legacy Cache API options cache. Read the
+  // public options projection directly from the authoritative options table.
+  const cachedOptions = await loadCachedOptionsFromFallback(db, false);
 
-  // Secrets and whole plugin configs must never enter L0, Cache API, KV, or
-  // D1 KV. They stay direct D1 reads and are only merged into this request's
-  // context after the cacheable public option projection has been resolved.
+  // Secrets and whole plugin configs remain direct D1 reads.
   const privateOptions = await loadPrivateOptions(db);
   return { ...cachedOptions, ...privateOptions } as SiteOptions;
-}
-
-async function loadCachedOptionsFresh(db: Database): Promise<CachedSiteOptions> {
-  return loadEarlyRequestSharedData(
-    'options',
-    'public-v2',
-    ({ providerHandled }) => loadCachedOptionsFromFallback(db, !providerHandled),
-  );
 }
 
 function isPrivateOptionName(name: string): boolean {
