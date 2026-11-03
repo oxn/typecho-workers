@@ -3,7 +3,6 @@ import { env } from 'cloudflare:workers';
 import { getDb } from 'typecho/db';
 import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
-import { createContext } from '@/lib/context';
 import { optimizeContentImages } from './warm-image';
 import type { ThemePostProps } from '@/lib/theme-props';
 import WarmShell from './WarmShell.astro';
@@ -20,11 +19,8 @@ const {
 } = Astro.props;
 
 const db = getDb(env.DB);
-const noteContext = pluginCtx.activatedPlugins.has('typecho-plugin-notes')
-  ? await createContext(Astro.locals, Astro.request)
-  : null;
-const note = noteContext
-  ? await getNoteForTheme(noteContext.db ?? db, post.cid, urls.siteUrl)
+const note = pluginCtx.activatedPlugins.has('typecho-plugin-notes')
+  ? await getNoteForTheme(db, post.cid, urls.siteUrl)
   : null;
 const isNote = note?.type === 'note';
 const settings = warmSettings(options);
