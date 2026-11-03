@@ -190,6 +190,23 @@ export function safeExternalUrl(value: unknown): string {
   }
 }
 
+
+/** Match a navigation page by normalized pathname, never by substring. */
+export function isCurrentPageLink(permalink: string, currentPath: string, siteUrl: string): boolean {
+  try {
+    const site = new URL(siteUrl);
+    const target = new URL(permalink, site);
+    const current = new URL(currentPath, site);
+    if (target.origin !== site.origin || current.origin !== site.origin) return false;
+    const normalizePath = (pathname: string) => pathname.length > 1
+      ? pathname.replace(/\\/+$/, '')
+      : pathname;
+    return normalizePath(target.pathname) === normalizePath(current.pathname);
+  } catch {
+    return false;
+  }
+}
+
 export function safeEmail(value: unknown): string {
   if (typeof value !== 'string') return '';
   const email = value.trim();
