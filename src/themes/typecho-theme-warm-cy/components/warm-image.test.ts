@@ -8,7 +8,7 @@ import {
 describe('Warm CY image helpers', () => {
   it('normalizes only supported optimization parameter characters', () => {
     expect(normalizeOptimizeParams(' ?quality=80&format=auto ')).toBe('quality=80&format=auto');
-    expect(normalizeOptimizeParams('quality=80" onerror="alert(1)')).toBe('quality=80onerroralert1');
+    expect(normalizeOptimizeParams('quality=80" onerror="alert(1)')).toBe('quality=80onerror=alert1');
     expect(normalizeOptimizeParams('')).toBe('');
     expect(normalizeOptimizeParams(null)).toBe('');
   });
