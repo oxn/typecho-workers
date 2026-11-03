@@ -9,11 +9,79 @@ function makeCodeSpan(value: string): string {
   return delimiter + value + delimiter;
 }
 
+function skipInlineHtmlTag(line: string, start: number): number {
+  if (line[start] !== '<' || !/[A-Za-z/!?]/.test(line[start + 1] || '')) return start;
+
+  let quote = '';
+  for (let index = start + 1; index < line.length; index++) {
+    const char = line[index];
+    if (quote) {
+      if (char === quote && line[index - 1] !== '\\\\') quote = '';
+    } else if (char === '"' || char === "'") {
+      quote = char;
+    } else if (char === '>') {
+      return index + 1;
+    }
+  }
+  return line.length;
+}
+
+function skipInlineLinkDestination(line: string, start: number): number {
+  if (line[start] !== ']' || line[start + 1] !== '(') return start;
+
+  let depth = 1;
+  let quote = '';
+  let angleDestination = false;
+  for (let index = start + 2; index < line.length; index++) {
+    const char = line[index];
+    if (char === '\\\\') {
+      index++;
+      continue;
+    }
+    if (quote) {
+      if (char === quote) quote = '';
+      continue;
+    }
+    if (angleDestination) {
+      if (char === '>') angleDestination = false;
+      continue;
+    }
+    if (char === '<' && depth === 1) {
+      angleDestination = true;
+      continue;
+    }
+    if ((char === '"' || char === "'") && depth === 1 && /\\s/.test(line[index - 1] || '')) {
+      quote = char;
+      continue;
+    }
+    if (char === '(') depth++;
+    else if (char === ')') {
+      depth--;
+      if (depth === 0) return index + 1;
+    }
+  }
+  return start;
+}
+
 function transformInlineMath(line: string): string {
   let output = '';
   let index = 0;
 
   while (index < line.length) {
+    const tagEnd = skipInlineHtmlTag(line, index);
+    if (tagEnd > index) {
+      output += line.slice(index, tagEnd);
+      index = tagEnd;
+      continue;
+    }
+
+    const linkEnd = skipInlineLinkDestination(line, index);
+    if (linkEnd > index) {
+      output += line.slice(index, linkEnd);
+      index = linkEnd;
+      continue;
+    }
+
     if (line[index] === '`') {
       let end = index + 1;
       while (line[end] === '`') end++;
