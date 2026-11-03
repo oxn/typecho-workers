@@ -1,7 +1,7 @@
 {
   "name": "typecho-theme-warm-cy",
   "version": "1.0.0",
-  "description": "Independent custom fork of Typecho Warm theme",
+  "description": "Independent custom fork of Typecho Warm theme; requires the CY Theme Functions companion plugin.",
   "author": "怸歪",
   "homepage": "https://oook.top",
   "license": "MIT",
@@ -9,8 +9,7 @@
     "typecho",
     "theme",
     "warm",
-    "notes",
-    "plugin"
+    "notes"
   ],
   "files": [
     "theme.json",
@@ -18,21 +17,9 @@
     "components/",
     "screenshot.png",
     "favicon.ico",
-    "assets/",
-    "plugin.ts"
+    "assets/"
   ],
-  "typecho": {
-    "plugin": {
-      "id": "typecho-plugin-warm-cy",
-      "name": "Warm CY 管理功能",
-      "description": "为 Warm CY 主题提供文章置顶 API 与评论区管理员操作信息。",
-      "version": "1.0.0",
-      "license": "MIT",
-      "tags": [
-        "warm-cy",
-        "theme-companion"
-      ],
-      "entry": "plugin.ts"
-    }
+  "dependencies": {
+    "typecho-plugin-warm-cy": "workspace:*"
   }
 }

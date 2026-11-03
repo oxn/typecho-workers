@@ -1,0 +1,25 @@
+{
+  "name": "typecho-plugin-warm-cy",
+  "version": "1.0.0",
+  "description": "Required server-side companion for the Typecho Warm CY theme.",
+  "keywords": [
+    "typecho",
+    "plugin",
+    "warm-cy"
+  ],
+  "type": "module",
+  "main": "index.ts",
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-warm-cy",
+      "name": "CY 主题功能插件",
+      "description": "Warm CY 主题必需的配套插件，提供文章置顶服务端接口与评论区管理员操作信息。",
+      "version": "1.0.0",
+      "license": "MIT",
+      "tags": [
+        "warm-cy",
+        "theme-companion"
+      ]
+    }
+  }
+}
