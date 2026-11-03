@@ -67,6 +67,7 @@ export default defineConfig({
         'typecho-plugin-turnstile',
         'typecho-theme-warm',
         'typecho-plugin-warm-cy',
+        'typecho-plugin-pinyin',
         'typecho-theme-warm-cy',
       ],
     },
