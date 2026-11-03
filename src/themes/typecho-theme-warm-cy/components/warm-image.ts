@@ -32,9 +32,13 @@ export function optimizeImageUrl(url: string, params: string, siteUrl: string): 
   if (!clean || !url) return url;
   const parsed = parseOwnUpload(url, siteUrl);
   if (!parsed) return url;
-  const separator = parsed.search ? '&' : '?';
-  if (url.startsWith('/')) return `${parsed.pathname}${parsed.search}${separator}${clean}`;
-  return `${parsed.href}${separator}${clean}`;
+  // Add query parameters before any fragment. Image dimensions may be
+  // encoded in the fragment (for example #width=640&height=360).
+  parsed.search = parsed.search
+    ? `${parsed.search}&${clean}`
+    : `?${clean}`;
+  if (url.startsWith('/')) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  return parsed.href;
 }
 
 export function optimizeContentImages(html: string, params: string, siteUrl: string): string {
