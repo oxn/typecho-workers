@@ -221,7 +221,9 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     h4: ['class', 'id'],
     h5: ['class', 'id'],
     h6: ['class', 'id'],
-    li: ['id'],
+    ul: ['class'],
+    ol: ['class'],
+    li: ['class', 'id'],
 
     table: ['class', 'id', 'style'],
     caption: ['class', 'id', 'style'],
