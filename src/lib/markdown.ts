@@ -13,51 +13,70 @@ export { transformGithubAlerts } from '@/lib/markdown-alerts';
  * A new instance per parse keeps reference state isolated between requests.
  * Comment Markdown intentionally continues to use the separate basic parser.
  */
-const mathBlockExtension = {
-  name: 'markdownMathBlock',
-  level: 'block' as const,
-  start(source: string): number | undefined {
-    const lines = source.split('\n');
-    const backtick = String.fromCharCode(96);
-    let offset = 0;
-    let fenceCharacter = '';
-    let fenceLength = 0;
+function extractDisplayMathBlocks(source: string): { source: string; blocks: string[] } {
+  const lines = source.split('\n');
+  const output: string[] = [];
+  const blocks: string[] = [];
+  const backtick = String.fromCharCode(96);
+  let fenceCharacter = '';
+  let fenceLength = 0;
 
-    for (const line of lines) {
-      const trimmed = line.trimStart();
-      const marker = trimmed.charAt(0);
-      let markerLength = 0;
-      while (trimmed.charAt(markerLength) === marker && marker) markerLength += 1;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const trimmed = line.trimStart();
+    const marker = trimmed.charAt(0);
+    let markerLength = 0;
+    while (trimmed.charAt(markerLength) === marker && marker) markerLength += 1;
 
-      if (!fenceCharacter && (marker === backtick || marker === '~') && markerLength >= 3) {
-        fenceCharacter = marker;
-        fenceLength = markerLength;
-      } else if (fenceCharacter) {
-        if (marker === fenceCharacter && markerLength >= fenceLength && trimmed.slice(markerLength).trim() === '') {
-          fenceCharacter = '';
-          fenceLength = 0;
-        }
-      } else if (trimmed === '$$' || trimmed === '\\[') {
-        return offset + (line.length - trimmed.length);
-      }
-
-      offset += line.length + 1;
+    if (!fenceCharacter && (marker === backtick || marker === '~') && markerLength >= 3) {
+      fenceCharacter = marker;
+      fenceLength = markerLength;
+      output.push(line);
+      continue;
     }
-    return undefined;
-  },
-  tokenizer(source: string) {
-    const dollar = /^\$\$\s*\n([\s\S]*?)\n\$\$\s*(?:\n|$)/.exec(source);
-    const bracket = /^\\\[\s*\n([\s\S]*?)\n\\\]\s*(?:\n|$)/.exec(source);
-    const match = dollar ?? bracket;
-    if (!match) return undefined;
-    return { type: 'markdownMathBlock', raw: match[0], text: match[1] };
-  },
-  renderer(token: { text: string }): string {
-    const tex = token.text.trim();
-    const escaped = escapeHtmlShared(tex);
-    return '<div class="markdown-math markdown-math--block" data-tex="' + escaped + '">' + escaped + '</div>\n';
-  },
-};
+
+    if (fenceCharacter) {
+      if (marker === fenceCharacter && markerLength >= fenceLength && trimmed.slice(markerLength).trim() === '') {
+        fenceCharacter = '';
+        fenceLength = 0;
+      }
+      output.push(line);
+      continue;
+    }
+
+    const delimiter = line.trim();
+    const inlineBlock = /^\s*\$\$(.+?)\$\$\s*$/.exec(line);
+    if (inlineBlock) {
+      const tex = inlineBlock[1];
+      const placeholder = '<!--__TYPECHO_INTERNAL_MATH_BLOCK_' + blocks.length + '__-->';
+      blocks.push(tex);
+      output.push('');
+      output.push(placeholder);
+      output.push('');
+      continue;
+    }
+
+    if (delimiter === '$$' || delimiter === '\\[') {
+      const closing = delimiter === '$$' ? '$$' : '\\]';
+      let closingIndex = index + 1;
+      while (closingIndex < lines.length && lines[closingIndex].trim() !== closing) closingIndex += 1;
+      if (closingIndex < lines.length) {
+        const tex = lines.slice(index + 1, closingIndex).join('\n');
+        const placeholder = '<!--__TYPECHO_INTERNAL_MATH_BLOCK_' + blocks.length + '__-->';
+        blocks.push(tex);
+        output.push('');
+        output.push(placeholder);
+        output.push('');
+        index = closingIndex;
+        continue;
+      }
+    }
+
+    output.push(line);
+  }
+
+  return { source: output.join('\n'), blocks };
+}
 
 const mathInlineExtension = {
   name: 'markdownMathInline',
