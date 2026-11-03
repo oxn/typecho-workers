@@ -43,9 +43,12 @@
 
 - `typecho/plugin-sdk` 已公开 `buildPermalink`、`formatDate`、`buildCategoryLink`、`escapeHtml`、`renderContentExcerpt` 等通用能力；这些调用应优先迁移到 SDK，避免主题重复实现。
 - `typecho/db` 是根包明确公开的数据库入口。
-- `@/lib/theme-props` 的 `ThemeIndexProps`、`ThemePostProps`、`ThemePageProps`、`ThemeArchiveProps` 尚未通过根包 exports 或 plugin SDK 公开。当前不能擅自替换类型来源；需要将主题契约作为正式公开 API 的方案单独评估，且不得修改核心文件来迁就主题。
-- `@/lib/context` 的 `createContext`、`@/lib/image-transform` 的图片优化实现、`@/lib/cache` 的 `PUBLIC_HTML_HEADER` 都是核心内部运行时能力。尤其 Context 会连接请求身份、插件上下文和数据库，不能简单复制到主题包；图片优化只有在确认完整行为和边界后才能封装；公开 HTML 缓存标记必须保留上游语义，不能由主题随意替代。
-- `@/lib/content` 与 `@/lib/markdown` 中已有 SDK 对应导出，适合先改用公开 SDK。
+- `@/lib/theme-props` 的 `ThemeIndexProps`、`ThemePostProps`、`ThemePageProps`、`ThemeArchiveProps` 尚未通过根包 exports 或 plugin SDK 公开。Warm CY 仍保留这些类型依赖；当前不能擅自复制一套类型或替换类型来源，需要单独评估公开主题契约方案，且不得修改核心文件来迁就主题。
+- `@/lib/context` 的 `createContext` 是核心内部请求上下文能力，连接请求身份、插件上下文和数据库。当前 Warm CY 首页和文章页已移除 `createContext` 调用，Notes 查询改用页面已有数据库连接；其他场景仍需逐项核对，不能复制 Context 实现。
+- Warm CY 的图片 URL 优化和内容图片尺寸恢复逻辑已收回主题包 `components/warm-image.ts`，首页、文章页、独立页、笔记媒体和主题设置 helper 改用主题本地函数。该迁移仅覆盖主题自己的 EdgeOne URL 改写，不替代核心 `image-transform` 的通用图片能力。
+- Warm CY 的主题配置读取已从核心 `loadThemeConfig` 改为主题内读取 `theme:<id>` 保存值并合并主题默认配置；目录锚点 slug 生成也已改为主题本地实现。核心 `@/lib/theme-props` 类型依赖仍保留。
+- `@/lib/cache` 的 `PUBLIC_HTML_HEADER` 是核心缓存标记，必须保留上游语义，不能由主题随意替代。
+- `@/lib/content` 与 `@/lib/markdown` 中已有 SDK 对应导出，通用 helper 应优先改用公开 SDK。
 
 伴随插件 `typecho-plugin-warm-cy` 已使用公开的 `typecho/db`、`typecho/plugin-sdk`，但同时直接导入 `@/lib/auth`、`@/lib/admin-auth`、`@/lib/options`。其中 `requireAdminAction` 当前确实完成登录身份、管理员权限、同源和 CSRF 校验，评论 metadata 路径则明确使用 `csrf: false` 只读取管理员身份并生成专用 token；但这些 helper 并未由公开 SDK 导出。因此它目前是与宿主源码耦合的本地伴随插件，不应宣称为可直接分发到任意 Typecho Workers 站点的独立公共插件。不能为了消除内部 import 而自行重写鉴权；应先确认上游公开扩展点，或保留本地耦合并在文档中标明边界。
 
@@ -54,7 +57,9 @@
 ## 当前状态（2026-11-03）
 
 - 已有代码：测试分支已新增 Warm CY 主题包及其伴随插件，主题组件、样式、配置清单和部分管理 API 已提交。
-- 已完成审计：上游插件 SDK 导出、Theme props、主题/插件自动发现机制已核对；确认 SDK 有一批可替代的通用函数，但 Theme props、请求 Context、图片优化、缓存响应标记和管理员鉴权 helper 仍属于内部接口；伴随插件存在明确的宿主源码耦合。旧项目差异文件清单已整理。
-- 正在核对：将主题中的通用 helper 调用迁至公开 SDK；厘清不能迁出的 Context/缓存/鉴权边界；补足伴随插件的权限与评论 metadata 回归测试；旧功能逐项迁移完整性。
+- 已完成审计：上游插件 SDK 导出、Theme props、主题/插件自动发现机制已核对；旧项目差异文件清单已整理；核心文件与固定基线的 Blob SHA 已逐项核验，当前对照文件一致，未修改核心文件。
+- 已完成的主题解耦：`Index.astro`、`Post.astro` 已移除 `createContext`；图片 URL/内容图片 helper 已移入主题；`warm.ts` 已移除核心 `loadThemeConfig` 和 `generateSlug` 依赖，改为主题本地配置合并与 slug 生成。`typecho/plugin-sdk` 仍用于公开的格式化和 HTML escaping helper。
+- 仍保留的内部类型依赖：`@/lib/theme-props`，因为固定基线没有公开等价类型契约；不自行复制类型、不改核心文件。
+- 正在核对：剩余主题组件对核心内部接口的依赖；伴随插件鉴权和评论 metadata 的安全边界；Markdown 增强与拼音别名的 Hook 覆盖范围；旧功能逐项迁移完整性。
 - 尚未完成：全部功能验收、公共插件迁移、逐文件核心 blob 校验、构建与单元测试。
 - 本文档是迁移跟踪记录，不是功能完成或可部署证明；未通过验证前不得合并或部署。
