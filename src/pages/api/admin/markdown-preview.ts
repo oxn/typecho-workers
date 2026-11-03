@@ -29,10 +29,14 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonError(413, 'Preview content is too large');
   }
 
-  let payload: { content?: unknown; type?: unknown };
+  let payload: { content?: unknown; type?: unknown } | null;
   try {
     payload = JSON.parse(rawBody) as { content?: unknown; type?: unknown };
   } catch {
+    return jsonError(400, 'Invalid preview request');
+  }
+
+  if (!payload || typeof payload !== 'object') {
     return jsonError(400, 'Invalid preview request');
   }
 
