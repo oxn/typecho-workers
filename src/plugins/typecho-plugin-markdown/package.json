@@ -2,12 +2,19 @@
   "name": "typecho-plugin-markdown",
   "version": "1.0.0",
   "description": "Math, Mermaid diagrams, and syntax highlighting for Markdown content.",
-  "keywords": ["typecho", "plugin", "markdown", "math", "mermaid", "syntax-highlight"],
+  "keywords": [
+    "typecho",
+    "plugin",
+    "markdown",
+    "math",
+    "mermaid",
+    "syntax-highlight"
+  ],
   "license": "MIT",
   "type": "module",
   "main": "index.ts",
   "dependencies": {
-    "katex": "^0.19.1",
+    "katex": "^0.16.47",
     "mermaid": "^11.17.2",
     "prismjs": "^1.30.0"
   },
@@ -18,7 +25,12 @@
       "description": "为 Markdown 内容提供数学公式、Mermaid 图表和代码高亮。",
       "version": "1.0.0",
       "license": "MIT",
-      "tags": ["markdown", "math", "mermaid", "prism"]
+      "tags": [
+        "markdown",
+        "math",
+        "mermaid",
+        "prism"
+      ]
     }
   }
 }
