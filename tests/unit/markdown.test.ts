@@ -611,7 +611,7 @@ describe('LaTeX math placeholders', () => {
   });
 
   it('does not interpret math delimiters inside code spans or fenced code', () => {
-    const html = renderMarkdown('Use `$x^2$` in code.\\n\\n```text\\n$y^2$\\n```');
+    const html = renderMarkdown('Use `$x^2$` in code.\n\n```text\n$y^2$\n```');
     expect(html).not.toContain('class="markdown-math"');
     expect(html).toContain('<code>$x^2$</code>');
   });
