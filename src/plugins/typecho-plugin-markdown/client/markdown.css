@@ -86,3 +86,26 @@ code[class*="language-"] {
 .token.variable {
   color: var(--markdown-token-special, #b06b2d);
 }
+
+/* KaTeX's MathML-only output uses native browser math layout and needs no web fonts. */
+.katex {
+  display: inline-block;
+  white-space: nowrap;
+  font-family: 'Cambria Math', 'STIX Two Math', 'DejaVu Math TeX Gyre', serif;
+  line-height: 1.2;
+}
+
+.katex math {
+  font-size: 1em;
+}
+
+.markdown-math-block .katex,
+.markdown-math-block math[display='block'] {
+  display: block;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.markdown-math-inline .katex {
+  vertical-align: middle;
+}
