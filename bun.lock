@@ -18,6 +18,7 @@
         "typecho-plugin-notes": "workspace:*",
         "typecho-plugin-notifier": "workspace:*",
         "typecho-plugin-pinyin": "workspace:*",
+        "typecho-plugin-markdown": "workspace:*",
         "typecho-plugin-turnstile": "workspace:*",
         "typecho-plugin-warm-cy": "workspace:*",
         "typecho-theme-warm": "workspace:*",
@@ -60,6 +61,15 @@
       "version": "1.0.0",
       "dependencies": {
         "pinyin-pro": "^3.29.5",
+      },
+    },
+    "src/plugins/typecho-plugin-markdown": {
+      "name": "typecho-plugin-markdown",
+      "version": "1.0.0",
+      "dependencies": {
+        "katex": "^0.16.47",
+        "mermaid": "^11.17.2",
+        "prismjs": "^1.30.0",
       },
     },
     "src/plugins/typecho-plugin-turnstile": {

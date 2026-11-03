@@ -1,0 +1,111 @@
+/* Shared, theme-neutral presentation for Markdown enhancement output. */
+.markdown-math-block {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1.25em 0;
+  text-align: center;
+}
+
+.markdown-math-inline {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.markdown-mermaid {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1.25em 0;
+  text-align: center;
+}
+
+.markdown-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.warm-prose, .note-body, #wmd-preview, .wmd-preview, .markdown-body, .post-content, .entry-content, .typecho-content pre[class*="language-"] {
+  overflow-x: auto;
+}
+
+.warm-prose, .note-body, #wmd-preview, .wmd-preview, .markdown-body, .post-content, .entry-content, .typecho-content code[class*="language-"] {
+  tab-size: 2;
+}
+
+/* Minimal theme-neutral Prism token palette; themes may override these variables. */
+.warm-prose .token.comment, .note-body .token.comment, #wmd-preview .token.comment, .wmd-preview .token.comment, .markdown-body .token.comment, .post-content .token.comment, .entry-content .token.comment, .typecho-content .token.comment,
+.warm-prose .token.prolog, .note-body .token.prolog, #wmd-preview .token.prolog, .wmd-preview .token.prolog, .markdown-body .token.prolog, .post-content .token.prolog, .entry-content .token.prolog, .typecho-content .token.prolog,
+.warm-prose .token.doctype, .note-body .token.doctype, #wmd-preview .token.doctype, .wmd-preview .token.doctype, .markdown-body .token.doctype, .post-content .token.doctype, .entry-content .token.doctype, .typecho-content .token.doctype,
+.warm-prose .token.cdata, .note-body .token.cdata, #wmd-preview .token.cdata, .wmd-preview .token.cdata, .markdown-body .token.cdata, .post-content .token.cdata, .entry-content .token.cdata, .typecho-content .token.cdata {
+  color: var(--markdown-token-comment, #7a8794);
+}
+
+.warm-prose .token.punctuation, .note-body .token.punctuation, #wmd-preview .token.punctuation, .wmd-preview .token.punctuation, .markdown-body .token.punctuation, .post-content .token.punctuation, .entry-content .token.punctuation, .typecho-content .token.punctuation {
+  color: var(--markdown-token-punctuation, #89939e);
+}
+
+.warm-prose .token.property, .note-body .token.property, #wmd-preview .token.property, .wmd-preview .token.property, .markdown-body .token.property, .post-content .token.property, .entry-content .token.property, .typecho-content .token.property,
+.warm-prose .token.tag, .note-body .token.tag, #wmd-preview .token.tag, .wmd-preview .token.tag, .markdown-body .token.tag, .post-content .token.tag, .entry-content .token.tag, .typecho-content .token.tag,
+.warm-prose .token.boolean, .note-body .token.boolean, #wmd-preview .token.boolean, .wmd-preview .token.boolean, .markdown-body .token.boolean, .post-content .token.boolean, .entry-content .token.boolean, .typecho-content .token.boolean,
+.warm-prose .token.number, .note-body .token.number, #wmd-preview .token.number, .wmd-preview .token.number, .markdown-body .token.number, .post-content .token.number, .entry-content .token.number, .typecho-content .token.number,
+.warm-prose .token.constant, .note-body .token.constant, #wmd-preview .token.constant, .wmd-preview .token.constant, .markdown-body .token.constant, .post-content .token.constant, .entry-content .token.constant, .typecho-content .token.constant,
+.warm-prose .token.symbol, .note-body .token.symbol, #wmd-preview .token.symbol, .wmd-preview .token.symbol, .markdown-body .token.symbol, .post-content .token.symbol, .entry-content .token.symbol, .typecho-content .token.symbol,
+.warm-prose .token.deleted, .note-body .token.deleted, #wmd-preview .token.deleted, .wmd-preview .token.deleted, .markdown-body .token.deleted, .post-content .token.deleted, .entry-content .token.deleted, .typecho-content .token.deleted {
+  color: var(--markdown-token-literal, #c05b5b);
+}
+
+.warm-prose .token.selector, .note-body .token.selector, #wmd-preview .token.selector, .wmd-preview .token.selector, .markdown-body .token.selector, .post-content .token.selector, .entry-content .token.selector, .typecho-content .token.selector,
+.warm-prose .token.attr-name, .note-body .token.attr-name, #wmd-preview .token.attr-name, .wmd-preview .token.attr-name, .markdown-body .token.attr-name, .post-content .token.attr-name, .entry-content .token.attr-name, .typecho-content .token.attr-name,
+.warm-prose .token.string, .note-body .token.string, #wmd-preview .token.string, .wmd-preview .token.string, .markdown-body .token.string, .post-content .token.string, .entry-content .token.string, .typecho-content .token.string,
+.warm-prose .token.char, .note-body .token.char, #wmd-preview .token.char, .wmd-preview .token.char, .markdown-body .token.char, .post-content .token.char, .entry-content .token.char, .typecho-content .token.char,
+.warm-prose .token.builtin, .note-body .token.builtin, #wmd-preview .token.builtin, .wmd-preview .token.builtin, .markdown-body .token.builtin, .post-content .token.builtin, .entry-content .token.builtin, .typecho-content .token.builtin,
+.warm-prose .token.inserted, .note-body .token.inserted, #wmd-preview .token.inserted, .wmd-preview .token.inserted, .markdown-body .token.inserted, .post-content .token.inserted, .entry-content .token.inserted, .typecho-content .token.inserted {
+  color: var(--markdown-token-string, #4d8b62);
+}
+
+.warm-prose .token.operator, .note-body .token.operator, #wmd-preview .token.operator, .wmd-preview .token.operator, .markdown-body .token.operator, .post-content .token.operator, .entry-content .token.operator, .typecho-content .token.operator,
+.warm-prose .token.entity, .note-body .token.entity, #wmd-preview .token.entity, .wmd-preview .token.entity, .markdown-body .token.entity, .post-content .token.entity, .entry-content .token.entity, .typecho-content .token.entity,
+.warm-prose .token.url, .note-body .token.url, #wmd-preview .token.url, .wmd-preview .token.url, .markdown-body .token.url, .post-content .token.url, .entry-content .token.url, .typecho-content .token.url,
+.warm-prose .language-css .token.string, .note-body .language-css .token.string, #wmd-preview .language-css .token.string, .wmd-preview .language-css .token.string, .markdown-body .language-css .token.string, .post-content .language-css .token.string, .entry-content .language-css .token.string, .typecho-content .language-css .token.string,
+.warm-prose .style .token.string, .note-body .style .token.string, #wmd-preview .style .token.string, .wmd-preview .style .token.string, .markdown-body .style .token.string, .post-content .style .token.string, .entry-content .style .token.string, .typecho-content .style .token.string {
+  color: var(--markdown-token-operator, #9a6a34);
+}
+
+.warm-prose .token.atrule, .note-body .token.atrule, #wmd-preview .token.atrule, .wmd-preview .token.atrule, .markdown-body .token.atrule, .post-content .token.atrule, .entry-content .token.atrule, .typecho-content .token.atrule,
+.warm-prose .token.attr-value, .note-body .token.attr-value, #wmd-preview .token.attr-value, .wmd-preview .token.attr-value, .markdown-body .token.attr-value, .post-content .token.attr-value, .entry-content .token.attr-value, .typecho-content .token.attr-value,
+.warm-prose .token.keyword, .note-body .token.keyword, #wmd-preview .token.keyword, .wmd-preview .token.keyword, .markdown-body .token.keyword, .post-content .token.keyword, .entry-content .token.keyword, .typecho-content .token.keyword {
+  color: var(--markdown-token-keyword, #7655a5);
+}
+
+.warm-prose .token.function, .note-body .token.function, #wmd-preview .token.function, .wmd-preview .token.function, .markdown-body .token.function, .post-content .token.function, .entry-content .token.function, .typecho-content .token.function,
+.warm-prose .token.class-name, .note-body .token.class-name, #wmd-preview .token.class-name, .wmd-preview .token.class-name, .markdown-body .token.class-name, .post-content .token.class-name, .entry-content .token.class-name, .typecho-content .token.class-name {
+  color: var(--markdown-token-function, #287d9c);
+}
+
+.warm-prose .token.regex, .note-body .token.regex, #wmd-preview .token.regex, .wmd-preview .token.regex, .markdown-body .token.regex, .post-content .token.regex, .entry-content .token.regex, .typecho-content .token.regex,
+.warm-prose .token.important, .note-body .token.important, #wmd-preview .token.important, .wmd-preview .token.important, .markdown-body .token.important, .post-content .token.important, .entry-content .token.important, .typecho-content .token.important,
+.warm-prose .token.variable, .note-body .token.variable, #wmd-preview .token.variable, .wmd-preview .token.variable, .markdown-body .token.variable, .post-content .token.variable, .entry-content .token.variable, .typecho-content .token.variable {
+  color: var(--markdown-token-special, #b06b2d);
+}
+
+/* KaTeX's MathML-only output uses native browser math layout and needs no web fonts. */
+.katex {
+  display: inline-block;
+  white-space: nowrap;
+  font-family: 'Cambria Math', 'STIX Two Math', 'DejaVu Math TeX Gyre', serif;
+  line-height: 1.2;
+}
+
+.katex math {
+  font-size: 1em;
+}
+
+.markdown-math-block .katex,
+.markdown-math-block math[display='block'] {
+  display: block;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.markdown-math-inline .katex {
+  vertical-align: middle;
+}

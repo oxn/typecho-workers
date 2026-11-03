@@ -53,7 +53,8 @@
     "typecho-theme-warm": "workspace:*",
     "typecho-plugin-warm-cy": "workspace:*",
     "typecho-theme-warm-cy": "workspace:*",
-    "typecho-plugin-pinyin": "workspace:*"
+    "typecho-plugin-pinyin": "workspace:*",
+    "typecho-plugin-markdown": "workspace:*"
   },
   "devDependencies": {
     "@libsql/client": "^0.17.4",
