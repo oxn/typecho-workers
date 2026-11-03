@@ -1035,6 +1035,35 @@ describe('typecho-plugin-cache provider', () => {
     expect([...kv.store.keys()].some(key => key.includes(':s:admin-dashboard:'))).toBe(false);
   });
 
+  it('bypasses shared-data reads and writes after the cache plugin is deactivated', async () => {
+    const kv = new MemoryKv();
+    await activate(kv);
+    registerEarlyRequestLoaders({ [CACHE_PLUGIN_ID]: async () => earlyRequestProvider });
+    const context = { db: {}, isLoggedIn: false } as any;
+    const options = { domain: 'archive' as const, key: { page: 1 } };
+
+    const initialLoader = vi.fn(async () => ({ value: 'cached-before-deactivation' }));
+    expect(await loadQueryCache(context, options, initialLoader))
+      .toEqual({ value: 'cached-before-deactivation' });
+    expect(initialLoader).toHaveBeenCalledOnce();
+
+    await earlyRequestProvider.lifecycle!({ type: 'deactivate' });
+    const inactiveRequest = new Request('https://example.com/');
+    await earlyRequestProvider.sync!({ request: inactiveRequest, active: false, options: {} });
+
+    const readsBefore = kv.getKeys.length;
+    const writesBefore = kv.put.mock.calls.length;
+    const inactiveLoader = vi.fn(async () => ({ value: 'fresh-after-deactivation' }));
+    expect(await loadQueryCache(context, options, inactiveLoader))
+      .toEqual({ value: 'fresh-after-deactivation' });
+    expect(inactiveLoader).toHaveBeenCalledOnce();
+
+    const newSharedReads = kv.getKeys.slice(readsBefore);
+    const newSharedWrites = kv.put.mock.calls.slice(writesBefore).map(([key]) => String(key));
+    expect(newSharedReads.some(key => key.includes(':s:archive:'))).toBe(false);
+    expect(newSharedWrites.some(key => key.includes(':s:archive:'))).toBe(false);
+  });
+
   it('advances only the requested shared-data generation', async () => {
     const kv = new MemoryKv();
     await activate(kv);
