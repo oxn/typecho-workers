@@ -565,6 +565,8 @@ describe('autop', () => {
 describe('GFM task lists', () => {
   it('renders checked and unchecked items as inert visual markers', () => {
     const html = renderMarkdown('- [x] finished\n- [ ] pending');
+    expect(html).toContain('class="contains-task-list"');
+    expect(html).toContain('class="task-list-item"');
     expect(html).toContain('class="markdown-task-checkbox is-checked"');
     expect(html).toContain('class="markdown-task-checkbox"');
     expect(html).not.toContain('<input');
