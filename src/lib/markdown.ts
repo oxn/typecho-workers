@@ -639,7 +639,15 @@ function normalizeTaskListCheckboxes(html: string): string {
     /(<li\b[^>]*>)\s*<input\b(?=[^>]*\btype=["']?checkbox["']?)[^>]*>/gi,
     (match, listItem: string) => {
       const checked = /\bchecked(?:=["'][^"']*["'])?(?=\s|\/?>)/i.test(match);
-      return listItem + '<span class="markdown-task-checkbox' + (checked ? ' is-checked' : '') + '"></span>';
+      const classMatch = /\bclass=(["'])(.*?)\1/i.exec(listItem);
+      const taskListItem = classMatch
+        ? listItem.replace(/\bclass=(["'])(.*?)\1/i, (_all, quote: string, classes: string) => (
+            classes.split(/\s+/).includes('task-list-item')
+              ? _all
+              : 'class=' + quote + (classes + ' task-list-item').trim() + quote
+          ))
+        : listItem.replace(/^<li\b/i, '<li class="task-list-item"');
+      return taskListItem + '<span class="markdown-task-checkbox' + (checked ? ' is-checked' : '') + '"></span>';
     },
   );
 }
