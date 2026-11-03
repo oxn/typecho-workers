@@ -109,3 +109,9 @@
 - 测试与 warm-image.test.ts 一样由现有 Vitest include 规则发现。
 - 当前 GitHub 工具只能提交和读取仓库文件，尚未在项目运行环境安装依赖并执行 Vitest / Astro build；这些用例状态为“已编写、未执行”，不能标记为通过。
 - 主题设置默认值与 theme.json 的 config.default 已逐项对照，当前 helper 默认值保持一致；历史保存的 commentInitialLoadMode=dwell 兼容逻辑也有测试覆盖。
+
+### Warm CY 伴随插件权限回归测试
+
+- 新增 src/plugins/typecho-plugin-warm-cy/index.test.ts，沿用仓库现有插件单元测试模式，通过 mock 管理员鉴权、CSRF token 和设置写入接口测试插件 Hook。
+- 覆盖路由注册、非 POST 拒绝、无关路由透传、未登录拒绝、主题未启用拒绝、置顶设置保留其他主题选项、匿名评论不返回管理元数据、管理员评论元数据包含专用 CSRF token，以及无 authCode / 无内容行时不返回管理元数据。
+- 这些测试尚未执行。特别是管理员操作路由依赖宿主 requireAdminAction 的真实鉴权与同源/CSRF 检查；插件测试通过 mock 验证的是“正确调用鉴权门”，不是替代宿主鉴权集成测试。
