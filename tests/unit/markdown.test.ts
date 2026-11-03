@@ -22,7 +22,7 @@ import {
   transformGithubAlerts,
 } from '@/lib/markdown';
 import { notifyEarlyRequestInvalidation } from '@/lib/early-request';
-import { marked } from 'marked';
+import { Marked } from 'marked';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
@@ -212,7 +212,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('reuses the memoized render for identical source and plugin set', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(Marked.prototype, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     const first = await renderMarkdownFiltered(ctx, '**memo** text');
     const callsAfterFirst = parseSpy.mock.calls.length;
