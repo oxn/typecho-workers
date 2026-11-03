@@ -303,7 +303,17 @@ export function loadThemeConfig(
 }
 
 /** Parse a theme config form using the same field semantics as plugins. */
-export const parseThemeConfigFormData = parsePluginConfigFormData;
+export function parseThemeConfigFormData(
+  configDef: Record<string, PluginConfigField>,
+  formData: FormData,
+): Record<string, any> {
+  const settings = parsePluginConfigFormData(configDef, formData);
+  // Normalize full-width Chinese commas without parsing or dropping any ID.
+  if (typeof settings.pinnedIds === 'string') {
+    settings.pinnedIds = settings.pinnedIds.replace(/，/g, ',').trim();
+  }
+  return settings;
+}
 
 function getThemeInfo(themeId: string): ThemeInfo | undefined {
   const theme = themeRegistry.get(themeId);
