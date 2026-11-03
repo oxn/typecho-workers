@@ -464,14 +464,13 @@ export function stripHtmlTags(html: string): string {
  */
 function normalizeTaskListCheckboxes(html: string): string {
   return html.replace(
-    /(<li\\b[^>]*>)\\s*<input\\b(?=[^>]*\\btype=["']?checkbox["']?)[^>]*>/gi,
+    /(<li\b[^>]*>)\s*<input\b(?=[^>]*\btype=["']?checkbox["']?)[^>]*>/gi,
     (match, listItem: string) => {
-      const checked = /\\bchecked(?:=["'][^"']*["'])?(?=\\s|\\/?>)/i.test(match);
-      return `${listItem}<span class="markdown-task-checkbox${checked ? ' is-checked' : ''}"></span>`;
+      const checked = /\bchecked(?:=["'][^"']*["'])?(?=\s|\/?>)/i.test(match);
+      return listItem + '<span class="markdown-task-checkbox' + (checked ? ' is-checked' : '') + '"></span>';
     },
   );
 }
-
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
