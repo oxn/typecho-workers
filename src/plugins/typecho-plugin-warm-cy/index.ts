@@ -4,7 +4,7 @@ import { registerPluginAdminPath, setOption } from 'typecho/plugin-sdk';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { generateSecurityToken } from '@/lib/auth';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
-import { computeUrls } from '@/lib/options';
+import { computeUrls, getOption } from '@/lib/options';
 
 const THEME_ID = 'typecho-theme-warm-cy';
 const OPTION_KEY = `theme:${THEME_ID}`;
@@ -88,7 +88,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       return { handled: true, response: json({ error: 'Published post not found' }, 404) };
     }
 
-    const settings = parseSettings(auth.options[OPTION_KEY]);
+    const settings = parseSettings(await getOption(auth.db, OPTION_KEY));
     const ids = parsePinnedIds(settings.pinnedIds).filter(id => id !== contentId);
     if (pinned) ids.unshift(contentId);
     settings.pinnedIds = ids.join(',');
