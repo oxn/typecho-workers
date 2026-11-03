@@ -23,7 +23,6 @@ import {
   transformGithubAlerts,
 } from '@/lib/markdown';
 import { notifyEarlyRequestInvalidation } from '@/lib/early-request';
-import { marked } from 'marked';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
@@ -245,7 +244,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('re-renders after resetMarkdownRenderCache', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(contentMarkdownParser, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     await renderMarkdownFiltered(ctx, '**reset me**');
     const callsAfterFirst = parseSpy.mock.calls.length;
@@ -255,7 +254,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('re-renders when an invalidation covers the content domain', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(contentMarkdownParser, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     await renderMarkdownFiltered(ctx, '**invalidatable**');
     const callsAfterFirst = parseSpy.mock.calls.length;
@@ -265,7 +264,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('skips unrelated invalidations', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(contentMarkdownParser, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     await renderMarkdownFiltered(ctx, '**unrelated**');
     const callsAfterFirst = parseSpy.mock.calls.length;
@@ -275,7 +274,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('does not memoize oversized sources', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(contentMarkdownParser, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     const huge = 'x'.repeat(100_001);
     await renderMarkdownFiltered(ctx, huge);
