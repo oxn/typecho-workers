@@ -289,8 +289,8 @@ export function prepareArticleToc(html: string): { html: string; items: WarmTocI
 function generateWarmSlug(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[^\\w\\u4e00-\\u9fff\\s-]/g, '')
-    .replace(/\\s+/g, '-')
+    .replace(/[^\w\u4e00-\u9fff\s-]/g, '')
+    .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .substring(0, 150);
@@ -344,7 +344,7 @@ export function renderWarmIframes(html: string): string {
 
     // Add or replace an iframe attribute without duplicating it.
     const setAttribute = (name: string, value: string) => {
-      const pattern = new RegExp(`\\s${name}\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]+)`, 'i');
+      const pattern = new RegExp(`\s${name}\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)`, 'i');
 
       if (pattern.test(attributes)) {
         return attributes.replace(pattern, ` ${name}="${value}"`);
