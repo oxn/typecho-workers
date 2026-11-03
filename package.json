@@ -50,7 +50,10 @@
     "typecho-plugin-notifier": "workspace:*",
     "typecho-plugin-intelligence": "workspace:*",
     "typecho-plugin-turnstile": "workspace:*",
-    "typecho-theme-warm": "workspace:*"
+    "typecho-theme-warm": "workspace:*",
+    "typecho-plugin-warm-cy": "workspace:*",
+    "typecho-theme-warm-cy": "workspace:*",
+    "typecho-plugin-pinyin": "workspace:*"
   },
   "devDependencies": {
     "@libsql/client": "^0.17.4",
