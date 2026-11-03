@@ -558,3 +558,22 @@ describe('autop', () => {
     expect(html).toBe('<p>hello</p>\n<p>world</p>');
   });
 });
+
+
+describe('GFM task lists', () => {
+  it('renders checked and unchecked items as inert visual markers', () => {
+    const html = renderMarkdown('- [x] finished\\n- [ ] pending');
+    expect(html).toContain('class="markdown-task-checkbox is-checked"');
+    expect(html).toContain('class="markdown-task-checkbox"');
+    expect(html).not.toContain('<input');
+    expect(html).toContain('finished');
+    expect(html).toContain('pending');
+  });
+
+  it('does not allow arbitrary HTML form controls through the content sanitizer', () => {
+    const html = renderMarkdown('<input type="checkbox" checked><script>alert(1)</script>');
+    expect(html).not.toContain('<input');
+    expect(html).not.toContain('<script');
+    expect(html).toContain('alert(1)');
+  });
+});
