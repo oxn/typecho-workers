@@ -787,6 +787,14 @@ body.warm-theme {
 }
 
 /* GFM task lists use inert spans instead of interactive form controls. */
+.warm-prose li.task-list-item {
+  list-style: none;
+}
+
+.warm-prose li.task-list-item::marker {
+  content: '';
+}
+
 .warm-prose .markdown-task-checkbox {
   display: inline-block;
   width: .9em;
