@@ -1,4 +1,4 @@
-import { marked } from 'marked';
+import { Marked, marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 import { applyFilter, type HookContext } from '@/lib/plugin';
 import { escapeHtml as escapeHtmlShared } from '@/lib/escape';
@@ -130,17 +130,10 @@ function addMarkdownHeadingAnchors(html: string): string {
 }
 
 function parseContentMarkdown(source: string): string {
-  const footnoteExtension = markedFootnote();
-  const html = marked.parse(source, {
-    ...footnoteExtension,
-    async: false,
-    breaks: true,
-    extensions: [
-      ...(footnoteExtension.extensions ?? []),
-      mathBlockExtension,
-      mathInlineExtension,
-    ],
-  }) as string;
+  const parser = new Marked({ gfm: true, breaks: true });
+  parser.use(markedFootnote());
+  parser.use({ extensions: [mathBlockExtension, mathInlineExtension] });
+  const html = parser.parse(source) as string;
   return addMarkdownHeadingAnchors(html);
 }
 // ─── HTML escape helper ─────────────────────────────────────────────────────
