@@ -115,3 +115,16 @@
 - 新增 src/plugins/typecho-plugin-warm-cy/index.test.ts，沿用仓库现有插件单元测试模式，通过 mock 管理员鉴权、CSRF token 和设置写入接口测试插件 Hook。
 - 覆盖路由注册、非 POST 拒绝、无关路由透传、未登录拒绝、主题未启用拒绝、置顶设置保留其他主题选项、匿名评论不返回管理元数据、管理员评论元数据包含专用 CSRF token，以及无 authCode / 无内容行时不返回管理元数据。
 - 这些测试尚未执行。特别是管理员操作路由依赖宿主 requireAdminAction 的真实鉴权与同源/CSRF 检查；插件测试通过 mock 验证的是“正确调用鉴权门”，不是替代宿主鉴权集成测试。
+
+### 拼音插件与首次 CI 验证（2026-11-03）
+
+- 新增独立工作区插件 `typecho-plugin-pinyin`，只依赖编辑器底部 Hook 和专用管理员 API，不修改内容保存 API、编辑器源码、数据库或主题。
+- 文章与独立页面分别读取 `permalinkPattern` / `pagePattern`；只有包含 `{slug}` 才注入辅助功能。编辑旧内容时保留现有 slug；新建内容只在 slug 为空时自动建议；手动编辑后停止覆盖，允许用户主动重新生成。
+- 拼音转换由 Worker 端执行，使用本地 `pinyin-pro` 依赖；显式设置 `nonZh: 'consecutive'`，避免英文单词被逐字母拆开。
+- API 仅接受 POST，复用 `requireAdminAction(request, 'editor')`，其默认开启同源与 CSRF 检查。响应使用 `private, no-store`。
+- 根 workspace、插件 workspace、`bun.lock` 和 `astro.config.mjs` 的依赖预打包排除清单均已登记。
+- 新增独立的分支验证工作流，仅执行冻结锁文件安装、Vitest 和 Astro build；不包含 Cloudflare deploy 步骤。
+- 成功运行：GitHub Actions run `41623551813`。`bun install --frozen-lockfile` 成功；129 个测试文件、1503 项测试全部通过；`astro build` 成功，日志显示 8 个插件和 2 个主题被打包。
+- CI 首轮暴露的拼音英文分词、Warm CY iframe 属性连续覆盖、TOC slug 测试预期，以及 HyperDown UMD 在 ESM 测试环境中的加载问题均已修复后复测通过。
+- 当前分支相对固定基线 `6f268808f4f510852887f18cf43fd88567d69e15` 仍为 ahead 48 / behind 0。逐个比较核心目录与文件的 Blob SHA：基线 158 个、当前 158 个，差异 0。
+- 本次 CI 是单元测试和 Astro 构建验证，不是 `build:cloudflare`、Wrangler 部署验证或线上功能验收；尚未合并主分支，也未部署。
