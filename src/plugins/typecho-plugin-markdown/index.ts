@@ -140,9 +140,9 @@ export function transformMathSource(source: string): string {
   return output.join('\n');
 }
 
-function scriptsHtml(): string {
+function scriptsHtml(includePurify = true): string {
   return [
-    '<script defer src="/vendor/purify.js"></script>',
+    ...(includePurify ? ['<script defer src="/vendor/purify.js"></script>'] : []),
     '<script defer src="' + PUBLIC_ASSET + '/markdown-loader.js"></script>',
   ].join('');
 }
@@ -156,6 +156,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const isEditorMenu = extra?.activeMenu === 'write-post' || extra?.activeMenu === 'write-page';
     const isEditorTitle = ['撰写新文章', '编辑文章', '创建新页面', '编辑页面'].includes(extra?.title || '');
     if (!isEditorMenu && !isEditorTitle) return html;
-    return html + scriptsHtml();
+    // Editor pages already load DOMPurify as part of the core editor bundle.
+    return html + scriptsHtml(false);
   });
 }
