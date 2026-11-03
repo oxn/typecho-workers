@@ -1,7 +1,7 @@
 
 import type { ThemeBaseProps, ThemePostProps } from '@/lib/theme-props';
 import { loadThemeConfig } from '@/lib/theme';
-import { normalizeOptimizeParams } from '@/lib/image-transform';
+import { normalizeOptimizeParams } from './warm-image';
 import { escapeHtml, formatDate } from 'typecho/plugin-sdk';
 import { generateSlug } from '@/lib/content';
 
