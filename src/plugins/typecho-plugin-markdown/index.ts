@@ -105,15 +105,16 @@ export function transformMathSource(source: string): string {
 
     const displayIndent = /^(\s{0,3})/.exec(line)?.[1] ?? '';
     const displayBody = line.slice(displayIndent.length).trim();
-      : displayBody.length > 4 && displayBody.startsWith('\\[') && displayBody.endsWith('\\]')
-      ? { indent: displayIndent, body: displayBody.slice(2, -2) }
-      : displayBody.length > 4 && displayBody.startsWith('\\[') && displayBody.endsWith('\\]')
+    const displayLine =
+      displayBody.length > 4 && displayBody.startsWith('$$') && displayBody.endsWith('$$')
         ? { indent: displayIndent, body: displayBody.slice(2, -2) }
-        : null;
+        : displayBody.length > 4 && displayBody.startsWith('\\\\[') && displayBody.endsWith('\\\\]')
+          ? { indent: displayIndent, body: displayBody.slice(2, -2) }
+          : null;
     if (displayLine) {
-      output.push(displayLine.indent + '\`\`\`math');
+      output.push(displayLine.indent + '```math');
       output.push(displayLine.body);
-      output.push(displayLine.indent + '\`\`\`');
+      output.push(displayLine.indent + '```');
       continue;
     }
 
