@@ -1,5 +1,5 @@
 import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import './markdown.css';
 
 declare global {
   interface Window {
@@ -31,7 +31,7 @@ function renderFormula(node: HTMLElement, tex: string, displayMode: boolean): bo
       throwOnError: false,
       trust: false,
       strict: 'ignore',
-      output: 'htmlAndMathml',
+      output: 'mathml',
     });
     const safe = safeHtml(html);
     if (safe === null) return false;
