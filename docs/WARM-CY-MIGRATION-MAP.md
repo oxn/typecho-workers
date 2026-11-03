@@ -102,3 +102,10 @@
 - 这意味着纯服务端拼音别名插件不能只依赖 post:write / page:write。不能提交一个表面可用、实际保存后又被覆盖的插件。
 - 可行方向需进一步验证：在后台编辑器使用插件的 admin:writePost:bottom / admin:writePage:bottom 注入客户端拼音输入辅助；只在 slug 输入为空或仍处于插件自动生成状态时更新，用户手动编辑后立即停止覆盖；保存时通过现有表单提交显式 slug。必须确认 permalink 不含 {slug} 时 UI 不存在 slug 字段的降级行为，并确保编辑旧文章时不覆盖现有 slug。
 - 若要求无浏览器脚本的 API、批量导入、自动化写入也统一生成拼音，则固定基线没有足够的公开 Hook；在“不修改核心”的前提下无法保证全路径一致，需明确标记能力边界，而不是暗中复制核心保存流程。
+
+### Warm CY 主题 helper 回归测试补充
+
+- 新增 components/warm.test.ts，覆盖置顶 ID 解析、加载模式归一化、外链 URL 安全处理、邮箱校验、主题设置读取与默认值、目录标题 ID 去重、摘要清理和阅读时长计算。
+- 测试与 warm-image.test.ts 一样由现有 Vitest include 规则发现。
+- 当前 GitHub 工具只能提交和读取仓库文件，尚未在项目运行环境安装依赖并执行 Vitest / Astro build；这些用例状态为“已编写、未执行”，不能标记为通过。
+- 主题设置默认值与 theme.json 的 config.default 已逐项对照，当前 helper 默认值保持一致；历史保存的 commentInitialLoadMode=dwell 兼容逻辑也有测试覆盖。
