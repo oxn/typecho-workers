@@ -8,7 +8,7 @@ import { linkifyNoteContent } from 'typecho-plugin-notes';
 const MAX_PREVIEW_BODY_BYTES = 500_000;
 
 function preserveEditorEmbedPreview(html: string): string {
-  return html.replace(/<(iframe|embed)\\s+([^>]*)>/ig, (_all, tag: string, attributes: string) => {
+  return html.replace(/<(iframe|embed)\s+([^>]*)>/ig, (_all, tag: string, attributes: string) => {
     const source = attributes.endsWith('/') ? attributes.slice(0, -1) : attributes;
     return '<div class="embed"><strong>' + tag + '</strong> : ' + source.trim() + '</div>';
   });
