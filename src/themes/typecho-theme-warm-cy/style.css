@@ -786,6 +786,43 @@ body.warm-theme {
   color: #aaa59f;
 }
 
+/* GFM task lists use inert spans instead of interactive form controls. */
+.warm-prose li.task-list-item {
+  list-style: none;
+}
+
+.warm-prose li.task-list-item::marker {
+  content: '';
+}
+
+.warm-prose .markdown-task-checkbox {
+  display: inline-block;
+  width: .9em;
+  height: .9em;
+  margin: 0 .45em 0 0;
+  border: 1px solid var(--warm-muted);
+  border-radius: 3px;
+  vertical-align: -.08em;
+}
+
+.warm-prose .markdown-task-checkbox.is-checked {
+  position: relative;
+  border-color: var(--warm-accent);
+  background: var(--warm-accent);
+}
+
+.warm-prose .markdown-task-checkbox.is-checked::after {
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 4px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  content: '';
+  transform: rotate(45deg);
+}
+
 .warm-prose img {
   max-width: 100%;
   height: auto;
@@ -1011,6 +1048,156 @@ body.warm-theme {
   background: transparent;
   color: inherit;
   font-size: inherit;
+}
+
+/* Footnotes, math, and Mermaid output. Their rendering bundles are lazy-loaded. */
+.warm-prose .footnotes {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--warm-border);
+  color: var(--warm-muted);
+  font-size: .92em;
+}
+
+.warm-prose .footnotes h2.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.warm-prose .footnotes ol {
+  padding-left: 1.5rem;
+}
+
+.warm-prose .footnotes li {
+  margin: .55rem 0;
+}
+
+.warm-prose [data-footnote-ref]::before {
+  content: '[';
+}
+
+.warm-prose [data-footnote-ref]::after {
+  content: ']';
+}
+
+.warm-prose [data-footnote-backref] {
+  margin-left: .35em;
+  text-decoration: none;
+}
+
+.warm-prose .markdown-math {
+  overflow-wrap: anywhere;
+}
+
+.warm-prose .markdown-math--block {
+  display: block;
+  margin: 1.4rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.warm-prose .warm-mermaid {
+  max-width: 100%;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.warm-prose .warm-mermaid svg {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* PrismJS syntax colors — the highlighter bundle itself is loaded only when needed. */
+.warm-prose pre .token.comment,
+.warm-prose pre .token.prolog,
+.warm-prose pre .token.doctype,
+.warm-prose pre .token.cdata {
+  color: #8b8b83;
+}
+
+.warm-prose pre .token.punctuation,
+.warm-prose pre .token.operator {
+  color: #77716a;
+}
+
+.warm-prose pre .token.property,
+.warm-prose pre .token.tag,
+.warm-prose pre .token.boolean,
+.warm-prose pre .token.number,
+.warm-prose pre .token.constant,
+.warm-prose pre .token.symbol {
+  color: #b45b45;
+}
+
+.warm-prose pre .token.selector,
+.warm-prose pre .token.attr-name,
+.warm-prose pre .token.string,
+.warm-prose pre .token.char,
+.warm-prose pre .token.builtin {
+  color: #65845b;
+}
+
+.warm-prose pre .token.keyword,
+.warm-prose pre .token.atrule,
+.warm-prose pre .token.function,
+.warm-prose pre .token.class-name {
+  color: #8066a5;
+}
+
+.warm-prose pre .token.regex,
+.warm-prose pre .token.important,
+.warm-prose pre .token.variable {
+  color: #b07a37;
+}
+
+.dark .warm-prose pre .token.comment,
+.dark .warm-prose pre .token.prolog,
+.dark .warm-prose pre .token.doctype,
+.dark .warm-prose pre .token.cdata {
+  color: #92958f;
+}
+
+.dark .warm-prose pre .token.punctuation,
+.dark .warm-prose pre .token.operator {
+  color: #b7b2aa;
+}
+
+.dark .warm-prose pre .token.property,
+.dark .warm-prose pre .token.tag,
+.dark .warm-prose pre .token.boolean,
+.dark .warm-prose pre .token.number,
+.dark .warm-prose pre .token.constant,
+.dark .warm-prose pre .token.symbol {
+  color: #e39a83;
+}
+
+.dark .warm-prose pre .token.selector,
+.dark .warm-prose pre .token.attr-name,
+.dark .warm-prose pre .token.string,
+.dark .warm-prose pre .token.char,
+.dark .warm-prose pre .token.builtin {
+  color: #a4c18f;
+}
+
+.dark .warm-prose pre .token.keyword,
+.dark .warm-prose pre .token.atrule,
+.dark .warm-prose pre .token.function,
+.dark .warm-prose pre .token.class-name {
+  color: #c3a9e4;
+}
+
+.dark .warm-prose pre .token.regex,
+.dark .warm-prose pre .token.important,
+.dark .warm-prose pre .token.variable {
+  color: #e5b875;
 }
 
 .warm-prose table {

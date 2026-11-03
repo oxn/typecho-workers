@@ -470,6 +470,35 @@ const writePostBottomHtml = await applyFilterSafely(ctx, 'admin:writePost:bottom
         }
       });
 
+      var serverPreviewTimer = null, serverPreviewRequest = 0;
+      function scheduleServerMarkdownPreview() {
+        var requestId = ++serverPreviewRequest;
+        clearTimeout(serverPreviewTimer);
+        serverPreviewTimer = setTimeout(function () {
+          var source = String(textarea.val() || '');
+          var csrfField = document.querySelector('input[name="_"]');
+          if (!csrfField) return;
+          fetch('/api/admin/markdown-preview', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfField.value
+            },
+            body: JSON.stringify({ type: 'post', content: source })
+          }).then(function (response) {
+            if (!response.ok) throw new Error('Preview request failed');
+            return response.json();
+          }).then(function (result) {
+            if (requestId !== serverPreviewRequest || typeof result.html !== 'string') return;
+            preview.html(result.html);
+            reloadScroll(true);
+          }).catch(function () {
+            // Keep the local HyperDown preview visible if the server preview is unavailable.
+          });
+        }, 350);
+      }
+      editor.hooks.chain('onPreviewRefresh', scheduleServerMarkdownPreview);
+
       var th = textarea.height(), ph = preview.height();
 
       editor.hooks.chain('enterFakeFullScreen', function () {

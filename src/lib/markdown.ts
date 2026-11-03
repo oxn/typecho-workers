@@ -1,11 +1,184 @@
-import { marked } from 'marked';
+import { Marked, marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 import { applyFilter, type HookContext } from '@/lib/plugin';
 import { escapeHtml as escapeHtmlShared } from '@/lib/escape';
+import { generateSlug } from '@/lib/content';
 import { transformGithubAlerts } from '@/lib/markdown-alerts';
+import markedFootnote from 'marked-footnote';
 
 export { transformGithubAlerts } from '@/lib/markdown-alerts';
 
+/**
+ * Parse article/page/note Markdown with a fresh footnote extension instance.
+ * A new instance per parse keeps reference state isolated between requests.
+ * Comment Markdown intentionally continues to use the separate basic parser.
+ */
+function extractDisplayMathBlocks(source: string): { source: string; blocks: string[] } {
+  const lines = source.split('\n');
+  const output: string[] = [];
+  const blocks: string[] = [];
+  const backtick = String.fromCharCode(96);
+  let fenceCharacter = '';
+  let fenceLength = 0;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const trimmed = line.trimStart();
+    const marker = trimmed.charAt(0);
+    let markerLength = 0;
+    while (trimmed.charAt(markerLength) === marker && marker) markerLength += 1;
+
+    if (!fenceCharacter && (marker === backtick || marker === '~') && markerLength >= 3) {
+      fenceCharacter = marker;
+      fenceLength = markerLength;
+      output.push(line);
+      continue;
+    }
+
+    if (fenceCharacter) {
+      if (marker === fenceCharacter && markerLength >= fenceLength && trimmed.slice(markerLength).trim() === '') {
+        fenceCharacter = '';
+        fenceLength = 0;
+      }
+      output.push(line);
+      continue;
+    }
+
+    const indentation = line.length - trimmed.length;
+    if (indentation > 3) {
+      output.push(line);
+      continue;
+    }
+
+    const delimiter = line.trim();
+    const inlineBlock = /^\s*\$\$(.+?)\$\$\s*$/.exec(line);
+    if (inlineBlock) {
+      const tex = inlineBlock[1];
+      const placeholder = '<!--__TYPECHO_INTERNAL_MATH_BLOCK_' + blocks.length + '__-->';
+      blocks.push(tex);
+      output.push('');
+      output.push(placeholder);
+      output.push('');
+      continue;
+    }
+
+    if (delimiter === '$$' || delimiter === '\\[') {
+      const closing = delimiter === '$$' ? '$$' : '\\]';
+      let closingIndex = index + 1;
+      while (closingIndex < lines.length && lines[closingIndex].trim() !== closing) closingIndex += 1;
+      if (closingIndex < lines.length) {
+        const tex = lines.slice(index + 1, closingIndex).join('\n');
+        const placeholder = '<!--__TYPECHO_INTERNAL_MATH_BLOCK_' + blocks.length + '__-->';
+        blocks.push(tex);
+        output.push('');
+        output.push(placeholder);
+        output.push('');
+        index = closingIndex;
+        continue;
+      }
+    }
+
+    output.push(line);
+  }
+
+  return { source: output.join('\n'), blocks };
+}
+
+const mathInlineExtension = {
+  name: 'markdownMathInline',
+  level: 'inline' as const,
+  start(source: string): number | undefined {
+    const tick = String.fromCharCode(96);
+    let index = 0;
+    while (index < source.length) {
+      if (source[index] === '\\') {
+        if (source[index + 1] === '(') return index;
+        if (source[index + 1] === '$') {
+          index += 2;
+          continue;
+        }
+        index += 1;
+        continue;
+      }
+      if (source[index] === tick) {
+        let end = index + 1;
+        while (source[end] === tick) end += 1;
+        const marker = tick.repeat(end - index);
+        const close = source.indexOf(marker, end);
+        if (close === -1) return undefined;
+        index = close + marker.length;
+        continue;
+      }
+      if (source[index] === '$' && source[index + 1] !== '$' && source[index - 1] !== '$') return index;
+      index += 1;
+    }
+    return undefined;
+  },
+  tokenizer(source: string) {
+    const dollar = /^\$(?!\$)((?:\\.|[^$])+?)(?<!\\)\$(?!\$)/.exec(source);
+    if (dollar && dollar[1].trim()) {
+      return { type: 'markdownMathInline', raw: dollar[0], text: dollar[1] };
+    }
+    const bracket = /^\\\((.+?)\\\)/.exec(source);
+    if (bracket && bracket[1].trim()) {
+      return { type: 'markdownMathInline', raw: bracket[0], text: bracket[1] };
+    }
+    return undefined;
+  },
+  renderer(token: { text: string }): string {
+    const tex = token.text.trim();
+    const escaped = escapeHtmlShared(tex);
+    return '<span class="markdown-math" data-tex="' + escaped + '">' + escaped + '</span>';
+  },
+};
+
+function addMarkdownHeadingAnchors(html: string): string {
+  const reserved = new Set<string>();
+  html.replace(/<h[1-6]([^>]*)>/gi, (_full, attributes: string) => {
+    const existingId = /\bid\s*=\s*(["'])(.*?)\1/i.exec(attributes);
+    if (existingId) reserved.add(existingId[2]);
+    return _full;
+  });
+
+  const used = new Set(reserved);
+  return html.replace(/<h([1-6])([^>]*)>([\s\S]*?)<\/h\1>/gi, (full, level: string, attributes: string, inner: string) => {
+    if (/\bid\s*=\s*(["']).*?\1/i.test(attributes)) return full;
+
+    const headingText = inner.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const base = generateSlug(headingText) || 'heading-' + level;
+    let id = base;
+    let suffix = 1;
+    while (used.has(id)) {
+      id = base + '-' + suffix;
+      suffix += 1;
+    }
+    used.add(id);
+    return '<h' + level + attributes + ' id="' + id + '">' + inner + '</h' + level + '>';
+  });
+}
+
+export const contentMarkdownParser = {
+  parse(source: string): string {
+    const displayMath = extractDisplayMathBlocks(source);
+    const parser = new Marked({ gfm: true, breaks: true });
+    parser.use(markedFootnote());
+    parser.use({ extensions: [mathInlineExtension] });
+    let html = parser.parse(displayMath.source) as string;
+
+    displayMath.blocks.forEach((tex, index) => {
+      const placeholder = '<!--__TYPECHO_INTERNAL_MATH_BLOCK_' + index + '__-->';
+      const escaped = escapeHtmlShared(tex.trim());
+      const renderedPlaceholder = '<div class="markdown-math markdown-math--block" data-tex="' + escaped + '">' + escaped + '</div>';
+      html = html.replace(placeholder, renderedPlaceholder);
+    });
+
+    return addMarkdownHeadingAnchors(html);
+  },
+};
+
+function parseContentMarkdown(source: string): string {
+  return contentMarkdownParser.parse(source);
+}
 // ─── HTML escape helper ─────────────────────────────────────────────────────
 
 /** @deprecated Import from '@/lib/escape' directly. */
@@ -64,15 +237,17 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     a: [
       'href', 'title', 'target', 'rel',
       'download', 'class', 'id', 'style',
+      'data-footnote-ref', 'data-footnote-backref',
+      'aria-label', 'aria-describedby',
     ],
 
     button: [
       'type', 'disabled', 'class', 'id', 'title', 'style',
     ],
 
-    div: ['class', 'id', 'title', 'style'],
-    span: ['class', 'id', 'title', 'style'],
-    section: ['class', 'id', 'title', 'style'],
+    div: ['class', 'id', 'title', 'style', 'data-tex'],
+    span: ['class', 'id', 'title', 'style', 'data-tex'],
+    section: ['class', 'id', 'title', 'style', 'data-footnotes'],
     article: ['class', 'id', 'title', 'style'],
     aside: ['class', 'id', 'title', 'style'],
     header: ['class', 'id', 'title', 'style'],
@@ -80,6 +255,15 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     nav: ['class', 'id', 'title', 'style'],
     main: ['class', 'id', 'title', 'style'],
     address: ['class', 'id', 'title', 'style'],
+    h1: ['class', 'id'],
+    h2: ['class', 'id'],
+    h3: ['class', 'id'],
+    h4: ['class', 'id'],
+    h5: ['class', 'id'],
+    h6: ['class', 'id'],
+    ul: ['class'],
+    ol: ['class'],
+    li: ['class', 'id'],
 
     table: ['class', 'id', 'style'],
     caption: ['class', 'id', 'style'],
@@ -457,6 +641,28 @@ export function stripHtmlTags(html: string): string {
   return html.replace(HTML_TAG_RE, ' ').replace(WHITESPACE_RE, ' ').trim();
 }
 
+/**
+ * Marked emits disabled checkbox inputs for GFM task lists. Keep the visual
+ * state while replacing form controls with inert spans before sanitization.
+ * This deliberately targets only a checkbox immediately inside a list item.
+ */
+function normalizeTaskListCheckboxes(html: string): string {
+  return html.replace(
+    /(<li\b[^>]*>)\s*<input\b(?=[^>]*\btype=["']?checkbox["']?)[^>]*>/gi,
+    (match, listItem: string) => {
+      const checked = /\bchecked(?:=["'][^"']*["'])?(?=\s|\/?>)/i.test(match);
+      const classMatch = /\bclass=(["'])(.*?)\1/i.exec(listItem);
+      const taskListItem = classMatch
+        ? listItem.replace(/\bclass=(["'])(.*?)\1/i, (_all, quote: string, classes: string) => (
+            classes.split(/\s+/).includes('task-list-item')
+              ? _all
+              : 'class=' + quote + (classes + ' task-list-item').trim() + quote
+          ))
+        : listItem.replace(/^<li\b/i, '<li class="task-list-item"');
+      return taskListItem + '<span class="markdown-task-checkbox' + (checked ? ' is-checked' : '') + '"></span>';
+    },
+  );
+}
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
@@ -484,7 +690,7 @@ export function renderContent(text: string, maxExcerptLength = 200): RenderedCon
   }
 
   const content = stripMarkdownPrefix(text).replace(MORE_COMMENT_RE, '');
-  const parsed = transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string);
+  const parsed = normalizeTaskListCheckboxes(transformGithubAlerts(parseContentMarkdown(content)));
   const html = sanitizeHtml(parsed, SANITIZE_OPTIONS);
   const plain = stripHtmlTags(parsed);
   const plainExcerpt = plain.length <= maxExcerptLength
@@ -554,7 +760,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
     console.error('[markdown] content:markdown filter failed:', error);
   }
 
-  const html = transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string);
+  const html = normalizeTaskListCheckboxes(transformGithubAlerts(parseContentMarkdown(content)));
   let sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   try {
@@ -608,7 +814,7 @@ export function renderContentExcerpt(
   // regardless of whether the author placed <!--more--> inline or between
   // paragraphs — enabling a clean split on the rendered output.
   const withPlaceholder = content.replace(MORE_COMMENT_RE, '\n\n' + MORE_PLACEHOLDER + '\n\n');
-  const html = transformGithubAlerts(marked.parse(withPlaceholder, { async: false, breaks: true }) as string);
+  const html = normalizeTaskListCheckboxes(transformGithubAlerts(parseContentMarkdown(withPlaceholder)));
   const sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   // Split on the rendered placeholder and keep only the excerpt (part before it).

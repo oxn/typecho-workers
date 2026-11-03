@@ -137,6 +137,30 @@ function setupMarkdownEditor(){
   });
   markdownEditor.hooks.chain("commandExecuted",function(){content.dispatchEvent(new Event("input",{bubbles:true}))});
   content.addEventListener("keydown",function(event){if(!event.ctrlKey&&!event.metaKey)return;var key=String(event.key||"").toLocaleLowerCase();if(["r","z","y","j","e","m"].indexOf(key)<0)return;event.preventDefault();event.stopImmediatePropagation()},true);
+  var serverPreviewTimer=null,serverPreviewRequest=0;
+  function scheduleServerNotePreview(){
+    var requestId=++serverPreviewRequest;
+    clearTimeout(serverPreviewTimer);
+    serverPreviewTimer=setTimeout(function(){
+      var preview=document.getElementById("wmd-preview");
+      if(!preview)return;
+      fetch("/api/admin/markdown-preview",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-CSRF-Token":csrf},
+        body:JSON.stringify({type:"note",content:content.value})
+      }).then(function(response){
+        if(!response.ok)throw new Error("Preview request failed");
+        return response.json();
+      }).then(function(result){
+        if(requestId!==serverPreviewRequest||typeof result.html!=="string")return;
+        preview.innerHTML=result.html;
+        syncPreviewHeight();
+      }).catch(function(){
+        // Keep the local HyperDown preview visible if the server preview is unavailable.
+      });
+    },350);
+  }
+  markdownEditor.hooks.chain("onPreviewRefresh",scheduleServerNotePreview);
   markdownEditor.run();
   document.querySelectorAll("#wmd-hr-button,#wmd-more-button,#wmd-undo-button,#wmd-redo-button,#wmd-fullscreen-button,#wmd-exit-fullscreen-button,#wmd-spacer2,#wmd-spacer3,#wmd-spacer4").forEach(function(button){button.remove()});
   document.getElementById("wmd-button-bar").insertAdjacentHTML("afterbegin",'<div class="wmd-edittab"><a href="#wmd-editarea" class="active" data-mode="write">撰写</a><a href="#wmd-preview" data-mode="preview">预览</a></div>');

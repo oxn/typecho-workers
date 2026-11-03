@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { addHook, type HookContext } from '@/lib/plugin';
 import {
   autop,
+  contentMarkdownParser,
   escapeHtml,
   generateExcerpt,
   renderCommentText,
@@ -22,7 +23,6 @@ import {
   transformGithubAlerts,
 } from '@/lib/markdown';
 import { notifyEarlyRequestInvalidation } from '@/lib/early-request';
-import { marked } from 'marked';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
@@ -86,7 +86,9 @@ describe('transformGithubAlerts / GFM alerts', () => {
   it.each([
     ['NOTE', 'note'],
     ['TIP', 'tip'],
+    ['IMPORTANT', 'important'],
     ['WARNING', 'warning'],
+    ['CAUTION', 'caution'],
   ] as const)('renders [!%s] with colored border class', (type, cls) => {
     const html = renderMarkdown(alertSource(type, '补充说明'));
     expect(html).toContain(`class="markdown-alert markdown-alert-${cls}"`);
@@ -210,7 +212,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('reuses the memoized render for identical source and plugin set', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(contentMarkdownParser, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     const first = await renderMarkdownFiltered(ctx, '**memo** text');
     const callsAfterFirst = parseSpy.mock.calls.length;
@@ -242,7 +244,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('re-renders after resetMarkdownRenderCache', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(contentMarkdownParser, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     await renderMarkdownFiltered(ctx, '**reset me**');
     const callsAfterFirst = parseSpy.mock.calls.length;
@@ -252,7 +254,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('re-renders when an invalidation covers the content domain', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(contentMarkdownParser, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     await renderMarkdownFiltered(ctx, '**invalidatable**');
     const callsAfterFirst = parseSpy.mock.calls.length;
@@ -262,7 +264,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('skips unrelated invalidations', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(contentMarkdownParser, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     await renderMarkdownFiltered(ctx, '**unrelated**');
     const callsAfterFirst = parseSpy.mock.calls.length;
@@ -272,7 +274,7 @@ describe('renderMarkdownFiltered memoization', () => {
   });
 
   it('does not memoize oversized sources', async () => {
-    const parseSpy = vi.spyOn(marked, 'parse');
+    const parseSpy = vi.spyOn(contentMarkdownParser, 'parse');
     const ctx: HookContext = { activatedPlugins: new Set() };
     const huge = 'x'.repeat(100_001);
     await renderMarkdownFiltered(ctx, huge);
@@ -556,5 +558,86 @@ describe('autop', () => {
   it('normalises \\r\\n to \\n', () => {
     const html = autop('hello\r\n\r\nworld');
     expect(html).toBe('<p>hello</p>\n<p>world</p>');
+  });
+});
+
+
+describe('GFM task lists', () => {
+  it('renders checked and unchecked items as inert visual markers', () => {
+    const html = renderMarkdown('- [x] finished\n- [ ] pending');
+    expect(html).toContain('class="task-list-item"');
+    expect(html).toContain('class="markdown-task-checkbox is-checked"');
+    expect(html).toContain('class="markdown-task-checkbox"');
+    expect(html).not.toContain('<input');
+    expect(html).toContain('finished');
+    expect(html).toContain('pending');
+  });
+
+  it('does not allow arbitrary HTML form controls through the content sanitizer', () => {
+    const html = renderMarkdown('<input type="checkbox" checked><script>alert(1)</script>');
+    expect(html).not.toContain('<input');
+    expect(html).not.toContain('<script');
+    expect(html).not.toContain('alert(1)');
+  });
+});
+
+
+describe('GFM footnotes', () => {
+  it('renders references, definitions, and return links', () => {
+    const html = renderMarkdown('A note reference[^source].\n\n[^source]: Footnote body.');
+    expect(html).toContain('data-footnote-ref');
+    expect(html).toContain('data-footnote-backref');
+    expect(html).toContain('class="footnotes"');
+    expect(html).toContain('Footnote body.');
+  });
+
+  it('keeps footnote state isolated between separate documents', () => {
+    const withFootnote = renderMarkdown('Text[^a].\n\n[^a]: First document note.');
+    const withoutFootnote = renderMarkdown('A separate document.');
+    expect(withFootnote).toContain('First document note.');
+    expect(withoutFootnote).not.toContain('footnotes');
+    expect(withoutFootnote).not.toContain('First document note.');
+  });
+});
+
+
+describe('LaTeX math placeholders', () => {
+  it('recognizes inline and display math without rendering unsafe HTML on the server', () => {
+    const html = renderMarkdown('Inline $x^2 + y^2$ formula.\n\n$$\nx^2 + y^2 = z^2\n$$');
+    expect(html).toContain('class="markdown-math"');
+    expect(html).toContain('data-tex="x^2 + y^2"');
+    expect(html).toContain('markdown-math--block');
+    expect(html).toContain('x^2 + y^2 = z^2');
+  });
+
+  it('does not interpret math delimiters inside code spans or fenced code', () => {
+    const html = renderMarkdown('Use `$x^2$` in code.\n\n```text\n$y^2$\n```');
+    expect(html).not.toContain('class="markdown-math"');
+    expect(html).toContain('<code>$x^2$</code>');
+  });
+});
+
+
+describe('Markdown heading anchors and Mermaid blocks', () => {
+  it('adds unique stable ids to headings while preserving explicit ids', () => {
+    const html = renderMarkdown('# Intro\n\n## Hello, world!\n\n## Hello, world!\n\n## <span id="custom-heading">Custom</span>');
+    expect(html).toContain('<h1 id="intro">Intro</h1>');
+    expect(html).toContain('id="hello-world"');
+    expect(html).toContain('id="hello-world-1"');
+    expect(html).toContain('id="custom-heading"');
+  });
+
+  it('keeps Mermaid fenced code as a language-marked code block for lazy rendering', () => {
+    const html = renderMarkdown('```mermaid\nflowchart TD\n  A --> B\n```');
+    expect(html).toContain('class="language-mermaid"');
+    expect(html).toContain('A --&gt; B');
+    expect(html).not.toContain('<svg');
+  });
+});
+
+describe('Comment Markdown isolation', () => {
+  it('does not enable article math extensions for comments', () => {
+    const html = renderCommentText('$x^2$', { markdown: true });
+    expect(html).not.toContain('markdown-math');
   });
 });

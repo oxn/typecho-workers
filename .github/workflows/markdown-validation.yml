@@ -1,0 +1,70 @@
+name: Markdown branch validation
+
+concurrency:
+  group: markdown-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - feature/markdown-full-support
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  test-and-build:
+    if: github.event_name == 'push' || github.head_ref == 'feature/markdown-full-support'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Refresh branch before dependency resolution
+        if: github.event_name == 'push'
+        run: |
+          git fetch origin "${GITHUB_REF_NAME}"
+          git reset --hard "origin/${GITHUB_REF_NAME}"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Commit resolved Bun lockfile
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/markdown-full-support'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update Markdown dependency lockfile"
+            git push
+          fi
+
+      - name: Upload resolved Bun lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: markdown-bun-lock
+          path: bun.lock
+          if-no-files-found: error
+
+      - name: Run unit tests
+        run: bun run test
+
+      - name: Build application
+        if: always()
+        run: bun run build
+
+      - name: Verify local Markdown assets
+        if: always()
+        run: |
+          test -s public/js/markdown-highlighter.js
+          test -s public/js/markdown-math.js
+          test -s public/js/markdown-math.css
+          test -s public/js/markdown-mermaid.js
+          find public/js -maxdepth 1 -type f -name 'KaTeX_*.woff2' -print -quit | grep -q .

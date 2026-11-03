@@ -369,5 +369,43 @@ if (adminNotice) {
 
   <slot name="footer" />
   {adminFooterHtml && <Fragment set:html={adminFooterHtml} />}
+  <script is:inline>
+    (() => {
+      const loaded = new Set();
+      const loadAsset = (key, selector, scriptUrl, stylesheetUrl) => {
+        if (loaded.has(key) || !document.querySelector(selector)) return;
+        loaded.add(key);
+        if (stylesheetUrl && !document.querySelector('link[href="' + stylesheetUrl + '"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = stylesheetUrl;
+          document.head.appendChild(link);
+        }
+        if (!document.querySelector('script[src="' + scriptUrl + '"]')) {
+          const script = document.createElement('script');
+          script.src = scriptUrl;
+          script.defer = true;
+          document.head.appendChild(script);
+        }
+      };
+      const loadMarkdownPreviewAssets = () => {
+        loadAsset(
+          'highlighter',
+          '#wmd-preview pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid), .note-body pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid)',
+          '/js/markdown-highlighter.js',
+        );
+        loadAsset('math', '.markdown-math[data-tex]', '/js/markdown-math.js', '/js/markdown-math.css');
+        loadAsset(
+          'mermaid',
+          '#wmd-preview pre code.language-mermaid, #wmd-preview pre code.lang-mermaid, .note-body pre code.language-mermaid, .note-body pre code.lang-mermaid',
+          '/js/markdown-mermaid.js',
+        );
+      };
+      loadMarkdownPreviewAssets();
+      if (document.body) {
+        new MutationObserver(loadMarkdownPreviewAssets).observe(document.body, { childList: true, subtree: true });
+      }
+    })();
+  </script>
 </body>
 </html>

@@ -223,9 +223,8 @@ export function topicSlug(name: string): string {
 }
 
 /** Convert reference text into an anchor after Markdown sanitation. */
-export function renderNoteContent(value: string, topicBaseUrl = ''): string {
-  const html = renderMarkdown(value);
-  const topics = new Set(extractTopicNames(value).map(topicKey));
+export function linkifyNoteContent(html: string, source: string, topicBaseUrl = ''): string {
+  const topics = new Set(extractTopicNames(source).map(topicKey));
   const topicHref = topicBaseUrl
     ? `${topicBaseUrl.replace(/\/$/, '')}/?stream=notes&topic=`
     : '?topic=';
@@ -252,6 +251,10 @@ export function renderNoteContent(value: string, topicBaseUrl = ''): string {
         `${prefix}<a class="note-reference" href="/note/${cid}" data-note-ref="${cid}">/note/${cid}</a>`
       ));
   }).join('');
+}
+
+export function renderNoteContent(value: string, topicBaseUrl = ''): string {
+  return linkifyNoteContent(renderMarkdown(value), value, topicBaseUrl);
 }
 
 async function requireTopic(db: Database, mid: number): Promise<void> {
