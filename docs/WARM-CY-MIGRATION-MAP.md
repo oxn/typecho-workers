@@ -63,3 +63,35 @@
 - 正在核对：剩余主题组件对核心内部接口的依赖；伴随插件鉴权和评论 metadata 的安全边界；Markdown 增强与拼音别名的 Hook 覆盖范围；旧功能逐项迁移完整性。
 - 尚未完成：全部功能验收、公共插件迁移、逐文件核心 blob 校验、构建与单元测试。
 - 本文档是迁移跟踪记录，不是功能完成或可部署证明；未通过验证前不得合并或部署。
+
+## 本轮补充审计（2026-11-03）
+
+### 核心依赖处理结论
+
+- WarmShell.astro 的 PUBLIC_HTML_HEADER 必须保留。固定基线中的 src/middleware.ts 会设置并检查该标记，src/plugins/typecho-plugin-cache/cache.ts 会消费它来判定响应是否属于可缓存的公共 HTML。主题自行更换或删除该标记会改变缓存语义。
+- ThemeBaseProps、ThemeIndexProps、ThemePostProps、ThemePageProps、ThemeArchiveProps 是宿主页面路由与主题组件之间的数据契约。当前固定基线没有从 typecho/plugin-sdk 公开导出这些类型。它们是 import type，不会形成运行时模块依赖；在不修改核心、不复制第二套契约的约束下，当前保留类型导入比自行定义重复接口更安全。
+- PageContext 同样是 Base.astro / 插件客户端片段之间的宿主契约；保留类型导入，不复制定义。
+- 上述保留项是有意的宿主类型/协议依赖，不等于修改或分叉核心文件。核心文件仍以固定基线 Blob SHA 为准。
+
+### 图片 helper 回归用例
+
+- Warm CY 图片优化 helper 已在主题目录内实现，并增加 warm-image.test.ts。
+- 新 helper 在追加优化参数时会把 query 放在 URL fragment 之前，保留 #width=...&height=... 尺寸信息；已有 HTML width/height 属性优先；GIF、SVG、外站 URL 和非 /usr/uploads/ 路径不重写。
+- 测试文件被 Vitest 默认的 src/**/*.test.ts 模式覆盖，但尚未在当前环境实际执行。不能标记为测试通过。
+
+### Markdown 增强的插件化边界
+
+- 固定基线的 renderMarkdownFiltered() 先调用 content:markdown，再由核心 Marked 解析并执行 sanitize-html，最后调用 content:content。因此：
+  - content:markdown 适合将 Mermaid / 数学公式转换为标准代码块等可被原版解析器识别的标记；
+  - content:content 发生在核心 sanitizer 之后，插件若在此直接插入任意 HTML，会绕过核心 sanitizer，不得把它当作放宽 HTML 白名单的安全替代方案；
+  - 客户端资源可通过插件自身的 client/*.ts 文件构建，并通过 archive:header / archive:footer 注入本地资源引用。
+- Notes 插件的笔记正文当前使用公开 SDK 的同步 renderMarkdown()，不经过 renderMarkdownFiltered()。因此只挂接 content:markdown 的插件不会自动覆盖笔记正文；必须另行确认可用的 Notes 扩展点，不能声称一次 Hook 就覆盖文章、页面、笔记、评论、RSS 和后台预览。
+- 评论 Markdown 使用独立的 comment:markdown / 评论渲染路径，不应默认启用文章 HTML/SVG 白名单。评论内容继续使用较严格的独立 sanitizer。
+- 旧 feature/markdown-full-support 分支的完整改动涉及核心 src/lib/markdown.ts、src/lib/plugin.ts、src/lib/theme-props.ts、后台页面和 API 等文件；不能 cherry-pick 或合并整条分支到本迁移分支。应只挑选可通过插件 hook 和插件 client asset 实现的功能，核心 Markdown sanitizer 与安全边界保持固定基线原样。
+
+### 当前工作状态修正
+
+- 已提交图片 helper 与回归测试，但尚未运行 Vitest 或 Astro build。
+- 已确认缓存标记和宿主 Props / PageContext 类型依赖应保留；本轮没有修改这些核心接口。
+- 尚未实现独立 Markdown 插件。数学公式、Mermaid、PrismJS 的插件方案仍需逐项验证文章/页面/笔记/评论/预览覆盖范围，以及依赖与 CSS/字体资源的构建方式。
+- 当前 GitHub 测试分支没有配置 Actions workflow；此前不能把无 CI 记录解释为构建通过。需要在本地/可执行构建环境运行测试，或在后续专门建立受控 CI 后再验收。
