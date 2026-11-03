@@ -4,7 +4,7 @@ import Base from '@/layouts/Base.astro';
 import type { ThemeBaseProps } from '@/lib/theme-props';
 import type { PageContext } from '@/lib/plugin';
 import { PUBLIC_HTML_HEADER } from '@/lib/cache';
-import { warmSettings, type WarmSection } from './warm';
+import { isCurrentPageLink, warmSettings, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
 
@@ -76,7 +76,7 @@ const footerLinks = [
           <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
         )}
         {pages.map((page) => (
-          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && page.permalink.includes(currentPath) }]} href={page.permalink}>{page.title}</a>
+          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink}>{page.title}</a>
         ))}
       </nav>
     </div>

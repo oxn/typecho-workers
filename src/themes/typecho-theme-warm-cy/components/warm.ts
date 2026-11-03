@@ -1,11 +1,29 @@
 
 import type { ThemeBaseProps, ThemePostProps } from '@/lib/theme-props';
-import { loadThemeConfig } from '@/lib/theme';
-import { normalizeOptimizeParams } from '@/lib/image-transform';
-import { formatDate, generateSlug } from '@/lib/content';
-import { escapeHtml } from '@/lib/escape';
+import { normalizeOptimizeParams } from './warm-image';
+import { escapeHtml, formatDate } from 'typecho/plugin-sdk';
 
 export const WARM_THEME_ID = 'typecho-theme-warm-cy';
+
+const DEFAULT_WARM_SETTINGS: Record<string, unknown> = {
+  pinnedIds: '',
+  footerCustomHtml: '',
+  continuousLoadMode: 'manual',
+  commentComponentLoadMode: 'manual',
+  commentInitialLoadMode: 'manual',
+  imageOptimizeParams: '',
+  thumbOptimizeParams: '',
+  ...Object.fromEntries(
+    Array.from({ length: 10 }, (_, index) => {
+      const suffix = String(index + 1).padStart(2, '0');
+      return [
+        [`linktxt${suffix}`, ''],
+        [`links${suffix}`, ''],
+        [`linkblank${suffix}`, false],
+      ];
+    }).flat(),
+  ),
+};
 
 export type WarmSection = 'home' | 'articles' | 'notes' | 'about' | 'none';
 export type WarmContinuousLoadMode = 'manual' | 'auto-2' | 'infinite';
@@ -26,8 +44,8 @@ export interface WarmSettings {
 }
 
 export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
-  const settings = loadThemeConfig(options, WARM_THEME_ID);
   const savedSettings = readSavedWarmSettings(options);
+  const settings = { ...DEFAULT_WARM_SETTINGS, ...(savedSettings || {}) };
   const legacyCommentMode = savedSettings?.commentInitialLoadMode;
   const componentLoadMode = Object.prototype.hasOwnProperty.call(savedSettings || {}, 'commentComponentLoadMode')
     ? settings.commentComponentLoadMode
@@ -172,6 +190,23 @@ export function safeExternalUrl(value: unknown): string {
   }
 }
 
+
+/** Match a navigation page by normalized pathname, never by substring. */
+export function isCurrentPageLink(permalink: string, currentPath: string, siteUrl: string): boolean {
+  try {
+    const site = new URL(siteUrl);
+    const target = new URL(permalink, site);
+    const current = new URL(currentPath, site);
+    if (target.origin !== site.origin || current.origin !== site.origin) return false;
+    const normalizePath = (pathname: string) => pathname.length > 1
+      ? pathname.replace(/\/+$/, '')
+      : pathname;
+    return normalizePath(target.pathname) === normalizePath(current.pathname);
+  } catch {
+    return false;
+  }
+}
+
 export function safeEmail(value: unknown): string {
   if (typeof value !== 'string') return '';
   const email = value.trim();
@@ -247,7 +282,7 @@ export function prepareArticleToc(html: string): { html: string; items: WarmTocI
 
     const level = Number(tag.slice(1)) as 2 | 3;
     const existing = TOC_EXISTING_ID_RE.exec(attrs)?.slice(1).find(Boolean)?.trim();
-    let id = existing || generateSlug(text) || `section-${items.length + 1}`;
+    let id = existing || generateWarmSlug(text) || `section-${items.length + 1}`;
     const base = id;
     let suffix = 2;
     while (used.has(id)) id = `${base}-${suffix++}`;
@@ -266,6 +301,16 @@ export function prepareArticleToc(html: string): { html: string; items: WarmTocI
 
   if (items.length < TOC_MIN_ITEMS) return { html: nextHtml, items: [] };
   return { html: nextHtml, items };
+}
+
+function generateWarmSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\u4e00-\u9fff\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 150);
 }
 
 function plainHeadingText(inner: string): string {
@@ -315,25 +360,26 @@ export function renderWarmIframes(html: string): string {
     if (!allowedHosts.includes(hostname)) return match;
 
     // Add or replace an iframe attribute without duplicating it.
-    const setAttribute = (name: string, value: string) => {
+    const setAttribute = (source: string, name: string, value: string) => {
       const pattern = new RegExp(`\\s${name}\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]+)`, 'i');
 
-      if (pattern.test(attributes)) {
-        return attributes.replace(pattern, ` ${name}="${value}"`);
+      if (pattern.test(source)) {
+        return source.replace(pattern, ` ${name}="${value}"`);
       }
 
-      return `${attributes} ${name}="${value}"`;
+      return `${source} ${name}="${value}"`;
     };
 
     let result = attributes;
 
-    result = setAttribute('loading', 'lazy');
-    result = setAttribute('allowfullscreen', '');
+    result = setAttribute(result, 'loading', 'lazy');
+    result = setAttribute(result, 'allowfullscreen', '');
     result = setAttribute(
+      result,
       'allow',
       'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
     );
-    result = setAttribute('title', '视频播放器');
+    result = setAttribute(result, 'title', '视频播放器');
 
     return `<iframe${result}>`;
   });
