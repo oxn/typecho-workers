@@ -138,6 +138,36 @@ describe('typecho-plugin-warm-cy', () => {
     );
   });
 
+  it('uses the latest D1 theme settings when toggling a pin', async () => {
+    const context = adminContext({
+      options: {
+        theme: 'typecho-theme-warm-cy',
+        secret: 'test-secret',
+        siteUrl: 'https://example.com',
+        [OPTION_KEY]: JSON.stringify({ pinnedIds: '12,99', footerCustomHtml: '<strong>stale</strong>' }),
+      },
+    });
+    mocks.requireAdminAction.mockResolvedValueOnce(context);
+    mocks.getOption.mockResolvedValueOnce(JSON.stringify({
+      pinnedIds: '8,12,20',
+      footerCustomHtml: '<strong>latest</strong>',
+    }));
+
+    const handler = collectHooks().get('route:request')!;
+    const result = await handler({}, {
+      request: routeRequest(ADMIN_PATH, 'POST', { cid: 12, pinned: false }),
+      path: ADMIN_PATH,
+    });
+
+    expect(await result.response.json()).toEqual({ success: true, pinned: false, pinnedIds: [8, 20] });
+    expect(mocks.getOption).toHaveBeenCalledWith(context.db, OPTION_KEY);
+    expect(mocks.setOption).toHaveBeenCalledWith(
+      context.db,
+      OPTION_KEY,
+      JSON.stringify({ pinnedIds: '8,20', footerCustomHtml: '<strong>latest</strong>' }),
+    );
+  });
+
   it('does not expose comment management metadata to anonymous visitors', async () => {
     mocks.requireAdminAction.mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }));
     const handler = collectHooks().get('comment:list')!;
@@ -175,6 +205,23 @@ describe('typecho-plugin-warm-cy', () => {
       isPinned: true,
       csrfToken: 'fresh-csrf-token',
     });
+  });
+
+  it('derives the pin button state from the latest D1 settings, not stale request options', async () => {
+    const context = adminContext();
+    mocks.requireAdminAction.mockResolvedValueOnce(context);
+    mocks.getOption.mockResolvedValueOnce(JSON.stringify({ pinnedIds: '8,20' }));
+    const handler = collectHooks().get('comment:list')!;
+    const payload = { comments: [] };
+
+    const result = await handler(payload, {
+      request: new Request('https://example.com/api/comments?cid=12'),
+      options: context.options,
+      cid: 12,
+    });
+
+    expect(mocks.getOption).toHaveBeenCalledWith(context.db, OPTION_KEY);
+    expect(result.management.isPinned).toBe(false);
   });
 
   it('does not attach management metadata for another theme or an invalid content ID', async () => {
