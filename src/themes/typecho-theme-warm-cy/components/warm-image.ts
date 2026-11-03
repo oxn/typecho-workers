@@ -33,8 +33,8 @@ export function optimizeImageUrl(url: string, params: string, siteUrl: string): 
   const parsed = parseOwnUpload(url, siteUrl);
   if (!parsed) return url;
   const separator = parsed.search ? '&' : '?';
-  if (url.startsWith('/')) return \`\${parsed.pathname}\${parsed.search}\${separator}\${clean}\`;
-  return \`\${parsed.href}\${separator}\${clean}\`;
+  if (url.startsWith('/')) return `${parsed.pathname}${parsed.search}${separator}${clean}`;
+  return `${parsed.href}${separator}${clean}`;
 }
 
 export function optimizeContentImages(html: string, params: string, siteUrl: string): string {
@@ -47,7 +47,7 @@ export function optimizeContentImages(html: string, params: string, siteUrl: str
     const fragment = (src.split('#', 2)[1] || '').replace(/&amp;/gi, '&');
 
     const getDimension = (name: 'width' | 'height'): string | null => {
-      const result = fragment.match(new RegExp(\`(?:^|[&;])\${name}=(\\d+)(?=[&;]|$)\`, 'i'));
+      const result = fragment.match(new RegExp(`(?:^|[&;])${name}=(\\d+)(?=[&;]|$)`, 'i'));
       if (!result) return null;
       const value = Number(result[1]);
       return Number.isInteger(value) && value > 0 && value <= 10000 ? String(value) : null;
@@ -57,16 +57,16 @@ export function optimizeContentImages(html: string, params: string, siteUrl: str
     let attributes = '';
     for (const name of ['width', 'height'] as const) {
       const dimension = getDimension(name);
-      const hasAttribute = new RegExp(\`\\s\${name}\\s*=\`, 'i').test(updated);
-      if (dimension && !hasAttribute) attributes += \` \${name}="\${dimension}"\`;
+      const hasAttribute = new RegExp(`\\s${name}\\s*=`, 'i').test(updated);
+      if (dimension && !hasAttribute) attributes += ` ${name}="${dimension}"`;
     }
-    if (attributes) updated = updated.replace(/\/?>$/, (ending: string) => \`\${attributes}\${ending}\`);
+    if (attributes) updated = updated.replace(/\/?>$/, (ending: string) => `${attributes}${ending}`);
 
     if (clean) {
       const optimized = optimizeImageUrl(src, clean, siteUrl);
       if (optimized !== src) {
         updated = updated.replace(/(\ssrc\s*=\s*)(["'])(.*?)\2/i,
-          (_match: string, prefix: string, quote: string) => \`\${prefix}\${quote}\${optimized}\${quote}\`);
+          (_match: string, prefix: string, quote: string) => `${prefix}${quote}${optimized}${quote}`);
       }
     }
     return updated;
