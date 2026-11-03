@@ -4,7 +4,7 @@ import { getDb } from 'typecho/db';
 import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
 import { createContext } from '@/lib/context';
-import { optimizeContentImages } from '@/lib/image-transform';
+import { optimizeContentImages } from './warm-image';
 import type { ThemePostProps } from '@/lib/theme-props';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
