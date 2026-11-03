@@ -278,4 +278,19 @@ const footerLinks = [
       if (window.InstantClick?.supported) window.InstantClick.init('mousedown');
     })();
   </script>
+  <script is:inline data-no-instant>
+    (() => {
+      let loaded = false;
+      const loadHighlighter = () => {
+        if (loaded || !document.querySelector('.warm-prose pre code[class*="language-"], .warm-note__content pre code[class*="language-"]')) return;
+        loaded = true;
+        const script = document.createElement('script');
+        script.src = '/js/markdown-highlighter.js';
+        script.defer = true;
+        document.head.appendChild(script);
+      };
+      loadHighlighter();
+      window.addEventListener('instantclick:newpage', loadHighlighter);
+    })();
+  </script>
 </Base>
