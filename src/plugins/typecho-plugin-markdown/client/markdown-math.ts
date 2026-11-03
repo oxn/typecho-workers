@@ -117,9 +117,9 @@ const observer = new MutationObserver((records) => {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const element = node as Element;
     if (element.matches('pre code.language-math, code:not(pre code)')) {
-      renderMath(element.parentElement ?? element);
+      renderMath(document);
     } else if (element.querySelector('pre code.language-math, code:not(pre code)')) {
-      renderMath(element);
+      renderMath(document);
     }
   }));
 });
