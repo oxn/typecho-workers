@@ -14,7 +14,7 @@
 
 - 只通过 `content:markdown` 将数学语法转换为普通 Markdown code span / fenced code block。
 - 不注入原始 HTML，不修改核心 Markdown sanitizer，不扩展文章 HTML/SVG 白名单。
-- KaTeX 使用 `trust: false`；渲染结果经本站 `/vendor/purify.js` 再写入 DOM。
+- KaTeX 使用 `trust: false` 并输出原生 MathML；渲染结果经本站 `/vendor/purify.js` 再写入 DOM，不依赖 KaTeX Web 字体。
 - Mermaid 使用 `securityLevel: 'strict'`，生成的 SVG 经过 DOMPurify 清理。
 - 不接管评论 Markdown；评论仍走上游独立且更严格的 sanitizer。
 - Notes 正文使用同步 SDK Markdown renderer，不经过 `content:markdown`；客户端会在笔记正文中识别行内公式并处理标准 Mermaid / code fences。
