@@ -105,7 +105,7 @@ export function transformMathSource(source: string): string {
 
     const displayIndent = /^(\s{0,3})/.exec(line)?.[1] ?? '';
     const displayBody = line.slice(displayIndent.length).trim();
-    const displayLine = displayBody.length > 4 && displayBody.startsWith('$$') && displayBody.endsWith('$$')
+      : displayBody.length > 4 && displayBody.startsWith('\\[') && displayBody.endsWith('\\]')
       ? { indent: displayIndent, body: displayBody.slice(2, -2) }
       : displayBody.length > 4 && displayBody.startsWith('\\[') && displayBody.endsWith('\\]')
         ? { indent: displayIndent, body: displayBody.slice(2, -2) }
