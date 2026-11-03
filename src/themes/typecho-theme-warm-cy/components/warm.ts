@@ -2,8 +2,8 @@
 import type { ThemeBaseProps, ThemePostProps } from '@/lib/theme-props';
 import { loadThemeConfig } from '@/lib/theme';
 import { normalizeOptimizeParams } from '@/lib/image-transform';
-import { formatDate, generateSlug } from '@/lib/content';
-import { escapeHtml } from '@/lib/escape';
+import { escapeHtml, formatDate } from 'typecho/plugin-sdk';
+import { generateSlug } from '@/lib/content';
 
 export const WARM_THEME_ID = 'typecho-theme-warm-cy';
 
