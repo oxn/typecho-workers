@@ -151,21 +151,27 @@ function addMarkdownHeadingAnchors(html: string): string {
   });
 }
 
+export const contentMarkdownParser = {
+  parse(source: string): string {
+    const displayMath = extractDisplayMathBlocks(source);
+    const parser = new Marked({ gfm: true, breaks: true });
+    parser.use(markedFootnote());
+    parser.use({ extensions: [mathInlineExtension] });
+    let html = parser.parse(displayMath.source) as string;
+
+    displayMath.blocks.forEach((tex, index) => {
+      const placeholder = '<!--__TYPECHO_INTERNAL_MATH_BLOCK_' + index + '__-->';
+      const escaped = escapeHtmlShared(tex.trim());
+      const renderedPlaceholder = '<div class="markdown-math markdown-math--block" data-tex="' + escaped + '">' + escaped + '</div>';
+      html = html.replace(placeholder, renderedPlaceholder);
+    });
+
+    return addMarkdownHeadingAnchors(html);
+  },
+};
+
 function parseContentMarkdown(source: string): string {
-  const displayMath = extractDisplayMathBlocks(source);
-  const parser = new Marked({ gfm: true, breaks: true });
-  parser.use(markedFootnote());
-  parser.use({ extensions: [mathInlineExtension] });
-  let html = parser.parse(displayMath.source) as string;
-
-  displayMath.blocks.forEach((tex, index) => {
-    const placeholder = '<!--__TYPECHO_INTERNAL_MATH_BLOCK_' + index + '__-->';
-    const escaped = escapeHtmlShared(tex.trim());
-    const renderedPlaceholder = '<div class="markdown-math markdown-math--block" data-tex="' + escaped + '">' + escaped + '</div>';
-    html = html.replace(placeholder, renderedPlaceholder);
-  });
-
-  return addMarkdownHeadingAnchors(html);
+  return contentMarkdownParser.parse(source);
 }
 // ─── HTML escape helper ─────────────────────────────────────────────────────
 
