@@ -9,10 +9,13 @@ declare global {
   }
 }
 
-const ROOT_SELECTOR = [
+const CONTENT_ROOTS = [
   '.warm-prose', '.note-body', '#wmd-preview', '.wmd-preview',
   '.markdown-body', '.post-content', '.entry-content', '.typecho-content',
-].join(', ');
+];
+const ROOT_SELECTOR = CONTENT_ROOTS.join(', ');
+const scopedSelector = (selector: string) =>
+  CONTENT_ROOTS.map((root) => root + ' ' + selector).join(', ');
 
 function safeHtml(html: string): string | null {
   if (!window.DOMPurify) return null;
@@ -42,7 +45,7 @@ function renderFormula(node: HTMLElement, tex: string, displayMode: boolean): bo
 }
 
 function renderCodeMath(root: ParentNode): void {
-  root.querySelectorAll<HTMLElement>(ROOT_SELECTOR + ' pre code.language-math').forEach((code) => {
+  root.querySelectorAll<HTMLElement>(scopedSelector('pre code.language-math')).forEach((code) => {
     if (code.dataset.markdownMathRendered === '1') return;
     const pre = code.closest('pre');
     if (!pre) return;
@@ -54,7 +57,7 @@ function renderCodeMath(root: ParentNode): void {
     }
   });
 
-  root.querySelectorAll<HTMLElement>(ROOT_SELECTOR + ' code:not(pre code)').forEach((code) => {
+  root.querySelectorAll<HTMLElement>(scopedSelector('code:not(pre code)')).forEach((code) => {
     if (code.dataset.markdownMathRendered === '1') return;
     const match = /^\$([\s\S]+)\$$/.exec(code.textContent || '');
     if (!match || !match[1].trim()) return;
