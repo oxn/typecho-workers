@@ -1265,7 +1265,11 @@ async function invalidate(event: PublicCacheInvalidation): Promise<boolean> {
   const dataHandled = event.sharedDomains?.length
     ? await invalidateConfiguredDataDomains(event.sharedDomains)
     : false;
-  return pageHandled || dataHandled;
+  // The caller uses this result to decide whether the shared-data cache
+  // invalidation was handled. Page-cache purging is independent and must not
+  // suppress the options cacheVersion fallback when shared data was not
+  // invalidated by its configured backend.
+  return event.sharedDomains?.length ? dataHandled : pageHandled;
 }
 
 export const earlyRequestProvider: EarlyRequestProvider = {
