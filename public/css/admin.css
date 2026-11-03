@@ -1184,22 +1184,22 @@ div.token-input-dropdown ul li.token-input-selected-dropdown-item { background-c
 .note-body .markdown-alert-caution .markdown-alert-title { color: #d1242f; }
 
 .wmd-preview .markdown-alert,
-#preview .markdown-alert {
+#wmd-preview .markdown-alert {
   margin: 1rem 0;
   padding: .85rem 1rem;
   border-left: 3px solid #0969da;
   background: #f6f8fa;
 }
 .wmd-preview .markdown-alert-title,
-#preview .markdown-alert-title {
+#wmd-preview .markdown-alert-title {
   margin: 0 0 .45rem;
   font-weight: 650;
 }
 .wmd-preview .markdown-alert-tip,
-#preview .markdown-alert-tip { border-left-color: #1a7f37; }
+#wmd-preview .markdown-alert-tip { border-left-color: #1a7f37; }
 .wmd-preview .markdown-alert-important,
-#preview .markdown-alert-important { border-left-color: #8250df; }
+#wmd-preview .markdown-alert-important { border-left-color: #8250df; }
 .wmd-preview .markdown-alert-warning,
-#preview .markdown-alert-warning { border-left-color: #bf8700; }
+#wmd-preview .markdown-alert-warning { border-left-color: #bf8700; }
 .wmd-preview .markdown-alert-caution,
-#preview .markdown-alert-caution { border-left-color: #d1242f; }
+#wmd-preview .markdown-alert-caution { border-left-color: #d1242f; }
