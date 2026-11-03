@@ -103,27 +103,31 @@ export function transformMathSource(source: string): string {
       continue;
     }
 
-    const displayLine = /^(\s{0,3})(\$\$|\\\[)(.*?)(\$\$|\\\])\s*$/.exec(line);
-    const isDisplayPair = displayLine && (
-      (displayLine[2] === '$$' && displayLine[4] === '$$') ||
-      (displayLine[2] === '\\[' && displayLine[4] === '\\]')
-    );
-    if (displayLine && isDisplayPair) {
-      output.push(displayLine[1] + '```math');
-      output.push(displayLine[3]);
-      output.push(displayLine[1] + '```');
+    const displayIndent = /^(\s{0,3})/.exec(line)?.[1] ?? '';
+    const displayBody = line.slice(displayIndent.length).trim();
+    const displayLine = displayBody.startsWith('$$') && displayBody.endsWith('$$')
+      ? { indent: displayIndent, body: displayBody.slice(2, -2) }
+      : displayBody.startsWith('\\[') && displayBody.endsWith('\\]')
+        ? { indent: displayIndent, body: displayBody.slice(2, -2) }
+        : null;
+    if (displayLine) {
+      output.push(displayLine.indent + '\`\`\`math');
+      output.push(displayLine.body);
+      output.push(displayLine.indent + '\`\`\`');
       continue;
     }
 
-    const displayOpen = /^(\s{0,3})(\$\$|\\\[)\s*$/.exec(line);
+    const openIndent = /^(\s{0,3})/.exec(line)?.[1] ?? '';
+    const openBody = line.slice(openIndent.length).trim();
+    const displayOpen = openBody === '$$' || openBody === '\\[';
     if (displayOpen) {
-      const closeMarker = displayOpen[2] === '$$' ? '$$' : '\\]';
+      const closeMarker = openBody === '$$' ? '$$' : '\\]';
       let closeIndex = index + 1;
       while (closeIndex < lines.length && lines[closeIndex].trim() !== closeMarker) closeIndex++;
       if (closeIndex < lines.length) {
-        output.push(displayOpen[1] + '```math');
+        output.push(openIndent + '\`\`\`math');
         output.push(...lines.slice(index + 1, closeIndex));
-        output.push(displayOpen[1] + '```');
+        output.push(openIndent + '\`\`\`');
         index = closeIndex;
         continue;
       }
