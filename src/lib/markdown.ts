@@ -108,13 +108,16 @@ const mathInlineExtension = {
 };
 
 function addMarkdownHeadingAnchors(html: string): string {
-  const used = new Set<string>();
-  return html.replace(/<h([1-6])([^>]*)>([\s\S]*?)<\/h\1>/gi, (full, level: string, attributes: string, inner: string) => {
+  const reserved = new Set<string>();
+  html.replace(/<h[1-6]([^>]*)>/gi, (_full, attributes: string) => {
     const existingId = /\bid\s*=\s*(["'])(.*?)\1/i.exec(attributes);
-    if (existingId) {
-      used.add(existingId[2]);
-      return full;
-    }
+    if (existingId) reserved.add(existingId[2]);
+    return _full;
+  });
+
+  const used = new Set(reserved);
+  return html.replace(/<h([1-6])([^>]*)>([\s\S]*?)<\/h\1>/gi, (full, level: string, attributes: string, inner: string) => {
+    if (/\bid\s*=\s*(["']).*?\1/i.test(attributes)) return full;
 
     const headingText = inner.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     const base = generateSlug(headingText) || 'heading-' + level;
