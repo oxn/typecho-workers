@@ -786,6 +786,35 @@ body.warm-theme {
   color: #aaa59f;
 }
 
+/* GFM task lists use inert spans instead of interactive form controls. */
+.warm-prose .markdown-task-checkbox {
+  display: inline-block;
+  width: .9em;
+  height: .9em;
+  margin: 0 .45em 0 0;
+  border: 1px solid var(--warm-muted);
+  border-radius: 3px;
+  vertical-align: -.08em;
+}
+
+.warm-prose .markdown-task-checkbox.is-checked {
+  position: relative;
+  border-color: var(--warm-accent);
+  background: var(--warm-accent);
+}
+
+.warm-prose .markdown-task-checkbox.is-checked::after {
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 4px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  content: '';
+  transform: rotate(45deg);
+}
+
 .warm-prose img {
   max-width: 100%;
   height: auto;
