@@ -33,8 +33,8 @@ function parsePinnedIds(value: unknown): number[] {
   if (typeof value !== 'string' && typeof value !== 'number') return [];
   const result: number[] = [];
   const seen = new Set<number>();
-  for (const part of String(value).split(/[，,\\s]+/)) {
-    if (!/^\\d+$/.test(part.trim())) continue;
+  for (const part of String(value).split(/[，,\s]+/)) {
+    if (!/^\d+$/.test(part.trim())) continue;
     const cid = Number(part.trim());
     if (!Number.isSafeInteger(cid) || cid <= 0 || seen.has(cid)) continue;
     seen.add(cid);
