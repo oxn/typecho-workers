@@ -39,14 +39,22 @@
 
 ## 已发现的迁移阻塞点
 
-旧 Warm CY 主题目前直接导入若干核心内部模块，例如 `@/lib/context`、`@/lib/image-transform`、`@/lib/theme`、`@/lib/content`。这些不是全部都属于公开主题 SDK。迁移时应优先使用 `typecho/plugin-sdk`、`typecho/db` 和现有插件包导出；纯主题逻辑则在主题包内重写/封装，不能为迁移而改核心源码。
+旧 Warm CY 主题目前直接导入多个核心内部模块。逐文件核对确认：
 
-旧评论管理 UI 使用了旧版评论 API 提供的管理信息和 CSRF 字段，而基线 `ThemePostProps` 没有旧项目新增的 `csrfToken`。必须由专属伴随插件通过 `comment:list` 安全提供必要字段，并由管理 API 独立验证权限/CSRF；不能依赖旧核心新增字段。
+- `typecho/plugin-sdk` 已公开 `buildPermalink`、`formatDate`、`buildCategoryLink`、`escapeHtml`、`renderContentExcerpt` 等通用能力；这些调用应优先迁移到 SDK，避免主题重复实现。
+- `typecho/db` 是根包明确公开的数据库入口。
+- `@/lib/theme-props` 的 `ThemeIndexProps`、`ThemePostProps`、`ThemePageProps`、`ThemeArchiveProps` 尚未通过根包 exports 或 plugin SDK 公开。当前不能擅自替换类型来源；需要将主题契约作为正式公开 API 的方案单独评估，且不得修改核心文件来迁就主题。
+- `@/lib/context` 的 `createContext`、`@/lib/image-transform` 的图片优化实现、`@/lib/cache` 的 `PUBLIC_HTML_HEADER` 都是核心内部运行时能力。尤其 Context 会连接请求身份、插件上下文和数据库，不能简单复制到主题包；图片优化只有在确认完整行为和边界后才能封装；公开 HTML 缓存标记必须保留上游语义，不能由主题随意替代。
+- `@/lib/content` 与 `@/lib/markdown` 中已有 SDK 对应导出，适合先改用公开 SDK。
+
+伴随插件 `typecho-plugin-warm-cy` 已使用公开的 `typecho/db`、`typecho/plugin-sdk`，但同时直接导入 `@/lib/auth`、`@/lib/admin-auth`、`@/lib/options`。其中 `requireAdminAction` 当前确实完成登录身份、管理员权限、同源和 CSRF 校验，评论 metadata 路径则明确使用 `csrf: false` 只读取管理员身份并生成专用 token；但这些 helper 并未由公开 SDK 导出。因此它目前是与宿主源码耦合的本地伴随插件，不应宣称为可直接分发到任意 Typecho Workers 站点的独立公共插件。不能为了消除内部 import 而自行重写鉴权；应先确认上游公开扩展点，或保留本地耦合并在文档中标明边界。
+
+旧评论管理 UI 使用旧版评论 API 提供的管理信息和 CSRF 字段，而基线 `ThemePostProps` 没有旧项目新增的 `csrfToken`。当前伴随插件通过 `comment:list` 在管理员身份验证成功后才附加 `management` 信息；匿名/普通访客不获得该字段。写操作通过管理员 API 再次验证权限和 CSRF。该机制需要补齐 metadata-only 与完整列表两条路径的测试，不能依赖旧核心新增字段。
 
 ## 当前状态（2026-11-03）
 
 - 已有代码：测试分支已新增 Warm CY 主题包及其伴随插件，主题组件、样式、配置清单和部分管理 API 已提交。
-- 已完成审计：上游插件 SDK 导出、Theme props、主题/插件自动发现机制已核对；旧项目差异文件清单已整理。
-- 正在核对：主题组件对核心内部模块的直接依赖、伴随插件鉴权方式、旧功能逐项迁移完整性。
+- 已完成审计：上游插件 SDK 导出、Theme props、主题/插件自动发现机制已核对；确认 SDK 有一批可替代的通用函数，但 Theme props、请求 Context、图片优化、缓存响应标记和管理员鉴权 helper 仍属于内部接口；伴随插件存在明确的宿主源码耦合。旧项目差异文件清单已整理。
+- 正在核对：将主题中的通用 helper 调用迁至公开 SDK；厘清不能迁出的 Context/缓存/鉴权边界；补足伴随插件的权限与评论 metadata 回归测试；旧功能逐项迁移完整性。
 - 尚未完成：全部功能验收、公共插件迁移、逐文件核心 blob 校验、构建与单元测试。
 - 本文档是迁移跟踪记录，不是功能完成或可部署证明；未通过验证前不得合并或部署。
