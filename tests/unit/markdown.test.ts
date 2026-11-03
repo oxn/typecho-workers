@@ -86,7 +86,9 @@ describe('transformGithubAlerts / GFM alerts', () => {
   it.each([
     ['NOTE', 'note'],
     ['TIP', 'tip'],
+    ['IMPORTANT', 'important'],
     ['WARNING', 'warning'],
+    ['CAUTION', 'caution'],
   ] as const)('renders [!%s] with colored border class', (type, cls) => {
     const html = renderMarkdown(alertSource(type, '补充说明'));
     expect(html).toContain(`class="markdown-alert markdown-alert-${cls}"`);
