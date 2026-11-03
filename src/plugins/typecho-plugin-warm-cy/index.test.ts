@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   requireAdminAction: vi.fn(),
   setOption: vi.fn(),
-  getOption: vi.fn(),
   generateSecurityToken: vi.fn(),
   registerPluginAdminPath: vi.fn(),
   computeUrls: vi.fn(() => ({ adminUrl: '/admin/' })),
@@ -18,7 +17,6 @@ vi.mock('@/lib/auth', () => ({
 }));
 vi.mock('@/lib/options', () => ({
   computeUrls: mocks.computeUrls,
-  getOption: mocks.getOption,
 }));
 vi.mock('typecho/plugin-sdk', () => ({
   registerPluginAdminPath: mocks.registerPluginAdminPath,
@@ -73,11 +71,10 @@ function routeRequest(path = ADMIN_PATH, method = 'POST', body: unknown = { cid:
   });
 }
 
-describe('CY 主题功能插件', () => {
+describe('typecho-plugin-warm-cy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requireAdminAction.mockResolvedValue(adminContext());
-    mocks.getOption.mockResolvedValue(JSON.stringify({ pinnedIds: '8,12,20', footerCustomHtml: '<strong>keep</strong>' }));
     mocks.generateSecurityToken.mockResolvedValue('fresh-csrf-token');
   });
 
@@ -138,36 +135,6 @@ describe('CY 主题功能插件', () => {
     );
   });
 
-  it('uses the latest D1 theme settings when toggling a pin', async () => {
-    const context = adminContext({
-      options: {
-        theme: 'typecho-theme-warm-cy',
-        secret: 'test-secret',
-        siteUrl: 'https://example.com',
-        [OPTION_KEY]: JSON.stringify({ pinnedIds: '12,99', footerCustomHtml: '<strong>stale</strong>' }),
-      },
-    });
-    mocks.requireAdminAction.mockResolvedValueOnce(context);
-    mocks.getOption.mockResolvedValueOnce(JSON.stringify({
-      pinnedIds: '8,12,20',
-      footerCustomHtml: '<strong>latest</strong>',
-    }));
-
-    const handler = collectHooks().get('route:request')!;
-    const result = await handler({}, {
-      request: routeRequest(ADMIN_PATH, 'POST', { cid: 12, pinned: false }),
-      path: ADMIN_PATH,
-    });
-
-    expect(await result.response.json()).toEqual({ success: true, pinned: false, pinnedIds: [8, 20] });
-    expect(mocks.getOption).toHaveBeenCalledWith(context.db, OPTION_KEY);
-    expect(mocks.setOption).toHaveBeenCalledWith(
-      context.db,
-      OPTION_KEY,
-      JSON.stringify({ pinnedIds: '8,20', footerCustomHtml: '<strong>latest</strong>' }),
-    );
-  });
-
   it('does not expose comment management metadata to anonymous visitors', async () => {
     mocks.requireAdminAction.mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }));
     const handler = collectHooks().get('comment:list')!;
@@ -205,23 +172,6 @@ describe('CY 主题功能插件', () => {
       isPinned: true,
       csrfToken: 'fresh-csrf-token',
     });
-  });
-
-  it('clears the pin button state when the latest D1 pinnedIds setting is empty', async () => {
-    const context = adminContext();
-    mocks.requireAdminAction.mockResolvedValueOnce(context);
-    mocks.getOption.mockResolvedValueOnce(JSON.stringify({ pinnedIds: '' }));
-    const handler = collectHooks().get('comment:list')!;
-    const payload = { comments: [] };
-
-    const result = await handler(payload, {
-      request: new Request('https://example.com/api/comments?cid=12'),
-      options: context.options,
-      cid: 12,
-    });
-
-    expect(mocks.getOption).toHaveBeenCalledWith(context.db, OPTION_KEY);
-    expect(result.management.isPinned).toBe(false);
   });
 
   it('does not attach management metadata for another theme or an invalid content ID', async () => {

@@ -1,7 +1,8 @@
+
 {
   "id": "typecho-theme-warm-cy",
   "name": "Typecho Warm CY",
-  "description": "基于 Typecho Warm 的独立自定义主题；使用本主题时需同时启用「CY 主题功能插件」。",
+  "description": "基于 Typecho Warm 的独立自定义主题。",
   "author": "怸歪",
   "version": "202610301527",
   "stylesheet": "style.css",

@@ -11,7 +11,6 @@ import WarmShell from './WarmShell.astro';
 import WarmStreamPagination from './WarmStreamPagination.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
-import { getOption } from '@/lib/options';
 
 type Props = ThemeIndexProps;
 type WarmPostItem = {
@@ -127,19 +126,15 @@ const heading = stream === 'notes' ? '笔记' : stream === 'posts' ? '文章' : 
 const settings = warmSettings(options);
 const baseUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 
-// 首页置顶配置直接从 D1 读取，避免跨实例公共选项缓存的旧值继续生效。
+// 首页置顶来自本主题的独立外观配置。直接按 ID 查询数据库，不能只在当前页 posts 上排序，
+// 否则原本位于后续页的文章无法出现在首页顶部。
 const isHomeListing = Astro.url.pathname === '/' && !topic && !requestedStream;
 const isHomepage = isHomeListing && pagination.currentPage === 1;
-const pinDb = isHomeListing ? getDb(env.DB) : null;
-const latestThemeConfig = pinDb
-  ? await getOption(pinDb, 'theme:typecho-theme-warm-cy')
-  : null;
-const pinnedIds = pinDb
-  ? warmSettings({ ...options, 'theme:typecho-theme-warm-cy': latestThemeConfig }).pinnedIds
-  : [];
+const pinnedIds = isHomeListing ? settings.pinnedIds : [];
 const pinnedIdSet = new Set(pinnedIds);
 let pinnedItems: WarmPostItem[] = [];
-if (pinDb && pinnedIds.length > 0) {
+if (pinnedIds.length > 0) {
+  const pinDb = getDb(env.DB);
   const now = Math.floor(Date.now() / 1000);
   const pinnedRows = await pinDb.select({
     cid: schema.contents.cid,
