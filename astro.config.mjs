@@ -68,6 +68,7 @@ export default defineConfig({
         'typecho-theme-warm',
         'typecho-plugin-warm-cy',
         'typecho-plugin-pinyin',
+        'typecho-plugin-markdown',
         'typecho-theme-warm-cy',
       ],
     },
