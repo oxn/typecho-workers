@@ -66,9 +66,9 @@ const observer = new MutationObserver((records) => {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const element = node as Element;
     if (element.matches('pre code[class*="language-"]')) {
-      highlight(element.parentElement ?? element);
+      highlight(document);
     } else if (element.querySelector('pre code[class*="language-"]')) {
-      highlight(element);
+      highlight(document);
     }
   }));
 });
