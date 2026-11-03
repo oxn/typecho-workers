@@ -32,7 +32,7 @@
 
   function alertColorVariant(label) {
     var key = String(label || '').trim().toLowerCase();
-    if (key === 'note' || key === 'tip' || key === 'warning') return key;
+    if (key === 'note' || key === 'tip' || key === 'important' || key === 'warning' || key === 'caution') return key;
     return null;
   }
 
