@@ -90,6 +90,39 @@ describe('typecho-plugin-pinyin', () => {
     expect(result.response.status).toBe(403);
   });
 
+  it('rejects malformed JSON and oversized titles after authentication', async () => {
+    const hooks = setup();
+    const route = hooks.get('route:request')!;
+    mocks.requireAdminAction.mockResolvedValue({ user: { group: 'editor' } });
+    mocks.isAdminActionResponse.mockReturnValue(false);
+
+    const malformed = await route(
+      { handled: false },
+      {
+        path: '/api/admin/pinyin-slug',
+        request: new Request('https://example.com/api/admin/pinyin-slug', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'test-token' },
+          body: '{',
+        }),
+      },
+    );
+    expect(malformed.response.status).toBe(400);
+
+    const oversized = await route(
+      { handled: false },
+      {
+        path: '/api/admin/pinyin-slug',
+        request: new Request('https://example.com/api/admin/pinyin-slug', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'test-token' },
+          body: JSON.stringify({ title: 'a'.repeat(501) }),
+        }),
+      },
+    );
+    expect(oversized.response.status).toBe(400);
+  });
+
   it('returns a slug after the existing editor security gate succeeds', async () => {
     const hooks = setup();
     const route = hooks.get('route:request')!;
