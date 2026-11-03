@@ -1136,3 +1136,35 @@ div.token-input-dropdown ul li.token-input-selected-dropdown-item { background-c
 
 /* Hide visually and from screenreaders, but maintain layout */
 .invisible { visibility: hidden; }
+
+/* Markdown editor preview enhancements */
+.wmd-preview .markdown-math,
+.note-body .markdown-math { overflow-wrap: anywhere; }
+.wmd-preview .markdown-math--block,
+.note-body .markdown-math--block {
+  display: block;
+  margin: 1.25rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+.wmd-preview .warm-mermaid,
+.note-body .warm-mermaid {
+  max-width: 100%;
+  margin: 1.25rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+.wmd-preview .warm-mermaid svg,
+.note-body .warm-mermaid svg {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+}
+.wmd-preview pre .token.comment,
+.note-body pre .token.comment { color: #8b8b83; }
+.wmd-preview pre .token.keyword,
+.note-body pre .token.keyword { color: #8066a5; }
+.wmd-preview pre .token.string,
+.note-body pre .token.string { color: #65845b; }
+.wmd-preview pre .token.number,
+.note-body pre .token.number { color: #b45b45; }
