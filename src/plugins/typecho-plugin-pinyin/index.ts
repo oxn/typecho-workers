@@ -154,7 +154,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     }
 
     const title = (body as { title?: unknown }).title;
-    if (typeof title !== 'string' || title.length > 500) {
+    if (typeof title !== 'string' || !title.trim() || title.length > 500) {
       return { handled: true, response: json({ error: 'Invalid title' }, 400) };
     }
 
