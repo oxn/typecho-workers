@@ -18,17 +18,33 @@ const mathBlockExtension = {
   level: 'block' as const,
   start(source: string): number | undefined {
     const lines = source.split('\n');
+    const backtick = String.fromCharCode(96);
     let offset = 0;
     let fenceCharacter = '';
     let fenceLength = 0;
 
     for (const line of lines) {
-      const fence = /^ {0,3}(\`{3,}|~{3,})/.exec(line);
-      if (!fenceCharacter && fence) {
-        fenceCharacter = fence[1][0];
-        fenceLength = fence[1].length;
+      const trimmed = line.trimStart();
+      const marker = trimmed.charAt(0);
+      let markerLength = 0;
+      while (trimmed.charAt(markerLength) === marker && marker) markerLength += 1;
+
+      if (!fenceCharacter && (marker === backtick || marker === '~') && markerLength >= 3) {
+        fenceCharacter = marker;
+        fenceLength = markerLength;
       } else if (fenceCharacter) {
-        const closingFence = new RegExp('^ {0,3}' + fenceCharacter + '{' + fenceLength + ',}\\\\s*
+        if (marker === fenceCharacter && markerLength >= fenceLength && trimmed.slice(markerLength).trim() === '') {
+          fenceCharacter = '';
+          fenceLength = 0;
+        }
+      } else if (trimmed === '$$' || trimmed === '\\[') {
+        return offset + (line.length - trimmed.length);
+      }
+
+      offset += line.length + 1;
+    }
+    return undefined;
+  },
   tokenizer(source: string) {
     const dollar = /^\$\$\s*\n([\s\S]*?)\n\$\$\s*(?:\n|$)/.exec(source);
     const bracket = /^\\\[\s*\n([\s\S]*?)\n\\\]\s*(?:\n|$)/.exec(source);
