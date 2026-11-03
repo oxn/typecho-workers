@@ -114,7 +114,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     });
     if (!content || (content.type !== 'post' && content.type !== 'page')) return payload;
 
-    const settings = parseSettings(auth.options[OPTION_KEY]);
+    const settings = parseSettings(await getOption(auth.db, OPTION_KEY));
     const csrfToken = await generateSecurityToken(auth.options.secret, auth.user.authCode, auth.uid);
     return {
       ...payload,

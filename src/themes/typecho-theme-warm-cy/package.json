@@ -9,7 +9,8 @@
     "typecho",
     "theme",
     "warm",
-    "notes"
+    "notes",
+    "plugin"
   ],
   "files": [
     "theme.json",
@@ -17,6 +18,21 @@
     "components/",
     "screenshot.png",
     "favicon.ico",
-    "assets/"
-  ]
+    "assets/",
+    "plugin.ts"
+  ],
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-warm-cy",
+      "name": "Warm CY 管理功能",
+      "description": "为 Warm CY 主题提供文章置顶 API 与评论区管理员操作信息。",
+      "version": "1.0.0",
+      "license": "MIT",
+      "tags": [
+        "warm-cy",
+        "theme-companion"
+      ],
+      "entry": "plugin.ts"
+    }
+  }
 }

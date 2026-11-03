@@ -19,7 +19,6 @@
         "typecho-plugin-notifier": "workspace:*",
         "typecho-plugin-pinyin": "workspace:*",
         "typecho-plugin-turnstile": "workspace:*",
-        "typecho-plugin-warm-cy": "workspace:*",
         "typecho-theme-warm": "workspace:*",
         "typecho-theme-warm-cy": "workspace:*",
       },
@@ -64,10 +63,6 @@
     },
     "src/plugins/typecho-plugin-turnstile": {
       "name": "typecho-plugin-turnstile",
-      "version": "1.0.0",
-    },
-    "src/plugins/typecho-plugin-warm-cy": {
-      "name": "typecho-plugin-warm-cy",
       "version": "1.0.0",
     },
     "src/themes/typecho-theme-warm": {

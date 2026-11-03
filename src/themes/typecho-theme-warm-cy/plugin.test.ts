@@ -25,9 +25,9 @@ vi.mock('typecho/plugin-sdk', () => ({
   setOption: mocks.setOption,
 }));
 
-import init from './index';
+import init from './plugin';
 
-const PLUGIN_ID = 'typecho-plugin-warm-cy';
+const PLUGIN_ID = 'Warm CY theme companion';
 const ADMIN_PATH = '/api/admin/theme-pin';
 const OPTION_KEY = 'theme:typecho-theme-warm-cy';
 
@@ -73,7 +73,7 @@ function routeRequest(path = ADMIN_PATH, method = 'POST', body: unknown = { cid:
   });
 }
 
-describe('typecho-plugin-warm-cy', () => {
+describe('Warm CY theme companion', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requireAdminAction.mockResolvedValue(adminContext());
@@ -207,10 +207,10 @@ describe('typecho-plugin-warm-cy', () => {
     });
   });
 
-  it('derives the pin button state from the latest D1 settings, not stale request options', async () => {
+  it('clears the pin button state when the latest D1 pinnedIds setting is empty', async () => {
     const context = adminContext();
     mocks.requireAdminAction.mockResolvedValueOnce(context);
-    mocks.getOption.mockResolvedValueOnce(JSON.stringify({ pinnedIds: '8,20' }));
+    mocks.getOption.mockResolvedValueOnce(JSON.stringify({ pinnedIds: '' }));
     const handler = collectHooks().get('comment:list')!;
     const payload = { comments: [] };
 
