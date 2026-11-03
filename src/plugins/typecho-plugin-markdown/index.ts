@@ -104,7 +104,11 @@ export function transformMathSource(source: string): string {
     }
 
     const displayLine = /^(\s{0,3})(\$\$|\\\[)(.*?)(\$\$|\\\])\s*$/.exec(line);
-    if (displayLine && displayLine[2] === displayLine[4]) {
+    const isDisplayPair = displayLine && (
+      (displayLine[2] === '$$' && displayLine[4] === '$$') ||
+      (displayLine[2] === '\\[' && displayLine[4] === '\\]')
+    );
+    if (displayLine && isDisplayPair) {
       output.push(displayLine[1] + '```math');
       output.push(displayLine[3]);
       output.push(displayLine[1] + '```');
