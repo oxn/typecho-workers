@@ -9,6 +9,7 @@ function scopedSelector(selector: string): string {
 }
 
 const loadedScripts = new Set<string>();
+const failedScripts = new Set<string>();
 
 function ensureStyle(filename: string): void {
   const existing = document.querySelector('link[data-markdown-style="' + filename + '"]');
@@ -21,7 +22,7 @@ function ensureStyle(filename: string): void {
 }
 
 function ensureScript(filename: string): void {
-  if (loadedScripts.has(filename)) return;
+  if (loadedScripts.has(filename) || failedScripts.has(filename)) return;
   const existing = document.querySelector('script[data-markdown-script="' + filename + '"]');
   if (existing) {
     loadedScripts.add(filename);
@@ -35,6 +36,7 @@ function ensureScript(filename: string): void {
   script.dataset.markdownScript = filename;
   script.addEventListener('error', () => {
     loadedScripts.delete(filename);
+    failedScripts.add(filename);
     script.remove();
   }, { once: true });
   document.body.appendChild(script);
