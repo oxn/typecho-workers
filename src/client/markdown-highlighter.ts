@@ -22,7 +22,7 @@ languages.yml = languages.yaml;
 
 function highlight(root: ParentNode = document): void {
   const blocks = root.querySelectorAll<HTMLElement>(
-    '.warm-prose pre code[class*="language-"], .warm-note__content pre code[class*="language-"]',
+    '.warm-prose pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid)',
   );
 
   blocks.forEach((code) => {
