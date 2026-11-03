@@ -35,4 +35,5 @@ jobs:
         run: bun run test
 
       - name: Build application
+        if: always()
         run: bun run build
