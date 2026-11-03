@@ -150,3 +150,9 @@
 - 重新启用路径有对应测试：activated sync 后若 KV control document 缺失，首次请求可从已同步的 runtime config 重建 control document。这里测试的是缓存控制状态恢复，不代表所有 KV/D1 业务数据都在停用时删除；页面缓存条目可能仍留在 KV，是否读取取决于控制文档和 runtime active 状态。
 - 当前 CI run 41631020504（HEAD 8f6fcca6）已通过：130 个测试文件、1508 项测试；Astro build；Markdown 插件 4 个 JS 入口打包；CI 明确检查 Markdown 资源文件存在。此验证不含线上浏览器验收或 Wrangler 部署。
 - Warm CY 标题图标 CSS 修正提交 bb1339492629f34fa54d5aeb61eadb966eadd84d 正在独立 CI 验证；在结果返回前不标记为通过。
+### 旧版后台主题设置与核心小改动归属复核
+
+- 旧项目 options-theme.astro 的 600 余行改动主要是 Warm CY 专属表单排版：置顶 ID、十组页脚链接、图片参数、加载模式和页脚自定义 HTML 的分组与交互。当前 Warm CY theme.json 已声明这些设置字段，原版 options-theme.astro 可按通用 schema 展示并保存；因此核心后台页面保持固定上游，不恢复针对单一主题的条件分支。当前保留字段和功能，旧版分组/动态显示属于未复刻的管理界面体验差异。
+- 如果后续确实需要完全恢复旧版表单布局，应优先评估 Warm CY 伴随插件在主题启用时对后台主题设置页做局部增强；不得把旧 options-theme.astro 整份改动带回核心。
+- 旧项目对 public/css/admin.css 的单行修改只为移动端后台导航增加 min-height；该文件属于宿主后台资源，本迁移阶段不改核心资源，先不迁移这一视觉微调。
+- 旧项目给 src/lib/page-data.ts 增加 csrfToken、给 src/pages/admin/index.astro 增加项目宣传文字的差异均未恢复：前者由 Warm CY 伴随插件在管理员评论 metadata 路径提供专用 token，不扩展核心 Theme props；后者是项目品牌文案，不属于主题功能。
