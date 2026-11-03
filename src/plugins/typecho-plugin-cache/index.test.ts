@@ -1645,6 +1645,26 @@ describe('plugin registration and controls', () => {
     expect(purgeSpy).toHaveBeenCalledWith({ tags: ['tc:home', 'tc:archive', 'tc:other', 'tc:post'] });
   });
 
+  it('does not report page-only invalidation as shared-data invalidation', async () => {
+    const kv = new MemoryKv();
+    await activate(kv, {
+      ...defaultSettings,
+      frontendDataCacheBackend: 'none',
+      adminDataCacheBackend: 'none',
+    });
+
+    const handled = await earlyRequestProvider.invalidate!({
+      reason: 'options-batch',
+      domains: ['all'],
+      sharedDomains: ['options'],
+    } as any);
+
+    // Page generations and platform tags are still purged, but the options
+    // shared-data backend is disabled, so options.ts must run its D1 fallback.
+    expect(kv.store.has('typecho:edge-cache:v1:g:all')).toBe(true);
+    expect(handled).toBe(false);
+  });
+
   it('invalidates all page and shared-data generations on a manual full refresh', async () => {
     const kv = new MemoryKv();
     env.TYPECHO_CACHE = kv as any;
