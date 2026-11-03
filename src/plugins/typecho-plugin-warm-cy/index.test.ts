@@ -25,7 +25,7 @@ vi.mock('typecho/plugin-sdk', () => ({
   setOption: mocks.setOption,
 }));
 
-import init from './plugin';
+import init from './index';
 
 const PLUGIN_ID = 'typecho-plugin-warm-cy';
 const ADMIN_PATH = '/api/admin/theme-pin';
@@ -73,7 +73,7 @@ function routeRequest(path = ADMIN_PATH, method = 'POST', body: unknown = { cid:
   });
 }
 
-describe('Warm CY theme companion', () => {
+describe('CY 主题功能插件', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requireAdminAction.mockResolvedValue(adminContext());
