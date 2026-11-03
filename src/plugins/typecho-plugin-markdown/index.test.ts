@@ -17,6 +17,7 @@ describe('typecho-plugin-markdown', () => {
   it('converts inline dollar and bracket math into safe Markdown code spans', () => {
     const result = transformMathSource('公式 $a+b$ 和 \\(x^2\\)');
     expect(result).toContain('`$a+b$`');
+    expect(result).not.toContain('```math');
     expect(result).toContain('`$x^2$`');
     expect(result).not.toContain('<span');
   });
@@ -28,6 +29,7 @@ describe('typecho-plugin-markdown', () => {
 
   it('supports one-line display math', () => {
     expect(transformMathSource('$$x^2$$')).toContain('```math\nx^2\n```');
+    expect(transformMathSource('$x^2$')).toBe('`$x^2$`');
     expect(transformMathSource('\\[x^2\\]')).toContain('```math\nx^2\n```');
   });
 
