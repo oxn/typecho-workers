@@ -59,7 +59,11 @@ export const POST: APIRoute = async ({ request }) => {
         !auth.pluginCtx.activatedPlugins.has('typecho-plugin-notes')) {
       return jsonError(403, 'Forbidden');
     }
-    html = linkifyNoteContent(renderMarkdown(payload.content), payload.content, auth.options.siteUrl || '');
+    html = linkifyNoteContent(
+      preserveEditorEmbedPreview(renderMarkdown(payload.content)),
+      payload.content,
+      auth.options.siteUrl || '',
+    );
   } else {
     html = await renderMarkdownFiltered(auth.pluginCtx, payload.content);
     html = preserveEditorEmbedPreview(html);
