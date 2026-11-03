@@ -43,7 +43,7 @@ async function renderDiagram(code: HTMLElement): Promise<void> {
 
 function renderMermaid(root: ParentNode = document): void {
   const blocks = root.querySelectorAll<HTMLElement>(
-    '.warm-prose pre code.language-mermaid, .warm-prose pre code.lang-mermaid',
+    '.warm-prose pre code.language-mermaid, .warm-prose pre code.lang-mermaid, .wmd-preview pre code.language-mermaid, .wmd-preview pre code.lang-mermaid, .note-body pre code.language-mermaid, .note-body pre code.lang-mermaid',
   );
   blocks.forEach((code) => void renderDiagram(code));
 }
