@@ -1042,6 +1042,91 @@ body.warm-theme {
   font-size: inherit;
 }
 
+/* PrismJS syntax colors — the highlighter bundle itself is loaded only when needed. */
+.warm-prose pre .token.comment,
+.warm-prose pre .token.prolog,
+.warm-prose pre .token.doctype,
+.warm-prose pre .token.cdata {
+  color: #8b8b83;
+}
+
+.warm-prose pre .token.punctuation,
+.warm-prose pre .token.operator {
+  color: #77716a;
+}
+
+.warm-prose pre .token.property,
+.warm-prose pre .token.tag,
+.warm-prose pre .token.boolean,
+.warm-prose pre .token.number,
+.warm-prose pre .token.constant,
+.warm-prose pre .token.symbol {
+  color: #b45b45;
+}
+
+.warm-prose pre .token.selector,
+.warm-prose pre .token.attr-name,
+.warm-prose pre .token.string,
+.warm-prose pre .token.char,
+.warm-prose pre .token.builtin {
+  color: #65845b;
+}
+
+.warm-prose pre .token.keyword,
+.warm-prose pre .token.atrule,
+.warm-prose pre .token.function,
+.warm-prose pre .token.class-name {
+  color: #8066a5;
+}
+
+.warm-prose pre .token.regex,
+.warm-prose pre .token.important,
+.warm-prose pre .token.variable {
+  color: #b07a37;
+}
+
+.dark .warm-prose pre .token.comment,
+.dark .warm-prose pre .token.prolog,
+.dark .warm-prose pre .token.doctype,
+.dark .warm-prose pre .token.cdata {
+  color: #92958f;
+}
+
+.dark .warm-prose pre .token.punctuation,
+.dark .warm-prose pre .token.operator {
+  color: #b7b2aa;
+}
+
+.dark .warm-prose pre .token.property,
+.dark .warm-prose pre .token.tag,
+.dark .warm-prose pre .token.boolean,
+.dark .warm-prose pre .token.number,
+.dark .warm-prose pre .token.constant,
+.dark .warm-prose pre .token.symbol {
+  color: #e39a83;
+}
+
+.dark .warm-prose pre .token.selector,
+.dark .warm-prose pre .token.attr-name,
+.dark .warm-prose pre .token.string,
+.dark .warm-prose pre .token.char,
+.dark .warm-prose pre .token.builtin {
+  color: #a4c18f;
+}
+
+.dark .warm-prose pre .token.keyword,
+.dark .warm-prose pre .token.atrule,
+.dark .warm-prose pre .token.function,
+.dark .warm-prose pre .token.class-name {
+  color: #c3a9e4;
+}
+
+.dark .warm-prose pre .token.regex,
+.dark .warm-prose pre .token.important,
+.dark .warm-prose pre .token.variable {
+  color: #e5b875;
+}
+
 .warm-prose table {
   min-width: stretch;
   width: max-content !important;
