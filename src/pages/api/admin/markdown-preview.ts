@@ -3,7 +3,7 @@ import { hasPermission } from '@/lib/auth';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { renderMarkdown, renderMarkdownFiltered } from '@/lib/markdown';
 import { jsonError, jsonOk } from '@/lib/http';
-import { linkifyNoteContent } from 'typecho-plugin-notes';
+import { linkifyNoteContent } from '@/plugins/typecho-plugin-notes/service';
 
 const MAX_PREVIEW_BODY_BYTES = 500_000;
 
