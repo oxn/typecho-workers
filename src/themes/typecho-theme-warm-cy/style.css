@@ -1042,6 +1042,71 @@ body.warm-theme {
   font-size: inherit;
 }
 
+/* Footnotes, math, and Mermaid output. Their rendering bundles are lazy-loaded. */
+.warm-prose .footnotes {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--warm-border);
+  color: var(--warm-muted);
+  font-size: .92em;
+}
+
+.warm-prose .footnotes h2.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.warm-prose .footnotes ol {
+  padding-left: 1.5rem;
+}
+
+.warm-prose .footnotes li {
+  margin: .55rem 0;
+}
+
+.warm-prose [data-footnote-ref]::before {
+  content: '[';
+}
+
+.warm-prose [data-footnote-ref]::after {
+  content: ']';
+}
+
+.warm-prose [data-footnote-backref] {
+  margin-left: .35em;
+  text-decoration: none;
+}
+
+.warm-prose .markdown-math {
+  overflow-wrap: anywhere;
+}
+
+.warm-prose .markdown-math--block {
+  display: block;
+  margin: 1.4rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.warm-prose .warm-mermaid {
+  max-width: 100%;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.warm-prose .warm-mermaid svg {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+}
+
 /* PrismJS syntax colors — the highlighter bundle itself is loaded only when needed. */
 .warm-prose pre .token.comment,
 .warm-prose pre .token.prolog,
