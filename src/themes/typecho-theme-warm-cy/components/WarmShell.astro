@@ -280,17 +280,38 @@ const footerLinks = [
   </script>
   <script is:inline data-no-instant>
     (() => {
-      let loaded = false;
-      const loadHighlighter = () => {
-        if (loaded || !document.querySelector('.warm-prose pre code[class*="language-"], .warm-note__content pre code[class*="language-"]')) return;
-        loaded = true;
-        const script = document.createElement('script');
-        script.src = '/js/markdown-highlighter.js';
-        script.defer = true;
-        document.head.appendChild(script);
+      const loaded = new Set();
+      const loadAsset = (key, selector, scriptUrl, stylesheetUrl) => {
+        if (loaded.has(key) || !document.querySelector(selector)) return;
+        loaded.add(key);
+        if (stylesheetUrl && !document.querySelector('link[href="' + stylesheetUrl + '"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = stylesheetUrl;
+          document.head.appendChild(link);
+        }
+        if (!document.querySelector('script[src="' + scriptUrl + '"]')) {
+          const script = document.createElement('script');
+          script.src = scriptUrl;
+          script.defer = true;
+          document.head.appendChild(script);
+        }
       };
-      loadHighlighter();
-      window.addEventListener('instantclick:newpage', loadHighlighter);
+      const loadMarkdownEnhancements = () => {
+        loadAsset(
+          'highlighter',
+          '.warm-prose pre code[class*="language-"]:not(.language-mermaid):not(.lang-mermaid)',
+          '/js/markdown-highlighter.js',
+        );
+        loadAsset('math', '.markdown-math[data-tex]', '/js/markdown-math.js', '/js/markdown-math.css');
+        loadAsset(
+          'mermaid',
+          '.warm-prose pre code.language-mermaid, .warm-prose pre code.lang-mermaid',
+          '/js/markdown-mermaid.js',
+        );
+      };
+      loadMarkdownEnhancements();
+      window.addEventListener('instantclick:newpage', loadMarkdownEnhancements);
     })();
   </script>
 </Base>
