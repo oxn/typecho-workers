@@ -48,10 +48,8 @@ describe('typecho-plugin-markdown', () => {
   it('registers shared frontend and editor assets without adding HTML to Markdown source', () => {
     const hooks = setup();
     expect(hooks.get('content:markdown')!('$x$')).toContain('`$x$`');
-    expect(hooks.get('archive:header')!('')).toContain('markdown-math.css');
-    expect(hooks.get('archive:footer')!('')).toContain('markdown-mermaid.js');
-    expect(hooks.get('admin:header')!('', { activeMenu: 'write-post' })).toContain('markdown-highlighter.css');
-    expect(hooks.get('admin:footer')!('', { activeMenu: 'write-page' })).toContain('markdown-math.js');
+    expect(hooks.get('archive:footer')!('')).toContain('markdown-loader.js');
+    expect(hooks.get('admin:footer')!('', { activeMenu: 'write-page' })).toContain('markdown-loader.js');
     expect(hooks.get('admin:footer')!('', { activeMenu: 'manage-posts' })).toBe('');
   });
 });
