@@ -2,7 +2,6 @@
 import { env } from 'cloudflare:workers';
 import { getDb, schema } from 'typecho/db';
 import { getNotesStreamForTheme, type NoteListItem } from 'typecho-plugin-notes';
-import { createContext } from '@/lib/context';
 import { optimizeContentImages } from './warm-image';
 import { and, eq, inArray, lte } from 'drizzle-orm';
 import type { ThemeIndexProps, PostListItem } from '@/lib/theme-props';
