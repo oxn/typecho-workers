@@ -92,7 +92,7 @@ describe('Warm CY theme helpers', () => {
   it('does not show a table of contents for fewer than two headings', () => {
     const result = prepareArticleToc('<h2>Only heading</h2>');
     expect(result.items).toEqual([]);
-    expect(result.html).toContain('id="Only-heading"');
+    expect(result.html).toContain('id="only-heading"');
   });
 
   it('creates plain excerpts and estimates a minimum reading time', () => {
