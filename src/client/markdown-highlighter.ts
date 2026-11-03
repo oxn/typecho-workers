@@ -1,3 +1,4 @@
+// @ts-expect-error PrismJS is a browser runtime package without bundled TypeScript declarations.
 import Prism from 'prismjs';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
