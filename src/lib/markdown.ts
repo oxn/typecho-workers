@@ -760,7 +760,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
     console.error('[markdown] content:markdown filter failed:', error);
   }
 
-  const html = normalizeTaskListCheckboxes(transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string));
+  const html = normalizeTaskListCheckboxes(transformGithubAlerts(parseContentMarkdown(content)));
   let sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   try {
