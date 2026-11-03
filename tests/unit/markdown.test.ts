@@ -583,7 +583,7 @@ describe('GFM task lists', () => {
 
 describe('GFM footnotes', () => {
   it('renders references, definitions, and return links', () => {
-    const html = renderMarkdown('A note reference[^source].\\n\\n[^source]: Footnote body.');
+    const html = renderMarkdown('A note reference[^source].\n\n[^source]: Footnote body.');
     expect(html).toContain('data-footnote-ref');
     expect(html).toContain('data-footnote-backref');
     expect(html).toContain('class="footnotes"');
@@ -591,7 +591,7 @@ describe('GFM footnotes', () => {
   });
 
   it('keeps footnote state isolated between separate documents', () => {
-    const withFootnote = renderMarkdown('Text[^a].\\n\\n[^a]: First document note.');
+    const withFootnote = renderMarkdown('Text[^a].\n\n[^a]: First document note.');
     const withoutFootnote = renderMarkdown('A separate document.');
     expect(withFootnote).toContain('First document note.');
     expect(withoutFootnote).not.toContain('footnotes');
