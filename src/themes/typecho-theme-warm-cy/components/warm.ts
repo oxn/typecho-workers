@@ -199,7 +199,7 @@ export function isCurrentPageLink(permalink: string, currentPath: string, siteUr
     const current = new URL(currentPath, site);
     if (target.origin !== site.origin || current.origin !== site.origin) return false;
     const normalizePath = (pathname: string) => pathname.length > 1
-      ? pathname.replace(/\\/+$/, '')
+      ? pathname.replace(/\/+$/, '')
       : pathname;
     return normalizePath(target.pathname) === normalizePath(current.pathname);
   } catch {
