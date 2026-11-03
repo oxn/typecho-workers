@@ -27,7 +27,7 @@ vi.mock('typecho/plugin-sdk', () => ({
 
 import init from './plugin';
 
-const PLUGIN_ID = 'Warm CY theme companion';
+const PLUGIN_ID = 'typecho-plugin-warm-cy';
 const ADMIN_PATH = '/api/admin/theme-pin';
 const OPTION_KEY = 'theme:typecho-theme-warm-cy';
 
