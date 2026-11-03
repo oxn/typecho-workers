@@ -187,7 +187,14 @@ export async function loadOptions(db: Database): Promise<SiteOptions> {
   // DIAGNOSTIC ONLY: bypass local snapshots, early-request providers, KV,
   // D1 shared-data cache, and the legacy Cache API options cache. Read the
   // public options projection directly from the authoritative options table.
-  const cachedOptions = await loadCachedOptionsFromFallback(db, false);
+  const rows = await db
+    .select({ name: schema.options.name, value: schema.options.value })
+    .from(schema.options)
+    .where(and(
+      eq(schema.options.user, 0),
+      sql`${schema.options.name} <> 'secret' AND ${schema.options.name} NOT LIKE 'plugin:%'`,
+    ));
+  const cachedOptions = parseOptions(rows) as CachedSiteOptions;
 
   // Secrets and whole plugin configs remain direct D1 reads.
   const privateOptions = await loadPrivateOptions(db);
