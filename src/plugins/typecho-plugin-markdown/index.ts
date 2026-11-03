@@ -1,6 +1,5 @@
 import type { PluginInitContext } from 'typecho/plugin-sdk';
 
-const PLUGIN_ID = 'typecho-plugin-markdown';
 const PUBLIC_ASSET = '/plugin-assets/typecho-plugin-markdown';
 
 function makeCodeSpan(value: string): string {
