@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - test/clean-upstream-warm-cy
+      - release/2026-11-03-warm-cy-without-markdown
   pull_request:
     branches:
       - master
