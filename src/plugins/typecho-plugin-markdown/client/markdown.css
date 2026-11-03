@@ -1,0 +1,32 @@
+/* Shared, theme-neutral presentation for Markdown enhancement output. */
+.markdown-math-block {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1.25em 0;
+  text-align: center;
+}
+
+.markdown-math-inline {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.markdown-mermaid {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1.25em 0;
+  text-align: center;
+}
+
+.markdown-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+pre[class*="language-"] {
+  overflow-x: auto;
+}
+
+code[class*="language-"] {
+  tab-size: 2;
+}
