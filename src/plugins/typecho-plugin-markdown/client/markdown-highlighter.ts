@@ -43,14 +43,17 @@ languages.kt = languages.kotlin;
 languages.ps1 = languages.powershell;
 languages.dockerfile = languages.docker;
 
-const ROOT_SELECTOR = [
+const CONTENT_ROOTS = [
   '.warm-prose', '.note-body', '#wmd-preview', '.wmd-preview',
   '.markdown-body', '.post-content', '.entry-content', '.typecho-content',
-].join(', ');
+];
+const ROOT_SELECTOR = CONTENT_ROOTS.join(', ');
+const scopedSelector = (selector: string) =>
+  CONTENT_ROOTS.map((root) => root + ' ' + selector).join(', ');
 
 function highlight(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>(
-    ROOT_SELECTOR + ' pre code[class*="language-"]:not(.language-mermaid):not(.language-math)',
+    scopedSelector('pre code[class*="language-"]:not(.language-mermaid):not(.language-math)'),
   ).forEach((code) => {
     if (code.dataset.markdownHighlighted === '1') return;
     code.dataset.markdownHighlighted = '1';
