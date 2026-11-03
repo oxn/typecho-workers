@@ -619,7 +619,7 @@ describe('LaTeX math placeholders', () => {
 
 describe('Markdown heading anchors and Mermaid blocks', () => {
   it('adds unique stable ids to headings while preserving explicit ids', () => {
-    const html = renderMarkdown('# Intro\\n\\n## Hello, world!\\n\\n## Hello, world!\\n\\n## <span id="custom-heading">Custom</span>');
+    const html = renderMarkdown('# Intro\n\n## Hello, world!\n\n## Hello, world!\n\n## <span id="custom-heading">Custom</span>');
     expect(html).toContain('<h1 id="intro">Intro</h1>');
     expect(html).toContain('id="hello-world"');
     expect(html).toContain('id="hello-world-1"');
@@ -627,7 +627,7 @@ describe('Markdown heading anchors and Mermaid blocks', () => {
   });
 
   it('keeps Mermaid fenced code as a language-marked code block for lazy rendering', () => {
-    const html = renderMarkdown('```mermaid\\nflowchart TD\\n  A --> B\\n```');
+    const html = renderMarkdown('```mermaid\nflowchart TD\n  A --> B\n```');
     expect(html).toContain('class="language-mermaid"');
     expect(html).toContain('A --&gt; B');
     expect(html).not.toContain('<svg');
