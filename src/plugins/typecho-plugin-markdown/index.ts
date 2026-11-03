@@ -152,8 +152,10 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   addHook('archive:footer', pluginId, (html: string) => html + scriptsHtml());
 
-  addHook('admin:footer', pluginId, (html: string, extra?: { activeMenu?: string }) => {
-    if (extra?.activeMenu !== 'write-post' && extra?.activeMenu !== 'write-page') return html;
+  addHook('admin:footer', pluginId, (html: string, extra?: { activeMenu?: string; title?: string }) => {
+    const isEditorMenu = extra?.activeMenu === 'write-post' || extra?.activeMenu === 'write-page';
+    const isEditorTitle = ['撰写新文章', '编辑文章', '创建页面', '编辑页面'].includes(extra?.title || '');
+    if (!isEditorMenu && !isEditorTitle) return html;
     return html + scriptsHtml();
   });
 }
