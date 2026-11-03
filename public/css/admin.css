@@ -1168,3 +1168,17 @@ div.token-input-dropdown ul li.token-input-selected-dropdown-item { background-c
 .note-body pre .token.string { color: #65845b; }
 .wmd-preview pre .token.number,
 .note-body pre .token.number { color: #b45b45; }
+
+.wmd-preview .footnotes,
+.note-body .footnotes {
+  margin-top: 1.5rem;
+  padding-top: .9rem;
+  border-top: 1px solid #e7eaf0;
+  font-size: .92em;
+}
+.wmd-preview .footnotes ol,
+.note-body .footnotes ol { padding-left: 1.5rem; }
+.note-body .markdown-alert-important { border-left-color: #8250df; }
+.note-body .markdown-alert-important .markdown-alert-title { color: #8250df; }
+.note-body .markdown-alert-caution { border-left-color: #d1242f; }
+.note-body .markdown-alert-caution .markdown-alert-title { color: #d1242f; }
