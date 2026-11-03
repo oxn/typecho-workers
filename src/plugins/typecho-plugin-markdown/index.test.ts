@@ -53,7 +53,11 @@ describe('typecho-plugin-markdown', () => {
     const hooks = setup();
     expect(hooks.get('content:markdown')!('$x$')).toContain('`$x$`');
     expect(hooks.get('archive:footer')!('')).toContain('markdown-loader.js');
-    expect(hooks.get('admin:footer')!('', { activeMenu: 'write-page' })).toContain('markdown-loader.js');
-    expect(hooks.get('admin:footer')!('', { activeMenu: 'manage-posts' })).toBe('');
+    const adminFooter = hooks.get('admin:footer')!;
+    expect(adminFooter('', { activeMenu: 'write-page', title: '创建页面' })).toContain('markdown-loader.js');
+    expect(adminFooter('', { activeMenu: 'manage-posts', title: '编辑文章' })).toContain('markdown-loader.js');
+    expect(adminFooter('', { activeMenu: 'manage-pages', title: '编辑页面' })).toContain('markdown-loader.js');
+    expect(adminFooter('', { activeMenu: 'manage-posts', title: '文章管理' })).toBe('');
+    expect(adminFooter('', { activeMenu: 'manage-posts', title: '编辑文章' })).not.toContain('/vendor/purify.js');
   });
 });
