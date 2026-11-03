@@ -11,10 +11,18 @@ import { addHook, type HookContext } from '@/lib/plugin';
 import { autop, escapeHtml, generateExcerpt, renderCommentText, renderContentExcerpt, renderMarkdown, renderMarkdownFiltered, resetMarkdownRenderCache, stripHtmlTags, stripTypechoMarkers, transformGithubAlerts } from '@/lib/markdown';
 import { notifyEarlyRequestInvalidation } from '@/lib/early-request';
 import { marked } from 'marked';
-import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 
-const require = createRequire(import.meta.url);
-const HyperDown = require('../../public/vendor/hyperdown.js') as new () => {
+// Load the upstream UMD build in an isolated CommonJS-like context.
+// The repository is ESM ("type": "module"), so createRequire() cannot
+// expose this browser-oriented UMD script as its constructor on Node 22+.
+const hyperDownModule: { exports: unknown } = { exports: {} };
+runInNewContext(
+  readFileSync(new URL('../../public/vendor/hyperdown.js', import.meta.url), 'utf8'),
+  { module: hyperDownModule, exports: hyperDownModule.exports },
+);
+const HyperDown = hyperDownModule.exports as new () => {
   enableHtml: (v: boolean) => void;
   enableLine: (v: boolean) => void;
   makeHtml: (src: string) => string;
