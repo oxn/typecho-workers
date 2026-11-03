@@ -53,7 +53,7 @@ function hasMath(): boolean {
 
   const textRoots = document.querySelectorAll<HTMLElement>('.note-body, #wmd-preview, .wmd-preview');
   return Array.from(textRoots).some((root) =>
-    /\\\(.+?\\\)|(?<!\\)\$(?!\$)[^$\n]+(?<!\\)\$(?!\$)/.test(root.textContent || ''),
+    /\\\\(false+?\\\\)|(?<!\\)\$(?!\$)[^$\n]+(?<!\\)\$(?!\$)/.test(root.textContent || ''),
   );
 }
 
