@@ -66,6 +66,8 @@ export default defineConfig({
         'typecho-plugin-intelligence',
         'typecho-plugin-turnstile',
         'typecho-theme-warm',
+        'typecho-plugin-warm-cy',
+        'typecho-theme-warm-cy',
       ],
     },
   },
