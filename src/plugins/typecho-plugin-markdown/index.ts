@@ -131,32 +131,17 @@ export function transformMathSource(source: string): string {
   return output.join('\n');
 }
 
-function stylesHtml(): string {
-  return [
-    '<link rel="stylesheet" href="' + PUBLIC_ASSET + '/markdown-highlighter.css">',
-    '<link rel="stylesheet" href="' + PUBLIC_ASSET + '/markdown-math.css">',
-  ].join('');
-}
-
 function scriptsHtml(): string {
   return [
     '<script defer src="/vendor/purify.js"></script>',
-    '<script defer src="' + PUBLIC_ASSET + '/markdown-math.js"></script>',
-    '<script defer src="' + PUBLIC_ASSET + '/markdown-mermaid.js"></script>',
-    '<script defer src="' + PUBLIC_ASSET + '/markdown-highlighter.js"></script>',
+    '<script defer src="' + PUBLIC_ASSET + '/markdown-loader.js"></script>',
   ].join('');
 }
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('content:markdown', pluginId, (source: string) => transformMathSource(source));
 
-  addHook('archive:header', pluginId, (html: string) => html + stylesHtml());
   addHook('archive:footer', pluginId, (html: string) => html + scriptsHtml());
-
-  addHook('admin:header', pluginId, (html: string, extra?: { activeMenu?: string }) => {
-    if (extra?.activeMenu !== 'write-post' && extra?.activeMenu !== 'write-page') return html;
-    return html + stylesHtml();
-  });
 
   addHook('admin:footer', pluginId, (html: string, extra?: { activeMenu?: string }) => {
     if (extra?.activeMenu !== 'write-post' && extra?.activeMenu !== 'write-page') return html;
