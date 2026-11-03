@@ -457,6 +457,21 @@ export function stripHtmlTags(html: string): string {
   return html.replace(HTML_TAG_RE, ' ').replace(WHITESPACE_RE, ' ').trim();
 }
 
+/**
+ * Marked emits disabled checkbox inputs for GFM task lists. Keep the visual
+ * state while replacing form controls with inert spans before sanitization.
+ * This deliberately targets only a checkbox immediately inside a list item.
+ */
+function normalizeTaskListCheckboxes(html: string): string {
+  return html.replace(
+    /(<li\\b[^>]*>)\\s*<input\\b(?=[^>]*\\btype=["']?checkbox["']?)[^>]*>/gi,
+    (match, listItem: string) => {
+      const checked = /\\bchecked(?:=["'][^"']*["'])?(?=\\s|\\/?>)/i.test(match);
+      return `${listItem}<span class="markdown-task-checkbox${checked ? ' is-checked' : ''}"></span>`;
+    },
+  );
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
@@ -484,7 +499,7 @@ export function renderContent(text: string, maxExcerptLength = 200): RenderedCon
   }
 
   const content = stripMarkdownPrefix(text).replace(MORE_COMMENT_RE, '');
-  const parsed = transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string);
+  const parsed = normalizeTaskListCheckboxes(transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string));
   const html = sanitizeHtml(parsed, SANITIZE_OPTIONS);
   const plain = stripHtmlTags(parsed);
   const plainExcerpt = plain.length <= maxExcerptLength
@@ -554,7 +569,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
     console.error('[markdown] content:markdown filter failed:', error);
   }
 
-  const html = transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string);
+  const html = normalizeTaskListCheckboxes(transformGithubAlerts(marked.parse(content, { async: false, breaks: true }) as string));
   let sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   try {
@@ -608,7 +623,7 @@ export function renderContentExcerpt(
   // regardless of whether the author placed <!--more--> inline or between
   // paragraphs — enabling a clean split on the rendered output.
   const withPlaceholder = content.replace(MORE_COMMENT_RE, '\n\n' + MORE_PLACEHOLDER + '\n\n');
-  const html = transformGithubAlerts(marked.parse(withPlaceholder, { async: false, breaks: true }) as string);
+  const html = normalizeTaskListCheckboxes(transformGithubAlerts(marked.parse(withPlaceholder, { async: false, breaks: true }) as string));
   const sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   // Split on the rendered placeholder and keep only the excerpt (part before it).
