@@ -116,7 +116,7 @@ const observer = new MutationObserver((records) => {
   records.forEach((record) => record.addedNodes.forEach((node) => {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const element = node as Element;
-    if (element.matches('pre code.language-math, code:not(pre code)')) {
+    if (element.matches('.note-body, #wmd-preview, .wmd-preview, pre code.language-math, code:not(pre code)')) {
       renderMath(document);
     } else if (element.querySelector('pre code.language-math, code:not(pre code)')) {
       renderMath(document);
