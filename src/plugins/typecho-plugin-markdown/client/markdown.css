@@ -30,3 +30,59 @@ pre[class*="language-"] {
 code[class*="language-"] {
   tab-size: 2;
 }
+
+/* Minimal theme-neutral Prism token palette; themes may override these variables. */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: var(--markdown-token-comment, #7a8794);
+}
+
+.token.punctuation {
+  color: var(--markdown-token-punctuation, #89939e);
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: var(--markdown-token-literal, #c05b5b);
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: var(--markdown-token-string, #4d8b62);
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: var(--markdown-token-operator, #9a6a34);
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: var(--markdown-token-keyword, #7655a5);
+}
+
+.token.function,
+.token.class-name {
+  color: var(--markdown-token-function, #287d9c);
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: var(--markdown-token-special, #b06b2d);
+}
