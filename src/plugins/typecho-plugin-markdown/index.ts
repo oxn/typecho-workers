@@ -108,7 +108,7 @@ export function transformMathSource(source: string): string {
     const displayLine =
       displayBody.length > 4 && displayBody.startsWith('$$') && displayBody.endsWith('$$')
         ? { indent: displayIndent, body: displayBody.slice(2, -2) }
-        : displayBody.length > 4 && displayBody.startsWith('\\\\[') && displayBody.endsWith('\\\\]')
+        : displayBody.length > 4 && displayBody.startsWith('\\[') && displayBody.endsWith('\\]')
           ? { indent: displayIndent, body: displayBody.slice(2, -2) }
           : null;
     if (displayLine) {
