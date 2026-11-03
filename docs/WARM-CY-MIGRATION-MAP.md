@@ -156,3 +156,9 @@
 - 如果后续确实需要完全恢复旧版表单布局，应优先评估 Warm CY 伴随插件在主题启用时对后台主题设置页做局部增强；不得把旧 options-theme.astro 整份改动带回核心。
 - 旧项目对 public/css/admin.css 的单行修改只为移动端后台导航增加 min-height；该文件属于宿主后台资源，本迁移阶段不改核心资源，先不迁移这一视觉微调。
 - 旧项目给 src/lib/page-data.ts 增加 csrfToken、给 src/pages/admin/index.astro 增加项目宣传文字的差异均未恢复：前者由 Warm CY 伴随插件在管理员评论 metadata 路径提供专用 token，不扩展核心 Theme props；后者是项目品牌文案，不属于主题功能。
+### Warm CY 页面导航高亮修正（2026-11-03）
+
+- 原主题导航使用 page.permalink.includes(currentPath)，相似路径可能错误高亮（例如 /about-me/ 误匹配 /about/）。已在主题 helper 中新增 isCurrentPageLink：使用 URL 解析、限制同源，并按去除尾部斜杠后的 pathname 精确匹配；WarmShell 页面导航使用该 helper。
+- 新增 warm.test.ts 测试，覆盖尾斜杠等价、相似路径不匹配和跨域地址不匹配。仅修改 Warm CY 主题文件与测试，不修改核心。
+- 最新验证提交 545dff56df72b400ecc577196214caa3f61a0d57 的 GitHub Actions run 41633346528 成功：130 个测试文件、1509 项测试全部通过；Astro build 成功；Markdown 插件 4 个客户端入口资源检查通过。
+- 同一提交对固定上游基线逐个 Blob SHA 比较：158 个核心文件与基线一致，差异 0。CI 仍不等于 Wrangler 部署或真实浏览器验收。
