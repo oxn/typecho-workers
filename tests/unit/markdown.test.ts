@@ -603,7 +603,7 @@ describe('GFM footnotes', () => {
 
 describe('LaTeX math placeholders', () => {
   it('recognizes inline and display math without rendering unsafe HTML on the server', () => {
-    const html = renderMarkdown('Inline $x^2 + y^2$ formula.\n\n$\nx^2 + y^2 = z^2\n$');
+    const html = renderMarkdown('Inline $x^2 + y^2$ formula.\n\n$$\nx^2 + y^2 = z^2\n$$');
     expect(html).toContain('class="markdown-math"');
     expect(html).toContain('data-tex="x^2 + y^2"');
     expect(html).toContain('markdown-math--block');
