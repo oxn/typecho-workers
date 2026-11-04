@@ -1,10 +1,9 @@
-
 {
   "id": "typecho-theme-warm-cy",
   "name": "Typecho Warm CY",
   "description": "基于 Typecho Warm 的独立自定义主题。",
   "author": "怸歪",
-  "version": "202610301527",
+  "version": "202611041140",
   "stylesheet": "style.css",
   "screenshot": "screenshot.png",
   "homepage": "https://oook.top",
