@@ -191,13 +191,26 @@
 
 /* Compact, original-style Warm CY theme settings layout. */
 .warm-theme-config-form .typecho-option {
-  margin: 0 0 18px !important;
-  padding: 0 0 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
   border: 0 !important;
-  border-bottom: 1px solid #e5e9e7 !important;
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+.warm-theme-settings-card {
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border: 1px solid #e5e9e7;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 2px 9px rgba(20, 40, 30, .035);
+}
+.warm-theme-settings-card .typecho-option + .typecho-option {
+  margin-top: 16px !important;
+}
+.warm-theme-settings-card .warm-theme-field-head {
+  margin-bottom: 9px;
 }
 .warm-theme-config-form .typecho-option > li { padding: 0 !important; }
 .warm-theme-config-form .warm-theme-field-head {
@@ -271,6 +284,9 @@
   padding: 12px 0 14px;
   border-bottom: 1px solid #e8ece9;
 }
+.warm-theme-link-row:last-child {
+  border-bottom: 0;
+}
 .warm-theme-link-text-line,
 .warm-theme-link-url-line {
   display: flex;
@@ -312,6 +328,7 @@
   border: 0 !important;
 }
 @media (max-width: 640px) {
+  .warm-theme-settings-card { padding: 14px; }
   .warm-theme-links-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
   .warm-theme-link-text-line { flex-wrap: wrap; }
   .warm-theme-link-text-line > label:first-child,
