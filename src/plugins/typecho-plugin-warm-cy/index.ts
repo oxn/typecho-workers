@@ -447,7 +447,13 @@ function restoreInlineHtmlFragments(content: string): string {
   );
 
   restored = restored.replace(/CYCYINLINEHTMLX([0-9a-f]+)XEND/g, (_marker, payload: string) => {
-    const safe = sanitizeInlineHtmlFragment(decodeInlinePayload(payload));
+    // Preserve nested SVG verbatim through the HTML sanitizer. The browser
+    // runtime will rebuild each SVG using its dedicated SVG allowlist.
+    const source = decodeInlinePayload(payload).replace(
+      /<svg\\b[^>]*>[\\s\\S]*?<\\/svg\\s*>/gi,
+      svg => 'CYCYINLINEBLOCKX' + encodeInlinePayload(svg) + 'XEND',
+    );
+    const safe = sanitizeInlineHtmlFragment(source);
     return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
   });
 
