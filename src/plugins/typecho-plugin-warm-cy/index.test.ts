@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { runInNewContext } from 'node:vm';
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 
@@ -443,4 +444,106 @@ describe('typecho-plugin-warm-cy', () => {
       cid: 12,
     })).toBe(payload);
   });
+
+  it('hydrates preserved style blocks into the document head after the full Markdown pipeline', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = [
+      '<div class="custom-footer">',
+      '<style>',
+      '.custom-footer { display: flex; color: #123456; }',
+      '.badge-row { gap: 12px; }',
+      '.badge-dual { border-radius: 999px; background: #079C48; }',
+      '</style>',
+      '<div class="badge-row"><a class="badge-dual" href="https://example.com">YouTube</a></div>',
+      '</div>',
+    ].join('\\n');
+
+    const protectedSource = protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+        'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'ins',
+        'details', 'summary', 'figure', 'figcaption', 'video', 'audio',
+        'source', 'iframe',
+      ]),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        a: ['href', 'title', 'target', 'rel'],
+        blockquote: ['class', 'data-alert'],
+        p: ['class'],
+      },
+    });
+    const restored = restore(coreSanitized);
+    const marker = restored.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)?.[0];
+    expect(marker).toBeTruthy();
+
+    const footer = hooks.get('archive:footer')!('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '0' }),
+    } });
+    const runtime = footer.match(/<script data-cy-inline-html-enhancement>([\\s\\S]*?)<\\/script>/)?.[1];
+    expect(runtime).toBeTruthy();
+
+    const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
+    const replacements: unknown[] = [];
+    const textNode: any = {
+      nodeType: 3,
+      nodeValue: marker,
+      parentElement: { closest: () => null },
+      parentNode: {
+        replaceChild(fragment: { childNodes: unknown[] }) {
+          replacements.push(...fragment.childNodes);
+        },
+      },
+      previousElementSibling: null,
+    };
+    const body = { appendChild() {} };
+    const document = {
+      body,
+      head: {
+        appendChild(element: { tagName: string; textContent: string; media?: string }) {
+          appendedStyles.push(element);
+        },
+      },
+      createTreeWalker(_root: unknown, _whatToShow: number, filter: { acceptNode(node: unknown): number }) {
+        let visited = false;
+        return {
+          currentNode: textNode,
+          nextNode() {
+            if (visited || filter.acceptNode(textNode) !== 1) return false;
+            visited = true;
+            return true;
+          },
+        };
+      },
+      createDocumentFragment() {
+        const childNodes: unknown[] = [];
+        return {
+          childNodes,
+          appendChild(node: unknown) { childNodes.push(node); return node; },
+        };
+      },
+      createTextNode(nodeValue: string) { return { nodeType: 3, nodeValue }; },
+      createElement(tagName: string) { return { tagName: tagName.toUpperCase(), textContent: '', media: '' }; },
+    };
+    runInNewContext(runtime!, {
+      document,
+      window: { addEventListener() {} },
+      Node: { TEXT_NODE: 3, ELEMENT_NODE: 1 },
+      NodeFilter: { SHOW_TEXT: 4, FILTER_REJECT: 2, FILTER_ACCEPT: 1 },
+      TextDecoder,
+      Uint8Array,
+    });
+
+    expect(appendedStyles).toHaveLength(1);
+    expect(appendedStyles[0].tagName).toBe('STYLE');
+    expect(appendedStyles[0].textContent).toContain('.custom-footer { display: flex; color: #123456; }');
+    expect(appendedStyles[0].textContent).toContain('.badge-row { gap: 12px; }');
+    expect(appendedStyles[0].textContent).toContain('.badge-dual { border-radius: 999px; background: #079C48; }');
+    expect(replacements.length).toBeGreaterThan(0);
+  });
+
 });
