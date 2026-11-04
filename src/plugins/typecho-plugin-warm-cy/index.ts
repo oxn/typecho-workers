@@ -42,6 +42,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const settings = parsePluginSettings(rawSettings);
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
+  const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
       data-cy-feature-settings data-csrf-token="${escapeHtml(csrfToken)}">
@@ -62,6 +63,13 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         </label>
         <p>控制 Warm CY 所有页面的主导航是否显示搜索图标。关闭后全站不显示搜索入口。</p>
       </section>
+      <section class="cy-feature-card">
+        <label class="cy-feature-toggle">
+          <input type="checkbox" data-cy-setting="htmlEnhancementEnabled" ${htmlEnhancementEnabled ? 'checked' : ''}>
+          <span>正文 HTML / CSS / JavaScript 增强</span>
+        </label>
+        <p>允许文章、笔记和独立页面正文使用内嵌 &lt;style&gt;、&lt;script&gt;、SVG 和 HTML 元素的 style 属性。仅对可信管理员编辑的内容启用；评论区不受影响。</p>
+      </section>
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
         <span data-cy-save-status role="status" aria-live="polite"></span>
@@ -77,6 +85,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         save.addEventListener('click', async function () {
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
+          var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
           save.disabled = true;
           status.textContent = '正在保存…';
           try {
@@ -88,7 +97,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
               },
               body: JSON.stringify({
                 showCommentManagementButtons: !!comments.checked,
-                showHomeSearchButton: !!search.checked
+                showHomeSearchButton: !!search.checked,
+                htmlEnhancementEnabled: !!htmlEnhancement.checked
               })
             });
             var result = await response.json();
@@ -161,6 +171,13 @@ function protectInlineHtml(source: string): string {
   return content;
 }
 
+const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  const markerPattern = /CYCYINLINEBLOCK_([0-9a-f]+)_END|CYCYINLINEATTR_([a-z][\\\\w:-]*)_([0-9a-f]+)_END/g;\n  const svgTags = new Set(['svg','g','path','circle','rect','line','polyline','polygon','ellipse','defs','lineargradient','radialgradient','stop','clippath','mask','title','desc','use','symbol']);\n  const svgAttrs = new Set(['id','class','viewbox','width','height','fill','fill-rule','clip-rule','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','cx','cy','r','rx','ry','x','y','x1','x2','y1','y2','d','points','transform','preserveaspectratio','offset','stop-color','stop-opacity','gradientunits','gradienttransform','clippathunits','maskunits','maskcontentunits','clip-path','mask','filter','href','xlink:href','role','focusable','aria-hidden','aria-label']);\n  const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };\n  const safeSvgNode = node => {\n    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || '');\n    if (node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())) return null;\n    const clean = document.createElementNS('http://www.w3.org/2000/svg', node.localName);\n    for (const attr of Array.from(node.attributes)) {\n      const key = attr.name.toLowerCase(), value = attr.value;\n      if (!svgAttrs.has(key) && !key.startsWith('aria-')) continue;\n      if ((key === 'href' || key === 'xlink:href') && !/^#[\\\\w:.-]+$/.test(value)) continue;\n      if (/\\\\burl\\\\s*\\\\(/i.test(value) && !/^\\\\s*url\\\\(\\\\s*#[\\\\w:.-]+\\\\s*\\\\)\\\\s*$/i.test(value)) continue;\n      if (/javascript:|data:text\\\\/html|[\\\\u0000-\\\\u001f]/i.test(value)) continue;\n      if (key === 'xlink:href') clean.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', value); else clean.setAttribute(attr.name, value);\n    }\n    for (const child of Array.from(node.childNodes)) { const safe = safeSvgNode(child); if (safe) clean.appendChild(safe); }\n    return clean;\n  };\n  const addBlock = raw => {\n    const match = raw.match(/^<(style|script|svg)\\\\b([^>]*)>([\\\\s\\\\S]*)<\\\\/\\\\1\\\\s*>$/i);\n    if (!match) return null;\n    const tag = match[1].toLowerCase(), attrs = match[2] || '', body = match[3] || '';\n    if (tag === 'svg') {\n      try { const parsed = new DOMParser().parseFromString(raw, 'image/svg+xml'); if (parsed.querySelector('parsererror') || parsed.documentElement.localName.toLowerCase() !== 'svg') return null; return safeSvgNode(parsed.documentElement); } catch { return null; }\n    }\n    if (tag === 'style') { const style = document.createElement('style'); const media = attrs.match(/\\\\bmedia\\\\s*=\\\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i); if (media) style.media = media[1] || media[2] || ''; style.textContent = body; document.head.appendChild(style); return null; }\n    const script = document.createElement('script');\n    const type = attrs.match(/\\\\btype\\\\s*=\\\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n    const scriptType = (type && (type[1] || type[2]) || '').toLowerCase();\n    if (scriptType && !['module','text/javascript','application/javascript'].includes(scriptType)) return null;\n    if (scriptType) script.type = scriptType;\n    script.textContent = body; document.body.appendChild(script); return null;\n  };\n  const hydrate = () => {\n    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode(node) { const p = node.parentElement; if (!p || p.closest('pre,code,textarea,script,style')) return NodeFilter.FILTER_REJECT; markerPattern.lastIndex = 0; return markerPattern.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });\n    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);\n    for (const node of nodes) {\n      const value = node.nodeValue || ''; markerPattern.lastIndex = 0; let last = 0, match, changed = false; const fragment = document.createDocumentFragment();\n      while ((match = markerPattern.exec(value))) {\n        changed = true; if (match.index > last) fragment.appendChild(document.createTextNode(value.slice(last, match.index)));\n        if (enabled && match[1]) { const element = addBlock(decode(match[1])); if (element) fragment.appendChild(element); }\n        else if (enabled && match[2] && match[3]) { const parent = node.parentElement; const previous = node.previousElementSibling; const target = parent && parent.tagName.toLowerCase() === match[2] ? parent : previous && previous.tagName.toLowerCase() === match[2] ? previous : parent; if (target) target.style.cssText = decode(match[3]); }\n        last = match.index + match[0].length;\n      }\n      if (changed) { if (last < value.length) fragment.appendChild(document.createTextNode(value.slice(last))); node.parentNode && node.parentNode.replaceChild(fragment, node); }\n    }\n  };\n  hydrate(); window.addEventListener('instantclick:newpage', hydrate);\n})();";
+function inlineHtmlRuntime(enabled: boolean): string {
+  return '<script data-cy-inline-html-enhancement>'
+    + INLINE_HTML_RUNTIME.replace('__CY_ENABLED__', enabled ? 'true' : 'false')
+    + '</script>';
+}
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -198,19 +215,24 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
   registerPluginAdminPath(ADMIN_SETTINGS_API_PATH);
 
-  // Render one global search control from the shared frontend layout hook.
-  // This also covers custom independent-page templates that do not use WarmShell.
+  // Protect inline content blocks before the core sanitizer removes them.
+  addHook('content:markdown', pluginId, (content: string) => protectInlineHtml(content), 1);
+
+  // Rehydrate only after Markdown sanitization; the feature is opt-in.
   addHook('archive:footer', pluginId, (html: string, extra?: {
     options?: Record<string, unknown>;
   }) => {
     const options = extra?.options;
-    if (options?.theme !== THEME_ID) return html;
+    if (!options) return html;
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
-    if (!isEnabled(settings.showHomeSearchButton)) return html;
+    const htmlRuntime = inlineHtmlRuntime(isEnabled(settings.htmlEnhancementEnabled, false));
+    if (options.theme !== THEME_ID || !isEnabled(settings.showHomeSearchButton)) {
+      return html + htmlRuntime;
+    }
     const searchBase = JSON.stringify(
       String(computeUrls(options as any).siteUrl || '/').replace(/\/?$/, '/'),
     ).replace(/</g, '\\u003c');
-    return `${html}<script data-warm-cy-global-search>
+    return `${html}${htmlRuntime}<script data-warm-cy-global-search>
       (() => {
         const searchBase = ${searchBase};
         const ensureSearchControls = () => {
@@ -503,9 +525,11 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       const values = body as {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
+        htmlEnhancementEnabled?: unknown;
       };
       if (typeof values.showCommentManagementButtons !== 'boolean'
-        || typeof values.showHomeSearchButton !== 'boolean') {
+        || typeof values.showHomeSearchButton !== 'boolean'
+        || typeof values.htmlEnhancementEnabled !== 'boolean') {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
       }
       const current = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
@@ -513,6 +537,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         ...current,
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
+        htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
       };
       await setOption(auth.db, PLUGIN_OPTION_KEY, JSON.stringify(next));
       return { handled: true, response: json({ success: true }) };
