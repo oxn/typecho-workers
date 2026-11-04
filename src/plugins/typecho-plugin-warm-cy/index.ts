@@ -450,7 +450,7 @@ function restoreInlineHtmlFragments(content: string): string {
     // Preserve nested SVG verbatim through the HTML sanitizer. The browser
     // runtime will rebuild each SVG using its dedicated SVG allowlist.
     const source = decodeInlinePayload(payload).replace(
-      /<svg\\b[^>]*>[\\s\\S]*?<\\/svg\\s*>/gi,
+      /<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi,
       svg => 'CYCYINLINEBLOCKX' + encodeInlinePayload(svg) + 'XEND',
     );
     const safe = sanitizeInlineHtmlFragment(source);
