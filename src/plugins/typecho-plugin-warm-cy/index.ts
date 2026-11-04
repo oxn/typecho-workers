@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import sanitizeHtml from 'sanitize-html';
 import { schema } from 'typecho/db';
 import { registerPluginAdminPath, setOption } from 'typecho/plugin-sdk';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
@@ -153,6 +154,13 @@ function protectInlineHtml(source: string): string {
     return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
   }).join('\n');
 
+  // Preserve styled download-card anchors as a single fragment so nested SVG markup
+  // is not fragmented by Markdown tokenization or the core HTML sanitizer.
+  content = content.replace(/<a\b[^>]*>[\s\S]*?<\/a\s*>/gi, block => {
+    if (!/\bstyle\s*=|<svg\b/i.test(block)) return block;
+    return 'CYCYINLINEHTMLX' + encodeInlinePayload(block) + 'XEND';
+  });
+
   content = content.replace(
     /<(style|script|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
     block => 'CYCYINLINEBLOCKX' + encodeInlinePayload(block) + 'XEND',
@@ -186,9 +194,117 @@ function protectInlineHtml(source: string): string {
   return content;
 }
 
+
+const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: [
+    'a', 'span', 'svg', 'g', 'path', 'circle', 'rect', 'line',
+    'polyline', 'polygon', 'ellipse', 'defs', 'lineargradient',
+    'linearGradient', 'radialgradient', 'radialGradient', 'stop',
+    'clippath', 'clipPath', 'mask', 'title', 'desc', 'use', 'symbol',
+  ],
+  allowedAttributes: {
+    a: ['href', 'target', 'rel', 'title', 'style', 'class', 'id', 'download'],
+    span: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
+    svg: ['width', 'height', 'viewbox', 'viewBox', 'xmlns', 'fill', 'stroke',
+      'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style', 'class', 'id',
+      'role', 'aria-label', 'aria-hidden', 'preserveAspectRatio'],
+    g: ['id', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+      'opacity', 'transform', 'style'],
+    path: ['id', 'd', 'fill', 'fill-rule', 'clip-rule', 'stroke', 'stroke-width',
+      'stroke-linecap', 'stroke-linejoin', 'opacity', 'style'],
+    polyline: ['points', 'fill', 'stroke', 'stroke-width', 'stroke-linecap',
+      'stroke-linejoin', 'opacity', 'style'],
+    polygon: ['points', 'fill', 'stroke', 'stroke-width', 'stroke-linejoin', 'opacity', 'style'],
+    line: ['x1', 'y1', 'x2', 'y2', 'fill', 'stroke', 'stroke-width',
+      'stroke-linecap', 'stroke-linejoin', 'opacity'],
+    circle: ['id', 'cx', 'cy', 'r', 'fill', 'fill-rule', 'stroke', 'stroke-width', 'opacity', 'style'],
+    ellipse: ['id', 'cx', 'cy', 'rx', 'ry', 'fill', 'stroke', 'stroke-width', 'opacity'],
+    rect: ['id', 'x', 'y', 'width', 'height', 'rx', 'ry', 'fill', 'fill-rule',
+      'stroke', 'stroke-width', 'opacity', 'style', 'clip-path'],
+    defs: ['id'],
+    lineargradient: ['id', 'x1', 'y1', 'x2', 'y2', 'gradientunits', 'gradienttransform', 'spreadmethod'],
+    linearGradient: ['id', 'x1', 'y1', 'x2', 'y2', 'gradientUnits', 'gradientTransform', 'spreadMethod'],
+    radialgradient: ['id', 'cx', 'cy', 'fx', 'fy', 'r', 'gradientunits', 'gradienttransform', 'spreadmethod'],
+    radialGradient: ['id', 'cx', 'cy', 'fx', 'fy', 'r', 'gradientUnits', 'gradientTransform', 'spreadMethod'],
+    stop: ['offset', 'stop-color', 'stop-opacity', 'style'],
+    clippath: ['id', 'clippathunits'],
+    clipPath: ['id', 'clipPathUnits'],
+    mask: ['id', 'maskunits', 'maskcontentunits'],
+    use: ['id', 'href', 'xlink:href', 'width', 'height', 'x', 'y'],
+    symbol: ['id', 'viewbox', 'viewBox', 'preserveAspectRatio'],
+  },
+  allowedStyles: {
+    '*': {
+      color: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
+      background: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
+      'background-color': [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
+      'font-weight': [/^(?:normal|bold|bolder|lighter|[1-9]00)$/i],
+      'word-break': [/^(?:normal|break-all|keep-all|break-word)$/i],
+      display: [/^(?:inline|inline-block|inline-flex|block|flex|none)$/i],
+      'align-items': [/^(?:center|start|end|flex-start|flex-end|baseline|stretch)$/i],
+      gap: [/^[0-9.]+(?:px|em|rem|%)$/i],
+      padding: [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
+      margin: [/^(?:auto|[0-9.]+(?:px|em|rem|%)?)(?:\s+(?:auto|[0-9.]+(?:px|em|rem|%)?)){0,3}$/i],
+      'border-radius': [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
+      'white-space': [/^(?:normal|nowrap|pre|pre-wrap|pre-line|break-spaces)$/i],
+      'vertical-align': [/^(?:middle|baseline|top|bottom|text-top|text-bottom)$/i],
+      fill: [/^(?:#[0-9a-f]{3,8}|none|currentColor|[a-zA-Z]+|url\(\s*#[\w:.-]+\s*\))$/i],
+      stroke: [/^(?:#[0-9a-f]{3,8}|none|currentColor|[a-zA-Z]+)$/i],
+      'fill-rule': [/^(?:nonzero|evenodd)$/i],
+      'stroke-width': [/^[0-9.]+(?:px|em|rem)?$/i],
+      opacity: [/^(?:0|1|0?\.[0-9]+|100%)$/i],
+    },
+  },
+};
+
+function decodeInlinePayload(hex: string): string {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+function sanitizeInlineSvgReferences(source: string): string {
+  return source.replace(/<(?:svg|g|path|use|symbol|mask|clippath|lineargradient|radialgradient)\b[^>]*>/gi, tag => {
+    let safe = tag.replace(/\s+(href|xlink:href)\s*=\s*(["'])(.*?)\2/gi, (attribute, _name, _quote, value) =>
+      /^#[\w:.-]+$/.test(String(value).trim()) ? attribute : '',
+    );
+    safe = safe.replace(/\s+(fill|stroke|clip-path|mask)\s*=\s*(["'])(.*?)\2/gi, (attribute, _name, _quote, value) => {
+      const cssValue = String(value).trim();
+      return /\burl\s*\(/i.test(cssValue) && !/^url\(\s*#[\w:.-]+\s*\)$/i.test(cssValue)
+        ? ''
+        : attribute;
+    });
+    return safe;
+  });
+}
+
+function sanitizeInlineHtmlFragment(source: string): string {
+  return sanitizeHtml(sanitizeInlineSvgReferences(source), INLINE_FRAGMENT_SANITIZE_OPTIONS);
+}
+
+function restoreInlineHtmlFragments(content: string): string {
+  let restored = content.replace(/CYCYINLINEHTMLX([0-9a-f]+)XEND/g, (_marker, payload: string) => {
+    const safe = sanitizeInlineHtmlFragment(decodeInlinePayload(payload));
+    return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
+  });
+
+  restored = restored.replace(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/g, (marker, payload: string) => {
+    const source = decodeInlinePayload(payload);
+    if (!/^<svg\b/i.test(source.trim())) return marker;
+    const safe = sanitizeInlineHtmlFragment(source);
+    return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
+  });
+  return restored;
+}
+
 const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  const markerPattern = /CYCYINLINEBLOCKX([0-9a-f]+)XEND|CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/g;\n  const svgTags = new Set(['svg','g','path','circle','rect','line','polyline','polygon','ellipse','defs','lineargradient','radialgradient','stop','clippath','mask','title','desc','use','symbol']);\n  const svgAttrs = new Set(['id','class','viewbox','width','height','fill','fill-rule','clip-rule','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','cx','cy','r','rx','ry','x','y','x1','x2','y1','y2','d','points','transform','preserveaspectratio','offset','stop-color','stop-opacity','gradientunits','gradienttransform','clippathunits','maskunits','maskcontentunits','clip-path','mask','filter','href','xlink:href','role','focusable','aria-hidden','aria-label']);\n  const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };\n  const safeSvgNode = node => {\n    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || '');\n    if (node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())) return null;\n    const clean = document.createElementNS('http://www.w3.org/2000/svg', node.localName);\n    for (const attr of Array.from(node.attributes)) {\n      const key = attr.name.toLowerCase(), value = attr.value;\n      if (!svgAttrs.has(key) && key !== 'style' && !key.startsWith('aria-')) continue;\n      if (key === 'style') {\n        const allowedStyle = new Set(['fill','stroke','fill-rule','clip-rule','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','stop-color','stop-opacity']);\n        const safeStyle = value.split(';').map(part => part.trim()).filter(Boolean).map(part => {\n          const split = part.indexOf(':');\n          if (split < 1) return '';\n          const property = part.slice(0, split).trim().toLowerCase();\n          const cssValue = part.slice(split + 1).trim();\n          if (!allowedStyle.has(property) || /expression|javascript:|data:|@import|[\\u0000-\\u001f]/i.test(cssValue)) return '';\n          if (/\\burl\\s*\\(/i.test(cssValue) && !/^url\\(\\s*#[\\w:.-]+\\s*\\)$/i.test(cssValue)) return '';\n          return property + ':' + cssValue;\n        }).filter(Boolean).join(';');\n        if (safeStyle) clean.setAttribute('style', safeStyle);\n        continue;\n      }\n      if ((key === 'href' || key === 'xlink:href') && !/^#[\\w:.-]+$/.test(value)) continue;\n      if (/\\burl\\s*\\(/i.test(value) && !/^\\s*url\\(\\s*#[\\w:.-]+\\s*\\)\\s*$/i.test(value)) continue;\n      if (/javascript:|data:text\\/html|[\\u0000-\\u001f]/i.test(value)) continue;\n      if (key === 'xlink:href') clean.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', value); else clean.setAttribute(attr.name, value);\n    }\n    for (const child of Array.from(node.childNodes)) { const safe = safeSvgNode(child); if (safe) clean.appendChild(safe); }\n    return clean;\n  };\n  const addBlock = raw => {\n    const match = raw.match(/^<(style|script|svg)\\b([^>]*)>([\\s\\S]*)<\\/\\1\\s*>$/i);\n    if (!match) return null;\n    const tag = match[1].toLowerCase(), attrs = match[2] || '', body = match[3] || '';\n    if (tag === 'svg') {\n      try { const parsed = new DOMParser().parseFromString(raw, 'image/svg+xml'); if (parsed.querySelector('parsererror') || parsed.documentElement.localName.toLowerCase() !== 'svg') return null; return safeSvgNode(parsed.documentElement); } catch { return null; }\n    }\n    if (tag === 'style') { const style = document.createElement('style'); const media = attrs.match(/\\bmedia\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i); if (media) style.media = media[1] || media[2] || ''; style.textContent = body; document.head.appendChild(style); return null; }\n    const script = document.createElement('script');\n    const type = attrs.match(/\\btype\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n    const scriptType = (type && (type[1] || type[2]) || '').toLowerCase();\n    if (scriptType && !['module','text/javascript','application/javascript'].includes(scriptType)) return null;\n    if (scriptType) script.type = scriptType;\n    script.textContent = body; document.body.appendChild(script); return null;\n  };\n  const hydrate = () => {\n    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode(node) { const p = node.parentElement; if (!p || p.closest('pre,code,textarea,script,style')) return NodeFilter.FILTER_REJECT; markerPattern.lastIndex = 0; return markerPattern.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });\n    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);\n    for (const node of nodes) {\n      const value = node.nodeValue || ''; markerPattern.lastIndex = 0; let last = 0, match, changed = false; const fragment = document.createDocumentFragment();\n      while ((match = markerPattern.exec(value))) {\n        changed = true; if (match.index > last) fragment.appendChild(document.createTextNode(value.slice(last, match.index)));\n        if (enabled && match[1]) { const element = addBlock(decode(match[1])); if (element) fragment.appendChild(element); }\n        else if (enabled && match[2] && match[3]) {\n          const parent = node.parentElement, previous = node.previousElementSibling;\n          const target = parent && parent.tagName.toLowerCase() === match[2] ? parent : previous && previous.tagName.toLowerCase() === match[2] ? previous : parent;\n          if (target) {\n            try {\n              const attrs = JSON.parse(decode(match[3]));\n              for (const [name, value] of Object.entries(attrs)) {\n                if (name === 'style') target.style.cssText = String(value);\n                else if (name === 'class' || name === 'id' || name === 'title' || name === 'role'\n                  || name === 'width' || name === 'height' || name === 'alt' || name === 'loading'\n                  || name === 'type' || name === 'name' || name === 'value' || name === 'placeholder'\n                  || name.startsWith('data-') || name.startsWith('aria-')) {\n                  target.setAttribute(name, String(value));\n                }\n              }\n            } catch {}\n          }\n        }\n        last = match.index + match[0].length;\n      }\n      if (changed) { if (last < value.length) fragment.appendChild(document.createTextNode(value.slice(last))); node.parentNode && node.parentNode.replaceChild(fragment, node); }\n    }\n  };\n  hydrate(); window.addEventListener('instantclick:newpage', hydrate);\n})();";
 function inlineHtmlRuntime(enabled: boolean): string {
-  return '<script data-cy-inline-html-enhancement>'
+  const visibilityStyle = '<style data-cy-inline-html-enhancement-style>'
+    + '.cy-inline-html-pending{display:' + (enabled ? 'contents' : 'none') + '!important}'
+    + '</style>';
+  return visibilityStyle + '<script data-cy-inline-html-enhancement>'
     + INLINE_HTML_RUNTIME.replace('__CY_ENABLED__', enabled ? 'true' : 'false')
     + '</script>';
 }
@@ -232,6 +348,11 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   // Protect inline content blocks before the core sanitizer removes them.
   addHook('content:markdown', pluginId, (content: string) => protectInlineHtml(content), 1);
+
+  // Restore styled download-card fragments after the core sanitizer. The fragment
+  // is sanitized again with a narrow HTML/SVG allowlist; visibility is controlled
+  // per response by the saved opt-in setting in archive:footer.
+  addHook('content:content', pluginId, (content: string) => restoreInlineHtmlFragments(content), 1);
 
   // Rehydrate only after Markdown sanitization; the feature is opt-in.
   addHook('archive:footer', pluginId, (html: string, extra?: {
