@@ -338,7 +338,7 @@ function restoreInlineHtmlFragments(content: string): string {
   // The Markdown parser wraps a standalone placeholder in <p>; replace the
   // whole paragraph so a restored block-level container is never nested in <p>.
   let restored = content.replace(
-    /<p>\\s*CYCYINLINECONTAINERX([0-9a-f]+)XEND\\s*<\\/p>/gi,
+    /<p>\s*CYCYINLINECONTAINERX([0-9a-f]+)XEND\s*<\/p>/gi,
     (_marker, payload: string) => restoreContainer(payload),
   );
   restored = restored.replace(
@@ -353,7 +353,7 @@ function restoreInlineHtmlFragments(content: string): string {
 
   restored = restored.replace(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/g, (marker, payload: string) => {
     const source = decodeInlinePayload(payload);
-    if (!/^<svg\\b/i.test(source.trim())) return marker;
+    if (!/^<svg\b/i.test(source.trim())) return marker;
     const safe = sanitizeInlineHtmlFragment(source);
     return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
   });
