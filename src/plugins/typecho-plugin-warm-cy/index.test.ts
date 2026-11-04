@@ -100,18 +100,13 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.04.19.20');
+    expect(html).toContain('CY 插件版本：2026.11.04.19.25');
   });
 
-  it('preserves hard line breaks between consecutive blockquote lines only', () => {
+  it('leaves standard consecutive blockquote lines unchanged', () => {
     const handler = collectHooks().get('content:markdown')!;
-    const source = '> 第一行\n> 第二行\n> 第三行\n\n```md\n> 代码示例\n> 不应转换\n```';
-    const protectedSource = handler(source);
-    expect(protectedSource).toContain('> 第一行  \n> 第二行  \n> 第三行');
-    expect(protectedSource).toContain('```md\n> 代码示例\n> 不应转换\n```');
-    const parsed = marked.parse(protectedSource, { async: false }) as string;
-    expect((parsed.match(/<br>/g) || []).length).toBe(2);
-    expect(parsed).toContain('<code>');
+    const source = '> 第一行\n> 第二行\n> 第三行';
+    expect(handler(source)).toBe(source);
   });
 
   it('restores all five Markdown Alert SVG icons after the core sanitizer', () => {
@@ -124,8 +119,13 @@ describe('typecho-plugin-warm-cy', () => {
     const restored = restore(html);
     expect((restored.match(/class="markdown-alert-icon"/g) || []).length).toBe(5);
     expect((restored.match(/cy-markdown-alert-has-icon/g) || []).length).toBe(5);
-    expect(restored).toContain('viewBox="0 0 24 24"');
-    expect(restored).toContain('stroke="currentColor"');
+    expect(restored).toContain('viewBox="0 0 16 16"');
+    expect(restored).toContain('fill="currentColor"');
+    expect(restored).toContain('M0 8a8 8 0 1 1 16 0');
+    expect(restored).toContain('M8 1.5c-2.363');
+    expect(restored).toContain('M0 1.75C0 .784');
+    expect(restored).toContain('M6.457 1.047');
+    expect(restored).toContain('M4.47.22');
   });
 
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', () => {
