@@ -27,6 +27,8 @@ import init from './index';
 
 const PLUGIN_ID = 'typecho-plugin-warm-cy';
 const ADMIN_PATH = '/api/admin/theme-pin';
+const SETTINGS_PATH = '/api/admin/warm-cy-settings';
+const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
 const OPTION_KEY = 'theme:typecho-theme-warm-cy';
 
 function collectHooks() {
@@ -81,7 +83,49 @@ describe('typecho-plugin-warm-cy', () => {
   it('registers only the companion admin route and the comment metadata filter', () => {
     const hooks = collectHooks();
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(ADMIN_PATH);
+    expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(SETTINGS_PATH);
     expect([...hooks.keys()].sort()).toEqual(['comment:list', 'route:request']);
+  });
+
+  it('saves both feature visibility settings through the protected settings endpoint', async () => {
+    const context = adminContext();
+    mocks.requireAdminAction.mockResolvedValueOnce(context);
+    const handler = collectHooks().get('route:request')!;
+    const result = await handler({}, {
+      request: routeRequest(SETTINGS_PATH, 'POST', {
+        showCommentManagement: false,
+        showHomeSearch: true,
+      }),
+      path: SETTINGS_PATH,
+    });
+
+    expect(result.response.status).toBe(200);
+    expect(await result.response.json()).toMatchObject({ success: true });
+    expect(mocks.setOption).toHaveBeenCalledWith(
+      context.db,
+      PLUGIN_OPTION_KEY,
+      JSON.stringify({ showCommentManagement: false, showHomeSearch: true }),
+    );
+  });
+
+  it('does not expose comment management metadata when its display setting is disabled', async () => {
+    const context = adminContext({
+      options: {
+        ...adminContext().options,
+        [PLUGIN_OPTION_KEY]: JSON.stringify({ showCommentManagement: false, showHomeSearch: true }),
+      },
+    });
+    mocks.requireAdminAction.mockResolvedValueOnce(context);
+    const handler = collectHooks().get('comment:list')!;
+    const payload = { comments: [], options: {} };
+    const result = await handler(payload, {
+      request: new Request('https://example.com/api/comments?cid=12'),
+      options: context.options,
+      cid: 12,
+    });
+    expect(result).toBe(payload);
+    expect(mocks.requireAdminAction).not.toHaveBeenCalled();
+    expect(mocks.generateSecurityToken).not.toHaveBeenCalled();
   });
 
   it('rejects non-POST requests to the pin endpoint', async () => {
