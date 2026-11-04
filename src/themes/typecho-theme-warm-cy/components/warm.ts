@@ -41,6 +41,7 @@ export interface WarmSettings {
   imageOptimizeParams: string;
   /** Query params appended to thumbnail URLs; falls back to imageOptimizeParams when empty. */
   thumbOptimizeParams: string;
+  showHomeSearch: boolean;
 }
 
 export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
@@ -73,6 +74,13 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     commentInitialLoadMode: normalizeCommentInitialLoadMode(settings.commentInitialLoadMode),
     imageOptimizeParams,
     thumbOptimizeParams: normalizeOptimizeParams(settings.thumbOptimizeParams) || imageOptimizeParams,
+    showHomeSearch: (() => {
+      const raw = options?.['plugin:typecho-plugin-warm-cy'];
+      let config: Record<string, unknown> = {};
+      try { config = typeof raw === 'string' ? JSON.parse(raw) : raw && typeof raw === 'object' ? raw as Record<string, unknown> : {}; } catch {}
+      const value = config.showHomeSearch;
+      return value === undefined || (value !== false && value !== 0 && value !== '0' && value !== 'false');
+    })(),
   };
 }
 
