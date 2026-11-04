@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.04.19.25';
+const PLUGIN_VERSION = '2026.11.04.19.39';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -124,6 +124,41 @@ function encodeInlinePayload(value: string): string {
   ).join('');
 }
 
+function protectCompleteDivContainers(content: string, protectedSegments: string[]): string {
+  const tagPattern = /<\\/?div\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
+  let output = '';
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = tagPattern.exec(content))) {
+    if (/^<\\//.test(match[0]) || /\\/\\s*>$/.test(match[0])) continue;
+
+    let depth = 1;
+    let closeEnd = -1;
+    let nested: RegExpExecArray | null;
+    while ((nested = tagPattern.exec(content))) {
+      if (/^<\\//.test(nested[0])) depth -= 1;
+      else if (!/\\/\\s*>$/.test(nested[0])) depth += 1;
+      if (depth === 0) {
+        closeEnd = tagPattern.lastIndex;
+        break;
+      }
+    }
+    if (closeEnd < 0) break;
+
+    const block = content.slice(match.index, closeEnd).replace(
+      /CYCYCODESEGMENT(\\d+)TOKEN/g,
+      (_token, index: string) => protectedSegments[Number(index)] ?? _token,
+    );
+    output += content.slice(cursor, match.index)
+      + 'CYCYINLINECONTAINERX' + encodeInlinePayload(block) + 'XEND';
+    cursor = closeEnd;
+    tagPattern.lastIndex = closeEnd;
+  }
+
+  return output + content.slice(cursor);
+}
+
 function protectInlineHtml(source: string): string {
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
@@ -190,6 +225,10 @@ function protectInlineHtml(source: string): string {
       + 'X' + encodeInlinePayload(JSON.stringify(preserved)) + 'XEND';
   });
 
+  // Preserve complete div containers as one HTML fragment. CommonMark ends a
+  // raw <div> block at blank lines, which otherwise breaks long embedded footers.
+  content = protectCompleteDivContainers(content, protectedSegments);
+
   for (let index = protectedSegments.length - 1; index >= 0; index--) {
     content = content.replace('CYCYCODESEGMENT' + index + 'TOKEN', protectedSegments[index]);
   }
@@ -199,13 +238,18 @@ function protectInlineHtml(source: string): string {
 
 const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
-    'a', 'span', 'svg', 'g', 'path', 'circle', 'rect', 'line',
-    'polyline', 'polygon', 'ellipse', 'defs', 'lineargradient',
-    'linearGradient', 'radialgradient', 'radialGradient', 'stop',
-    'clippath', 'clipPath', 'mask', 'title', 'desc', 'use', 'symbol',
+    'a', 'div', 'p', 'span', 'strong', 'b', 'em', 'i', 'small', 'br', 'hr',
+    'ul', 'ol', 'li', 'section', 'article', 'header', 'footer', 'nav', 'main',
+    'figure', 'figcaption', 'time',
+    'svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
+    'ellipse', 'defs', 'lineargradient', 'linearGradient',
+    'radialgradient', 'radialGradient', 'stop', 'clippath', 'clipPath',
+    'mask', 'title', 'desc', 'use', 'symbol',
   ],
   allowedAttributes: {
     a: ['href', 'target', 'rel', 'title', 'style', 'class', 'id', 'download'],
+    div: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
+    p: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
     span: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
     svg: ['width', 'height', 'viewbox', 'viewBox', 'xmlns', 'fill', 'stroke',
       'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style', 'class', 'id',
@@ -287,14 +331,30 @@ function sanitizeInlineHtmlFragment(source: string): string {
 }
 
 function restoreInlineHtmlFragments(content: string): string {
-  let restored = content.replace(/CYCYINLINEHTMLX([0-9a-f]+)XEND/g, (_marker, payload: string) => {
+  const restoreContainer = (payload: string): string => {
+    const safe = sanitizeInlineHtmlFragment(decodeInlinePayload(payload));
+    return safe ? '<div class="cy-inline-html-pending">' + safe + '</div>' : '';
+  };
+
+  // The Markdown parser wraps a standalone placeholder in <p>; replace the
+  // whole paragraph so a restored block-level container is never nested in <p>.
+  let restored = content.replace(
+    /<p>\\s*CYCYINLINECONTAINERX([0-9a-f]+)XEND\\s*<\\/p>/gi,
+    (_marker, payload: string) => restoreContainer(payload),
+  );
+  restored = restored.replace(
+    /CYCYINLINECONTAINERX([0-9a-f]+)XEND/g,
+    (_marker, payload: string) => restoreContainer(payload),
+  );
+
+  restored = restored.replace(/CYCYINLINEHTMLX([0-9a-f]+)XEND/g, (_marker, payload: string) => {
     const safe = sanitizeInlineHtmlFragment(decodeInlinePayload(payload));
     return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
   });
 
   restored = restored.replace(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/g, (marker, payload: string) => {
     const source = decodeInlinePayload(payload);
-    if (!/^<svg\b/i.test(source.trim())) return marker;
+    if (!/^<svg\\b/i.test(source.trim())) return marker;
     const safe = sanitizeInlineHtmlFragment(source);
     return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
   });
