@@ -494,12 +494,14 @@ describe('typecho-plugin-warm-cy', () => {
 
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
     const replacements: unknown[] = [];
+    let replaceCalls = 0;
     const textNode: any = {
       nodeType: 3,
       nodeValue: marker,
       parentElement: { closest: () => null },
       parentNode: {
         replaceChild(fragment: { childNodes: unknown[] }) {
+          replaceCalls += 1;
           replacements.push(...fragment.childNodes);
         },
       },
@@ -548,7 +550,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain('.custom-footer { display: flex; color: #123456; }');
     expect(appendedStyles[0].textContent).toContain('.badge-row { gap: 12px; }');
     expect(appendedStyles[0].textContent).toContain('.badge-dual { border-radius: 999px; background: #079C48; }');
-    expect(replacements.length).toBeGreaterThan(0);
+    expect(replaceCalls).toBeGreaterThan(0);
   });
 
 });
