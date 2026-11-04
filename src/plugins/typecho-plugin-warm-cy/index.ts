@@ -209,9 +209,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       return { handled: true, response: json({ success: true }) };
     }
 
-    const { cid, pinned } = body as { cid?: unknown; pinned?: unknown };
+    const { cid, pinned, confirmation } = body as { cid?: unknown; pinned?: unknown; confirmation?: unknown };
     const contentId = Number(cid);
-    if (!Number.isSafeInteger(contentId) || contentId <= 0 || typeof pinned !== 'boolean') {
+    if (!Number.isSafeInteger(contentId) || contentId <= 0 || typeof pinned !== 'boolean' || confirmation !== '确认') {
       return { handled: true, response: json({ error: 'Invalid parameters' }, 400) };
     }
 
