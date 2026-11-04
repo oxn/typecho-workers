@@ -13,13 +13,27 @@
     "plugin": {
       "id": "typecho-plugin-warm-cy",
       "name": "Warm CY Companion",
-      "description": "为 Warm CY 主题提供文章置顶 API 与评论区管理员操作信息。",
+      "description": "为 Warm CY 主题提供文章置顶、评论区管理和首页搜索显示设置。",
       "version": "1.0.0",
       "license": "MIT",
       "tags": [
         "warm-cy",
         "theme-companion"
-      ]
+      ],
+      "config": {
+        "showCommentManagementButtons": {
+          "type": "checkbox",
+          "label": "评论区管理按键",
+          "description": "开启后，在文章和独立页面评论区显示管理员管理按键；关闭只隐藏前台按键，不影响后台管理权限和接口。",
+          "default": "1"
+        },
+        "showHomeSearchButton": {
+          "type": "checkbox",
+          "label": "首页搜索按键",
+          "description": "开启后，在首页导航区域显示搜索按键。",
+          "default": "1"
+        }
+      }
     }
   }
 }
