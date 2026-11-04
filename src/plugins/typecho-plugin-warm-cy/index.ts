@@ -209,8 +209,8 @@ function protectInlineHtml(source: string): string {
 
   // Preserve complete div containers as one HTML fragment. CommonMark ends a
   // raw <div> block at blank lines, which otherwise breaks long embedded footers.
-  content = protectCompleteDivContainers(content, protectedSegments);
 
+  content = protectCompleteDivContainers(content, protectedSegments);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
