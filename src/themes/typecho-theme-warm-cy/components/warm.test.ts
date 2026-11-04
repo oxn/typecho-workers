@@ -96,6 +96,7 @@ describe('Warm CY theme helpers', () => {
     expect(settings.commentInitialLoadMode).toBe('manual');
     expect(settings.imageOptimizeParams).toBe('');
     expect(settings.thumbOptimizeParams).toBe('');
+    expect(settings.showHomeSearch).toBe(true);
   });
 
   it('builds unique table-of-contents IDs while retaining the heading markup', () => {
