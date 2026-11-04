@@ -34,7 +34,7 @@ Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
 const featureSettings = warmCyFeatureSettings(options);
-const showHomeSearch = featureSettings.showHomeSearchButton && (currentPath === '/' || section === 'home');
+const showHomeSearch = featureSettings.showHomeSearchButton;
 const categories = sidebarData.categories.slice(0, 8);
 const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
