@@ -198,6 +198,30 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('<p><div');
   });
 
+  it('restores a single-line styled div after the core sanitizer strips div tags', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = '<div class="ai-card" style="display:flex;gap:12px;padding:16px;background:#f5f5f5;border-radius:12px"><span style="color:#079C48;font-weight:bold">标题</span><a href="https://example.com" style="display:inline-flex;align-items:center">查看</a></div>';
+    const protectedSource = protect(source);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, a: ['href', 'title', 'target', 'rel'] },
+    });
+    const restored = restore(coreSanitized);
+    expect(restored).toContain('class="ai-card"');
+    expect(restored).toContain('display:flex');
+    expect(restored).toContain('gap:12px');
+    expect(restored).toContain('background:#f5f5f5');
+    expect(restored).toContain('border-radius:12px');
+    expect(restored).toContain('color:#079C48');
+    expect(restored).toContain('href="https://example.com"');
+    expect(restored).toContain('查看');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+  });
+
   it('restores a styled download card with both SVG icons after core sanitization', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
