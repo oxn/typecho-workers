@@ -5,10 +5,29 @@ import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { generateSecurityToken } from '@/lib/auth';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { computeUrls } from '@/lib/options';
+import adminCss from './admin.css?raw';
 
 const THEME_ID = 'typecho-theme-warm-cy';
 const OPTION_KEY = `theme:${THEME_ID}`;
 const ADMIN_PATH = '/api/admin/theme-pin';
+const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
+
+function parsePluginSettings(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'string' || !value) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function isEnabled(value: unknown, fallback = true): boolean {
+  if (value === undefined || value === null || value === '') return fallback;
+  return !(value === false || value === 0 || value === '0');
+}
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
