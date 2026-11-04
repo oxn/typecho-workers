@@ -12,7 +12,7 @@
   "typecho": {
     "plugin": {
       "id": "typecho-plugin-warm-cy",
-      "name": "Warm CY Companion",
+      "name": "CY 主题功能插件",
       "description": "为 Warm CY 主题提供文章置顶、评论区管理与功能显示设置。",
       "version": "1.0.0",
       "license": "MIT",
