@@ -1,6 +1,6 @@
 {
   "name": "typecho-plugin-warm-cy",
-  "version": "2026.11.04.18.33",
+  "version": "1.0.0",
   "description": "Warm CY theme companion APIs and comment management metadata.",
   "keywords": [
     "typecho",
@@ -14,7 +14,7 @@
       "id": "typecho-plugin-warm-cy",
       "name": "Warm CY Companion",
       "description": "为 Warm CY 主题提供置顶管理、评论区操作及首页搜索显示设置。",
-      "version": "2026.11.04.18.33",
+      "version": "1.0.0",
       "license": "MIT",
       "tags": [
         "warm-cy",
@@ -22,7 +22,9 @@
       ],
       "adminPage": "cy-companion",
       "adminPageTitle": "CY 功能显示",
-      "adminPageIsSettings": true
+      "adminPageIsSettings": true,
+      "buildVersion": "2026.11.04.18.33"
     }
-  }
+  },
+  "cyVersion": "2026.11.04.18.33"
 }
