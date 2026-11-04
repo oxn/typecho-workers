@@ -95,11 +95,11 @@ describe('typecho-plugin-warm-cy', () => {
       '```html',
       '<script>this is only an example</script>',
       '```',
-    ].join('\\n');
+    ].join('\n');
     const output = handler(input);
     expect(output).toContain('CYCYINLINEBLOCK_');
     expect(output).toContain('CYCYINLINEATTR_div_');
-    expect(output).toContain('```html\\n<script>this is only an example</script>\\n```');
+    expect(output).toContain('```html\n<script>this is only an example</script>\n```');
     expect(output).not.toContain('<style>.download');
     expect(output).not.toContain('<script>window.cyInlineTest');
   });
