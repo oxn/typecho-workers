@@ -150,6 +150,11 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
       /CYCYCODESEGMENT(\d+)TOKEN/g,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
+
+    // Only wrap divs whose content spans blank lines. Simple inline/block HTML
+    // keeps the existing per-attribute marker flow unchanged.
+    if (!/\n[\t ]*\n/.test(block)) continue;
+
     output += content.slice(cursor, match.index)
       + 'CYCYINLINECONTAINERX' + encodeInlinePayload(block) + 'XEND';
     cursor = closeEnd;
@@ -331,7 +336,34 @@ function sanitizeInlineHtmlFragment(source: string): string {
 
 function restoreInlineHtmlFragments(content: string): string {
   const restoreContainer = (payload: string): string => {
-    const safe = sanitizeInlineHtmlFragment(decodeInlinePayload(payload));
+    let source = decodeInlinePayload(payload);
+
+    // Reattach preserved attributes before sanitizing the restored container.
+    // Attribute values are escaped here; the fragment sanitizer remains the
+    // final allowlist enforcement layer.
+    source = source.replace(
+      /(<[a-z][\\w:-]*\\b[^>]*>)CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/gi,
+      (marker, opening: string, _tag: string, encoded: string) => {
+        try {
+          const attributes = JSON.parse(decodeInlinePayload(encoded)) as Record<string, unknown>;
+          const safe = Object.entries(attributes).map(([name, value]) => {
+            const key = name.toLowerCase();
+            if (!(key === 'style' || key === 'class' || key === 'id' || key === 'title'
+              || key === 'role' || key === 'width' || key === 'height' || key === 'alt'
+              || key === 'loading' || key === 'type' || key === 'name' || key === 'value'
+              || key === 'placeholder' || key.startsWith('data-') || key.startsWith('aria-'))) return '';
+            const text = String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+              .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return ' ' + key + '="' + text + '"';
+          }).join('');
+          return opening.replace(/>$/, safe + '>') ;
+        } catch {
+          return opening;
+        }
+      },
+    );
+
+    const safe = sanitizeInlineHtmlFragment(source);
     return safe ? '<div class="cy-inline-html-pending">' + safe + '</div>' : '';
   };
 
