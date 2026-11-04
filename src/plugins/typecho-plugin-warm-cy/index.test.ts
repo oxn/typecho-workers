@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { marked } from 'marked';
+import sanitizeHtml from 'sanitize-html';
 
 const mocks = vi.hoisted(() => ({
   requireAdminAction: vi.fn(),
@@ -57,6 +59,7 @@ function adminContext(overrides: Record<string, unknown> = {}) {
       secret: 'test-secret',
       siteUrl: 'https://example.com',
       [OPTION_KEY]: JSON.stringify({ pinnedIds: '8,12,20', footerCustomHtml: '<strong>keep</strong>' }),
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ existingPluginSetting: 'keep' }),
     },
     uid: 1,
     user: { uid: 1, authCode: 'auth-code', group: 'administrator' },
@@ -105,10 +108,50 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).toContain('CYCYINLINEBLOCKX');
     expect(output).toContain('CYCYINLINEATTRXdivX');
     expect(output).not.toMatch(/CYCYINLINE(?:BLOCK|ATTR)_/);
-    expect(output.match(/CYCYINLINEBLOCK_/g)?.length).toBe(3);
+    expect(output.match(/CYCYINLINEBLOCKX/g)?.length).toBe(3);
     expect(output).toContain('```html\n<script>this is only an example</script>\n```');
     expect(output).not.toContain('<style>.download');
     expect(output).not.toContain('<script>window.cyInlineTest');
+  });
+
+  it('keeps real download-card HTML markers through Markdown parsing and sanitization', () => {
+    const handler = collectHooks().get('content:markdown')!;
+    const source = [
+      '> <a href="https://example.com/download" target="_blank" rel="noopener noreferrer" style="font-weight:bold;color:var(--accent);word-break:break-all;">',
+      '<span style="display:inline-flex;align-items:center;gap:4px;background:#079C48;color:#fff;border-radius:4px;padding:4px 10px;">',
+      '<svg width="24" height="24" viewBox="0 0 24 24"><defs><linearGradient id="download-gradient"><stop offset="0" stop-color="#fff"/></linearGradient></defs><g opacity="1" transform="translate(1 1)"><path d="M2 2h20v20H2z" fill="url(#download-gradient)"/></g></svg>',
+      '<span>下载</span>',
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M7 17 17 7"/><polyline points="7 7 17 7 17 17"/></svg>',
+      '</span></a> | **密码📋：`cycy`**',
+    ].join('');
+    const protectedSource = handler(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const sanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'ins', 'details', 'summary', 'figure', 'figcaption', 'video', 'audio', 'source', 'iframe']),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        a: ['href', 'title', 'target', 'rel'],
+        span: ['class'],
+        blockquote: ['class', 'data-alert'],
+      },
+    });
+
+    expect(sanitized).toContain('<blockquote>');
+    expect(sanitized).toContain('href="https://example.com/download"');
+    expect(sanitized).toContain('target="_blank"');
+    expect(sanitized).toContain('CYCYINLINEATTRXaX');
+    expect(sanitized).toContain('CYCYINLINEATTRXspanX');
+    expect(sanitized).toContain('CYCYINLINEBLOCKX');
+    expect(sanitized).not.toContain('background:#079C48');
+
+    const block = sanitized.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/);
+    expect(block).not.toBeNull();
+    const svg = new TextDecoder().decode(Uint8Array.from(
+      block![1].match(/.{2}/g)!.map(byte => parseInt(byte, 16)),
+    ));
+    expect(svg).toContain('<linearGradient');
+    expect(svg).toContain('<polyline');
+    expect(svg).toContain('url(#download-gradient)');
   });
 
   it('adds the inline HTML runtime with the saved opt-in state', () => {
@@ -147,8 +190,7 @@ describe('typecho-plugin-warm-cy', () => {
       context.db,
       PLUGIN_OPTION_KEY,
       JSON.stringify({
-        pinnedIds: '8,12,20',
-        footerCustomHtml: '<strong>keep</strong>',
+        existingPluginSetting: 'keep',
         showCommentManagementButtons: '1',
         showHomeSearchButton: '0',
         htmlEnhancementEnabled: '1',
@@ -194,7 +236,7 @@ describe('typecho-plugin-warm-cy', () => {
     mocks.requireAdminAction.mockResolvedValueOnce(context);
     const handler = collectHooks().get('route:request')!;
     const result = await handler({}, {
-      request: routeRequest(ADMIN_PATH, 'POST', { cid: 12, pinned: true }),
+      request: routeRequest(ADMIN_PATH, 'POST', { cid: 12, pinned: true, confirmation: '确认' }),
       path: ADMIN_PATH,
     });
 
