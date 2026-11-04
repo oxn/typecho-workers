@@ -105,6 +105,62 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   `;
 }
 
+function encodeInlinePayload(value: string): string {
+  return Array.from(new TextEncoder().encode(value), byte =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+}
+
+function protectInlineHtml(source: string): string {
+  const protectedSegments: string[] = [];
+  const protect = (value: string): string => {
+    const marker = 'CYCYCODESEGMENT' + protectedSegments.length + 'TOKEN';
+    protectedSegments.push(value);
+    return marker;
+  };
+
+  let content = source.replace(/<(pre|code)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
+  let fenceChar = '';
+  let fenceLength = 0;
+  content = content.split('\n').map(line => {
+    const fence = line.match(/^ {0,3}(\x60{3,}|~{3,})/);
+    if (fenceChar) {
+      const marker = protect(line);
+      if (fence && fence[1][0] === fenceChar && fence[1].length >= fenceLength) {
+        fenceChar = '';
+        fenceLength = 0;
+      }
+      return marker;
+    }
+    if (fence) {
+      fenceChar = fence[1][0];
+      fenceLength = fence[1].length;
+      return protect(line);
+    }
+    if (/^(?: {4}|\t)/.test(line)) return protect(line);
+    return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
+  }).join('\n');
+
+  content = content.replace(
+    /<(style|script|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
+    block => 'CYCYINLINEBLOCK_' + encodeInlinePayload(block) + '_END',
+  );
+
+  content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
+    const match = attrs.match(/\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    if (!match) return full;
+    const style = match[1] ?? match[2] ?? match[3] ?? '';
+    const cleanAttrs = attrs.replace(match[0], '');
+    return '<' + tag + cleanAttrs + '>CYCYINLINEATTR_' + tag.toLowerCase()
+      + '_' + encodeInlinePayload(style) + '_END';
+  });
+
+  for (let index = protectedSegments.length - 1; index >= 0; index--) {
+    content = content.replace('CYCYCODESEGMENT' + index + 'TOKEN', protectedSegments[index]);
+  }
+  return content;
+}
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
