@@ -2353,3 +2353,171 @@ body.warm-theme {
   color: #f59e0b;
 }
 
+
+
+/* ========================================
+   Warm CY 首页搜索
+   ======================================== */
+.warm-search-trigger {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #77736e;
+  cursor: pointer;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+.warm-search-trigger:hover,
+.warm-search-trigger:focus-visible {
+  background: var(--warm-hover);
+  color: #269b63;
+}
+.warm-search-trigger svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.warm-search-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(520px, calc(100vw - 32px));
+  max-width: none;
+  height: fit-content;
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--warm-text);
+}
+.warm-search-dialog::backdrop {
+  background: rgba(25, 25, 25, .28);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+.warm-search-dialog[open] {
+  animation: warm-search-dialog-in .18s ease-out;
+}
+@keyframes warm-search-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.warm-search-dialog__panel {
+  position: relative;
+  padding: 30px;
+  border: 1px solid rgba(235, 232, 227, .9);
+  border-radius: 14px;
+  background: var(--warm-bg);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .16);
+}
+.warm-search-dialog__panel h2 {
+  margin: 0 0 20px;
+  color: var(--warm-text);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.warm-search-dialog__close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--warm-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.warm-search-dialog__close:hover {
+  background: var(--warm-surface);
+  color: var(--warm-text);
+}
+.warm-search-form {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.warm-search-input {
+  display: block;
+  min-width: 0;
+  min-height: 46px;
+  flex: 1 1 auto;
+  padding: 10px 13px;
+  border: 1px solid var(--warm-border);
+  border-radius: 8px;
+  outline: none;
+  background: var(--warm-bg);
+  color: var(--warm-text);
+  font-size: 15px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.warm-search-input:focus,
+.warm-search-input:focus-visible {
+  border-color: #269b63;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(38, 155, 99, .09);
+}
+.warm-search-submit {
+  display: inline-flex;
+  min-width: 94px;
+  min-height: 46px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid #269b63;
+  border-radius: 8px;
+  background: #269b63;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.warm-search-submit:hover {
+  border-color: #1e8654;
+  background: #1e8654;
+}
+.warm-search-submit svg {
+  width: 17px;
+  height: 17px;
+}
+.warm-search-error {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+  color: #c2413b;
+  font-size: 12px;
+}
+.warm-search-error:empty {
+  display: none;
+}
+.dark .warm-search-dialog__panel {
+  border-color: #343434;
+  background: #202020;
+}
+.dark .warm-search-dialog__panel h2,
+.dark .warm-search-input {
+  color: #eee;
+}
+.dark .warm-search-input {
+  border-color: #454545;
+  background: #292929;
+}
+@media (max-width: 639px) {
+  .warm-search-dialog__panel { padding: 26px 18px 20px; }
+  .warm-search-form { gap: 8px; }
+  .warm-search-submit { min-width: 82px; padding-inline: 12px; }
+}
