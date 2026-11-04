@@ -100,7 +100,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.04.19.44');
+    expect(html).toContain('CY 插件版本：2026.11.04.20.06');
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
@@ -164,7 +164,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<script>window.cyFooterTest = true;</script>',
       '<svg viewBox="0 0 16 16"><path d="M1 1h14v14H1z"></path></svg>',
       '</div>',
-    ].join('\\n');
+    ].join('\n');
 
     const protectedSource = protect(source);
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
