@@ -148,7 +148,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     title?: string;
     options?: Record<string, unknown>;
   }) => {
-    if (extra?.options?.theme !== THEME_ID) return html;
+    if (extra?.options?.theme !== THEME_ID
+      || (extra?.title !== '设置外观' && extra?.title !== 'CY 功能显示')) return html;
     return `${html}<style data-warm-cy-admin>${adminCss}</style>`;
   }, 20);
 
