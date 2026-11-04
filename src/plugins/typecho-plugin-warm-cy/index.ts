@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.04.20.18';
+const PLUGIN_VERSION = '2026.11.04.20.27';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -402,7 +402,7 @@ function restoreInlineHtmlFragments(content: string): string {
 
     // Keep style/script blocks as inert text markers through fragment sanitization.
     // The opt-in frontend runtime restores them only when the enhancement is enabled.
-    source = source.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, block =>
+    source = source.replace(/<(style|script|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, block =>
       'CYCYINLINEBLOCKX' + encodeInlinePayload(block) + 'XEND',
     );
 
