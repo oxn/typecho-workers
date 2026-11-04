@@ -84,7 +84,7 @@ describe('typecho-plugin-warm-cy', () => {
     const hooks = collectHooks();
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(ADMIN_PATH);
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(SETTINGS_PATH);
-    expect([...hooks.keys()].sort()).toEqual(['comment:list', 'route:request']);
+    expect([...hooks.keys()].sort()).toEqual(['admin:footer', 'admin:page', 'comment:list', 'route:request']);
   });
 
   it('saves both feature visibility settings through the protected settings endpoint', async () => {
