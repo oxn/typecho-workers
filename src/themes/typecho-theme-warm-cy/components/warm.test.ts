@@ -76,6 +76,16 @@ describe('Warm CY theme helpers', () => {
     expect(settings.thumbOptimizeParams).toBe('quality=80');
   });
 
+  it('defaults homepage search to visible and respects the companion plugin switch', () => {
+    expect(warmSettings({} as never).showHomeSearch).toBe(true);
+    expect(warmSettings({
+      'plugin:typecho-plugin-warm-cy': JSON.stringify({ showHomeSearch: false }),
+    } as never).showHomeSearch).toBe(false);
+    expect(warmSettings({
+      'plugin:typecho-plugin-warm-cy': JSON.stringify({ showHomeSearch: true }),
+    } as never).showHomeSearch).toBe(true);
+  });
+
   it('returns manifest-equivalent defaults when no saved settings exist', () => {
     const settings = warmSettings({} as never);
     expect(settings.pinnedIds).toEqual([]);
