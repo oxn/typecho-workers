@@ -484,7 +484,12 @@ describe('typecho-plugin-warm-cy', () => {
       theme: 'typecho-theme-warm-cy',
       [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '0' }),
     } });
-    const runtime = footer.match(/<script data-cy-inline-html-enhancement>([\\s\\S]*?)<\\/script>/)?.[1];
+    const runtimeStartTag = '<script data-cy-inline-html-enhancement>';
+    const runtimeStart = footer.indexOf(runtimeStartTag);
+    const runtimeEnd = footer.indexOf('</script>', runtimeStart + runtimeStartTag.length);
+    const runtime = runtimeStart >= 0 && runtimeEnd >= 0
+      ? footer.slice(runtimeStart + runtimeStartTag.length, runtimeEnd)
+      : '';
     expect(runtime).toBeTruthy();
 
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
