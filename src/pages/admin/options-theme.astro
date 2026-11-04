@@ -104,7 +104,7 @@ function optionId(key: string, value: string): string {
       </div>
     )}
 
-    <form method="post" action="/admin/options-theme">
+    <form method="post" action="/admin/options-theme" class="warm-theme-config-form">
       <input type="hidden" name="_" value={csrfToken} />
       {Object.entries(configDef).map(([key, field]: [string, PluginConfigField], index) => {
         const value = configValues[key] ?? field.default ?? '';
@@ -173,4 +173,53 @@ function optionId(key: string, value: string): string {
       </ul>
     </form>
   </div>
+
+  <style>
+    /* Theme settings: compact cards built on the shared Typecho admin styles. */
+    .warm-theme-config-form .typecho-option {
+      margin: 0 0 8px;
+      padding: 11px 14px;
+      border: 1px solid #e5e5e5;
+      border-radius: 3px;
+      background: #fff;
+    }
+    .warm-theme-config-form .typecho-option li { margin: 0; padding: 0; }
+    .warm-theme-config-form .typecho-option label.typecho-label {
+      margin: 0 0 5px;
+      color: #333;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .warm-theme-config-form .typecho-option input.text,
+    .warm-theme-config-form .typecho-option textarea,
+    .warm-theme-config-form .typecho-option select {
+      max-width: 100%;
+      border-color: #d9d9d6;
+      border-radius: 3px;
+    }
+    .warm-theme-config-form .typecho-option input.text,
+    .warm-theme-config-form .typecho-option select { min-height: 30px; padding: 5px 8px; }
+    .warm-theme-config-form .typecho-option textarea { min-height: 76px; height: 76px; padding: 7px 8px; }
+    .warm-theme-config-form .typecho-option input:focus,
+    .warm-theme-config-form .typecho-option textarea:focus,
+    .warm-theme-config-form .typecho-option select:focus {
+      border-color: #31966b;
+      outline: 1px solid rgba(49,150,107,.12);
+    }
+    .warm-theme-config-form .typecho-option .description {
+      margin: 5px 0 0;
+      line-height: 1.5;
+    }
+    .warm-theme-config-form .typecho-option span { margin-right: 12px; }
+    .warm-theme-config-form .typecho-option-submit {
+      margin-top: 10px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+    .warm-theme-config-form .typecho-option-submit li { padding: 0; }
+    @media (max-width: 767px) {
+      .warm-theme-config-form .typecho-option { padding: 10px 11px; }
+    }
+  </style>
 </Admin>
