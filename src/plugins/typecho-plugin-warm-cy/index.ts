@@ -13,6 +13,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
+const PLUGIN_VERSION = '2026.11.04.18.33';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -49,6 +50,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
       <div class="cy-feature-links">
         <a href="/admin/options-theme">返回主题设置</a>
       </div>
+      <p class="cy-feature-version">CY 插件版本：${PLUGIN_VERSION}</p>
       <section class="cy-feature-card">
         <label class="cy-feature-toggle">
           <input type="checkbox" data-cy-setting="showCommentManagementButtons" ${commentsEnabled ? 'checked' : ''}>
