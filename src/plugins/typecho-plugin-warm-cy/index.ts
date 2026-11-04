@@ -151,9 +151,9 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
 
-    // Only wrap divs whose content spans blank lines. Simple inline/block HTML
-    // keeps the existing per-attribute marker flow unchanged.
-    if (!/\n[\t ]*\n/.test(block)) continue;
+    // Protect every complete div container, not only multiline footers.
+    // Even a single-line div is stripped by the core sanitizer, which breaks
+    // its class/style attributes and makes the remaining content look plain.
 
     output += content.slice(cursor, match.index)
       + 'CYCYINLINECONTAINERX' + encodeInlinePayload(block) + 'XEND';
