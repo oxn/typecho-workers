@@ -80,10 +80,14 @@ describe('typecho-plugin-warm-cy', () => {
     mocks.generateSecurityToken.mockResolvedValue('fresh-csrf-token');
   });
 
-  it('registers only the companion admin route and the comment metadata filter', () => {
+  it('registers companion admin, content and frontend hooks', () => {
     const hooks = collectHooks();
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(ADMIN_PATH);
-    expect([...hooks.keys()].sort()).toEqual(['archive:footer', 'comment:list', 'content:markdown', 'route:request']);
+    expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(SETTINGS_API_PATH);
+    expect([...hooks.keys()].sort()).toEqual([
+      'admin:footer', 'admin:header', 'admin:page',
+      'archive:footer', 'comment:list', 'content:markdown', 'route:request',
+    ]);
   });
 
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', () => {
