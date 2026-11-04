@@ -361,45 +361,35 @@ function plainHeadingText(inner: string): string {
  */
 export function renderWarmIframes(html: string): string {
   return html.replace(/<iframe\b([^>]*)>/gi, (match, rawAttributes: string) => {
-    const attributes = rawAttributes;
-
-    // Extract the original iframe source.
-    const srcMatch = attributes.match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    const srcMatch = rawAttributes.match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
     const src = srcMatch?.[1] ?? srcMatch?.[2] ?? srcMatch?.[3] ?? '';
-
     if (!src) return match;
 
-    // Restrict processing to the supported video providers.
     let hostname = '';
-
     try {
       hostname = new URL(src, 'https://localhost').hostname.toLowerCase();
     } catch {
       return match;
     }
 
-    const allowedHosts = [
-      'www.youtube.com',
-      'player.bilibili.com',
-      'player.vimeo.com',
-    ];
+    const isYoutube = hostname === 'www.youtube.com';
+    const isSupportedVideoHost = isYoutube
+      || hostname === 'player.bilibili.com'
+      || hostname === 'player.vimeo.com';
+    if (!isSupportedVideoHost) return match;
 
-    if (!allowedHosts.includes(hostname)) return match;
-
-    // Add or replace an iframe attribute without duplicating it.
     const setAttribute = (source: string, name: string, value: string) => {
       const pattern = new RegExp(`\\s${name}\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]+)`, 'i');
-
-      if (pattern.test(source)) {
-        return source.replace(pattern, ` ${name}="${value}"`);
-      }
-
-      return `${source} ${name}="${value}"`;
+      return pattern.test(source)
+        ? source.replace(pattern, ` ${name}="${value}"`)
+        : `${source} ${name}="${value}"`;
     };
 
-    let result = attributes;
+    let result = rawAttributes;
 
-    result = setAttribute(result, 'loading', 'lazy');
+    // Do not defer third-party players: mobile browsers and instant navigation
+    // can otherwise leave a visible iframe waiting for a lazy-load threshold.
+    result = setAttribute(result, 'loading', 'eager');
     result = setAttribute(result, 'allowfullscreen', '');
     result = setAttribute(
       result,
@@ -407,6 +397,12 @@ export function renderWarmIframes(html: string): string {
       'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
     );
     result = setAttribute(result, 'title', '视频播放器');
+
+    if (isYoutube) {
+      // YouTube requires a usable HTTP Referer for embedded playback.
+      result = setAttribute(result, 'referrerpolicy', 'strict-origin-when-cross-origin');
+      result = setAttribute(result, 'data-video-provider', 'youtube');
+    }
 
     return `<iframe${result}>`;
   });

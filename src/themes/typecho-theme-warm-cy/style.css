@@ -1943,6 +1943,11 @@ body.warm-theme {
   background: #000;
 }
 
+/* YouTube requires an embedded viewport of at least 200 × 200 pixels. */
+.warm-prose iframe[data-video-provider="youtube"] {
+  min-height: 200px;
+}
+
 /* Keep iframe players responsive on mobile */
 @media (max-width: 640px) {
   .warm-prose iframe {

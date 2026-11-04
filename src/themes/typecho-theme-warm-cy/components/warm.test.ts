@@ -114,12 +114,20 @@ describe('Warm CY theme helpers', () => {
     expect(warmArticleSummary({ hasPassword: false, passwordVerified: false }, null)).toBe('');
   });
 
-  it('adds safe loading attributes only to supported video iframe providers', () => {
+  it('prepares YouTube and Bilibili iframes for reliable responsive playback', () => {
     const youtube = '<iframe src="https://www.youtube.com/embed/demo"></iframe>';
-    const result = renderWarmIframes(youtube);
-    expect(result).toContain('loading="lazy"');
-    expect(result).toContain('allowfullscreen=""');
-    expect(result).toContain('title="视频播放器"');
+    const youtubeResult = renderWarmIframes(youtube);
+    expect(youtubeResult).toContain('loading="eager"');
+    expect(youtubeResult).toContain('referrerpolicy="strict-origin-when-cross-origin"');
+    expect(youtubeResult).toContain('data-video-provider="youtube"');
+    expect(youtubeResult).toContain('allowfullscreen=""');
+    expect(youtubeResult).toContain('title="视频播放器"');
+
+    const bilibili = '<iframe src="https://player.bilibili.com/player.html?bvid=demo" loading="lazy"></iframe>';
+    const bilibiliResult = renderWarmIframes(bilibili);
+    expect(bilibiliResult).toContain('loading="eager"');
+    expect(bilibiliResult).not.toContain('referrerpolicy=');
+    expect(bilibiliResult).toContain('allowfullscreen=""');
 
     const external = '<iframe src="https://video.example/embed/demo"></iframe>';
     expect(renderWarmIframes(external)).toBe(external);
