@@ -1,6 +1,6 @@
 {
   "name": "typecho-plugin-warm-cy",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Warm CY theme companion APIs and comment management metadata.",
   "keywords": [
     "typecho",
@@ -14,7 +14,7 @@
       "id": "typecho-plugin-warm-cy",
       "name": "CY 主题功能插件",
       "description": "为 Warm CY 主题提供文章置顶、评论区管理与功能显示设置。",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT",
       "tags": [
         "warm-cy",
