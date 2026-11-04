@@ -65,6 +65,11 @@ function parsePinnedIds(value: unknown): number[] {
 export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
 
+  addHook('admin:header', pluginId, (html: string, extra?: { title?: string }) => {
+    if (extra?.title !== '设置插件 Warm CY Companion') return html;
+    return `${html}<style data-warm-cy-admin>${adminCss}</style>`;
+  }, 20);
+
   addHook('route:request', pluginId, async (
     result: PluginRouteResult,
     extra?: { request?: Request; path?: string },
@@ -134,11 +139,13 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     if (!content || (content.type !== 'post' && content.type !== 'page')) return payload;
 
     const settings = parseSettings(auth.options[OPTION_KEY]);
+    const featureSettings = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
     const csrfToken = await generateSecurityToken(auth.options.secret, auth.user.authCode, auth.uid);
     return {
       ...payload,
       management: {
         canManage: true,
+        showManagementButtons: isEnabled(featureSettings.showCommentManagementButtons),
         adminUrl: computeUrls(auth.options).adminUrl,
         contentType: content.type,
         isPinned: content.type === 'post' && parsePinnedIds(settings.pinnedIds).includes(cid),
