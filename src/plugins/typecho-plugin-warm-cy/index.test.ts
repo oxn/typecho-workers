@@ -93,6 +93,16 @@ describe('typecho-plugin-warm-cy', () => {
     ]);
   });
 
+  it('shows the timestamped CY plugin version in its settings page', () => {
+    const handler = collectHooks().get('admin:page')!;
+    const html = handler('', {
+      slug: 'cy-companion',
+      csrfToken: 'test-token',
+      options: { [PLUGIN_OPTION_KEY]: '{}' },
+    });
+    expect(html).toContain('CY 插件版本：2026.11.04.18.33');
+  });
+
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', () => {
     const handler = collectHooks().get('content:markdown')!;
     const input = [
@@ -139,6 +149,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(sanitized).toContain('<blockquote>');
     expect(sanitized).toContain('href="https://example.com/download"');
     expect(sanitized).toContain('target="_blank"');
+    expect(sanitized).toContain('rel="noopener noreferrer"');
     expect(sanitized).toContain('CYCYINLINEATTRXaX');
     expect(sanitized).toContain('CYCYINLINEATTRXspanX');
     expect(sanitized).toContain('CYCYINLINEBLOCKX');
