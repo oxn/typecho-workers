@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.04.20.06';
+const PLUGIN_VERSION = '2026.11.04.20.13';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -244,17 +244,46 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
     'a', 'div', 'p', 'span', 'strong', 'b', 'em', 'i', 'small', 'br', 'hr',
     'ul', 'ol', 'li', 'section', 'article', 'header', 'footer', 'nav', 'main',
-    'figure', 'figcaption', 'time',
+    'figure', 'figcaption', 'time', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'img', 'button', 'label', 'blockquote', 'pre', 'code',
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+    'details', 'summary', 'dl', 'dt', 'dd', 'picture', 'source',
+    'video', 'audio',
     'svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
     'ellipse', 'defs', 'lineargradient', 'linearGradient',
     'radialgradient', 'radialGradient', 'stop', 'clippath', 'clipPath',
     'mask', 'title', 'desc', 'use', 'symbol',
   ],
   allowedAttributes: {
+    '*': ['class', 'id', 'style', 'title', 'role', 'aria-label', 'aria-hidden'],
     a: ['href', 'target', 'rel', 'title', 'style', 'class', 'id', 'download'],
+    img: ['src', 'alt', 'title', 'width', 'height', 'loading', 'class', 'style'],
     div: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
     p: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
     span: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
+    section: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
+    article: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
+    header: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
+    footer: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
+    nav: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
+    main: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
+    figure: ['style', 'class', 'id', 'title'],
+    figcaption: ['style', 'class', 'id', 'title'],
+    button: ['type', 'disabled', 'style', 'class', 'id', 'title', 'aria-label'],
+    label: ['for', 'style', 'class', 'id'],
+    blockquote: ['style', 'class', 'id', 'cite'],
+    pre: ['style', 'class', 'id'],
+    code: ['style', 'class', 'id'],
+    table: ['style', 'class', 'id'],
+    thead: ['style', 'class', 'id'],
+    tbody: ['style', 'class', 'id'],
+    tfoot: ['style', 'class', 'id'],
+    tr: ['style', 'class', 'id'],
+    th: ['style', 'class', 'id', 'colspan', 'rowspan', 'scope'],
+    td: ['style', 'class', 'id', 'colspan', 'rowspan'],
+    video: ['src', 'controls', 'width', 'height', 'poster', 'style', 'class'],
+    audio: ['src', 'controls', 'style', 'class'],
+    source: ['src', 'type'],
     svg: ['width', 'height', 'viewbox', 'viewBox', 'xmlns', 'fill', 'stroke',
       'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style', 'class', 'id',
       'role', 'aria-label', 'aria-hidden', 'preserveAspectRatio'],
@@ -286,27 +315,60 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedStyles: {
     '*': {
       color: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
-      background: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
+      background: [/^(?!.*(?:expression|javascript:|@import|url\s*\())[-#(),.%\w\s"'!/+*]+$/i],
       'background-color': [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
+      'background-image': [/^(?!.*(?:expression|javascript:|@import|url\s*\())[-#(),.%\w\s"'!/+*]+$/i],
       'font-weight': [/^(?:normal|bold|bolder|lighter|[1-9]00)$/i],
+      'font-size': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'font-family': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'line-height': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'text-align': [/^(?:left|right|center|justify|start|end)$/i],
+      'text-decoration': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
       'word-break': [/^(?:normal|break-all|keep-all|break-word)$/i],
-      display: [/^(?:inline|inline-block|inline-flex|block|flex|none)$/i],
+      'overflow-wrap': [/^(?:normal|break-word|anywhere)$/i],
+      display: [/^(?:inline|inline-block|inline-flex|block|flex|grid|inline-grid|none|table|table-cell)$/i],
       'align-items': [/^(?:center|start|end|flex-start|flex-end|baseline|stretch)$/i],
-      gap: [/^[0-9.]+(?:px|em|rem|%)$/i],
-      padding: [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
-      margin: [/^(?:auto|[0-9.]+(?:px|em|rem|%)?)(?:\s+(?:auto|[0-9.]+(?:px|em|rem|%)?)){0,3}$/i],
-      'border-radius': [/^[0-9.]+(?:px|em|rem|%)?(?:\s+[0-9.]+(?:px|em|rem|%)?){0,3}$/i],
-      'white-space': [/^(?:normal|nowrap|pre|pre-wrap|pre-line|break-spaces)$/i],
-      'vertical-align': [/^(?:middle|baseline|top|bottom|text-top|text-bottom)$/i],
-      fill: [/^(?:#[0-9a-f]{3,8}|none|currentColor|[a-zA-Z]+|url\(\s*#[\w:.-]+\s*\))$/i],
-      stroke: [/^(?:#[0-9a-f]{3,8}|none|currentColor|[a-zA-Z]+)$/i],
-      'fill-rule': [/^(?:nonzero|evenodd)$/i],
-      'stroke-width': [/^[0-9.]+(?:px|em|rem)?$/i],
+      'align-self': [/^(?:auto|center|start|end|flex-start|flex-end|baseline|stretch)$/i],
+      'justify-content': [/^(?:normal|start|end|center|left|right|space-between|space-around|space-evenly|flex-start|flex-end)$/i],
+      'flex-direction': [/^(?:row|row-reverse|column|column-reverse)$/i],
+      'flex-wrap': [/^(?:nowrap|wrap|wrap-reverse)$/i],
+      flex: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      gap: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      padding: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      margin: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      width: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      height: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'min-width': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'max-width': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'min-height': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'max-height': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      border: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'border-radius': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'border-color': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'border-width': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'border-style': [/^(?:none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset)$/i],
+      'box-shadow': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      position: [/^(?:static|relative|absolute|fixed|sticky)$/i],
+      top: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      right: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      bottom: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      left: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'z-index': [/^-?\d+$/],
+      overflow: [/^(?:visible|hidden|clip|scroll|auto)$/i],
+      cursor: [/^(?:auto|default|pointer|wait|text|move|not-allowed|grab|grabbing)$/i],
       opacity: [/^(?:0|1|0?\.[0-9]+|100%)$/i],
+      transform: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      transition: [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'object-fit': [/^(?:fill|contain|cover|none|scale-down)$/i],
+      'vertical-align': [/^(?:middle|baseline|top|bottom|text-top|text-bottom)$/i],
+      'white-space': [/^(?:normal|nowrap|pre|pre-wrap|pre-line|break-spaces)$/i],
+      'letter-spacing': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'aspect-ratio': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'grid-template-columns': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
+      'grid-template-rows': [/^(?!.*(?:expression|javascript:|@import|url\s*\()))[-#(),.%\w\s"'!/+*]+$/i],
     },
   },
 };
-
 function decodeInlinePayload(hex: string): string {
   const bytes = new Uint8Array(hex.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
@@ -337,6 +399,12 @@ function sanitizeInlineHtmlFragment(source: string): string {
 function restoreInlineHtmlFragments(content: string): string {
   const restoreContainer = (payload: string): string => {
     let source = decodeInlinePayload(payload);
+
+    // Keep style/script blocks as inert text markers through fragment sanitization.
+    // The opt-in frontend runtime restores them only when the enhancement is enabled.
+    source = source.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, block =>
+      'CYCYINLINEBLOCKX' + encodeInlinePayload(block) + 'XEND',
+    );
 
     // Reattach preserved attributes before sanitizing the restored container.
     // Attribute values are escaped here; the fragment sanitizer remains the
