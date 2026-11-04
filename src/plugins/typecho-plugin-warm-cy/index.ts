@@ -283,6 +283,92 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
           const form = document.querySelector('form[action="/admin/options-theme"]');
           form?.classList.add('warm-theme-config-form');
 
+          if (form && form.dataset.warmCyLayoutApplied !== '1') {
+            form.dataset.warmCyLayoutApplied = '1';
+            const getField = name => {
+              const input = form.querySelector('[name="' + name + '"]');
+              return input ? input.closest('.typecho-option') : null;
+            };
+
+            const firstLinkField = getField('linktxt01');
+            if (firstLinkField) {
+              const section = document.createElement('section');
+              section.className = 'warm-theme-links-group';
+              const heading = document.createElement('div');
+              heading.className = 'warm-theme-links-heading';
+              const title = document.createElement('strong');
+              title.textContent = '页面连接';
+              const description = document.createElement('span');
+              description.textContent = '支持 https://、http://、mailto:、站内链接；普通域名可直接填写。';
+              heading.append(title, description);
+              section.append(heading);
+              firstLinkField.before(section);
+
+              for (let index = 1; index <= 10; index += 1) {
+                const suffix = String(index).padStart(2, '0');
+                const textField = getField('linktxt' + suffix);
+                const urlField = getField('links' + suffix);
+                const blankField = getField('linkblank' + suffix);
+                const textInput = textField?.querySelector('input[name="linktxt' + suffix + '"]');
+                const urlInput = urlField?.querySelector('input[name="links' + suffix + '"]');
+                const blankInput = blankField?.querySelector('input[name="linkblank' + suffix + '"]');
+                if (!textInput || !urlInput || !blankInput) continue;
+
+                const row = document.createElement('div');
+                row.className = 'warm-theme-link-row';
+                const textLine = document.createElement('div');
+                textLine.className = 'warm-theme-link-text-line';
+                const textLabel = document.createElement('label');
+                textLabel.htmlFor = textInput.id;
+                textLabel.textContent = '文字' + index + '：';
+                textInput.classList.add('warm-theme-link-input');
+                textLine.append(textLabel, textInput);
+
+                const blankLabel = document.createElement('label');
+                blankLabel.className = 'warm-theme-link-new-window';
+                blankLabel.htmlFor = blankInput.id;
+                const blankText = document.createElement('span');
+                blankText.textContent = '新窗口打开';
+                blankLabel.append(blankInput, blankText);
+                textLine.append(blankLabel);
+
+                const urlLine = document.createElement('div');
+                urlLine.className = 'warm-theme-link-url-line';
+                const urlLabel = document.createElement('label');
+                urlLabel.htmlFor = urlInput.id;
+                urlLabel.textContent = '网址' + index + '：';
+                urlInput.classList.add('warm-theme-link-input');
+                urlLine.append(urlLabel, urlInput);
+
+                row.append(textLine, urlLine);
+                section.append(row);
+                textField.remove();
+                urlField.remove();
+                blankField.remove();
+              }
+            }
+
+            form.querySelectorAll('.typecho-option:not(.typecho-option-submit)').forEach(option => {
+              if (option.style.display === 'none') return;
+              const item = option.querySelector(':scope > li');
+              if (!item || item.querySelector(':scope > .warm-theme-field-head')) return;
+              const label = item.querySelector(':scope > .typecho-label');
+              const description = item.querySelector(':scope > .description');
+              if (label?.querySelector('input[type="checkbox"], input[type="radio"]')) return;
+
+              const head = document.createElement('div');
+              head.className = 'warm-theme-field-head';
+              if (label) head.append(label);
+              if (description) head.append(description);
+              const control = document.createElement('div');
+              control.className = 'warm-theme-field-control';
+              Array.from(item.children).forEach(child => {
+                if (child !== label && child !== description) control.append(child);
+              });
+              item.append(head, control);
+            });
+          }
+
           const titleBar = document.querySelector('.typecho-page-title');
           if (titleBar && !titleBar.querySelector('.warm-cy-settings-switch')) {
             const link = document.createElement('a');
