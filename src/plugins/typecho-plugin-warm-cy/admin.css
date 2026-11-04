@@ -239,6 +239,10 @@
 }
 .warm-theme-links-group {
   margin: 0 0 22px;
+  padding: 16px 18px 8px;
+  border: 1px solid #e5e9e7;
+  border-radius: 9px;
+  background: #fff;
 }
 .warm-theme-links-heading {
   display: flex;
@@ -313,4 +317,14 @@
   .warm-theme-link-text-line > label:first-child,
   .warm-theme-link-url-line > label { flex-basis: 54px; }
   .warm-theme-link-new-window { margin-left: 63px; }
+}
+
+.warm-search-trigger--floating {
+  position: fixed;
+  z-index: 30;
+  right: 18px;
+  bottom: 18px;
+  border: 1px solid rgba(220, 228, 223, .9);
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 4px 18px rgba(20, 40, 30, .12);
 }
