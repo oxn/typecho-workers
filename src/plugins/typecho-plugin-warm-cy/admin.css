@@ -187,3 +187,130 @@
   .warm-theme-config-form .typecho-option { padding: 14px !important; }
   .warm-cy-settings-switch { margin: 8px 0 0; }
 }
+
+
+/* Compact, original-style Warm CY theme settings layout. */
+.warm-theme-config-form .typecho-option {
+  margin: 0 0 18px !important;
+  padding: 0 0 16px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e5e9e7 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.warm-theme-config-form .typecho-option > li { padding: 0 !important; }
+.warm-theme-config-form .warm-theme-field-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 3px;
+  margin: 0 0 9px;
+}
+.warm-theme-config-form .warm-theme-field-head > .typecho-label {
+  display: inline;
+  margin: 0 !important;
+  color: #26352d;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.6;
+}
+.warm-theme-config-form .warm-theme-field-head > .description {
+  display: inline;
+  margin: 0 !important;
+  color: #77817b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.warm-theme-config-form .warm-theme-field-control {
+  width: 100%;
+}
+.warm-theme-config-form .warm-theme-field-control > input.text,
+.warm-theme-config-form .warm-theme-field-control > select,
+.warm-theme-config-form .warm-theme-field-control > textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+.warm-theme-config-form .warm-theme-field-control > textarea {
+  min-height: 110px;
+}
+.warm-theme-links-group {
+  margin: 0 0 22px;
+}
+.warm-theme-links-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+  margin: 0 0 12px;
+  padding: 0 0 11px;
+  border-bottom: 1px solid #dfe6e1;
+  text-align: left;
+}
+.warm-theme-links-heading strong {
+  color: #26352d;
+  font-size: 15px;
+  font-weight: 650;
+}
+.warm-theme-links-heading span {
+  color: #77817b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.warm-theme-link-row {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid #e8ece9;
+}
+.warm-theme-link-text-line,
+.warm-theme-link-url-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.warm-theme-link-text-line > label:first-child,
+.warm-theme-link-url-line > label {
+  flex: 0 0 62px;
+  color: #46534b;
+  font-size: 13px;
+  text-align: left;
+}
+.warm-theme-config-form .warm-theme-link-input {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: 1%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #dce4df;
+  border-radius: 6px;
+  background: #fff;
+}
+.warm-theme-link-new-window {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  color: #56635b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.warm-theme-link-new-window input { accent-color: #269b63; }
+.warm-theme-config-form .typecho-option-submit {
+  margin-top: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+@media (max-width: 640px) {
+  .warm-theme-links-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .warm-theme-link-text-line { flex-wrap: wrap; }
+  .warm-theme-link-text-line > label:first-child,
+  .warm-theme-link-url-line > label { flex-basis: 54px; }
+  .warm-theme-link-new-window { margin-left: 63px; }
+}
