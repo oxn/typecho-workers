@@ -222,7 +222,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINECONTAINERX');
   });
 
-  it('restores a styled download card with both SVG icons after core sanitization', () => {
+  it('preserves both download-card SVG icons as inert markers for browser hydration', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
@@ -258,9 +258,12 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('rel="noopener noreferrer"');
     expect(restored).toContain('background:#079C48');
     expect(restored).toContain('display:inline-flex');
-    expect(restored).toContain('<svg');
-    expect(restored).toContain('<path');
-    expect(restored).toContain('<polyline');
+    const svgPayloads = [...restored.matchAll(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/g)]
+      .map(([, payload]) => Buffer.from(payload, 'hex').toString('utf8'));
+    expect(svgPayloads).toHaveLength(2);
+    expect(svgPayloads[0]).toContain('viewBox="0 0 1024 1024"');
+    expect(svgPayloads[0]).toContain('<path');
+    expect(svgPayloads[1]).toContain('<polyline');
     expect(restored).toContain('下载地址');
     expect(restored).toContain('密码：cycy');
     expect(restored).not.toContain('CYCYINLINEHTMLX');
