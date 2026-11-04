@@ -43,6 +43,33 @@ export interface WarmSettings {
   thumbOptimizeParams: string;
 }
 
+export interface WarmCyFeatureSettings {
+  showCommentManagementButtons: boolean;
+  showHomeSearchButton: boolean;
+}
+
+export function warmCyFeatureSettings(options: ThemeBaseProps['options']): WarmCyFeatureSettings {
+  let saved: Record<string, unknown> = {};
+  const raw = options?.['plugin:typecho-plugin-warm-cy'];
+  if (typeof raw === 'string' && raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        saved = parsed as Record<string, unknown>;
+      }
+    } catch {
+      saved = {};
+    }
+  }
+  const enabled = (value: unknown) => value === undefined || value === null || value === ''
+    ? true
+    : !(value === false || value === 0 || value === '0');
+  return {
+    showCommentManagementButtons: enabled(saved.showCommentManagementButtons),
+    showHomeSearchButton: enabled(saved.showHomeSearchButton),
+  };
+}
+
 export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
   const savedSettings = readSavedWarmSettings(options);
   const settings = { ...DEFAULT_WARM_SETTINGS, ...(savedSettings || {}) };
