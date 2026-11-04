@@ -236,6 +236,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(mocks.generateSecurityToken).toHaveBeenCalledWith('test-secret', 'auth-code', 1);
     expect(result.management).toEqual({
       canManage: true,
+      showManagementButtons: true,
       adminUrl: '/admin/',
       contentType: 'post',
       isPinned: true,
