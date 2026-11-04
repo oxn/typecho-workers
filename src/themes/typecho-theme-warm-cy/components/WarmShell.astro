@@ -142,56 +142,6 @@ const footerLinks = [
   </footer>
   <script is:inline>
     (() => {
-      // Use document-level delegation: InstantClick replaces page DOM without
-      // re-running inline scripts, so direct listeners become stale on some pages.
-      if (document.documentElement.dataset.warmSearchDelegationBound !== '1') {
-        document.documentElement.dataset.warmSearchDelegationBound = '1';
-
-        document.addEventListener('click', event => {
-          const target = event.target instanceof Element ? event.target : null;
-          if (!target) return;
-
-          if (target.closest('[data-warm-search-open]')) {
-            const dialog = document.querySelector('[data-warm-search-dialog]');
-            if (!(dialog instanceof HTMLDialogElement)) return;
-            const error = dialog.querySelector('[data-warm-search-error]');
-            const input = dialog.querySelector('[data-warm-search-input]');
-            if (error) error.textContent = '';
-            if (!dialog.open) dialog.showModal();
-            input?.focus();
-            return;
-          }
-
-          if (target.closest('[data-warm-search-close]')) {
-            const dialog = target.closest('[data-warm-search-dialog]') || document.querySelector('[data-warm-search-dialog]');
-            if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
-            return;
-          }
-
-          const dialog = target.closest('[data-warm-search-dialog]');
-          if (dialog instanceof HTMLDialogElement && target === dialog) dialog.close();
-        });
-
-        document.addEventListener('submit', event => {
-          const form = event.target;
-          if (!(form instanceof HTMLFormElement) || !form.matches('[data-warm-search-form]')) return;
-          event.preventDefault();
-
-          const dialog = form.closest('[data-warm-search-dialog]');
-          const input = form.querySelector('[data-warm-search-input]');
-          const error = dialog?.querySelector('[data-warm-search-error]');
-          const keyword = String(input?.value || '').trim();
-          if (!keyword) {
-            if (error) error.textContent = '请输入搜索关键词';
-            input?.focus();
-            return;
-          }
-
-          const searchBase = dialog?.dataset.searchBase || '/';
-          window.location.href = searchBase + 'search/' + encodeURIComponent(keyword) + '/';
-        });
-      }
-
       const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
       document.querySelectorAll('.warm-nav__dropdown').forEach(dropdown => {
         let openedByHover = false;
