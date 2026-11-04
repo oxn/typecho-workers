@@ -4,7 +4,7 @@ import Base from '@/layouts/Base.astro';
 import type { ThemeBaseProps } from '@/lib/theme-props';
 import type { PageContext } from '@/lib/plugin';
 import { PUBLIC_HTML_HEADER } from '@/lib/cache';
-import { isCurrentPageLink, warmSettings, type WarmSection } from './warm';
+import { isCurrentPageLink, warmSettings, warmCyFeatureSettings, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
 
@@ -33,6 +33,7 @@ const {
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
+const searchEnabled = warmCyFeatureSettings(options).showHomeSearchButton;
 const categories = sidebarData.categories.slice(0, 8);
 const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
@@ -78,7 +79,11 @@ const footerLinks = [
         {pages.map((page) => (
           <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink}>{page.title}</a>
         ))}
-
+        {searchEnabled && (
+          <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          </button>
+        )}
       </nav>
     </div>
   </header>
@@ -112,8 +117,42 @@ const footerLinks = [
       </nav>
     </div>
   </footer>
+  {searchEnabled && (
+    <dialog class="warm-search-dialog" data-warm-search-dialog aria-labelledby="warm-search-title">
+      <div class="warm-search-dialog__panel">
+        <button type="button" class="warm-search-dialog__close" data-warm-search-close aria-label="关闭搜索">×</button>
+        <h2 id="warm-search-title">搜索文章</h2>
+        <form class="warm-search-form" data-warm-search-form method="get" action={homeUrl}>
+          <input type="search" class="warm-search-input" data-warm-search-input name="s" placeholder="输入关键词…" autocomplete="off" aria-label="搜索关键词" />
+          <button type="submit" class="warm-search-submit" aria-label="搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+            <span>搜索</span>
+          </button>
+        </form>
+        <p class="warm-search-error" data-warm-search-error role="status" aria-live="polite"></p>
+      </div>
+    </dialog>
+  )}
   <script is:inline>
     (() => {
+      document.addEventListener('click', event => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        if (target.closest('[data-warm-search-open]')) {
+          const dialog = document.querySelector('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && !dialog.open) {
+            dialog.showModal();
+            dialog.querySelector('[data-warm-search-input]')?.focus();
+          }
+        } else if (target.closest('[data-warm-search-close]')) {
+          const dialog = target.closest('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
+        } else {
+          const dialog = target.closest('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && target === dialog && dialog.open) dialog.close();
+        }
+      });
+
       const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
       document.querySelectorAll('.warm-nav__dropdown').forEach(dropdown => {
         let openedByHover = false;
