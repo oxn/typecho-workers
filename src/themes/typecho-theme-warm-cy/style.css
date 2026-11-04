@@ -731,11 +731,21 @@ body.warm-theme {
 .warm-prose {
   color: var(--warm-body);
   font-size: 17px;
-  line-height: 2;
   overflow-wrap: anywhere;
 }
 
-.warm-prose p {
+/* Keep the roomy rhythm on Markdown blocks, not restored custom HTML. */
+.warm-prose > :not(.cy-inline-html-pending) {
+  line-height: 2;
+}
+
+/* Custom HTML inherits the site's base line-height unless it defines its own. */
+.warm-prose .cy-inline-html-pending {
+  line-height: 1.75;
+}
+
+/* Only Markdown paragraphs receive the theme's large paragraph spacing. */
+.warm-prose > p {
   margin: 0 0 1.65em;
 }
 
