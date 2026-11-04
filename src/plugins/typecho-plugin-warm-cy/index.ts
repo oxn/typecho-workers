@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.04.19.44';
+const PLUGIN_VERSION = '2026.11.04.19.51';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -342,7 +342,7 @@ function restoreInlineHtmlFragments(content: string): string {
     // Attribute values are escaped here; the fragment sanitizer remains the
     // final allowlist enforcement layer.
     source = source.replace(
-      /(<[a-z][\\w:-]*\\b[^>]*>)CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/gi,
+      /(<[a-z][\w:-]*\b[^>]*>)CYCYINLINEATTRX([a-z][\w:-]*)X([0-9a-f]+)XEND/gi,
       (marker, opening: string, _tag: string, encoded: string) => {
         try {
           const attributes = JSON.parse(decodeInlinePayload(encoded)) as Record<string, unknown>;
@@ -356,7 +356,7 @@ function restoreInlineHtmlFragments(content: string): string {
               .replace(/</g, '&lt;').replace(/>/g, '&gt;');
             return ' ' + key + '="' + text + '"';
           }).join('');
-          return opening.replace(/>$/, safe + '>') ;
+          return opening.replace(/>$/, safe + '>');
         } catch {
           return opening;
         }
