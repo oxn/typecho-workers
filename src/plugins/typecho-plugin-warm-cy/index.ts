@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.04.19.51';
+const PLUGIN_VERSION = '2026.11.04.19.54';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -207,6 +207,10 @@ function protectInlineHtml(source: string): string {
     block => 'CYCYINLINEBLOCKX' + encodeInlinePayload(block) + 'XEND',
   );
 
+  // Preserve complete div containers as one HTML fragment. CommonMark ends a
+  // raw <div> block at blank lines, which otherwise breaks long embedded footers.
+  content = protectCompleteDivContainers(content, protectedSegments);
+
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
@@ -228,10 +232,6 @@ function protectInlineHtml(source: string): string {
     return '<' + tag + cleanAttrs + '>CYCYINLINEATTRX' + tag.toLowerCase()
       + 'X' + encodeInlinePayload(JSON.stringify(preserved)) + 'XEND';
   });
-
-  // Preserve complete div containers as one HTML fragment. CommonMark ends a
-  // raw <div> block at blank lines, which otherwise breaks long embedded footers.
-  content = protectCompleteDivContainers(content, protectedSegments);
 
   for (let index = protectedSegments.length - 1; index >= 0; index--) {
     content = content.replace('CYCYCODESEGMENT' + index + 'TOKEN', protectedSegments[index]);
