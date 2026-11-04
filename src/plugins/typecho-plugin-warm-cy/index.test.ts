@@ -100,7 +100,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.04.20.06');
+    expect(html).toContain('CY 插件版本：2026.11.04.20.13');
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
@@ -190,6 +190,9 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('class="custom-footer"');
     expect(restored).toContain('class="footer-links"');
     expect(restored).toContain('CYCYINLINEBLOCKX');
+    expect(restored).toContain('CYCYINLINEBLOCKX3c7374796c653e0a2e637573746f6d2d666f6f746572207b20646973706c61793a20666c65783b207d0a3c2f7374796c653eXEND');
+    expect(restored).toContain('CYCYINLINEBLOCKX3c7363726970743e77696e646f772e6379466f6f74657254657374203d20747275653b3c2f7363726970743eXEND');
+    expect(restored).toContain('CYCYINLINEBLOCKX3c7376672076696577426f783d22302030203136203136223e3c7061746820643d224d31203168313476313448317a223e3c2f706174683e3c2f7376673eXEND');
     expect(restored).toContain('<p>服务商</p>');
     expect(restored).not.toContain('CYCYINLINECONTAINERX');
     expect(restored).not.toContain('<p><div');
