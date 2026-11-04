@@ -125,20 +125,20 @@ function encodeInlinePayload(value: string): string {
 }
 
 function protectCompleteDivContainers(content: string, protectedSegments: string[]): string {
-  const tagPattern = /<\\/?div\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
+  const tagPattern = /<\/?div\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
   let output = '';
   let cursor = 0;
   let match: RegExpExecArray | null;
 
   while ((match = tagPattern.exec(content))) {
-    if (/^<\\//.test(match[0]) || /\\/\\s*>$/.test(match[0])) continue;
+    if (/^<\//.test(match[0]) || /\/\s*>$/.test(match[0])) continue;
 
     let depth = 1;
     let closeEnd = -1;
     let nested: RegExpExecArray | null;
     while ((nested = tagPattern.exec(content))) {
-      if (/^<\\//.test(nested[0])) depth -= 1;
-      else if (!/\\/\\s*>$/.test(nested[0])) depth += 1;
+      if (/^<\//.test(nested[0])) depth -= 1;
+      else if (!/\/\s*>$/.test(nested[0])) depth += 1;
       if (depth === 0) {
         closeEnd = tagPattern.lastIndex;
         break;
@@ -147,7 +147,7 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
     if (closeEnd < 0) break;
 
     const block = content.slice(match.index, closeEnd).replace(
-      /CYCYCODESEGMENT(\\d+)TOKEN/g,
+      /CYCYCODESEGMENT(\d+)TOKEN/g,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
     output += content.slice(cursor, match.index)
@@ -158,7 +158,6 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
 
   return output + content.slice(cursor);
 }
-
 function protectInlineHtml(source: string): string {
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
