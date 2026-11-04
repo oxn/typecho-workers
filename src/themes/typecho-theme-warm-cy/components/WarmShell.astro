@@ -4,7 +4,7 @@ import Base from '@/layouts/Base.astro';
 import type { ThemeBaseProps } from '@/lib/theme-props';
 import type { PageContext } from '@/lib/plugin';
 import { PUBLIC_HTML_HEADER } from '@/lib/cache';
-import { isCurrentPageLink, warmSettings, type WarmSection } from './warm';
+import { isCurrentPageLink, warmSettings, warmCyFeatureSettings, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
 
@@ -33,6 +33,8 @@ const {
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
+const featureSettings = warmCyFeatureSettings(options);
+const showHomeSearch = featureSettings.showHomeSearchButton && (currentPath === '/' || section === 'home');
 const categories = sidebarData.categories.slice(0, 8);
 const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
@@ -78,9 +80,37 @@ const footerLinks = [
         {pages.map((page) => (
           <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink}>{page.title}</a>
         ))}
+        {showHomeSearch && (
+          <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none">
+              <circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8" />
+              <path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </button>
+        )}
       </nav>
     </div>
   </header>
+
+  {showHomeSearch && (
+    <dialog class="warm-search-dialog" data-warm-search-dialog data-search-base={homeUrl} aria-labelledby="warm-search-title">
+      <div class="warm-search-dialog__panel">
+        <button type="button" class="warm-search-dialog__close" data-warm-search-close aria-label="关闭搜索">×</button>
+        <h2 id="warm-search-title">搜索文章</h2>
+        <form class="warm-search-form" data-warm-search-form>
+          <input type="search" class="warm-search-input" data-warm-search-input placeholder="输入关键词…" autocomplete="off" aria-label="搜索关键词" />
+          <button type="submit" class="warm-search-submit" aria-label="搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none">
+              <circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8" />
+              <path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+            <span>搜索</span>
+          </button>
+        </form>
+        <p class="warm-search-error" data-warm-search-error role="status" aria-live="polite"></p>
+      </div>
+    </dialog>
+  )}
 
   <main id="warm-content" class:list={["warm-main", { "warm-main--detail": detail }]} tabindex="-1">
     <slot />
@@ -112,6 +142,32 @@ const footerLinks = [
   </footer>
   <script is:inline>
     (() => {
+      const searchDialog = document.querySelector('[data-warm-search-dialog]');
+      const searchInput = searchDialog?.querySelector('[data-warm-search-input]');
+      const searchForm = searchDialog?.querySelector('[data-warm-search-form]');
+      const searchError = searchDialog?.querySelector('[data-warm-search-error]');
+      document.querySelector('[data-warm-search-open]')?.addEventListener('click', () => {
+        if (!searchDialog || !(searchDialog instanceof HTMLDialogElement)) return;
+        if (searchError) searchError.textContent = '';
+        searchDialog.showModal();
+        searchInput?.focus();
+      });
+      searchDialog?.querySelector('[data-warm-search-close]')?.addEventListener('click', () => searchDialog.close());
+      searchDialog?.addEventListener('click', event => {
+        if (event.target === searchDialog) searchDialog.close();
+      });
+      searchForm?.addEventListener('submit', event => {
+        event.preventDefault();
+        const keyword = String(searchInput?.value || '').trim();
+        if (!keyword) {
+          if (searchError) searchError.textContent = '请输入搜索关键词';
+          searchInput?.focus();
+          return;
+        }
+        const searchBase = searchDialog?.dataset.searchBase || '/';
+        window.location.href = searchBase + 'search/' + encodeURIComponent(keyword) + '/';
+      });
+
       const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
       document.querySelectorAll('.warm-nav__dropdown').forEach(dropdown => {
         let openedByHover = false;
