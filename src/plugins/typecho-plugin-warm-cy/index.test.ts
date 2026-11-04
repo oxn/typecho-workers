@@ -103,6 +103,31 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('CY 插件版本：2026.11.04.18.57');
   });
 
+  it('preserves hard line breaks between consecutive blockquote lines only', () => {
+    const handler = collectHooks().get('content:markdown')!;
+    const source = '> 第一行\n> 第二行\n> 第三行\n\n```md\n> 代码示例\n> 不应转换\n```';
+    const protectedSource = handler(source);
+    expect(protectedSource).toContain('> 第一行  \n> 第二行  \n> 第三行');
+    expect(protectedSource).toContain('```md\n> 代码示例\n> 不应转换\n```');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    expect((parsed.match(/<br>/g) || []).length).toBe(2);
+    expect(parsed).toContain('<code>');
+  });
+
+  it('restores all five Markdown Alert SVG icons after the core sanitizer', () => {
+    const restore = collectHooks().get('content:content')!;
+    const labels = ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'];
+    const html = labels.map(label =>
+      '<blockquote class="markdown-alert" data-alert="' + label + '">'
+      + '<p class="markdown-alert-title">' + label + '</p><p>正文</p></blockquote>',
+    ).join('');
+    const restored = restore(html);
+    expect((restored.match(/class="markdown-alert-icon"/g) || []).length).toBe(5);
+    expect((restored.match(/cy-markdown-alert-has-icon/g) || []).length).toBe(5);
+    expect(restored).toContain('viewBox="0 0 24 24"');
+    expect(restored).toContain('stroke="currentColor"');
+  });
+
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', () => {
     const handler = collectHooks().get('content:markdown')!;
     const input = [
@@ -175,6 +200,8 @@ describe('typecho-plugin-warm-cy', () => {
       [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '0' }),
     } });
     expect(enabled).toContain('data-cy-inline-html-enhancement');
+    expect(enabled).toContain('data-cy-markdown-alert-icons');
+    expect(enabled).toContain('cy-markdown-alert-has-icon::before');
     expect(enabled).toContain('const enabled = true');
     expect(enabled).toContain("allowedStyle.has(property)");
     expect(enabled).toContain("key !== 'style'");
