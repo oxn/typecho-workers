@@ -2353,3 +2353,151 @@ body.warm-theme {
   color: #f59e0b;
 }
 
+
+
+/* 首页搜索入口与管理弹窗共用视觉体系 */
+.warm-home-search-trigger {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--warm-border);
+  border-radius: 6px;
+  background: var(--warm-bg);
+  color: var(--warm-muted);
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease, background-color .2s ease;
+}
+.warm-home-search-trigger:hover {
+  border-color: var(--warm-accent);
+  background: var(--warm-surface);
+  color: var(--warm-accent);
+}
+.warm-home-search-trigger svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+.warm-search-dialog {
+  width: min(520px, calc(100% - 32px));
+  max-width: 520px;
+}
+.warm-search-dialog__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.warm-search-dialog__heading h2 {
+  margin-bottom: 16px;
+}
+.warm-search-dialog__close {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  margin: -8px -8px 12px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--warm-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.warm-search-dialog__close:hover {
+  background: var(--warm-surface);
+  color: var(--warm-text);
+}
+.warm-search-dialog__form {
+  display: flex;
+  align-items: stretch;
+  gap: 9px;
+  margin-top: 4px;
+}
+.warm-search-dialog__field {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid var(--warm-border);
+  border-radius: 7px;
+  background: var(--warm-surface);
+  color: var(--warm-muted);
+  transition: border-color .2s ease, background-color .2s ease;
+}
+.warm-search-dialog__field:focus-within {
+  border-color: #11b031;
+  background: var(--warm-bg);
+}
+.warm-search-dialog__field input.warm-manage-dialog__input {
+  min-height: 40px;
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.warm-search-dialog__field input.warm-manage-dialog__input:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.warm-search-dialog__field svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: var(--warm-accent);
+}
+.warm-search-dialog__form > button {
+  display: inline-flex;
+  min-width: 76px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1px solid var(--warm-accent);
+  border-radius: 7px;
+  background: var(--warm-accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .2s ease, border-color .2s ease;
+}
+.warm-search-dialog__form > button:hover {
+  border-color: var(--warm-text);
+  background: var(--warm-text);
+}
+.dark .warm-search-dialog__field {
+  border-color: #414141;
+  background: #292929;
+}
+.dark .warm-search-dialog__field:focus-within {
+  border-color: #11b031;
+  background: #252525;
+}
+.dark .warm-search-dialog__close:hover {
+  background: #353535;
+}
+@media (max-width: 639px) {
+  .warm-home-search-trigger {
+    margin-left: auto;
+  }
+  .warm-search-dialog {
+    max-width: 420px;
+  }
+  .warm-search-dialog__panel {
+    padding: 24px 20px;
+  }
+}
