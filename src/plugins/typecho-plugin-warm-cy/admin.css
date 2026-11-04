@@ -94,3 +94,96 @@
   .cy-feature-card { padding: 16px; }
   .cy-feature-actions { align-items: flex-start; flex-direction: column; gap: 8px; }
 }
+
+
+/* Theme settings form: reuse the companion plugin's card design. */
+.warm-theme-config-form .typecho-option {
+  margin: 0 0 14px !important;
+  padding: 16px 18px !important;
+  border: 1px solid #e5e9e7 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: 0 2px 9px rgba(20, 40, 30, .035) !important;
+}
+.warm-theme-config-form .typecho-option > li { padding: 0 !important; }
+.warm-theme-config-form .typecho-option .typecho-label {
+  display: block;
+  margin: 0 0 8px !important;
+  color: #26352d;
+  font-weight: 600;
+}
+.warm-theme-config-form .typecho-option input.text,
+.warm-theme-config-form .typecho-option textarea,
+.warm-theme-config-form .typecho-option select {
+  max-width: 100%;
+  border: 1px solid #dce4df;
+  border-radius: 6px;
+}
+.warm-theme-config-form .typecho-option input.text,
+.warm-theme-config-form .typecho-option select {
+  min-height: 34px;
+  padding: 6px 9px;
+}
+.warm-theme-config-form .typecho-option textarea {
+  min-height: 84px;
+  padding: 8px 10px;
+}
+.warm-theme-config-form .typecho-option input:focus,
+.warm-theme-config-form .typecho-option textarea:focus,
+.warm-theme-config-form .typecho-option select:focus {
+  border-color: #269b63 !important;
+  outline: 1px solid rgba(38, 155, 99, .16);
+  box-shadow: 0 0 0 2px rgba(38, 155, 99, .08) !important;
+}
+.warm-theme-config-form .typecho-option .description {
+  margin: 7px 0 0;
+  color: #77817b;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.warm-theme-config-form .typecho-option span { margin-right: 12px; }
+.warm-theme-config-form .typecho-option-submit {
+  margin-top: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.warm-theme-config-form .typecho-option-submit > li { padding: 0 !important; }
+.warm-theme-config-form .typecho-option-submit .btn {
+  border-color: #269b63;
+  border-radius: 6px;
+  background: #269b63;
+  color: #fff;
+}
+.warm-theme-config-form .typecho-option-submit .btn:hover {
+  border-color: #1e8654;
+  background: #1e8654;
+}
+.cy-feature-links {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 14px;
+}
+.cy-feature-links a,
+.warm-cy-settings-switch {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border: 1px solid #dce4df;
+  border-radius: 7px;
+  background: #fff;
+  color: #269b63 !important;
+  text-decoration: none;
+  font-size: 13px;
+}
+.cy-feature-links a:hover,
+.warm-cy-settings-switch:hover {
+  border-color: #269b63;
+  background: #f5fbf7;
+}
+.warm-cy-settings-switch { margin-left: 12px; }
+@media (max-width: 767px) {
+  .warm-theme-config-form .typecho-option { padding: 14px !important; }
+  .warm-cy-settings-switch { margin: 8px 0 0; }
+}
