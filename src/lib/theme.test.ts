@@ -45,6 +45,19 @@ describe('theme appearance configuration', () => {
     });
   });
 
+  it('preserves every pinned ID and normalizes full-width Chinese commas on save', () => {
+    const form = new FormData();
+    form.set('pinnedIds', '16，24，1，19');
+    expect(parseThemeConfigFormData({
+      pinnedIds: { type: 'text', label: 'Pinned post IDs' },
+    }, form)).toEqual({ pinnedIds: '16,24,1,19' });
+
+    form.set('pinnedIds', '16,24,1,19');
+    expect(parseThemeConfigFormData({
+      pinnedIds: { type: 'text', label: 'Pinned post IDs' },
+    }, form)).toEqual({ pinnedIds: '16,24,1,19' });
+  });
+
   it('keeps the default theme settings when a running registry predates its manifest config', () => {
     registerTheme('typecho-theme-warm', {
       id: 'typecho-theme-warm',
