@@ -100,7 +100,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.04.20.18');
+    expect(html).toContain('CY 插件版本：2026.11.04.20.27');
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
@@ -141,9 +141,9 @@ describe('typecho-plugin-warm-cy', () => {
     ].join('\n');
     const output = handler(input);
     expect(output).toContain('CYCYINLINEBLOCKX');
-    expect(output).toContain('CYCYINLINEATTRXdivX');
+    expect(output).toContain('CYCYINLINECONTAINERX');
     expect(output).not.toMatch(/CYCYINLINE(?:BLOCK|ATTR)_/);
-    expect(output.match(/CYCYINLINEBLOCKX/g)?.length).toBe(3);
+    expect(output.match(/CYCYINLINEBLOCKX/g)?.length).toBe(2);
     expect(output).toContain('```html\n<script>this is only an example</script>\n```');
     expect(output).not.toContain('<style>.download');
     expect(output).not.toContain('<script>window.cyInlineTest');
