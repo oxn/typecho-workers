@@ -91,7 +91,8 @@ describe('typecho-plugin-warm-cy', () => {
     const input = [
       '<style>.download { color: green; }</style>',
       '<script>window.cyInlineTest = true;</script>',
-      '<div style="color: red">content</div>',
+      '<div class="download-card" style="color: red">content</div>',
+      '<svg viewBox="0 0 24 24"><path d="M2 2h20v20H2z"></path></svg>',
       '```html',
       '<script>this is only an example</script>',
       '```',
@@ -99,6 +100,7 @@ describe('typecho-plugin-warm-cy', () => {
     const output = handler(input);
     expect(output).toContain('CYCYINLINEBLOCK_');
     expect(output).toContain('CYCYINLINEATTR_div_');
+    expect(output.match(/CYCYINLINEBLOCK_/g)?.length).toBe(3);
     expect(output).toContain('```html\n<script>this is only an example</script>\n```');
     expect(output).not.toContain('<style>.download');
     expect(output).not.toContain('<script>window.cyInlineTest');
