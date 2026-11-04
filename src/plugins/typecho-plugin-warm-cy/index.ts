@@ -319,22 +319,23 @@ const MARKDOWN_ALERT_ICONS: Record<string, string> = {
 
 function restoreMarkdownAlertIcons(content: string): string {
   return content.replace(
-    /<blockquote\\b([^>]*\\bdata-alert=(["'])(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\2[^>]*)>([\\s\\S]*?)<\\/blockquote>/gi,
-    (_full, _attributes: string, _quote: string, rawLabel: string, inner: string) => {
+    /<blockquote\b([^>]*\bdata-alert=(["'])(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\2[^>]*)>([\s\S]*?)<\/blockquote>/gi,
+    (_full, attributes: string, _quote: string, rawLabel: string, inner: string) => {
       const icon = MARKDOWN_ALERT_ICONS[rawLabel.toUpperCase()];
       if (!icon) return _full;
-      const titlePattern = /(<p\\b[^>]*class=(["'])markdown-alert-title\\2[^>]*>)([\\s\\S]*?)(<\\/p>)/i;
-      return '<blockquote' + _attributes + '>' + inner.replace(
+      const titlePattern = /(<p\b[^>]*class=(["'])markdown-alert-title\2[^>]*>)([\s\S]*?)(<\/p>)/i;
+      const updatedInner = inner.replace(
         titlePattern,
-        (title, opening: string, quote: string, text: string, closing: string) => {
+        (title, opening: string, _titleQuote: string, text: string, closing: string) => {
           if (opening.includes('cy-markdown-alert-has-icon')) return title;
           const markedOpening = opening.replace(
-            /class=(["'])markdown-alert-title\\1/i,
-            (_match, q: string) => 'class=' + q + 'markdown-alert-title cy-markdown-alert-has-icon' + q,
+            /class=(["'])markdown-alert-title\1/i,
+            (_match, quote: string) => 'class=' + quote + 'markdown-alert-title cy-markdown-alert-has-icon' + quote,
           );
           return markedOpening + icon + text + closing;
         },
-      ) + '</blockquote>';
+      );
+      return '<blockquote' + attributes + '>' + updatedInner + '</blockquote>';
     },
   );
 }
