@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.04.20.27';
+const PLUGIN_VERSION = '2026.11.04.20.34';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -451,12 +451,11 @@ function restoreInlineHtmlFragments(content: string): string {
     return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
   });
 
-  restored = restored.replace(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/g, (marker, payload: string) => {
-    const source = decodeInlinePayload(payload);
-    if (!/^<svg\b/i.test(source.trim())) return marker;
-    const safe = sanitizeInlineHtmlFragment(source);
-    return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
-  });
+  // Keep protected blocks inert until the opt-in browser runtime handles them.
+  // Do not pass SVG through sanitize-html: it normalizes SVG attribute names
+  // (for example viewBox -> viewbox), which breaks rendering. The runtime parses
+  // SVG as image/svg+xml and rebuilds it with a strict SVG allowlist.
+  restored = restored.replace(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/g, marker => marker);
   return restored;
 }
 
