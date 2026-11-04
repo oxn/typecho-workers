@@ -154,7 +154,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
     if (!isEnabled(settings.showHomeSearchButton)) return html;
     const searchBase = JSON.stringify(
-      String(options.siteUrl || '/').replace(/\\/?$/, '/'),
+      String(computeUrls(options as any).siteUrl || '/').replace(/\\/?$/, '/'),
     ).replace(/</g, '\\u003c');
     return `${html}<script data-warm-cy-global-search>
       (() => {
