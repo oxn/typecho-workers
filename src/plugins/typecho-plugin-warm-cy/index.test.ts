@@ -102,8 +102,9 @@ describe('typecho-plugin-warm-cy', () => {
       '```',
     ].join('\n');
     const output = handler(input);
-    expect(output).toContain('CYCYINLINEBLOCK_');
-    expect(output).toContain('CYCYINLINEATTR_div_');
+    expect(output).toContain('CYCYINLINEBLOCKX');
+    expect(output).toContain('CYCYINLINEATTRXdivX');
+    expect(output).not.toMatch(/CYCYINLINE(?:BLOCK|ATTR)_/);
     expect(output.match(/CYCYINLINEBLOCK_/g)?.length).toBe(3);
     expect(output).toContain('```html\n<script>this is only an example</script>\n```');
     expect(output).not.toContain('<style>.download');
@@ -118,6 +119,8 @@ describe('typecho-plugin-warm-cy', () => {
     } });
     expect(enabled).toContain('data-cy-inline-html-enhancement');
     expect(enabled).toContain('const enabled = true');
+    expect(enabled).toContain("allowedStyle.has(property)");
+    expect(enabled).toContain("key !== 'style'");
 
     const disabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
