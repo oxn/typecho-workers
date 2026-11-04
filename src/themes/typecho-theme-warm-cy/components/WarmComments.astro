@@ -100,7 +100,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
     };
 
 const renderManagement = (management, cid) => {
-  if (!management?.canManage) return '';
+  if (!management?.canManage || management.showManagementButtons === false) return '';
 
   const contentType = management.contentType;
   if (contentType !== 'post' && contentType !== 'page') return '';
@@ -157,6 +157,15 @@ const renderManagement = (management, cid) => {
         <div class="warm-manage-dialog__panel">
           <h2 data-warm-dialog-title>文章置顶</h2>
           <p data-warm-dialog-message>确定要置顶这篇文章吗？</p>
+          <p>请输入中文“确认”以继续。</p>
+          <input
+            type="text"
+            class="warm-manage-dialog__input"
+            data-warm-confirm-input
+            data-warm-pin-confirm-input
+            placeholder="请输入确认"
+            autocomplete="off"
+          />
           <p class="warm-manage-dialog__error" data-warm-dialog-error></p>
           <div class="warm-manage-dialog__actions">
             <button type="button" data-warm-dialog-cancel>取消</button>
@@ -175,6 +184,7 @@ const renderManagement = (management, cid) => {
           type="text"
           class="warm-manage-dialog__input"
           data-warm-delete-input
+          data-warm-confirm-input
           placeholder="请输入确认"
           autocomplete="off"
         />
@@ -493,7 +503,10 @@ const renderManagement = (management, cid) => {
           const title = dialog.querySelector('[data-warm-dialog-title]');
           const message = dialog.querySelector('[data-warm-dialog-message]');
           const confirm = dialog.querySelector('[data-warm-dialog-confirm]');
+          const input = dialog.querySelector('[data-warm-pin-confirm-input]');
 
+          if (input) input.value = '';
+          if (confirm) confirm.disabled = true;
           if (title) title.textContent = targetPinned ? '文章置顶' : '取消置顶';
           if (message) {
             message.textContent = targetPinned
@@ -509,6 +522,7 @@ const renderManagement = (management, cid) => {
           if (error) error.textContent = '';
 
           dialog.showModal();
+          input?.focus();
           return;
         }
 
@@ -555,6 +569,11 @@ const renderManagement = (management, cid) => {
         // 确认置顶
         if (dialog.dataset.warmDialog === 'pin') {
           if (contentType !== 'post') return;
+          const input = dialog.querySelector('[data-warm-pin-confirm-input]');
+          if (input?.value !== '确认') {
+            showError('请输入“确认”后再执行操作');
+            return;
+          }
 
           const targetPinned = confirmButton.dataset.targetPinned === 'true';
           const pinButton = actions.querySelector('[data-warm-action="pin"]');
@@ -573,6 +592,7 @@ const renderManagement = (management, cid) => {
               body: JSON.stringify({
                 cid: Number(cid),
                 pinned: targetPinned,
+                confirmation: '确认',
               }),
             });
 
@@ -642,10 +662,10 @@ const renderManagement = (management, cid) => {
         }
       });
 
-      // 删除确认：必须完整输入“确认”
+      // 置顶、取消置顶和删除：必须完整输入“确认”
       root.addEventListener('input', event => {
         const input = event.target instanceof HTMLInputElement
-          && event.target.matches('[data-warm-delete-input]')
+          && event.target.matches('[data-warm-confirm-input]')
           ? event.target
           : null;
 

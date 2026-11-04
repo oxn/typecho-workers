@@ -1,0 +1,347 @@
+/* Warm CY Companion settings page only. Loaded through admin:header for this plugin's settings page. */
+.typecho-option {
+  margin: 0 0 14px !important;
+  padding: 16px 18px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .035) !important;
+}
+.typecho-option > li { padding: 0 !important; }
+.typecho-label {
+  display: block;
+  margin: 0 0 8px !important;
+  color: #263238;
+  font-weight: 600;
+}
+.typecho-option input[type="checkbox"] { accent-color: #269b63; }
+.typecho-option input:focus,
+.typecho-option textarea:focus,
+.typecho-option select:focus {
+  border-color: #269b63 !important;
+  outline: 1px solid rgba(38, 155, 99, .16);
+  box-shadow: 0 0 0 2px rgba(38, 155, 99, .08) !important;
+}
+.typecho-option p.description,
+.typecho-option .description {
+  margin: 7px 0 0;
+  color: #7b858b;
+  line-height: 1.65;
+  font-size: 13px;
+}
+
+.cy-feature-settings {
+  padding-top: 4px;
+}
+.cy-feature-card {
+  margin: 0 0 16px;
+  padding: 20px 22px;
+  border: 1px solid #e5e9e7;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 9px rgba(20, 40, 30, .035);
+}
+.cy-feature-card h2 {
+  margin: 0 0 8px;
+  color: #26352d;
+  font-size: 16px;
+  font-weight: 650;
+}
+.cy-feature-card p {
+  margin: 0 0 14px;
+  color: #77817b;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.cy-feature-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #34433a;
+  font-size: 14px;
+  cursor: pointer;
+}
+.cy-feature-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #269b63;
+}
+.cy-feature-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px 2px 12px;
+}
+.cy-feature-actions .btn {
+  border-color: #269b63;
+  background: #269b63;
+  color: #fff;
+}
+.cy-feature-actions .btn:hover:not(:disabled) {
+  border-color: #1e8654;
+  background: #1e8654;
+}
+.cy-feature-actions .btn:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+.cy-feature-actions [data-cy-save-status] {
+  color: #269b63;
+  font-size: 13px;
+}
+@media (max-width: 767px) {
+  .cy-feature-card { padding: 16px; }
+  .cy-feature-actions { align-items: flex-start; flex-direction: column; gap: 8px; }
+}
+
+
+/* Theme settings form: reuse the companion plugin's card design. */
+.warm-theme-config-form .typecho-option {
+  margin: 0 0 14px !important;
+  padding: 16px 18px !important;
+  border: 1px solid #e5e9e7 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: 0 2px 9px rgba(20, 40, 30, .035) !important;
+}
+.warm-theme-config-form .typecho-option > li { padding: 0 !important; }
+.warm-theme-config-form .typecho-option .typecho-label {
+  display: block;
+  margin: 0 0 8px !important;
+  color: #26352d;
+  font-weight: 600;
+}
+.warm-theme-config-form .typecho-option input.text,
+.warm-theme-config-form .typecho-option textarea,
+.warm-theme-config-form .typecho-option select {
+  max-width: 100%;
+  border: 1px solid #dce4df;
+  border-radius: 6px;
+}
+.warm-theme-config-form .typecho-option input.text,
+.warm-theme-config-form .typecho-option select {
+  min-height: 34px;
+  padding: 6px 9px;
+}
+.warm-theme-config-form .typecho-option textarea {
+  min-height: 84px;
+  padding: 8px 10px;
+}
+.warm-theme-config-form .typecho-option input:focus,
+.warm-theme-config-form .typecho-option textarea:focus,
+.warm-theme-config-form .typecho-option select:focus {
+  border-color: #269b63 !important;
+  outline: 1px solid rgba(38, 155, 99, .16);
+  box-shadow: 0 0 0 2px rgba(38, 155, 99, .08) !important;
+}
+.warm-theme-config-form .typecho-option .description {
+  margin: 7px 0 0;
+  color: #77817b;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.warm-theme-config-form .typecho-option span { margin-right: 12px; }
+.warm-theme-config-form .typecho-option-submit {
+  margin-top: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.warm-theme-config-form .typecho-option-submit > li { padding: 0 !important; }
+.warm-theme-config-form .typecho-option-submit .btn {
+  border-color: #269b63;
+  border-radius: 6px;
+  background: #269b63;
+  color: #fff;
+}
+.warm-theme-config-form .typecho-option-submit .btn:hover {
+  border-color: #1e8654;
+  background: #1e8654;
+}
+.cy-feature-links {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 14px;
+}
+.cy-feature-links a,
+.warm-cy-settings-switch {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border: 1px solid #dce4df;
+  border-radius: 7px;
+  background: #fff;
+  color: #269b63 !important;
+  text-decoration: none;
+  font-size: 13px;
+}
+.cy-feature-links a:hover,
+.warm-cy-settings-switch:hover {
+  border-color: #269b63;
+  background: #f5fbf7;
+}
+.warm-cy-settings-switch { margin-left: 12px; }
+@media (max-width: 767px) {
+  .warm-theme-config-form .typecho-option { padding: 14px !important; }
+  .warm-cy-settings-switch { margin: 8px 0 0; }
+}
+
+
+/* Compact, original-style Warm CY theme settings layout. */
+.warm-theme-config-form .typecho-option {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.warm-theme-settings-card {
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border: 1px solid #e5e9e7;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 2px 9px rgba(20, 40, 30, .035);
+}
+.warm-theme-settings-card .typecho-option + .typecho-option {
+  margin-top: 16px !important;
+}
+.warm-theme-settings-card .warm-theme-field-head {
+  margin-bottom: 9px;
+}
+.warm-theme-config-form .typecho-option > li { padding: 0 !important; }
+.warm-theme-config-form .warm-theme-field-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 3px;
+  margin: 0 0 9px;
+}
+.warm-theme-config-form .warm-theme-field-head > .typecho-label {
+  display: inline;
+  margin: 0 !important;
+  color: #26352d;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.6;
+}
+.warm-theme-config-form .warm-theme-field-head > .description {
+  display: inline;
+  margin: 0 !important;
+  color: #77817b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.warm-theme-config-form .warm-theme-field-control {
+  width: 100%;
+}
+.warm-theme-config-form .warm-theme-field-control > input.text,
+.warm-theme-config-form .warm-theme-field-control > select,
+.warm-theme-config-form .warm-theme-field-control > textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+.warm-theme-config-form .warm-theme-field-control > textarea {
+  min-height: 110px;
+}
+.warm-theme-links-group {
+  margin: 0 0 22px;
+  padding: 16px 18px 8px;
+  border: 1px solid #e5e9e7;
+  border-radius: 9px;
+  background: #fff;
+}
+.warm-theme-links-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+  margin: 0 0 12px;
+  padding: 0 0 11px;
+  border-bottom: 1px solid #dfe6e1;
+  text-align: left;
+}
+.warm-theme-links-heading strong {
+  color: #26352d;
+  font-size: 15px;
+  font-weight: 650;
+}
+.warm-theme-links-heading span {
+  color: #77817b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.warm-theme-link-row {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid #e8ece9;
+}
+.warm-theme-link-row:last-child {
+  border-bottom: 0;
+}
+.warm-theme-link-text-line,
+.warm-theme-link-url-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.warm-theme-link-text-line > label:first-child,
+.warm-theme-link-url-line > label {
+  flex: 0 0 62px;
+  color: #46534b;
+  font-size: 13px;
+  text-align: left;
+}
+.warm-theme-config-form .warm-theme-link-input {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: 1%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #dce4df;
+  border-radius: 6px;
+  background: #fff;
+}
+.warm-theme-link-new-window {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  color: #56635b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.warm-theme-link-new-window input { accent-color: #269b63; }
+.warm-theme-config-form .typecho-option-submit {
+  margin-top: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+@media (max-width: 640px) {
+  .warm-theme-settings-card { padding: 14px; }
+  .warm-theme-links-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .warm-theme-link-text-line { flex-wrap: wrap; }
+  .warm-theme-link-text-line > label:first-child,
+  .warm-theme-link-url-line > label { flex-basis: 54px; }
+  .warm-theme-link-new-window { margin-left: 63px; }
+}
+
+.warm-search-trigger--floating {
+  position: fixed;
+  z-index: 30;
+  right: 18px;
+  bottom: 18px;
+  border: 1px solid rgba(220, 228, 223, .9);
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 4px 18px rgba(20, 40, 30, .12);
+}
