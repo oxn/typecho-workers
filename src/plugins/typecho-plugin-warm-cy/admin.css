@@ -29,3 +29,68 @@
   line-height: 1.65;
   font-size: 13px;
 }
+
+.cy-feature-settings {
+  padding-top: 4px;
+}
+.cy-feature-card {
+  margin: 0 0 16px;
+  padding: 20px 22px;
+  border: 1px solid #e5e9e7;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 9px rgba(20, 40, 30, .035);
+}
+.cy-feature-card h2 {
+  margin: 0 0 8px;
+  color: #26352d;
+  font-size: 16px;
+  font-weight: 650;
+}
+.cy-feature-card p {
+  margin: 0 0 14px;
+  color: #77817b;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.cy-feature-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #34433a;
+  font-size: 14px;
+  cursor: pointer;
+}
+.cy-feature-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #269b63;
+}
+.cy-feature-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px 2px 12px;
+}
+.cy-feature-actions .btn {
+  border-color: #269b63;
+  background: #269b63;
+  color: #fff;
+}
+.cy-feature-actions .btn:hover:not(:disabled) {
+  border-color: #1e8654;
+  background: #1e8654;
+}
+.cy-feature-actions .btn:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+.cy-feature-actions [data-cy-save-status] {
+  color: #269b63;
+  font-size: 13px;
+}
+@media (max-width: 767px) {
+  .cy-feature-card { padding: 16px; }
+  .cy-feature-actions { align-items: flex-start; flex-direction: column; gap: 8px; }
+}
