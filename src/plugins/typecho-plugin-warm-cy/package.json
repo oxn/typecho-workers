@@ -13,13 +13,14 @@
     "plugin": {
       "id": "typecho-plugin-warm-cy",
       "name": "Warm CY Companion",
-      "description": "为 Warm CY 主题提供文章置顶 API 与评论区管理员操作信息。",
+      "description": "为 Warm CY 主题提供文章置顶、评论区管理与功能显示设置。",
       "version": "1.0.0",
       "license": "MIT",
       "tags": [
         "warm-cy",
         "theme-companion"
-      ]
+      ],
+      "adminPage": "warm-cy"
     }
   }
 }
