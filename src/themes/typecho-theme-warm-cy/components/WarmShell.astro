@@ -78,6 +78,11 @@ const footerLinks = [
         {pages.map((page) => (
           <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink}>{page.title}</a>
         ))}
+        {section === 'home' && settings.showHomeSearch && (
+          <button type="button" class="warm-home-search-trigger" data-warm-search-open aria-label="搜索" title="搜索">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        )}
       </nav>
     </div>
   </header>
@@ -85,6 +90,23 @@ const footerLinks = [
   <main id="warm-content" class:list={["warm-main", { "warm-main--detail": detail }]} tabindex="-1">
     <slot />
   </main>
+  {section === 'home' && settings.showHomeSearch && (
+    <dialog class="warm-manage-dialog warm-search-dialog" data-warm-search-dialog aria-labelledby="warm-search-title">
+      <div class="warm-manage-dialog__panel">
+        <div class="warm-search-dialog__heading">
+          <h2 id="warm-search-title">站内搜索</h2>
+          <button type="button" class="warm-search-dialog__close" data-warm-search-close aria-label="关闭搜索">×</button>
+        </div>
+        <form class="warm-search-dialog__form" method="get" action="/">
+          <label class="warm-search-dialog__field">
+            <input class="warm-manage-dialog__input" type="search" name="s" placeholder="输入搜索内容……" autocomplete="off" required data-warm-search-input>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </label>
+          <button type="submit" data-warm-search-submit>搜索</button>
+        </form>
+      </div>
+    </dialog>
+  )}
 
   <footer class="warm-footer">
     {settings.footerCustomHtml.trim() && (
@@ -112,6 +134,17 @@ const footerLinks = [
   </footer>
   <script is:inline>
     (() => {
+      const searchDialog = document.querySelector('[data-warm-search-dialog]');
+      const searchInput = searchDialog?.querySelector('[data-warm-search-input]');
+      document.querySelector('[data-warm-search-open]')?.addEventListener('click', () => {
+        if (!searchDialog || typeof searchDialog.showModal !== 'function') return;
+        searchDialog.showModal();
+        requestAnimationFrame(() => searchInput?.focus());
+      });
+      searchDialog?.querySelector('[data-warm-search-close]')?.addEventListener('click', () => searchDialog.close());
+      searchDialog?.addEventListener('click', event => {
+        if (event.target === searchDialog) searchDialog.close();
+      });
       const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
       document.querySelectorAll('.warm-nav__dropdown').forEach(dropdown => {
         let openedByHover = false;
