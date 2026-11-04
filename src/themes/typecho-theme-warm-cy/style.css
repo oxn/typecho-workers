@@ -2501,3 +2501,8 @@ body.warm-theme {
     padding: 24px 20px;
   }
 }
+
+.warm-manage-dialog__hint {
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+}
