@@ -157,6 +157,7 @@ const renderManagement = (management, cid) => {
         <div class="warm-manage-dialog__panel">
           <h2 data-warm-dialog-title>文章置顶</h2>
           <p data-warm-dialog-message>确定要置顶这篇文章吗？</p>
+          <p class="warm-manage-dialog__hint">提示：置顶操作可能触发缓存更新及 KV 写入。</p>
           <p class="warm-manage-dialog__error" data-warm-dialog-error></p>
           <div class="warm-manage-dialog__actions">
             <button type="button" data-warm-dialog-cancel>取消</button>
