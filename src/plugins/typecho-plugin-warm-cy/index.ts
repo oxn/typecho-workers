@@ -239,8 +239,10 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
           });
         }
 
-        ensureSearchControls();
         window.addEventListener('instantclick:newpage', ensureSearchControls);
+        }
+
+        ensureSearchControls();
       })();
     </script>`;
   }, 20);
