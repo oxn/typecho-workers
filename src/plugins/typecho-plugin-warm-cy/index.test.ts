@@ -89,7 +89,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(SETTINGS_API_PATH);
     expect([...hooks.keys()].sort()).toEqual([
       'admin:footer', 'admin:header', 'admin:page',
-      'archive:footer', 'comment:list', 'content:markdown', 'route:request',
+      'archive:footer', 'comment:list', 'content:content', 'content:markdown', 'route:request',
     ]);
   });
 
@@ -124,45 +124,48 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).not.toContain('<script>window.cyInlineTest');
   });
 
-  it('keeps real download-card HTML markers through Markdown parsing and sanitization', () => {
-    const handler = collectHooks().get('content:markdown')!;
+  it('restores a styled download card with both SVG icons after core sanitization', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
     const source = [
-      '> <a href="https://example.com/download" target="_blank" rel="noopener noreferrer" style="font-weight:bold;color:var(--accent);word-break:break-all;">',
-      '<span style="display:inline-flex;align-items:center;gap:4px;background:#079C48;color:#fff;border-radius:4px;padding:4px 10px;">',
-      '<svg width="24" height="24" viewBox="0 0 24 24"><defs><linearGradient id="download-gradient"><stop offset="0" stop-color="#fff"/></linearGradient></defs><g opacity="1" transform="translate(1 1)"><path d="M2 2h20v20H2z" fill="url(#download-gradient)"/></g></svg>',
-      '<span>下载</span>',
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M7 17 17 7"/><polyline points="7 7 17 7 17 17"/></svg>',
-      '</span></a> | **密码📋：`cycy`**',
-    ].join('');
-    const protectedSource = handler(source);
+      '<!-- # 绿色提示框 -->',
+      '> [!tip] **⬇️💚 资源下载**',
+      '> Adobe Illustrator 2025 v29.2.1.116 x64 Multilingual 多国语言特别版 (2025/01/17)',
+      '> <a href="https://pan.baidu.com/s/1otJbDx4U2bg4yL9VYw3MoA?pwd=cycy" target="_blank" rel="noopener noreferrer" style="font-weight:bold;color:var(--accent);word-break:break-all;"><span style="display:inline-flex;align-items:center;gap:4px;background:#079C48;color:#fff;border-radius:4px;padding:4px 10px;white-space:nowrap;"><svg width="18" height="18" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;"><path d="M46 580h20v200h700" fill="#fff"/><path d="M481 734L157 449" fill="#fff"/></svg><span>下载地址</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"></path><polyline points="7 7 17 7 17 17"></polyline></svg></span></a> | 密码：cycy',
+    ].join('\n');
+
+    const protectedSource = protect(source);
+    expect(protectedSource).toContain('CYCYINLINEHTMLX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
-    const sanitized = sanitizeHtml(parsed, {
-      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'ins', 'details', 'summary', 'figure', 'figcaption', 'video', 'audio', 'source', 'iframe']),
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+        'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'ins',
+        'details', 'summary', 'figure', 'figcaption', 'video', 'audio',
+        'source', 'iframe',
+      ]),
       allowedAttributes: {
         ...sanitizeHtml.defaults.allowedAttributes,
         a: ['href', 'title', 'target', 'rel'],
-        span: ['class'],
         blockquote: ['class', 'data-alert'],
+        p: ['class'],
       },
     });
+    const restored = restore(coreSanitized);
 
-    expect(sanitized).toContain('<blockquote>');
-    expect(sanitized).toContain('href="https://example.com/download"');
-    expect(sanitized).toContain('target="_blank"');
-    expect(sanitized).toContain('rel="noopener noreferrer"');
-    expect(sanitized).toContain('CYCYINLINEATTRXaX');
-    expect(sanitized).toContain('CYCYINLINEATTRXspanX');
-    expect(sanitized).toContain('CYCYINLINEBLOCKX');
-    expect(sanitized).not.toContain('background:#079C48');
-
-    const block = sanitized.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/);
-    expect(block).not.toBeNull();
-    const svg = new TextDecoder().decode(Uint8Array.from(
-      block![1].match(/.{2}/g)!.map(byte => parseInt(byte, 16)),
-    ));
-    expect(svg).toContain('<linearGradient');
-    expect(svg).toContain('<polyline');
-    expect(svg).toContain('url(#download-gradient)');
+    expect(restored).toContain('cy-inline-html-pending');
+    expect(restored).toContain('href="https://pan.baidu.com/s/1otJbDx4U2bg4yL9VYw3MoA?pwd=cycy"');
+    expect(restored).toContain('target="_blank"');
+    expect(restored).toContain('rel="noopener noreferrer"');
+    expect(restored).toContain('background:#079C48');
+    expect(restored).toContain('display:inline-flex');
+    expect(restored).toContain('<svg');
+    expect(restored).toContain('<path');
+    expect(restored).toContain('<polyline');
+    expect(restored).toContain('下载地址');
+    expect(restored).toContain('密码：cycy');
+    expect(restored).not.toContain('CYCYINLINEHTMLX');
   });
 
   it('adds the inline HTML runtime with the saved opt-in state', () => {
