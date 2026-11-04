@@ -27,6 +27,8 @@ import init from './index';
 
 const PLUGIN_ID = 'typecho-plugin-warm-cy';
 const ADMIN_PATH = '/api/admin/theme-pin';
+const SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
+const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
 const OPTION_KEY = 'theme:typecho-theme-warm-cy';
 
 function collectHooks() {
@@ -81,7 +83,68 @@ describe('typecho-plugin-warm-cy', () => {
   it('registers only the companion admin route and the comment metadata filter', () => {
     const hooks = collectHooks();
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(ADMIN_PATH);
-    expect([...hooks.keys()].sort()).toEqual(['comment:list', 'route:request']);
+    expect([...hooks.keys()].sort()).toEqual(['archive:footer', 'comment:list', 'content:markdown', 'route:request']);
+  });
+
+  it('protects inline style/script/SVG and style attributes while leaving code examples intact', () => {
+    const handler = collectHooks().get('content:markdown')!;
+    const input = [
+      '<style>.download { color: green; }</style>',
+      '<script>window.cyInlineTest = true;</script>',
+      '<div style="color: red">content</div>',
+      '```html',
+      '<script>this is only an example</script>',
+      '```',
+    ].join('\\n');
+    const output = handler(input);
+    expect(output).toContain('CYCYINLINEBLOCK_');
+    expect(output).toContain('CYCYINLINEATTR_div_');
+    expect(output).toContain('```html\\n<script>this is only an example</script>\\n```');
+    expect(output).not.toContain('<style>.download');
+    expect(output).not.toContain('<script>window.cyInlineTest');
+  });
+
+  it('adds the inline HTML runtime with the saved opt-in state', () => {
+    const handler = collectHooks().get('archive:footer')!;
+    const enabled = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '0' }),
+    } });
+    expect(enabled).toContain('data-cy-inline-html-enhancement');
+    expect(enabled).toContain('const enabled = true');
+
+    const disabled = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0', showHomeSearchButton: '0' }),
+    } });
+    expect(disabled).toContain('const enabled = false');
+  });
+
+  it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {
+    const context = adminContext();
+    mocks.requireAdminAction.mockResolvedValueOnce(context);
+    const handler = collectHooks().get('route:request')!;
+    const result = await handler({}, {
+      request: routeRequest(SETTINGS_API_PATH, 'POST', {
+        showCommentManagementButtons: true,
+        showHomeSearchButton: false,
+        htmlEnhancementEnabled: true,
+      }),
+      path: SETTINGS_API_PATH,
+    });
+    expect(result.response.status).toBe(200);
+    expect(await result.response.json()).toEqual({ success: true });
+    expect(mocks.setOption).toHaveBeenCalledWith(
+      context.db,
+      PLUGIN_OPTION_KEY,
+      JSON.stringify({
+        pinnedIds: '8,12,20',
+        footerCustomHtml: '<strong>keep</strong>',
+        showCommentManagementButtons: '1',
+        showHomeSearchButton: '0',
+        htmlEnhancementEnabled: '1',
+      }),
+    );
   });
 
   it('rejects non-POST requests to the pin endpoint', async () => {
