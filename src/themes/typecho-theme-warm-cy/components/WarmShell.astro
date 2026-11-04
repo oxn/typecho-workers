@@ -1,0 +1,322 @@
+
+---
+import Base from '@/layouts/Base.astro';
+import type { ThemeBaseProps } from '@/lib/theme-props';
+import type { PageContext } from '@/lib/plugin';
+import { PUBLIC_HTML_HEADER } from '@/lib/cache';
+import { isCurrentPageLink, warmSettings, warmCyFeatureSettings, type WarmSection } from './warm';
+import { instantClickSource } from './instantclick';
+import { viewImageSource } from './viewimage';
+
+interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
+  title?: string;
+  description?: string;
+  section?: WarmSection;
+  pageContext?: PageContext;
+  detail?: boolean;
+}
+
+const {
+  title,
+  description,
+  section = 'none',
+  detail = false,
+  options,
+  urls,
+  pages,
+  sidebarData,
+  pluginCtx,
+  pageContext,
+  currentPath
+} = Astro.props;
+
+Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
+
+const settings = warmSettings(options);
+const searchEnabled = warmCyFeatureSettings(options).showHomeSearchButton;
+const categories = sidebarData.categories.slice(0, 8);
+const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
+const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
+const footerLinks = [
+  ...settings.footerLinks.map(link => ({ label: link.text, href: link.url, newWindow: link.newWindow })),
+  { label: 'RSS', href: urls.feedUrl, newWindow: false },
+];
+---
+<Base
+  title={title}
+  description={description}
+  options={options}
+  urls={urls}
+  pageContext={pageContext}
+  pluginCtx={pluginCtx}
+  bodyClass="warm-theme"
+>
+  <a class="warm-skip-link" href="#warm-content" data-no-instant>跳至正文</a>
+  <header class="warm-header">
+    <div class="warm-header__inner">
+      <a href={homeUrl} class="warm-brand" aria-label={`${options.title} 首页`}>
+        <span class="warm-brand__title">{options.title}</span>
+        {options.description && <span class="warm-brand__description">{options.description}</span>}
+      </a>
+
+      <nav class="warm-nav" aria-label="主导航">
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
+        <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
+          <summary>
+            文章
+            <svg class="warm-nav__chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+          </summary>
+          <div class="warm-nav__menu">
+            <a href={`${homeUrl}?stream=posts`}>全部文章</a>
+            {categories.map(category => (<a href={category.permalink}>{category.name}</a>))}
+          </div>
+        </details>
+        {notesEnabled && (
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
+        )}
+        {pages.map((page) => (
+          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink}>{page.title}</a>
+        ))}
+        {searchEnabled && (
+          <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          </button>
+        )}
+      </nav>
+    </div>
+  </header>
+
+
+  <main id="warm-content" class:list={["warm-main", { "warm-main--detail": detail }]} tabindex="-1">
+    <slot />
+  </main>
+
+  <footer class="warm-footer">
+    {settings.footerCustomHtml.trim() && (
+      <div class="warm-footer__custom" set:html={settings.footerCustomHtml}></div>
+    )}
+    <div class="warm-footer__meta">
+      <div class="warm-footer__copyright">
+        <span>© {new Date().getFullYear()} {options.title}</span>
+        {options.description && <><span aria-hidden="true">·</span><span class="warm-footer__tagline">{options.description}</span></>}
+      </div>
+      <nav aria-label="页脚链接">
+        {footerLinks.map(link => (
+  <a
+    href={link.href}
+    target={link.newWindow ? '_blank' : undefined}
+    rel={link.newWindow ? 'noopener noreferrer' : undefined}
+  >
+    {/<[a-z][\s\S]*>/i.test(link.label)
+      ? <span set:html={link.label}></span>
+      : link.label}
+  </a>
+))}
+      </nav>
+    </div>
+  </footer>
+  {searchEnabled && (
+    <dialog class="warm-search-dialog" data-warm-search-dialog aria-labelledby="warm-search-title">
+      <div class="warm-search-dialog__panel">
+        <button type="button" class="warm-search-dialog__close" data-warm-search-close aria-label="关闭搜索">×</button>
+        <h2 id="warm-search-title">搜索文章</h2>
+        <form class="warm-search-form" data-warm-search-form method="get" action={homeUrl}>
+          <input type="search" class="warm-search-input" data-warm-search-input name="s" placeholder="输入关键词…" autocomplete="off" aria-label="搜索关键词" />
+          <button type="submit" class="warm-search-submit" aria-label="搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+            <span>搜索</span>
+          </button>
+        </form>
+        <p class="warm-search-error" data-warm-search-error role="status" aria-live="polite"></p>
+      </div>
+    </dialog>
+  )}
+  <script is:inline>
+    (() => {
+      document.addEventListener('click', event => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        if (target.closest('[data-warm-search-open]')) {
+          const dialog = document.querySelector('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && !dialog.open) {
+            dialog.showModal();
+            dialog.querySelector('[data-warm-search-input]')?.focus();
+          }
+        } else if (target.closest('[data-warm-search-close]')) {
+          const dialog = target.closest('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
+        } else {
+          const dialog = target.closest('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && target === dialog && dialog.open) dialog.close();
+        }
+      });
+
+      const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
+      document.querySelectorAll('.warm-nav__dropdown').forEach(dropdown => {
+        let openedByHover = false;
+        dropdown.addEventListener('mouseenter', () => {
+          if (hoverCapable.matches && !dropdown.open) {
+            dropdown.open = true;
+            openedByHover = true;
+          }
+        });
+        dropdown.addEventListener('click', event => {
+          if (!event.target.closest('summary')) return;
+          // The first pointer click must not undo the preceding hover-open.
+          // Keyboard activation (detail=0) keeps the native details toggle.
+          if (openedByHover && event.detail > 0) event.preventDefault();
+          openedByHover = false;
+        });
+        dropdown.addEventListener('mouseleave', () => {
+          openedByHover = false;
+          if (hoverCapable.matches && !dropdown.contains(document.activeElement)) dropdown.open = false;
+        });
+        dropdown.addEventListener('keydown', event => {
+          if (event.key !== 'Escape') return;
+          dropdown.open = false;
+          dropdown.querySelector('summary')?.focus();
+        });
+        dropdown.addEventListener('focusout', event => {
+          // iOS Safari can report a null relatedTarget while a touch tap moves
+          // from <summary> to a menu link. Closing synchronously then removes
+          // the link before its synthetic click, so retain the menu until the
+          // document-level outside-click handler decides it should close.
+          if (event.relatedTarget && !dropdown.contains(event.relatedTarget)) dropdown.open = false;
+        });
+      });
+    })();
+  </script>
+  <Fragment slot="head">
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="/themes/typecho-theme-warm-cy/assets/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/themes/typecho-theme-warm-cy/assets/favicon.ico" sizes="any">
+    <script is:inline data-instant-track data-no-instant set:html={instantClickSource}></script>
+    <script is:inline data-instant-track data-no-instant set:html={viewImageSource}></script>
+  </Fragment>
+  <script is:inline data-no-instant>
+    (() => {
+      // Delegation also covers navigation inserted by InstantClick.
+      document.addEventListener('click', event => {
+        document.querySelectorAll('.warm-nav__dropdown[open]').forEach(dropdown => {
+          if (!dropdown.contains(event.target)) dropdown.open = false;
+        });
+      });
+      // ViewImage lightbox: click any note image to view it fullscreen.
+      // init() re-registers its document-level listener idempotently, so
+      // re-running it after an InstantClick page swap is safe.
+      const expandNoteImages = event => {
+        const button = event.target.closest('[data-warm-images-more]');
+        if (!button) return;
+        const grid = button.closest('.warm-note__images');
+        if (!grid) return;
+        grid.classList.add('is-expanded');
+        button.setAttribute('aria-expanded', 'true');
+        grid.querySelectorAll('[data-warm-images-rest]').forEach(item => {
+          item.hidden = false;
+        });
+      };
+      // Collect lightbox targets from image links (a wrapping an img — the
+      // note-grid thumbnails) and bare content images. Plain text links must
+      // keep navigating, so only `a:has(> img)` qualifies. Engines without
+      // :has() fall back to collecting bare images, which keeps the lightbox
+      // working and never hijacks links.
+      const viewImageSelector = CSS.supports('selector(a:has(> img))')
+        ? '[view-image] a:has(> img), [view-image] img:not(a img)'
+        : '[view-image] img';
+      if (window.ViewImage) ViewImage.init(viewImageSelector);
+      document.addEventListener('click', expandNoteImages);
+      const repairNoteMedia = root => {
+        const scope = root && root.querySelectorAll ? root : document;
+        scope.querySelectorAll('.warm-note__media video, .warm-note__media audio').forEach(media => {
+          if (typeof media.load !== 'function') return;
+          const reused = media.dataset.warmRepaired === '1';
+          if (media.readyState === 0 || reused) {
+            media.dataset.warmRepaired = '1';
+            media.load();
+          }
+        });
+      };
+      window.warmRepairNoteMedia = repairNoteMedia;
+      window.addEventListener('instantclick:newpage', () => repairNoteMedia(document));
+      // Safe article controls: support interactive HTML without executing
+      // arbitrary scripts embedded in article content.
+      const initArticleControls = (root = document) => {
+        const scope = root && root.querySelectorAll ? root : document;
+
+        // Site-age counter used by older posts.
+        const updateDays = () => {
+          const counters = [];
+          if (scope.matches?.('#days')) counters.push(scope);
+          scope.querySelectorAll?.('#days').forEach(node => counters.push(node));
+          counters.forEach(node => {
+            const start = node.getAttribute('data-start-date') || '2011-11-19';
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(start);
+            if (!match) return;
+            const startDay = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+            const today = new Date();
+            const todayDay = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+            node.textContent = String(Math.max(0, Math.floor((todayDay - startDay) / 86400000)));
+          });
+        };
+
+        // A disclosure/toggle control can use data-disclaimer-toggle="#target"
+        // and the target can use data-disclaimer. This is delegated, so it also
+        // works after InstantClick navigation.
+        scope.querySelectorAll?.('[data-disclaimer-toggle]').forEach(button => {
+          if (button.dataset.disclaimerBound === '1') return;
+          button.dataset.disclaimerBound = '1';
+          button.addEventListener('click', event => {
+            event.preventDefault();
+            const selector = button.getAttribute('data-disclaimer-toggle');
+            if (!selector) return;
+            let target = null;
+            try { target = document.querySelector(selector); } catch {}
+            if (!target) return;
+            const opening = target.hidden || target.getAttribute('aria-hidden') === 'true';
+            target.hidden = !opening;
+            target.setAttribute('aria-hidden', opening ? 'false' : 'true');
+            button.setAttribute('aria-expanded', opening ? 'true' : 'false');
+          });
+        });
+
+        // Generic target-date countdown: data-countdown-target="YYYY-MM-DDTHH:mm:ss"
+        // and children with data-countdown-days/hours/minutes/seconds.
+        scope.querySelectorAll?.('[data-countdown-target]').forEach(rootNode => {
+          if (rootNode.dataset.countdownBound === '1') return;
+          rootNode.dataset.countdownBound = '1';
+          const targetText = rootNode.getAttribute('data-countdown-target');
+          const targetTime = Date.parse(targetText || '');
+          if (!Number.isFinite(targetTime)) return;
+          const update = () => {
+            let left = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
+            const values = {
+              days: Math.floor(left / 86400),
+              hours: Math.floor((left % 86400) / 3600),
+              minutes: Math.floor((left % 3600) / 60),
+              seconds: left % 60
+            };
+            Object.entries(values).forEach(([unit, value]) => {
+              rootNode.querySelectorAll('[data-countdown-' + unit + ']').forEach(el => {
+                el.textContent = String(value).padStart(unit === 'days' ? 1 : 2, '0');
+              });
+            });
+          };
+          update();
+          const timer = window.setInterval(() => {
+            if (!rootNode.isConnected) {
+              window.clearInterval(timer);
+              return;
+            }
+            update();
+          }, 1000);
+        });
+        updateDays();
+      };
+      initArticleControls(document);
+      window.addEventListener('instantclick:newpage', () => initArticleControls(document));
+      if (window.InstantClick?.supported) window.InstantClick.init('mousedown');
+    })();
+  </script>
+</Base>
