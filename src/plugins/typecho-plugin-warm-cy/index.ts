@@ -49,20 +49,18 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         <a href="/admin/options-theme">返回主题设置</a>
       </div>
       <section class="cy-feature-card">
-        <h2>评论区管理按键</h2>
-        <p>控制文章和独立页面评论区是否显示管理员操作按键。关闭后只隐藏前台按键，不影响后台管理权限及管理接口。</p>
         <label class="cy-feature-toggle">
           <input type="checkbox" data-cy-setting="showCommentManagementButtons" ${commentsEnabled ? 'checked' : ''}>
-          <span>显示评论区管理按键</span>
+          <span>评论区管理按键</span>
         </label>
+        <p>控制文章和独立页面评论区是否显示管理员操作按键。关闭后只隐藏前台按键，不影响后台管理权限及管理接口。</p>
       </section>
       <section class="cy-feature-card">
-        <h2>全局搜索按键</h2>
-        <p>控制 Warm CY 所有页面的主导航是否显示搜索图标。关闭后全站不显示搜索入口。</p>
         <label class="cy-feature-toggle">
           <input type="checkbox" data-cy-setting="showHomeSearchButton" ${searchEnabled ? 'checked' : ''}>
-          <span>显示全局搜索按键</span>
+          <span>全局搜索按键</span>
         </label>
+        <p>控制 Warm CY 所有页面的主导航是否显示搜索图标。关闭后全站不显示搜索入口。</p>
       </section>
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
@@ -347,6 +345,25 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
                 blankField.remove();
               }
             }
+
+            const wrapSettingsCard = (className, names) => {
+              const fields = names.map(getField).filter(Boolean);
+              if (!fields.length) return;
+              const card = document.createElement('section');
+              card.className = 'warm-theme-settings-card ' + className;
+              fields[0].before(card);
+              fields.forEach(field => card.append(field));
+            };
+
+            wrapSettingsCard('warm-theme-home-card', ['pinnedIds']);
+            wrapSettingsCard('warm-theme-image-card', ['imageOptimizeParams']);
+            wrapSettingsCard('warm-theme-thumb-card', ['thumbOptimizeParams']);
+            wrapSettingsCard('warm-theme-footer-card', ['footerCustomHtml']);
+            wrapSettingsCard('warm-theme-loading-card', [
+              'continuousLoadMode',
+              'commentComponentLoadMode',
+              'commentInitialLoadMode'
+            ]);
 
             form.querySelectorAll('.typecho-option:not(.typecho-option-submit)').forEach(option => {
               if (option.style.display === 'none') return;
