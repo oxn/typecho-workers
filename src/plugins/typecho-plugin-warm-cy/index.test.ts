@@ -100,7 +100,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.04.19.39');
+    expect(html).toContain('CY 插件版本：2026.11.04.19.44');
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
