@@ -45,6 +45,9 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
       data-cy-feature-settings data-csrf-token="${escapeHtml(csrfToken)}">
+      <div class="cy-feature-links">
+        <a href="/admin/options-theme">返回主题设置</a>
+      </div>
       <section class="cy-feature-card">
         <h2>评论区管理按键</h2>
         <p>控制文章和独立页面评论区是否显示管理员操作按键。关闭后只隐藏前台按键，不影响后台管理权限及管理接口。</p>
@@ -54,11 +57,11 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         </label>
       </section>
       <section class="cy-feature-card">
-        <h2>首页搜索按键</h2>
-        <p>控制 Warm CY 首页导航区域是否显示搜索图标。关闭后不显示图标，也不保留空白位置。</p>
+        <h2>全局搜索按键</h2>
+        <p>控制 Warm CY 所有页面的主导航是否显示搜索图标。关闭后全站不显示搜索入口。</p>
         <label class="cy-feature-toggle">
           <input type="checkbox" data-cy-setting="showHomeSearchButton" ${searchEnabled ? 'checked' : ''}>
-          <span>显示首页搜索按键</span>
+          <span>显示全局搜索按键</span>
         </label>
       </section>
       <div class="cy-feature-actions">
@@ -141,9 +144,54 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
   registerPluginAdminPath(ADMIN_SETTINGS_API_PATH);
 
-  addHook('admin:header', pluginId, (html: string, extra?: { title?: string }) => {
-    if (extra?.title !== 'CY 功能显示') return html;
+  addHook('admin:header', pluginId, (html: string, extra?: {
+    title?: string;
+    options?: Record<string, unknown>;
+  }) => {
+    if (extra?.options?.theme !== THEME_ID) return html;
     return `${html}<style data-warm-cy-admin>${adminCss}</style>`;
+  }, 20);
+
+  // Add the companion settings entry to the existing Settings menu without
+  // changing the core Admin layout. Also decorate the theme settings form.
+  addHook('admin:footer', pluginId, (html: string, extra?: {
+    options?: Record<string, unknown>;
+  }) => {
+    if (extra?.options?.theme !== THEME_ID) return html;
+    return `${html}<script data-warm-cy-admin-navigation>
+      (() => {
+        const pluginPath = '/admin/plugin/${ADMIN_PAGE_SLUG}';
+        const groups = document.querySelectorAll('.typecho-head-nav menu > li');
+        for (const group of groups) {
+          const heading = group.querySelector(':scope > a');
+          if (heading?.textContent?.trim() !== '设置') continue;
+          const submenu = group.querySelector(':scope > menu');
+          if (!submenu || submenu.querySelector('a[href="' + pluginPath + '"]')) break;
+          const item = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = pluginPath;
+          link.textContent = 'CY 功能显示';
+          if (window.location.pathname === pluginPath) item.classList.add('focus');
+          item.append(link);
+          submenu.append(item);
+          break;
+        }
+
+        if (window.location.pathname === '/admin/options-theme') {
+          const form = document.querySelector('form[action="/admin/options-theme"]');
+          form?.classList.add('warm-theme-config-form');
+
+          const titleBar = document.querySelector('.typecho-page-title');
+          if (titleBar && !titleBar.querySelector('.warm-cy-settings-switch')) {
+            const link = document.createElement('a');
+            link.className = 'warm-cy-settings-switch';
+            link.href = pluginPath;
+            link.textContent = 'CY 功能显示';
+            titleBar.append(link);
+          }
+        }
+      })();
+    </script>`;
   }, 20);
 
 
