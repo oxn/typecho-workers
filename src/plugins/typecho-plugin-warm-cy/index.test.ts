@@ -100,7 +100,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.04.19.25');
+    expect(html).toContain('CY 插件版本：2026.11.04.19.39');
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
@@ -147,6 +147,52 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).toContain('```html\n<script>this is only an example</script>\n```');
     expect(output).not.toContain('<style>.download');
     expect(output).not.toContain('<script>window.cyInlineTest');
+  });
+
+  it('preserves a complete nested div footer across Markdown blank lines', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = [
+      '<div class="custom-footer">',
+      '<style>',
+      '.custom-footer { display: flex; }',
+      '</style>',
+      '',
+      '<div class="footer-links"><p>服务商</p></div>',
+      '',
+      '<script>window.cyFooterTest = true;</script>',
+      '<svg viewBox="0 0 16 16"><path d="M1 1h14v14H1z"></path></svg>',
+      '</div>',
+    ].join('\\n');
+
+    const protectedSource = protect(source);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    expect(protectedSource).not.toContain('<div class="custom-footer">');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+        'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'ins',
+        'details', 'summary', 'figure', 'figcaption', 'video', 'audio',
+        'source', 'iframe',
+      ]),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        a: ['href', 'title', 'target', 'rel'],
+        blockquote: ['class', 'data-alert'],
+        p: ['class'],
+      },
+    });
+    const restored = restore(coreSanitized);
+
+    expect(restored).toContain('<div class="cy-inline-html-pending">');
+    expect(restored).toContain('class="custom-footer"');
+    expect(restored).toContain('class="footer-links"');
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+    expect(restored).toContain('<p>服务商</p>');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+    expect(restored).not.toContain('<p><div');
   });
 
   it('restores a styled download card with both SVG icons after core sanitization', () => {
