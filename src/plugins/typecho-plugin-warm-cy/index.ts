@@ -170,6 +170,10 @@ function protectInlineHtml(source: string): string {
     protectedSegments.push(value);
     return marker;
   };
+  const restoreProtectedSegments = (value: string): string => value.replace(
+    /CYCYCODESEGMENT(\d+)TOKEN/g,
+    (_token, index: string) => protectedSegments[Number(index)] ?? _token,
+  );
 
   let content = source.replace(/<(pre|code)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
   let fenceChar = '';
@@ -199,12 +203,12 @@ function protectInlineHtml(source: string): string {
   // is not fragmented by Markdown tokenization or the core HTML sanitizer.
   content = content.replace(/<a\b[^>]*>[\s\S]*?<\/a\s*>/gi, block => {
     if (!/\bstyle\s*=|<svg\b/i.test(block)) return block;
-    return 'CYCYINLINEHTMLX' + encodeInlinePayload(block) + 'XEND';
+    return 'CYCYINLINEHTMLX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND';
   });
 
   content = content.replace(
     /<(style|script|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
-    block => 'CYCYINLINEBLOCKX' + encodeInlinePayload(block) + 'XEND',
+    block => 'CYCYINLINEBLOCKX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND',
   );
 
   // Preserve complete div containers as one HTML fragment. CommonMark ends a
