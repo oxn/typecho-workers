@@ -560,6 +560,64 @@ describe('typecho-plugin-warm-cy', () => {
     );
   });
 
+  it('renders independent per-type Note colors and icon controls', () => {
+    const handler = collectHooks().get('archive:footer')!;
+    const html = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({
+        showHomeSearchButton: '0',
+        markdownAlertStyleSettings: {
+          types: { NOTE: { background: '#123456', border: '#234567', title: '#345678', text: '#456789', icon: '#56789a', radius: 14, borderStyle: 'dashed' } },
+          icon: { visible: false, size: 24, gap: 5 },
+        },
+      }),
+    } });
+    expect(html).toContain('background:#123456!important');
+    expect(html).toContain('border-color:#234567!important');
+    expect(html).toContain('border-style:dashed!important');
+    expect(html).toContain('border-radius:14px!important');
+    expect(html).toContain('color:#345678!important');
+    expect(html).toContain('color:#56789a!important');
+    expect(html).toContain('width:24px!important');
+    expect(html).toContain('margin-right:5px!important');
+    expect(html).toContain('display:none!important');
+  });
+
+  it('validates and stores Note style settings without dropping other plugin options', async () => {
+    const context = adminContext();
+    mocks.requireAdminAction.mockResolvedValueOnce(context);
+    const handler = collectHooks().get('route:request')!;
+    const result = await handler({}, {
+      request: routeRequest(SETTINGS_API_PATH, 'POST', {
+        showCommentManagementButtons: true,
+        showHomeSearchButton: false,
+        htmlEnhancementMode: 'full',
+        videoPlayerEnabled: false,
+        markdownAlertStyleSettings: {
+          types: {
+            NOTE: { background: 'red', border: '#123456', title: '#234567', text: '#345678', icon: '#456789', radius: 99, borderStyle: 'invalid' },
+          },
+          icon: { visible: false, size: 99, gap: -2 },
+        },
+      }),
+      path: SETTINGS_API_PATH,
+    });
+    expect(result.response.status).toBe(200);
+    const saved = JSON.parse(mocks.setOption.mock.calls[0][2]);
+    expect(saved.existingPluginSetting).toBe('keep');
+    expect(saved.htmlEnhancementMode).toBe('full');
+    expect(saved.markdownAlertStyleSettings.types.NOTE).toEqual({
+      background: '#eef2ff',
+      border: '#123456',
+      title: '#234567',
+      text: '#345678',
+      icon: '#456789',
+      radius: 32,
+      borderStyle: 'solid',
+    });
+    expect(saved.markdownAlertStyleSettings.icon).toEqual({ visible: false, size: 32, gap: 0 });
+  });
+
   it('rejects non-POST requests to the pin endpoint', async () => {
     const handler = collectHooks().get('route:request')!;
     const result = await handler({}, { request: routeRequest(ADMIN_PATH, 'GET'), path: ADMIN_PATH });
