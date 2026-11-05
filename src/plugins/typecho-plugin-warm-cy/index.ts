@@ -541,6 +541,20 @@ function readIframeAttribute(attributes: string, name: string): string {
   return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
 }
 
+function protectVideoIframesForMarkdown(content: string): string {
+  return content.replace(/<iframe\\b([^>]*)>(?:\\s*<\\/iframe\\s*>)?/gi, (match, attributes: string) => {
+    const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
+    if (!source || !videoProviderForSource(source)) return match;
+    return 'CYVIDEOIFRAMEX' + encodeInlinePayload(match) + 'XEND';
+  });
+}
+
+function restoreVideoIframesAfterMarkdown(content: string): string {
+  return content.replace(/CYVIDEOIFRAMEX([0-9a-f]+)XEND/g, (_marker, payload: string) => {
+    try { return decodeInlinePayload(payload); } catch { return ''; }
+  });
+}
+
 function replaceVideoIframesWithPlaceholders(content: string): string {
   return content.replace(/<iframe\\b([^>]*)>(?:\\s*<\\/iframe\\s*>)?/gi, (match, attributes: string) => {
     const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
@@ -595,7 +609,6 @@ function videoPlayerRuntime(enabled: boolean): string {
         const frame = document.createElement('iframe');
         if (provider === 'youtube') {
           if (!url.searchParams.has('playsinline')) url.searchParams.set('playsinline', '1');
-          frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
         }
         frame.src = url.toString();
         frame.title = '视频播放器';
@@ -610,8 +623,6 @@ function videoPlayerRuntime(enabled: boolean): string {
           frame.setAttribute('border', '0');
           frame.setAttribute('framespacing', '0');
           frame.setAttribute('allowfullscreen', 'true');
-          frame.setAttribute('referrerpolicy', 'no-referrer');
-          frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
         }
         frame.addEventListener('load', () => {
           root.dataset.cyVideoState = 'frame-loaded';
@@ -706,8 +717,11 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const options = requestContext?.options;
     if (options?.theme !== THEME_ID) return content;
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
-    if (!isEnabled(settings.htmlEnhancementEnabled, false)) return content;
-    return protectInlineHtml(content);
+    const videoEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
+    const withVideo = videoEnabled ? protectVideoIframesForMarkdown(content) : content;
+    return isEnabled(settings.htmlEnhancementEnabled, false)
+      ? protectInlineHtml(withVideo)
+      : withVideo;
   }, 1);
 
   // Markdown Alert icons remain a separate legacy CY-theme behavior.
@@ -723,7 +737,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       ? restoreInlineHtmlFragments(withAlertIcons)
       : withAlertIcons;
     const videoEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
-    return videoEnabled ? replaceVideoIframesWithPlaceholders(withHtml) : withHtml;
+    if (!videoEnabled) return withHtml;
+    return replaceVideoIframesWithPlaceholders(restoreVideoIframesAfterMarkdown(withHtml));
   }, 1);
 
   // Frontend output is scoped to Warm CY and each feature's own toggle.
