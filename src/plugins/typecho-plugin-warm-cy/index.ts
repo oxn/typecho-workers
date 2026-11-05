@@ -15,7 +15,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.05.06.22';
+const PLUGIN_VERSION = '2026.11.05.17.05';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -512,6 +512,29 @@ function restoreInlineHtmlFragments(content: string): string {
   return restored;
 }
 
+/**
+ * Bilibili's embedded player needs a usable referring origin on mobile browsers.
+ * The theme's later iframe normalizer does not touch referrerpolicy, so remove
+ * only an explicit no-referrer policy from Bilibili embeds when HTML enhancement
+ * is enabled. Other providers and explicit policies remain unchanged.
+ */
+function normalizeBilibiliIframeReferrerPolicy(html: string): string {
+  return html.replace(/<iframe\\b[^>]*>/gi, tag => {
+    const srcMatch = tag.match(/\\bsrc\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))/i);
+    const src = srcMatch?.[1] ?? srcMatch?.[2] ?? srcMatch?.[3] ?? '';
+    if (!src) return tag;
+
+    try {
+      const hostname = new URL(src.replace(/&amp;/gi, '&'), 'https://localhost').hostname.toLowerCase();
+      if (hostname !== 'player.bilibili.com') return tag;
+    } catch {
+      return tag;
+    }
+
+    return tag.replace(/\\s+referrerpolicy\\s*=\\s*(?:"no-referrer"|'no-referrer'|no-referrer)(?=\\s|\\/?$)/i, '');
+  });
+}
+
 const MARKDOWN_ALERT_ICONS: Record<string, string> = {
   // Reuse the exact five SVG path shapes from the pre-upstream-reset CY Markdown Alerts implementation.
   NOTE: '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>',
@@ -613,9 +636,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // the Markdown stage inserted our opt-in protection markers.
   addHook('content:content', pluginId, (content: string) => {
     const withAlertIcons = restoreMarkdownAlertIcons(content);
-    return withAlertIcons.includes('CYCYINLINE')
-      ? restoreInlineHtmlFragments(withAlertIcons)
-      : withAlertIcons;
+    if (!withAlertIcons.includes('CYCYINLINE')) return withAlertIcons;
+    return normalizeBilibiliIframeReferrerPolicy(restoreInlineHtmlFragments(withAlertIcons));
   }, 1);
 
   // Rehydrate only after Markdown sanitization; the feature is opt-in.
