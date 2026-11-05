@@ -310,7 +310,7 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     video: ['src', 'controls', 'width', 'height', 'poster', 'style', 'class', 'data-*', 'aria-*'],
     audio: ['src', 'controls', 'style', 'class', 'data-*', 'aria-*'],
     source: ['src', 'type', 'data-*', 'aria-*'],
-    iframe: ['src', 'width', 'height', 'title', 'frameborder', 'allowfullscreen', 'allow', 'loading', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'data-*', 'aria-*'],
+    iframe: ['src', 'width', 'height', 'title', 'frameborder', 'allowfullscreen', 'allow', 'loading', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'class', 'id', 'style', 'role', 'data-*', 'aria-*'],
     svg: ['width', 'height', 'viewbox', 'viewBox', 'xmlns', 'fill', 'stroke',
       'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style', 'class', 'id',
       'role', 'aria-label', 'aria-hidden', 'preserveAspectRatio', 'data-*', 'aria-*'],
