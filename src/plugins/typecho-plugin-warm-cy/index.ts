@@ -7,6 +7,7 @@ import { generateSecurityToken } from '@/lib/auth';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { computeUrls } from '@/lib/options';
 import adminCss from './admin.css?raw';
+import { inlineHtmlRuntimeLight, protectInlineHtmlLight, restoreInlineHtmlFragmentsLight } from './html-light';
 
 const THEME_ID = 'typecho-theme-warm-cy';
 const OPTION_KEY = `theme:${THEME_ID}`;
@@ -33,6 +34,13 @@ function isEnabled(value: unknown, fallback = true): boolean {
   return !(value === false || value === 0 || value === '0');
 }
 
+function getHtmlEnhancementMode(settings: Record<string, unknown>): 'off' | 'light' | 'full' {
+  const mode = settings.htmlEnhancementMode;
+  if (mode === 'off' || mode === 'light' || mode === 'full') return mode;
+  // Backward compatibility: the former enabled checkbox maps to the legacy light mode.
+  return isEnabled(settings.htmlEnhancementEnabled, false) ? 'light' : 'off';
+}
+
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -44,7 +52,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const settings = parsePluginSettings(rawSettings);
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
-  const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
+  const htmlEnhancementMode = getHtmlEnhancementMode(settings);
   const videoPlayerEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
@@ -68,11 +76,14 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         <p>控制 Warm CY 所有页面的主导航是否显示搜索图标。关闭后全站不显示搜索入口。</p>
       </section>
       <section class="cy-feature-card">
-        <label class="cy-feature-toggle">
-          <input type="checkbox" data-cy-setting="htmlEnhancementEnabled" ${htmlEnhancementEnabled ? 'checked' : ''}>
-          <span>正文 HTML / CSS / JavaScript 增强</span>
-        </label>
-        <p>允许文章、笔记和独立页面正文使用内嵌 &lt;style&gt;、&lt;script&gt;、SVG，以及 HTML 的 class、id、data、aria 和 style 属性。开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布文章；评论区不受影响。</p>
+        <strong>正文 HTML / CSS / JavaScript 增强</strong>
+        <p>关闭：完全按主题原始方式处理。轻量开启：沿用昨天的稳定处理规则。全部开启：使用今天扩展后的完整 HTML / CSS / JavaScript / SVG 处理规则。</p>
+        <select data-cy-setting="htmlEnhancementMode">
+          <option value="off" ${htmlEnhancementMode === 'off' ? 'selected' : ''}>不开启</option>
+          <option value="light" ${htmlEnhancementMode === 'light' ? 'selected' : ''}>轻量开启（稳定版）</option>
+          <option value="full" ${htmlEnhancementMode === 'full' ? 'selected' : ''}>全部开启（完整版）</option>
+        </select>
+        <p>开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布文章；评论区不受影响。</p>
       </section>
       <section class="cy-feature-card">
         <label class="cy-feature-toggle">
@@ -96,7 +107,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         save.addEventListener('click', async function () {
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
-          var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
+          var htmlMode = root.querySelector('[data-cy-setting="htmlEnhancementMode"]');
           var videoPlayer = root.querySelector('[data-cy-setting="videoPlayerEnabled"]');
           save.disabled = true;
           status.textContent = '正在保存…';
@@ -110,7 +121,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
               body: JSON.stringify({
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
-                htmlEnhancementEnabled: !!htmlEnhancement.checked,
+                htmlEnhancementMode: htmlMode.value,
                 videoPlayerEnabled: !!videoPlayer.checked
               })
             });
@@ -791,9 +802,10 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
     const videoEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
     const withVideo = videoEnabled ? protectVideoIframesForMarkdown(content) : content;
-    return isEnabled(settings.htmlEnhancementEnabled, false)
-      ? protectInlineHtml(withVideo)
-      : withVideo;
+    const htmlMode = getHtmlEnhancementMode(settings);
+    if (htmlMode === 'light') return protectInlineHtmlLight(withVideo);
+    if (htmlMode === 'full') return protectInlineHtml(withVideo);
+    return withVideo;
   }, 1);
 
   // Markdown Alert icons remain a separate legacy CY-theme behavior.
@@ -805,9 +817,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     if (options?.theme !== THEME_ID) return content;
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
     const withAlertIcons = restoreMarkdownAlertIcons(content);
-    const withHtml = isEnabled(settings.htmlEnhancementEnabled, false)
-      ? restoreInlineHtmlFragments(withAlertIcons)
-      : withAlertIcons;
+    const htmlMode = getHtmlEnhancementMode(settings);
+    const withHtml = htmlMode === 'light'
+      ? restoreInlineHtmlFragmentsLight(withAlertIcons)
+      : htmlMode === 'full'
+        ? restoreInlineHtmlFragments(withAlertIcons)
+        : withAlertIcons;
     const videoEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
     if (!videoEnabled) return withHtml;
     return replaceVideoIframesWithPlaceholders(restoreVideoIframesAfterMarkdown(withHtml));
@@ -820,9 +835,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const options = extra?.options;
     if (!options || options.theme !== THEME_ID) return html;
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
-    const htmlRuntime = isEnabled(settings.htmlEnhancementEnabled, false)
-      ? inlineHtmlRuntime()
-      : '';
+    const htmlMode = getHtmlEnhancementMode(settings);
+    const htmlRuntime = htmlMode === 'light'
+      ? inlineHtmlRuntimeLight(true)
+      : htmlMode === 'full'
+        ? inlineHtmlRuntime()
+        : '';
     const alertIconStyle = markdownAlertIconStyles();
     const videoPlayer = videoPlayerRuntime(
       isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false),
@@ -1127,15 +1145,21 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
+        htmlEnhancementMode?: unknown;
         videoPlayerEnabled?: unknown;
         mobileNativePlayerEnhancementEnabled?: unknown;
       };
       const videoPlayerValue = typeof values.videoPlayerEnabled === 'boolean'
         ? values.videoPlayerEnabled
         : values.mobileNativePlayerEnhancementEnabled;
+      const htmlMode = typeof values.htmlEnhancementMode === 'string'
+        ? values.htmlEnhancementMode
+        : typeof values.htmlEnhancementEnabled === 'boolean'
+          ? (values.htmlEnhancementEnabled ? 'light' : 'off')
+          : null;
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
-        || typeof values.htmlEnhancementEnabled !== 'boolean'
+        || (htmlMode !== 'off' && htmlMode !== 'light' && htmlMode !== 'full')
         || typeof videoPlayerValue !== 'boolean') {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
       }
@@ -1144,9 +1168,10 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         ...current,
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
-        htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
+        htmlEnhancementMode: htmlMode,
         videoPlayerEnabled: videoPlayerValue ? '1' : '0',
       };
+      delete next.htmlEnhancementEnabled;
       delete next.mobileNativePlayerEnhancementEnabled;
       await setOption(auth.db, PLUGIN_OPTION_KEY, JSON.stringify(next));
       return { handled: true, response: json({ success: true }) };
