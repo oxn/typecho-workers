@@ -426,12 +426,12 @@ function sanitizeInlineHtmlFragment(source: string): string {
       if (!list.includes(name)) list.push(name);
     }
   };
-  const tagPattern = /<([a-z][\\w:-]*)\\b([^>]*)>/gi;
+  const tagPattern = /<([a-z][\w:-]*)\b([^>]*)>/gi;
   let tagMatch: RegExpExecArray | null;
   while ((tagMatch = tagPattern.exec(source))) {
     const tag = tagMatch[1].toLowerCase();
     if (!INLINE_FRAGMENT_SANITIZE_OPTIONS.allowedTags?.includes(tag)) continue;
-    const attributePattern = /(?:^|\\s)(data-[a-z0-9_.:-]+|aria-[a-z0-9_.:-]+)(?=\\s|=|$)/gi;
+    const attributePattern = /(?:^|\s)(data-[a-z0-9_.:-]+|aria-[a-z0-9_.:-]+)(?=\s|=|$)/gi;
     let attributeMatch: RegExpExecArray | null;
     while ((attributeMatch = attributePattern.exec(tagMatch[2]))) {
       addAttribute(tag, attributeMatch[1].toLowerCase());
