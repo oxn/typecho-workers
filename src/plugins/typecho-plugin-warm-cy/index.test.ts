@@ -208,14 +208,14 @@ describe('typecho-plugin-warm-cy', () => {
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
     const source = '<div class="ai-card" style="display:flex;gap:12px;padding:16px;background:#f5f5f5;border-radius:12px"><span style="color:#079C48;font-weight:bold">标题</span><a href="https://example.com" style="display:inline-flex;align-items:center">查看</a></div>';
-    const protectedSource = protect(source);
+    const protectedSource = protect(source, htmlEnabledContext());
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const coreSanitized = sanitizeHtml(parsed, {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code']),
       allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, a: ['href', 'title', 'target', 'rel'] },
     });
-    const restored = restore(coreSanitized);
+    const restored = restore(coreSanitized, htmlEnabledContext());
     expect(restored).toContain('class="ai-card"');
     expect(restored).toContain('display:flex');
     expect(restored).toContain('gap:12px');
