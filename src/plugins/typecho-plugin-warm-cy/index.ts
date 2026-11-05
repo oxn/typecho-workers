@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.05.10.01';
+const PLUGIN_VERSION = '2026.11.05.10.20';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -541,22 +541,44 @@ function readIframeAttribute(attributes: string, name: string): string {
   return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
 }
 
+function protectVideoIframesForMarkdown(content: string): string {
+  return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe\s*>)?/gi, (match, attributes: string) => {
+    const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
+    if (!source || !videoProviderForSource(source)) return match;
+    return 'CYVIDEOIFRAMEX' + encodeInlinePayload(match) + 'XEND';
+  });
+}
+
+function restoreVideoIframesAfterMarkdown(content: string): string {
+  const restore = (_marker: string, payload: string) => {
+    try { return decodeInlinePayload(payload); } catch { return ''; }
+  };
+  // A protected iframe is plain text to Marked, so a standalone embed may
+  // be wrapped in <p>. Remove that wrapper before restoring the block iframe.
+  return content
+    .replace(/<p>\s*CYVIDEOIFRAMEX([0-9a-f]+)XEND\s*<\/p>/gi, restore)
+    .replace(/CYVIDEOIFRAMEX([0-9a-f]+)XEND/g, restore);
+}
+
 function replaceVideoIframesWithPlaceholders(content: string): string {
   return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe\s*>)?/gi, (match, attributes: string) => {
     const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
     const provider = videoProviderForSource(source);
     if (!source || !provider) return match;
 
+    const requestedWidth = readIframeAttribute(attributes, 'width');
     const requestedHeight = readIframeAttribute(attributes, 'height');
-    const height = /^\d{2,4}$/.test(requestedHeight)
-      ? requestedHeight
-      : provider === 'bilibili' ? '480' : '360';
+    const width = /^\d{2,4}$/.test(requestedWidth) ? Number(requestedWidth) : 0;
+    const height = /^\d{2,4}$/.test(requestedHeight) ? Number(requestedHeight) : 0;
+    const ratio = width > 0 && height > 0
+      ? Math.max(0.5, Math.min(3, width / height))
+      : 16 / 9;
 
     return '<div class="cy-video-player" data-cy-video-player'
       + ' data-cy-video-provider="' + provider + '"'
       + ' data-cy-video-src="' + escapeHtml(source) + '"'
-      + ' data-cy-video-height="' + height + '">'
-      + '<div class="cy-video-player__status" role="status">正在启动视频播放器…</div>'
+      + ' data-cy-video-ratio="' + ratio.toFixed(5) + '">'
+      + '<div class="cy-video-player__status" role="status">正在加载视频…</div>'
       + '</div>';
   });
 }
@@ -564,9 +586,9 @@ function replaceVideoIframesWithPlaceholders(content: string): string {
 function videoPlayerRuntime(enabled: boolean): string {
   if (!enabled) return '';
   return `<style data-cy-video-player-styles>
-    .cy-video-player{position:relative;width:100%;height:480px;max-width:100%;overflow:hidden;background:#000;border-radius:0.5rem}
-    .cy-video-player iframe{display:block;width:100%;height:100%;max-width:100%;border:0}
-    .cy-video-player__status{position:absolute;inset:0;display:grid;place-items:center;padding:1rem;color:#fff;background:#111;text-align:center;font-size:14px}
+    .cy-video-player{position:relative;display:block;width:100%;max-width:100%;height:auto;aspect-ratio:var(--cy-video-ratio,16/9);overflow:hidden;background:transparent;border-radius:0.5rem}
+    .cy-video-player iframe{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;border:0;background:transparent}
+    .cy-video-player__status{position:absolute;inset:0;display:grid;place-items:center;padding:1rem;color:inherit;background:transparent;text-align:center;font-size:14px;pointer-events:none}
     .cy-video-player__status[hidden]{display:none}
   </style><script data-cy-video-player-runtime>
     (() => {
@@ -576,27 +598,36 @@ function videoPlayerRuntime(enabled: boolean): string {
         const source = root.dataset.cyVideoSrc || '';
         let url;
         try { url = new URL(source, location.href); } catch { return; }
-        if (!supportedHosts.has(url.hostname.toLowerCase())) return;
+        const provider = root.dataset.cyVideoProvider || '';
+        if (!supportedHosts.has(url.hostname.toLowerCase()) || !['youtube', 'bilibili', 'vimeo'].includes(provider)) return;
 
         const status = root.querySelector('.cy-video-player__status');
-        const requestedHeight = Number.parseInt(root.dataset.cyVideoHeight || '', 10);
-        const height = Number.isFinite(requestedHeight) && requestedHeight >= 120 && requestedHeight <= 1200
-          ? requestedHeight
-          : 480;
-        root.style.height = height + 'px';
+        const ratio = Number.parseFloat(root.dataset.cyVideoRatio || '');
+        if (Number.isFinite(ratio) && ratio >= 0.5 && ratio <= 3) {
+          root.style.setProperty('--cy-video-ratio', String(ratio));
+          root.style.aspectRatio = String(ratio);
+        }
 
+        // Keep the platform's native iframe as the playback engine. Do not
+        // use lazy loading here: affected Android browsers may leave a
+        // script-created lazy iframe unrequested while the embed is visible.
         const frame = document.createElement('iframe');
-        frame.src = source;
+        if (provider === 'youtube') {
+          if (!url.searchParams.has('playsinline')) url.searchParams.set('playsinline', '1');
+        }
+        frame.src = url.toString();
         frame.title = '视频播放器';
         frame.width = '100%';
-        frame.height = String(height);
-        frame.loading = 'lazy';
+        frame.height = '100%';
+        frame.loading = 'eager';
         frame.allowFullscreen = true;
-        frame.setAttribute('frameborder', '0');
+        frame.setAttribute('frameborder', provider === 'bilibili' ? 'no' : '0');
         frame.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-        if (url.hostname.toLowerCase() === 'player.bilibili.com') {
-          frame.setAttribute('referrerpolicy', 'no-referrer');
-          frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+        if (provider === 'bilibili') {
+          frame.setAttribute('scrolling', 'no');
+          frame.setAttribute('border', '0');
+          frame.setAttribute('framespacing', '0');
+          frame.setAttribute('allowfullscreen', 'true');
         }
         frame.addEventListener('load', () => {
           root.dataset.cyVideoState = 'frame-loaded';
@@ -606,7 +637,7 @@ function videoPlayerRuntime(enabled: boolean): string {
           root.dataset.cyVideoState = 'error';
           if (status) {
             status.hidden = false;
-            status.textContent = '播放器框架加载失败，请检查网络或视频地址。';
+            status.textContent = '播放器框架请求失败，请检查网络或浏览器拦截设置。';
           }
         }, { once: true });
 
@@ -633,7 +664,9 @@ function videoPlayerRuntime(enabled: boolean): string {
       });
       if (document.documentElement) observer.observe(document.documentElement, { childList: true, subtree: true });
     })();
-  </script>`;}
+  </script>`;
+}
+
 function inlineHtmlRuntime(): string {
   // Injected only while the HTML enhancement is enabled; disabled mode adds
   // neither a hiding rule nor a runtime script.
@@ -689,8 +722,11 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const options = requestContext?.options;
     if (options?.theme !== THEME_ID) return content;
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
-    if (!isEnabled(settings.htmlEnhancementEnabled, false)) return content;
-    return protectInlineHtml(content);
+    const videoEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
+    const withVideo = videoEnabled ? protectVideoIframesForMarkdown(content) : content;
+    return isEnabled(settings.htmlEnhancementEnabled, false)
+      ? protectInlineHtml(withVideo)
+      : withVideo;
   }, 1);
 
   // Markdown Alert icons remain a separate legacy CY-theme behavior.
@@ -706,7 +742,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       ? restoreInlineHtmlFragments(withAlertIcons)
       : withAlertIcons;
     const videoEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
-    return videoEnabled ? replaceVideoIframesWithPlaceholders(withHtml) : withHtml;
+    if (!videoEnabled) return withHtml;
+    return replaceVideoIframesWithPlaceholders(restoreVideoIframesAfterMarkdown(withHtml));
   }, 1);
 
   // Frontend output is scoped to Warm CY and each feature's own toggle.
