@@ -434,7 +434,7 @@ function sanitizeInlineSvgReferences(source: string): string {
     );
     safe = safe.replace(/\s+(fill|stroke|clip-path|mask)\s*=\s*(["'])(.*?)\2/gi, (attribute, _name, _quote, value) => {
       const cssValue = String(value).trim();
-      return /\burl\s*\(/i.test(cssValue) && !/^url\(\s*#[\w:.-]+\s*\)$/i.test(cssValue)
+      return /\burl\s*\(/i.test(cssValue) && !/^url\(\s*(?:(["'])#[\w:.-]+\1|#[\w:.-]+)\s*\)$/i.test(cssValue)
         ? ''
         : attribute;
     });
