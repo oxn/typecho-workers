@@ -1,11 +1,12 @@
 import { eq } from 'drizzle-orm';
 import sanitizeHtml from 'sanitize-html';
-import { schema } from 'typecho/db';
+import { getDb, schema } from 'typecho/db';
+import { env } from 'cloudflare:workers';
 import { registerPluginAdminPath, setOption } from 'typecho/plugin-sdk';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { generateSecurityToken } from '@/lib/auth';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
-import { computeUrls } from '@/lib/options';
+import { computeUrls, loadOptions } from '@/lib/options';
 import adminCss from './admin.css?raw';
 
 const THEME_ID = 'typecho-theme-warm-cy';
@@ -33,6 +34,15 @@ function isEnabled(value: unknown, fallback = true): boolean {
   return !(value === false || value === 0 || value === '0');
 }
 
+
+async function isHtmlEnhancementEnabled(): Promise<boolean> {
+  // Content filters receive only the content string, not RequestContext.options.
+  // Read the private plugin option through the host's cached options loader so
+  // the feature switch works without changing the core filter-hook contract.
+  const options = await loadOptions(getDb(env.DB));
+  const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+  return isEnabled(settings.htmlEnhancementEnabled, false);
+}
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -589,23 +599,18 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
   registerPluginAdminPath(ADMIN_SETTINGS_API_PATH);
 
-  // HTML enhancement is opt-in and must be absent from the content pipeline when OFF.
-  // The request context is passed by renderMarkdownFiltered as the second filter argument.
-  addHook('content:markdown', pluginId, (content: string, extra?: {
-    options?: Record<string, unknown>;
-  }) => {
-    const settings = parsePluginSettings(extra?.options?.[PLUGIN_OPTION_KEY]);
-    return isEnabled(settings.htmlEnhancementEnabled, false) ? protectInlineHtml(content) : content;
+  // The content filter contract supplies only the source string. Read the
+  // plugin's private option through the host options loader; do not depend on
+  // an extra RequestContext argument that the core does not pass.
+  addHook('content:markdown', pluginId, async (content: string) => {
+    return await isHtmlEnhancementEnabled() ? protectInlineHtml(content) : content;
   }, 1);
 
-  // Markdown Alert icons are independent of HTML enhancement. Only restore inline
-  // HTML fragments when the dedicated feature switch is enabled.
-  addHook('content:content', pluginId, (content: string, extra?: {
-    options?: Record<string, unknown>;
-  }) => {
+  // Alert icons remain independent. HTML fragments are restored only when
+  // the Markdown stage inserted our opt-in protection markers.
+  addHook('content:content', pluginId, (content: string) => {
     const withAlertIcons = restoreMarkdownAlertIcons(content);
-    const settings = parsePluginSettings(extra?.options?.[PLUGIN_OPTION_KEY]);
-    return isEnabled(settings.htmlEnhancementEnabled, false)
+    return withAlertIcons.includes('CYCYINLINE')
       ? restoreInlineHtmlFragments(withAlertIcons)
       : withAlertIcons;
   }, 1);
