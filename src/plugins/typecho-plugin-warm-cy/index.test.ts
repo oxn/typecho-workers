@@ -1009,6 +1009,8 @@ describe('typecho-plugin-warm-cy', () => {
       + '<use href="https://evil.example/external.svg#icon"></use>'
       + '<path fill=\'url("#safe-gradient")\' d="M0 0h10v10H0z"></path>'
       + '<path fill="url(https://evil.example/paint.svg#gradient)" d="M1 1h8v8H1z"></path>'
+      + '<path fill="url(\\23 safe-gradient)" d="M2 2h6v6H2z"></path>'
+      + '<path fill="url(/*comment*/#safe-gradient)" d="M3 3h4v4H3z"></path>'
       + '</svg>';
     const marker = 'CYCYINLINEBLOCKX' + Buffer.from(svgSource, 'utf8').toString('hex') + 'XEND';
 
@@ -1023,6 +1025,8 @@ describe('typecho-plugin-warm-cy', () => {
       makeNode('use', { href: 'https://evil.example/external.svg#icon' }),
       makeNode('path', { fill: 'url("#safe-gradient")', d: 'M0 0h10v10H0z' }),
       makeNode('path', { fill: 'url(https://evil.example/paint.svg#gradient)', d: 'M1 1h8v8H1z' }),
+      makeNode('path', { fill: 'url(\\23 safe-gradient)', d: 'M2 2h6v6H2z' }),
+      makeNode('path', { fill: 'url(/*comment*/#safe-gradient)', d: 'M3 3h4v4H3z' }),
     ]);
     let parsedSource = '';
     class MockDOMParser {
@@ -1100,6 +1104,6 @@ describe('typecho-plugin-warm-cy', () => {
 
     const paths = svg.childNodes.filter((node: any) => node.localName === 'path');
     expect(paths.map((node: any) => node.attributes.find((attribute: any) => attribute.name === 'fill')?.value))
-      .toEqual(['url("#safe-gradient")', undefined]);
+      .toEqual(['url("#safe-gradient")', undefined, undefined, undefined]);
   });
 });
