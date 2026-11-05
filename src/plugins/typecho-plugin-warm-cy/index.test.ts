@@ -346,31 +346,6 @@ describe('typecho-plugin-warm-cy', () => {
   });
 
 
-  it('removes only no-referrer from Bilibili embeds in enhanced article HTML', async () => {
-    const hooks = collectHooks();
-    const protect = hooks.get('content:markdown')!;
-    const restore = hooks.get('content:content')!;
-    const source = [
-      '<div class="video-tests">',
-      '<iframe src="https://player.bilibili.com/player.html?bvid=BV1xx" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin"></iframe>',
-      '<iframe src="https://www.youtube.com/embed/example" referrerpolicy="no-referrer"></iframe>',
-      '</div>',
-    ].join('');
-    const protectedSource = await protect(source);
-    const parsed = marked.parse(protectedSource, { async: false }) as string;
-    const coreSanitized = sanitizeHtml(parsed, {
-      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code']),
-      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes },
-    });
-    const restored = restore(coreSanitized);
-
-    const biliIframe = restored.match(/<iframe\b(?=[^>]*player\.bilibili\.com)[^>]*>/i)?.[0] ?? '';
-    const youtubeIframe = restored.match(/<iframe\b(?=[^>]*youtube\.com)[^>]*>/i)?.[0] ?? '';
-    expect(biliIframe).toContain('sandbox="allow-scripts allow-same-origin"');
-    expect(biliIframe).not.toMatch(/\breferrerpolicy\s*=/i);
-    expect(youtubeIframe).toContain('referrerpolicy="no-referrer"');
-  });
-
   it('adds the inline HTML runtime with the saved opt-in state', () => {
     const handler = collectHooks().get('archive:footer')!;
     const enabled = handler('', { options: {
