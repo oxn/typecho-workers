@@ -315,6 +315,10 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).toContain('const enabled = true');
     expect(enabled).toContain("allowedStyle.has(property)");
     expect(enabled).toContain("key !== 'style'");
+    expect(enabled).toContain("script.src = url.href");
+    expect(enabled).toContain("script.integrity");
+    expect(enabled).toContain("@import\\b");
+    expect(enabled).toContain("url\\(");
 
     const disabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
