@@ -41,6 +41,95 @@ function getHtmlEnhancementMode(settings: Record<string, unknown>): 'off' | 'lig
   return isEnabled(settings.htmlEnhancementEnabled, false) ? 'light' : 'off';
 }
 
+const MARKDOWN_ALERT_TYPES = ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'] as const;
+const MARKDOWN_ALERT_STYLE_DEFAULTS: Record<string, Record<string, string | number>> = {
+  NOTE: { background: '#eef2ff', border: '#c7d2fe', title: '#4338ca', text: '#4338ca', icon: '#818cf8', radius: 8, borderStyle: 'solid' },
+  TIP: { background: '#f0fdf4', border: '#bbf7d0', title: '#15803d', text: '#15803d', icon: '#4ade80', radius: 8, borderStyle: 'solid' },
+  IMPORTANT: { background: '#faf5ff', border: '#e9d5ff', title: '#9333ea', text: '#9333ea', icon: '#c084fc', radius: 8, borderStyle: 'solid' },
+  WARNING: { background: '#fefce8', border: '#fde68a', title: '#a16207', text: '#a16207', icon: '#facc15', radius: 8, borderStyle: 'solid' },
+  CAUTION: { background: '#fef2f2', border: '#fecaca', title: '#dc2626', text: '#dc2626', icon: '#f87171', radius: 8, borderStyle: 'solid' },
+};
+
+type MarkdownAlertStyleSettings = {
+  types: Record<string, Record<string, string | number>>;
+  icon: { visible: boolean; size: number; gap: number };
+};
+
+function normalizeMarkdownAlertStyleSettings(value: unknown): MarkdownAlertStyleSettings {
+  const source = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown> : {};
+  const sourceTypes = source.types && typeof source.types === 'object' && !Array.isArray(source.types)
+    ? source.types as Record<string, unknown> : {};
+  const sourceIcon = source.icon && typeof source.icon === 'object' && !Array.isArray(source.icon)
+    ? source.icon as Record<string, unknown> : {};
+  const color = (value: unknown, fallback: string) =>
+    typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : fallback;
+  const number = (value: unknown, fallback: number, min: number, max: number) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.max(min, Math.min(max, Math.round(parsed))) : fallback;
+  };
+  const types: Record<string, Record<string, string | number>> = {};
+  for (const type of MARKDOWN_ALERT_TYPES) {
+    const item = sourceTypes[type] && typeof sourceTypes[type] === 'object' && !Array.isArray(sourceTypes[type])
+      ? sourceTypes[type] as Record<string, unknown> : {};
+    const defaults = MARKDOWN_ALERT_STYLE_DEFAULTS[type];
+    const borderStyle = ['solid', 'dashed', 'dotted', 'double', 'none'].includes(String(item.borderStyle))
+      ? String(item.borderStyle) : String(defaults.borderStyle);
+    types[type] = {
+      background: color(item.background, String(defaults.background)),
+      border: color(item.border, String(defaults.border)),
+      title: color(item.title, String(defaults.title)),
+      text: color(item.text, String(defaults.text)),
+      icon: color(item.icon, String(defaults.icon)),
+      radius: number(item.radius, Number(defaults.radius), 0, 32),
+      borderStyle,
+    };
+  }
+  return {
+    types,
+    icon: {
+      visible: typeof sourceIcon.visible === 'boolean' ? sourceIcon.visible : true,
+      size: number(sourceIcon.size, 18, 12, 32),
+      gap: number(sourceIcon.gap, 8, 0, 20),
+    },
+  };
+}
+
+function markdownAlertStyleEditorHtml(value: unknown): string {
+  const settings = normalizeMarkdownAlertStyleSettings(value);
+  const cards = MARKDOWN_ALERT_TYPES.map(type => {
+    const style = settings.types[type];
+    const fields = ([
+      ['background', '背景颜色', 'color'],
+      ['border', '边框颜色', 'color'],
+      ['title', '标题颜色', 'color'],
+      ['text', '正文颜色', 'color'],
+      ['icon', '图标颜色', 'color'],
+      ['radius', '圆角（px）', 'number'],
+    ] as const).map(([key, label, inputType]) =>
+      '<label class="cy-note-style-field"><span>' + label + '</span><input type="' + inputType
+      + '" data-cy-alert-style-field="' + type + '.' + key + '" value="' + escapeHtml(style[key]) + '"'
+      + (inputType === 'number' ? ' min="0" max="32" step="1"' : '') + '></label>',
+    ).join('');
+    const borderOptions = ['solid', 'dashed', 'dotted', 'double', 'none'].map(option =>
+      '<option value="' + option + '"' + (style.borderStyle === option ? ' selected' : '') + '>' + option + '</option>',
+    ).join('');
+    return '<fieldset class="cy-note-style-card"><legend>' + type + '</legend><div class="cy-note-style-grid">'
+      + fields + '<label class="cy-note-style-field"><span>边框样式</span><select data-cy-alert-style-field="'
+      + type + '.borderStyle">' + borderOptions + '</select></label></div></fieldset>';
+  }).join('');
+  return '<section class="cy-feature-card cy-note-style-settings"><strong>五种 Note 与图标样式</strong>'
+    + '<p>每种提示框可独立调整背景、边框、标题、正文、图标颜色、圆角和边框样式。设置只影响 Warm CY 的五种 Markdown Alert，不改变识别规则和 HTML 结构。</p>'
+    + '<div class="cy-note-style-grid">' + cards + '</div>'
+    + '<div class="cy-note-icon-options"><label><input type="checkbox" data-cy-alert-icon-visible'
+    + (settings.icon.visible ? ' checked' : '') + '>显示 SVG 图标</label>'
+    + '<label>图标大小（px）<input type="number" min="12" max="32" step="1" data-cy-alert-icon-size value="'
+    + settings.icon.size + '"></label>'
+    + '<label>图标与标题间距（px）<input type="number" min="0" max="20" step="1" data-cy-alert-icon-gap value="'
+    + settings.icon.gap + '"></label></div></section>';
+}
+
+
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -53,6 +142,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementMode = getHtmlEnhancementMode(settings);
+  const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   const videoPlayerEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
@@ -85,6 +175,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         </select>
         <p>开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布文章；评论区不受影响。</p>
       </section>
+      ${markdownAlertStyleEditorHtml(markdownAlertStyleSettings)}
       <section class="cy-feature-card">
         <label class="cy-feature-toggle">
           <input type="checkbox" data-cy-setting="videoPlayerEnabled" ${videoPlayerEnabled ? 'checked' : ''}>
@@ -108,6 +199,17 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlMode = root.querySelector('[data-cy-setting="htmlEnhancementMode"]');
+          var noteStyleSettings = { types: {}, icon: {
+            visible: !!root.querySelector('[data-cy-alert-icon-visible]')?.checked,
+            size: Number(root.querySelector('[data-cy-alert-icon-size]')?.value || 18),
+            gap: Number(root.querySelector('[data-cy-alert-icon-gap]')?.value || 8)
+          } };
+          root.querySelectorAll('[data-cy-alert-style-field]').forEach(function (field) {
+            var parts = (field.dataset.cyAlertStyleField || '').split('.');
+            if (parts.length !== 2) return;
+            noteStyleSettings.types[parts[0]] = noteStyleSettings.types[parts[0]] || {};
+            noteStyleSettings.types[parts[0]][parts[1]] = field.type === 'number' ? Number(field.value) : field.value;
+          });
           var videoPlayer = root.querySelector('[data-cy-setting="videoPlayerEnabled"]');
           save.disabled = true;
           status.textContent = '正在保存…';
@@ -122,6 +224,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
                 htmlEnhancementMode: htmlMode.value,
+                markdownAlertStyleSettings: noteStyleSettings,
                 videoPlayerEnabled: !!videoPlayer.checked
               })
             });
@@ -587,12 +690,27 @@ function restoreMarkdownAlertIcons(content: string): string {
   );
 }
 
-function markdownAlertIconStyles(): string {
+function markdownAlertIconStyles(value?: unknown): string {
+  const settings = normalizeMarkdownAlertStyleSettings(value);
+  const rules = MARKDOWN_ALERT_TYPES.map(type => {
+    const style = settings.types[type];
+    const selector = '.warm-prose .markdown-alert[data-alert="' + type + '"],'
+      + '.warm-note__content .markdown-alert[data-alert="' + type + '"]';
+    return selector + '{background:' + style.background + '!important;border-color:' + style.border
+      + '!important;border-style:' + style.borderStyle + '!important;border-radius:' + style.radius
+      + 'px!important;color:' + style.text + '!important}'
+      + selector + ' .markdown-alert-title{color:' + style.title + '!important}'
+      + selector + ' .markdown-alert-title .markdown-alert-icon{color:' + style.icon
+      + '!important;width:' + settings.icon.size + 'px!important;height:' + settings.icon.size
+      + 'px!important;min-width:' + settings.icon.size + 'px!important;max-width:' + settings.icon.size
+      + 'px!important;min-height:' + settings.icon.size + 'px!important;max-height:' + settings.icon.size
+      + 'px!important;flex:0 0 ' + settings.icon.size + 'px!important;margin-right:' + settings.icon.gap
+      + 'px!important;display:' + (settings.icon.visible ? 'inline-block' : 'none') + '!important}';
+  }).join('');
   return '<style data-cy-markdown-alert-icons>'
     + '.warm-prose .markdown-alert-title.cy-markdown-alert-has-icon::before,'
     + '.warm-note__content .markdown-alert-title.cy-markdown-alert-has-icon::before'
-    + '{content:none!important;display:none!important}'
-    + '</style>';
+    + '{content:none!important;display:none!important}' + rules + '</style>';
 }
 
 const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  const markerPattern = /CYCYINLINEBLOCKX([0-9a-f]+)XEND|CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/g;\n  const svgTags = new Set(['svg','g','path','circle','rect','line','polyline','polygon','ellipse','defs','lineargradient','radialgradient','stop','clippath','mask','title','desc','use','symbol','text','tspan','filter','fegaussianblur','feoffset','feblend','fecolormatrix','fecomposite','feflood','femerge','femergenode','fecomponenttransfer','fefunca','fefuncb','fefuncg','fefuncr','feturbulence']);\n  const svgAttrs = new Set(['id','class','viewbox','width','height','fill','fill-rule','clip-rule','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','cx','cy','r','rx','ry','x','y','x1','x2','y1','y2','d','points','transform','preserveaspectratio','offset','stop-color','stop-opacity','gradientunits','gradienttransform','clippathunits','maskunits','maskcontentunits','clip-path','mask','filter','href','xlink:href','role','focusable','aria-hidden','aria-label','font-family','font-size','font-weight','font-style','text-anchor','dominant-baseline','letter-spacing','dx','dy','filterunits','primitiveunits','color-interpolation-filters','stddeviation','in','in2','result','type','values','operator','k1','k2','k3','k4','slope','intercept','tablevalues','mode','flood-color','flood-opacity','basefrequency','numoctaves','seed','stitchtiles','surfacescale','specularconstant','specularexponent','limitingconeangle','azimuth','elevation','pointsatx','pointsaty','pointsatz','kernelmatrix','kernelunitlength','preservealpha']);\n  const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };\n  const safeSvgNode = node => {\n    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || '');\n    if (node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())) return null;\n    const clean = document.createElementNS('http://www.w3.org/2000/svg', node.localName);\n    for (const attr of Array.from(node.attributes)) {\n      const key = attr.name.toLowerCase(), value = attr.value;\n      if (!svgAttrs.has(key) && key !== 'style' && !key.startsWith('aria-')) continue;\n      if (key === 'style') {\n        const allowedStyle = new Set(['fill','stroke','fill-rule','clip-rule','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','stop-color','stop-opacity','font-family','font-size','font-weight','font-style','text-anchor','dominant-baseline','letter-spacing']);\n        const safeStyle = value.split(';').map(part => part.trim()).filter(Boolean).map(part => {\n          const split = part.indexOf(':');\n          if (split < 1) return '';\n          const property = part.slice(0, split).trim().toLowerCase();\n          const cssValue = part.slice(split + 1).trim();\n          if (!allowedStyle.has(property) || /expression|javascript:|data:|@import|[\\u0000-\\u001f]/i.test(cssValue)) return '';\n          if (/\\burl\\s*\\(/i.test(cssValue) && !/^url\\(\\s*(?:([\"'])#[\\w:.-]+\\1|#[\\w:.-]+)\\s*\\)$/i.test(cssValue)) return '';\n          return property + ':' + cssValue;\n        }).filter(Boolean).join(';');\n        if (safeStyle) clean.setAttribute('style', safeStyle);\n        continue;\n      }\n      if ((key === 'href' || key === 'xlink:href') && !/^#[\\w:.-]+$/.test(value)) continue;\n      if (/\\burl\\s*\\(/i.test(value) && !/^\\s*url\\(\\s*(?:([\"'])#[\\w:.-]+\\1|#[\\w:.-]+)\\s*\\)\\s*$/i.test(value)) continue;\n      if (/javascript:|data:text\\/html|[\\u0000-\\u001f]/i.test(value)) continue;\n      if (key === 'xlink:href') clean.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', value); else clean.setAttribute(attr.name, value);\n    }\n    for (const child of Array.from(node.childNodes)) { const safe = safeSvgNode(child); if (safe) clean.appendChild(safe); }\n    return clean;\n  };\n  const addBlock = raw => {\n    const match = raw.match(/^<(style|script|svg)\\b([^>]*)>([\\s\\S]*)<\\/\\1\\s*>$/i);\n    if (!match) return null;\n    const tag = match[1].toLowerCase(), attrs = match[2] || '', body = match[3] || '';\n    if (tag === 'svg') {\n      try { const parsed = new DOMParser().parseFromString(raw, 'image/svg+xml'); if (parsed.querySelector('parsererror') || parsed.documentElement.localName.toLowerCase() !== 'svg') return null; return safeSvgNode(parsed.documentElement); } catch { return null; }\n    }\n  const safeStylesheetText = cssText => {\n    try {\n      let sheet;\n      if (typeof CSSStyleSheet === 'function' && CSSStyleSheet.prototype\n        && typeof CSSStyleSheet.prototype.replaceSync === 'function') {\n        sheet = new CSSStyleSheet();\n        sheet.replaceSync(cssText);\n      } else if (document.implementation\n        && typeof document.implementation.createHTMLDocument === 'function') {\n        const parserDocument = document.implementation.createHTMLDocument('');\n        const parserStyle = parserDocument.createElement('style');\n        parserStyle.textContent = cssText;\n        parserDocument.head.appendChild(parserStyle);\n        sheet = parserStyle.sheet;\n      }\n      if (!sheet || !sheet.cssRules) return '';\n      const allowedProperties = new Set([\n        'color','background','background-color','background-image','font-weight','font-size','font-family','line-height','text-align','text-decoration','word-break','overflow-wrap','display','align-items','align-self','justify-content','flex-direction','flex-wrap','flex','gap','padding','margin','width','height','min-width','max-width','min-height','max-height','border','border-radius','border-color','border-width','border-style','box-shadow','position','top','right','bottom','left','z-index','overflow','cursor','opacity','transform','transition','object-fit','vertical-align','white-space','letter-spacing','aspect-ratio','grid-template-columns','grid-template-rows','grid-auto-flow','grid-auto-columns','grid-auto-rows','grid-column','grid-row','align-content','justify-items','place-items','box-sizing','font-style','text-transform','text-shadow','object-position','flex-basis','flex-grow','flex-shrink'\n      ]);\n      const safeValue = value => {\n        const normalized = String(value || '').trim();\n        const withoutLocalUrls = normalized.replace(/url\\(\\s*(?:([\"'])#[\\w:.-]+\\1|#[\\w:.-]+)\\s*\\)/gi, '');\n        return !!normalized\n          && !/[\\u0000-\\u001f\\u007f]/.test(normalized)\n          && !/(?:expression|javascript\\s*:|vbscript\\s*:|@import|behavior\\s*:|-moz-binding)/i.test(normalized)\n          && !/url\\s*\\(/i.test(withoutLocalUrls);\n      };\n      const serializeRules = rules => {\n        let output = '';\n        for (const rule of Array.from(rules || [])) {\n          if (rule.type === 1 && rule.style && rule.selectorText) {\n            const declarations = [];\n            for (let index = 0; index < rule.style.length; index++) {\n              const property = rule.style.item(index).toLowerCase();\n              const value = rule.style.getPropertyValue(property);\n              if ((!allowedProperties.has(property) && !/^--[a-z0-9_-]+$/i.test(property)) || !safeValue(value)) continue;\n              const priority = rule.style.getPropertyPriority(property);\n              declarations.push(property + ':' + value + (priority === 'important' ? ' !important' : ''));\n            }\n            if (declarations.length) output += rule.selectorText + '{' + declarations.join(';') + '}';\n          } else if ((rule.type === 4 || rule.type === 12) && rule.cssRules) {\n            const nested = serializeRules(rule.cssRules);\n            const condition = rule.conditionText || (rule.media && rule.media.mediaText) || '';\n            if (nested && condition) output += (rule.type === 4 ? '@media ' : '@supports ') + condition + '{' + nested + '}';\n          }\n        }\n        return output;\n      };\n      return serializeRules(sheet.cssRules);\n    } catch {\n      return '';\n    }\n  };\n    if (tag === 'style') { const safeCss = safeStylesheetText(body); if (!safeCss) return null; const style = document.createElement('style'); const styleAttributePattern = /([a-zA-Z_:][\\w:.-]*)\\s*=\\s*(?:\\x22([^\\x22]*)\\x22|'([^']*)'|([^\\s>]+))/g; let styleAttribute; while ((styleAttribute = styleAttributePattern.exec(attrs))) { const name = styleAttribute[1].toLowerCase(); if (['media','nonce','title','id','type'].includes(name) || name.startsWith('data-') || name.startsWith('aria-')) style.setAttribute(name, styleAttribute[2] || styleAttribute[3] || styleAttribute[4] || ''); } style.textContent = safeCss; document.head.appendChild(style); return null; }\n    const script = document.createElement('script');\n    const attributePattern = /([a-zA-Z_:][\\w:.-]*)\\s*=\\s*(?:\\x22([^\\x22]*)\\x22|'([^']*)'|([^\\s>]+))/g;\n    const booleanAttributes = new Set(['async','defer','nomodule']);\n    const copiedAttributes = new Set(['src','type','nonce','integrity','crossorigin','referrerpolicy','charset','fetchpriority','id','class','title']);\n    let attributeMatch;\n    while ((attributeMatch = attributePattern.exec(attrs))) {\n      const name = attributeMatch[1].toLowerCase();\n      if (copiedAttributes.has(name) || name.startsWith('data-') || name.startsWith('aria-')) script.setAttribute(name, attributeMatch[2] || attributeMatch[3] || attributeMatch[4] || '');\n      else if (booleanAttributes.has(name)) script.setAttribute(name, '');\n    }\n    const source = script.getAttribute('src');\n    if (source) {\n      try {\n        const url = new URL(source, document.baseURI);\n        if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;\n        if (!script.hasAttribute('async')) script.async = false;\n        script.src = url.href;\n      } catch { return null; }\n    }\n    script.textContent = body;\n    document.body.appendChild(script);\n    return null;\n  };\n  const hydrate = () => {\n    if (document.querySelectorAll && !document.querySelectorAll('.cy-inline-html-pending').length) return;\n    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode(node) { const p = node.parentElement; if (!p || p.closest('pre,code,textarea,script,style')) return NodeFilter.FILTER_REJECT; markerPattern.lastIndex = 0; return markerPattern.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });\n    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);\n    for (const node of nodes) {\n      const value = node.nodeValue || ''; markerPattern.lastIndex = 0; let last = 0, match, changed = false; const fragment = document.createDocumentFragment();\n      while ((match = markerPattern.exec(value))) {\n        changed = true; if (match.index > last) fragment.appendChild(document.createTextNode(value.slice(last, match.index)));\n        if (enabled && match[1]) { const element = addBlock(decode(match[1])); if (element) fragment.appendChild(element); }\n        else if (enabled && match[2] && match[3]) {\n          const parent = node.parentElement, previous = node.previousElementSibling;\n          const target = parent && parent.tagName.toLowerCase() === match[2] ? parent : previous && previous.tagName.toLowerCase() === match[2] ? previous : parent;\n          if (target) {\n            try {\n              const attrs = JSON.parse(decode(match[3]));\n              for (const [name, value] of Object.entries(attrs)) {\n                if (name === 'style') target.style.cssText = String(value);\n                else if (name === 'class' || name === 'id' || name === 'title' || name === 'role'\n                  || name === 'width' || name === 'height' || name === 'alt' || name === 'loading'\n                  || name === 'type' || name === 'name' || name === 'value' || name === 'placeholder'\n                  || (match[2] === 'iframe' && ['src', 'frameborder', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'allow'].includes(name))\n                  || name.startsWith('data-') || name.startsWith('aria-')) {\n                  target.setAttribute(name, String(value));\n                }\n              }\n            } catch {}\n          }\n        }\n        last = match.index + match[0].length;\n      }\n      if (changed) { if (last < value.length) fragment.appendChild(document.createTextNode(value.slice(last))); node.parentNode && node.parentNode.replaceChild(fragment, node); }\n    }\n  };\n  hydrate(); window.addEventListener('instantclick:newpage', hydrate);\n})();";
@@ -841,7 +959,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       : htmlMode === 'full'
         ? inlineHtmlRuntime()
         : '';
-    const alertIconStyle = markdownAlertIconStyles();
+    const alertIconStyle = markdownAlertIconStyles(settings.markdownAlertStyleSettings);
     const videoPlayer = videoPlayerRuntime(
       isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false),
     );
@@ -1146,6 +1264,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
         htmlEnhancementMode?: unknown;
+        markdownAlertStyleSettings?: unknown;
         videoPlayerEnabled?: unknown;
         mobileNativePlayerEnhancementEnabled?: unknown;
       };
@@ -1171,6 +1290,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         htmlEnhancementMode: htmlMode,
         videoPlayerEnabled: videoPlayerValue ? '1' : '0',
       };
+      if (values.markdownAlertStyleSettings !== undefined) {
+        next.markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(values.markdownAlertStyleSettings);
+      }
       delete next.htmlEnhancementEnabled;
       delete next.mobileNativePlayerEnhancementEnabled;
       await setOption(auth.db, PLUGIN_OPTION_KEY, JSON.stringify(next));
