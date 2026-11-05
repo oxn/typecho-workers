@@ -290,6 +290,31 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINEHTMLX');
   });
 
+  it('preserves arbitrary data-* and aria-* attributes inside protected containers', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = '<div class="diag" data-diag-id="bili-static" aria-label="播放器区域"><div class="state" data-state-for="bili-static" data-state="waiting">等待加载</div><button data-action="retry" aria-pressed="false">重试</button></div>';
+    const context = { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }),
+    } };
+    const protectedSource = protect(source, context);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const sanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['button']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, button: ['type'] },
+    });
+    const output = restore(sanitized, context);
+
+    expect(output).toContain('data-diag-id="bili-static"');
+    expect(output).toContain('data-state-for="bili-static"');
+    expect(output).toContain('data-state="waiting"');
+    expect(output).toContain('data-action="retry"');
+    expect(output).toContain('aria-label="播放器区域"');
+    expect(output).toContain('aria-pressed="false"');
+  });
+
   it('preserves Bilibili iframe security and playback attributes through HTML restoration', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
