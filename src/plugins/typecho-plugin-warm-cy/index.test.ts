@@ -415,6 +415,25 @@ describe('typecho-plugin-warm-cy', () => {
     expect(unsupportedProtected).toBe(unsupported);
   });
 
+  it('only takes over trusted HTTPS provider iframe URLs', () => {
+    const markdown = collectHooks().get('content:markdown')!;
+    const context = { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }),
+    } };
+    const trusted = '<iframe src="https://www.youtube.com/embed/demo"></iframe>';
+    const protocolRelative = '<iframe src="//player.bilibili.com/player.html?bvid=BV1TEST"></iframe>';
+    const insecure = '<iframe src="http://www.youtube.com/embed/demo"></iframe>';
+    const credentialed = '<iframe src="https://user@www.youtube.com/embed/demo"></iframe>';
+    const customPort = '<iframe src="https://www.youtube.com:8443/embed/demo"></iframe>';
+
+    expect(markdown(trusted, context)).toContain('CYVIDEOIFRAMEX');
+    expect(markdown(protocolRelative, context)).toContain('CYVIDEOIFRAMEX');
+    expect(markdown(insecure, context)).toBe(insecure);
+    expect(markdown(credentialed, context)).toBe(credentialed);
+    expect(markdown(customPort, context)).toBe(customPort);
+  });
+
   it('preserves Bilibili iframe markup before Markdown can split provider attributes', () => {
     const hooks = collectHooks();
     const markdown = hooks.get('content:markdown')!;
