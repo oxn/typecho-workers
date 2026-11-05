@@ -37,8 +37,8 @@ function isEnabled(value: unknown, fallback = true): boolean {
 
 async function isHtmlEnhancementEnabled(): Promise<boolean> {
   // Content filters receive only the content string, not RequestContext.options.
-  // Read the private plugin option through the host's cached options loader so
-  // the feature switch works without changing the core filter-hook contract.
+  // Read this plugin's private option through the public plugin SDK so the
+  // feature switch works without changing the core filter-hook contract.
   const rawSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
   const settings = parsePluginSettings(rawSettings);
   return isEnabled(settings.htmlEnhancementEnabled, false);
