@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.04.20.41';
+const PLUGIN_VERSION = '2026.11.05.09.42';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -45,6 +45,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
+  const mobilePlayerDebugEnabled = isEnabled(settings.mobileNativePlayerEnhancementEnabled, false);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
       data-cy-feature-settings data-csrf-token="${escapeHtml(csrfToken)}">
@@ -73,6 +74,13 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         </label>
         <p>允许文章、笔记和独立页面正文使用内嵌 &lt;style&gt;、&lt;script&gt;、SVG，以及 HTML 的 class、id、data、aria 和 style 属性。开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布文章；评论区不受影响。</p>
       </section>
+      <section class="cy-feature-card">
+        <label class="cy-feature-toggle">
+          <input type="checkbox" data-cy-setting="mobileNativePlayerEnhancementEnabled" ${mobilePlayerDebugEnabled ? 'checked' : ''}>
+          <span>视频播放器绿色边框（生效测试）</span>
+        </label>
+        <p>默认关闭。开启后，插件会给 YouTube、B 站和 Vimeo 的内嵌播放器添加绿色细边框，作为插件脚本已执行的可视标记；关闭后不添加边框。本项仅用于确认插件是否在前台生效，不改变播放器地址、加载方式、权限或高度。</p>
+      </section>
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
         <span data-cy-save-status role="status" aria-live="polite"></span>
@@ -89,6 +97,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
+          var mobilePlayer = root.querySelector('[data-cy-setting="mobileNativePlayerEnhancementEnabled"]');
           save.disabled = true;
           status.textContent = '正在保存…';
           try {
@@ -101,7 +110,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
               body: JSON.stringify({
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
-                htmlEnhancementEnabled: !!htmlEnhancement.checked
+                htmlEnhancementEnabled: !!htmlEnhancement.checked,
+                mobileNativePlayerEnhancementEnabled: !!mobilePlayer.checked
               })
             });
             var result = await response.json();
@@ -510,6 +520,38 @@ function markdownAlertIconStyles(): string {
 }
 
 const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  const markerPattern = /CYCYINLINEBLOCKX([0-9a-f]+)XEND|CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/g;\n  const svgTags = new Set(['svg','g','path','circle','rect','line','polyline','polygon','ellipse','defs','lineargradient','radialgradient','stop','clippath','mask','title','desc','use','symbol']);\n  const svgAttrs = new Set(['id','class','viewbox','width','height','fill','fill-rule','clip-rule','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','cx','cy','r','rx','ry','x','y','x1','x2','y1','y2','d','points','transform','preserveaspectratio','offset','stop-color','stop-opacity','gradientunits','gradienttransform','clippathunits','maskunits','maskcontentunits','clip-path','mask','filter','href','xlink:href','role','focusable','aria-hidden','aria-label']);\n  const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };\n  const safeSvgNode = node => {\n    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || '');\n    if (node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())) return null;\n    const clean = document.createElementNS('http://www.w3.org/2000/svg', node.localName);\n    for (const attr of Array.from(node.attributes)) {\n      const key = attr.name.toLowerCase(), value = attr.value;\n      if (!svgAttrs.has(key) && key !== 'style' && !key.startsWith('aria-')) continue;\n      if (key === 'style') {\n        const allowedStyle = new Set(['fill','stroke','fill-rule','clip-rule','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','stop-color','stop-opacity']);\n        const safeStyle = value.split(';').map(part => part.trim()).filter(Boolean).map(part => {\n          const split = part.indexOf(':');\n          if (split < 1) return '';\n          const property = part.slice(0, split).trim().toLowerCase();\n          const cssValue = part.slice(split + 1).trim();\n          if (!allowedStyle.has(property) || /expression|javascript:|data:|@import|[\\u0000-\\u001f]/i.test(cssValue)) return '';\n          if (/\\burl\\s*\\(/i.test(cssValue) && !/^url\\(\\s*#[\\w:.-]+\\s*\\)$/i.test(cssValue)) return '';\n          return property + ':' + cssValue;\n        }).filter(Boolean).join(';');\n        if (safeStyle) clean.setAttribute('style', safeStyle);\n        continue;\n      }\n      if ((key === 'href' || key === 'xlink:href') && !/^#[\\w:.-]+$/.test(value)) continue;\n      if (/\\burl\\s*\\(/i.test(value) && !/^\\s*url\\(\\s*#[\\w:.-]+\\s*\\)\\s*$/i.test(value)) continue;\n      if (/javascript:|data:text\\/html|[\\u0000-\\u001f]/i.test(value)) continue;\n      if (key === 'xlink:href') clean.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', value); else clean.setAttribute(attr.name, value);\n    }\n    for (const child of Array.from(node.childNodes)) { const safe = safeSvgNode(child); if (safe) clean.appendChild(safe); }\n    return clean;\n  };\n  const addBlock = raw => {\n    const match = raw.match(/^<(style|script|svg)\\b([^>]*)>([\\s\\S]*)<\\/\\1\\s*>$/i);\n    if (!match) return null;\n    const tag = match[1].toLowerCase(), attrs = match[2] || '', body = match[3] || '';\n    if (tag === 'svg') {\n      try { const parsed = new DOMParser().parseFromString(raw, 'image/svg+xml'); if (parsed.querySelector('parsererror') || parsed.documentElement.localName.toLowerCase() !== 'svg') return null; return safeSvgNode(parsed.documentElement); } catch { return null; }\n    }\n    if (tag === 'style') { const style = document.createElement('style'); const media = attrs.match(/\\bmedia\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i); if (media) style.media = media[1] || media[2] || ''; style.textContent = body; document.head.appendChild(style); return null; }\n    const script = document.createElement('script');\n    const type = attrs.match(/\\btype\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n    const scriptType = (type && (type[1] || type[2]) || '').toLowerCase();\n    if (scriptType && !['module','text/javascript','application/javascript'].includes(scriptType)) return null;\n    if (scriptType) script.type = scriptType;\n    script.textContent = body; document.body.appendChild(script); return null;\n  };\n  const hydrate = () => {\n    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode(node) { const p = node.parentElement; if (!p || p.closest('pre,code,textarea,script,style')) return NodeFilter.FILTER_REJECT; markerPattern.lastIndex = 0; return markerPattern.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });\n    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);\n    for (const node of nodes) {\n      const value = node.nodeValue || ''; markerPattern.lastIndex = 0; let last = 0, match, changed = false; const fragment = document.createDocumentFragment();\n      while ((match = markerPattern.exec(value))) {\n        changed = true; if (match.index > last) fragment.appendChild(document.createTextNode(value.slice(last, match.index)));\n        if (enabled && match[1]) { const element = addBlock(decode(match[1])); if (element) fragment.appendChild(element); }\n        else if (enabled && match[2] && match[3]) {\n          const parent = node.parentElement, previous = node.previousElementSibling;\n          const target = parent && parent.tagName.toLowerCase() === match[2] ? parent : previous && previous.tagName.toLowerCase() === match[2] ? previous : parent;\n          if (target) {\n            try {\n              const attrs = JSON.parse(decode(match[3]));\n              for (const [name, value] of Object.entries(attrs)) {\n                if (name === 'style') target.style.cssText = String(value);\n                else if (name === 'class' || name === 'id' || name === 'title' || name === 'role'\n                  || name === 'width' || name === 'height' || name === 'alt' || name === 'loading'\n                  || name === 'type' || name === 'name' || name === 'value' || name === 'placeholder'\n                  || name.startsWith('data-') || name.startsWith('aria-')) {\n                  target.setAttribute(name, String(value));\n                }\n              }\n            } catch {}\n          }\n        }\n        last = match.index + match[0].length;\n      }\n      if (changed) { if (last < value.length) fragment.appendChild(document.createTextNode(value.slice(last))); node.parentNode && node.parentNode.replaceChild(fragment, node); }\n    }\n  };\n  hydrate(); window.addEventListener('instantclick:newpage', hydrate);\n})();";
+function mobilePlayerDebugRuntime(enabled: boolean): string {
+  if (!enabled) return '';
+  return `<script data-cy-video-border-debug>
+    (() => {
+      const supportedHosts = ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'];
+      const markPlayer = (frame) => {
+        let hostname = '';
+        try { hostname = new URL(frame.src, location.href).hostname.toLowerCase(); }
+        catch { return; }
+        if (!supportedHosts.includes(hostname)) return;
+        frame.style.setProperty('border', '2px solid #16a34a', 'important');
+        frame.style.setProperty('box-sizing', 'border-box', 'important');
+        frame.dataset.cyVideoBorderDebug = '1';
+      };
+      const scan = (root) => {
+        if (root instanceof HTMLIFrameElement) markPlayer(root);
+        if (root && root.querySelectorAll) {
+          root.querySelectorAll('iframe').forEach(markPlayer);
+        }
+      };
+      scan(document);
+      const observer = new MutationObserver(records => {
+        for (const record of records) {
+          record.addedNodes.forEach(scan);
+        }
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      window.addEventListener('instantclick:newpage', () => scan(document));
+    })();
+  </script>`;
+}
+
 function inlineHtmlRuntime(enabled: boolean): string {
   const visibilityStyle = '<style data-cy-inline-html-enhancement-style>'
     + '.cy-inline-html-pending{display:' + (enabled ? 'contents' : 'none') + '!important}'
@@ -573,13 +615,16 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
     const htmlRuntime = inlineHtmlRuntime(isEnabled(settings.htmlEnhancementEnabled, false));
     const alertIconStyle = options.theme === THEME_ID ? markdownAlertIconStyles() : '';
+    const mobilePlayerDebug = options.theme === THEME_ID
+      ? mobilePlayerDebugRuntime(isEnabled(settings.mobileNativePlayerEnhancementEnabled, false))
+      : '';
     if (options.theme !== THEME_ID || !isEnabled(settings.showHomeSearchButton)) {
-      return html + alertIconStyle + htmlRuntime;
+      return html + alertIconStyle + htmlRuntime + mobilePlayerDebug;
     }
     const searchBase = JSON.stringify(
       String(computeUrls(options as any).siteUrl || '/').replace(/\/?$/, '/'),
     ).replace(/</g, '\\u003c');
-    return `${html}${alertIconStyle}${htmlRuntime}<script data-warm-cy-global-search>
+    return `${html}${alertIconStyle}${htmlRuntime}${mobilePlayerDebug}<script data-warm-cy-global-search>
       (() => {
         const searchBase = ${searchBase};
         const ensureSearchControls = () => {
@@ -873,10 +918,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
+        mobileNativePlayerEnhancementEnabled?: unknown;
       };
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
-        || typeof values.htmlEnhancementEnabled !== 'boolean') {
+        || typeof values.htmlEnhancementEnabled !== 'boolean'
+        || typeof values.mobileNativePlayerEnhancementEnabled !== 'boolean') {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
       }
       const current = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
@@ -885,6 +932,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
+        mobileNativePlayerEnhancementEnabled: values.mobileNativePlayerEnhancementEnabled ? '1' : '0',
       };
       await setOption(auth.db, PLUGIN_OPTION_KEY, JSON.stringify(next));
       return { handled: true, response: json({ success: true }) };
