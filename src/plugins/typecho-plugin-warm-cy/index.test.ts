@@ -238,7 +238,7 @@ describe('typecho-plugin-warm-cy', () => {
       '> <a href="https://pan.baidu.com/s/1otJbDx4U2bg4yL9VYw3MoA?pwd=cycy" target="_blank" rel="noopener noreferrer" style="font-weight:bold;color:var(--accent);word-break:break-all;"><span style="display:inline-flex;align-items:center;gap:4px;background:#079C48;color:#fff;border-radius:4px;padding:4px 10px;white-space:nowrap;"><svg width="18" height="18" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;"><path d="M46 580h20v200h700" fill="#fff"/><path d="M481 734L157 449" fill="#fff"/></svg><span>下载地址</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"></path><polyline points="7 7 17 7 17 17"></polyline></svg></span></a> | 密码：cycy',
     ].join('\n');
 
-    const protectedSource = protect(source);
+    const protectedSource = protect(source, htmlEnabledContext());
     expect(protectedSource).toContain('CYCYINLINEHTMLX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const coreSanitized = sanitizeHtml(parsed, {
@@ -255,7 +255,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized);
+    const restored = restore(coreSanitized, htmlEnabledContext());
 
     expect(restored).toContain('cy-inline-html-pending');
     expect(restored).toContain('href="https://pan.baidu.com/s/1otJbDx4U2bg4yL9VYw3MoA?pwd=cycy"');
@@ -498,7 +498,7 @@ describe('typecho-plugin-warm-cy', () => {
       '</div>',
     ].join('\\n');
 
-    const protectedSource = protect(source);
+    const protectedSource = protect(source, htmlEnabledContext());
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const coreSanitized = sanitizeHtml(parsed, {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat([
@@ -514,7 +514,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized);
+    const restored = restore(coreSanitized, htmlEnabledContext());
     const marker = restored.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)?.[0];
     expect(marker).toBeTruthy();
 
