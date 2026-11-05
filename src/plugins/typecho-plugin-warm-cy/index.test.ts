@@ -322,12 +322,23 @@ describe('typecho-plugin-warm-cy', () => {
   });
 
   it('takes over supported provider iframes only when the independent player is enabled', () => {
-    const handler = collectHooks().get('content:content')!;
+    const hooks = collectHooks();
+    const markdown = hooks.get('content:markdown')!;
+    const handler = hooks.get('content:content')!;
     const iframe = '<iframe src="https://www.youtube.com/embed/demo" width="560" height="315"></iframe>';
-    const enabled = handler(iframe, { options: {
+    const context = { options: {
       theme: 'typecho-theme-warm-cy',
       [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }),
-    } });
+    } };
+    const protectedSource = markdown(iframe, context);
+    expect(protectedSource).not.toContain('<iframe');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const sanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['iframe']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen'] },
+      allowedIframeHostnames: ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'],
+    });
+    const enabled = handler(sanitized, context);
     expect(enabled).toContain('data-cy-video-player');
     expect(enabled).toContain('data-cy-video-provider="youtube"');
     expect(enabled).toContain('data-cy-video-height="315"');
@@ -335,10 +346,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).not.toContain('<iframe');
 
     const unsupported = '<iframe src="https://video.example/embed/demo"></iframe>';
-    expect(handler(unsupported, { options: {
-      theme: 'typecho-theme-warm-cy',
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }),
-    } })).toBe(unsupported);
+    const unsupportedProtected = markdown(unsupported, context);
+    expect(unsupportedProtected).toBe(unsupported);
   });
 
   it('injects the independent player runtime only when its own switch is enabled', () => {
@@ -353,8 +362,9 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).not.toContain('data-cy-video-border-debug');
     expect(enabled).not.toContain('enablejsapi=1');
     expect(enabled).not.toContain('cloneNode(false)');
-    expect(enabled).toContain("frame.setAttribute('referrerpolicy', 'no-referrer')");
-    expect(enabled).toContain("frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms')");
+    expect(enabled).toContain("frame.loading = 'eager'");
+    expect(enabled).not.toContain("frame.setAttribute('referrerpolicy', 'no-referrer')");
+    expect(enabled).not.toContain("frame.setAttribute('sandbox'");
 
     const disabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
