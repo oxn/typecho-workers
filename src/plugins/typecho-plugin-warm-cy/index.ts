@@ -536,25 +536,19 @@ function videoProviderForSource(source: string): 'youtube' | 'bilibili' | 'vimeo
 }
 
 function readIframeAttribute(attributes: string, name: string): string {
-  const pattern = new RegExp('\\\\b' + name + '\\\\s*=\\\\s*(?:"([^"]*)"|\\'([^\\']*)\\'|([^\\\\s>]+))', 'i');
+  const pattern = new RegExp("\\b" + name + "\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]+))", "i");
   const match = pattern.exec(attributes);
   return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
 }
 
-/**
- * When the independent player is enabled, replace supported provider iframes
- * with inert placeholders before the theme's native iframe normalizer runs.
- * When disabled, this function is never called and the original iframe HTML
- * remains untouched for the upstream theme player.
- */
 function replaceVideoIframesWithPlaceholders(content: string): string {
-  return content.replace(/<iframe\\b([^>]*)>(?:\\s*<\\/iframe\\s*>)?/gi, (match, attributes: string) => {
+  return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe\s*>)?/gi, (match, attributes: string) => {
     const source = readIframeAttribute(attributes, 'src');
     const provider = videoProviderForSource(source);
     if (!source || !provider) return match;
 
     const requestedHeight = readIframeAttribute(attributes, 'height');
-    const height = /^\\d{2,4}$/.test(requestedHeight)
+    const height = /^\d{2,4}$/.test(requestedHeight)
       ? requestedHeight
       : provider === 'bilibili' ? '480' : '360';
 
@@ -567,14 +561,9 @@ function replaceVideoIframesWithPlaceholders(content: string): string {
   });
 }
 
-/**
- * The plugin owns iframe creation only while its independent-player switch is
- * enabled. No YouTube API, source rewriting, iframe cloning or UA-specific
- * replacement is performed here.
- */
 function videoPlayerRuntime(enabled: boolean): string {
   if (!enabled) return '';
-  return \`<style data-cy-video-player-styles>
+  return `<style data-cy-video-player-styles>
     .cy-video-player{position:relative;width:100%;height:480px;max-width:100%;overflow:hidden;background:#000;border-radius:0.5rem}
     .cy-video-player iframe{display:block;width:100%;height:100%;max-width:100%;border:0}
     .cy-video-player__status{position:absolute;inset:0;display:grid;place-items:center;padding:1rem;color:#fff;background:#111;text-align:center;font-size:14px}
@@ -640,8 +629,7 @@ function videoPlayerRuntime(enabled: boolean): string {
       });
       if (document.documentElement) observer.observe(document.documentElement, { childList: true, subtree: true });
     })();
-  </script>\`;
-}
+  </script>`;}
 function inlineHtmlRuntime(): string {
   // Injected only while the HTML enhancement is enabled; disabled mode adds
   // neither a hiding rule nor a runtime script.
