@@ -167,6 +167,18 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('M4.47.22');
   });
 
+  it('keeps the five Note icons independent from the HTML enhancement mode', () => {
+    const restore = collectHooks().get('content:content')!;
+    const source = '<blockquote class="markdown-alert" data-alert="NOTE"><p class="markdown-alert-title">NOTE</p><p>正文</p></blockquote>';
+    const output = restore(source, { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'off' }),
+    } });
+    expect(output).toContain('class="markdown-alert-icon"');
+    expect(output).toContain('cy-markdown-alert-has-icon');
+    expect(output).not.toContain('CYCYINLINE');
+  });
+
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', () => {
     const handler = collectHooks().get('content:markdown')!;
     const input = [
@@ -629,6 +641,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('width:24px!important');
     expect(html).toContain('margin-right:5px!important');
     expect(html).toContain('display:none!important');
+    expect(html).toContain('.warm-prose .markdown-alert[data-alert="NOTE"] .markdown-alert-title');
+    expect(html).toContain('.warm-note__content .markdown-alert[data-alert="NOTE"] .markdown-alert-title');
   });
 
   it('validates and stores Note style settings without dropping other plugin options', async () => {
