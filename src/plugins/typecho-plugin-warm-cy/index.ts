@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.04.20.41';
+const PLUGIN_VERSION = '2026.11.05.06.22';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
