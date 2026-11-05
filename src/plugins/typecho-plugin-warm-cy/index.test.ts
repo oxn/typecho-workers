@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runInNewContext } from 'node:vm';
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
+import { transformGithubAlerts } from '@/lib/markdown-alerts';
 
 const mocks = vi.hoisted(() => ({
   requireAdminAction: vi.fn(),
@@ -178,6 +179,34 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).toContain('class="markdown-alert-icon"');
     expect(output).toContain('cy-markdown-alert-has-icon');
     expect(output).not.toContain('CYCYINLINE');
+  });
+
+  it('restores Note icons after the real GitHub-alert transform and core sanitizer in off mode', () => {
+    const handler = collectHooks().get('content:content')!;
+    const markdown = [
+      '> [!NOTE]\n> note body',
+      '> [!TIP]\n> tip body',
+      '> [!IMPORTANT]\n> important body',
+      '> [!WARNING]\n> warning body',
+      '> [!CAUTION]\n> caution body',
+    ].join('\n\n');
+    const parsed = transformGithubAlerts(marked.parse(markdown, { async: false }) as string);
+    const sanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags,
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        blockquote: ['class', 'data-alert'],
+        p: ['class'],
+      },
+    });
+    const restored = handler(sanitized, { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'off' }),
+    } });
+    expect((restored.match(/class="markdown-alert-icon"/g) || []).length).toBe(5);
+    expect(restored).toContain('data-alert="NOTE"');
+    expect(restored).toContain('data-alert="CAUTION"');
+    expect(restored).not.toContain('CYCYINLINE');
   });
 
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', () => {
