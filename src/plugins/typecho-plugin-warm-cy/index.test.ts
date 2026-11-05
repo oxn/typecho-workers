@@ -722,7 +722,7 @@ describe('typecho-plugin-warm-cy', () => {
     class MockCSSStyleSheet {
       cssRules: any[] = [];
       replaceSync(cssText: string) {
-        const rulePattern = /([^{}]+)\\{([^{}]*)\\}/g;
+        const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
         let match: RegExpExecArray | null;
         while ((match = rulePattern.exec(cssText))) {
           const selectorText = match[1].trim();
@@ -733,8 +733,8 @@ describe('typecho-plugin-warm-cy', () => {
             if (split < 1) continue;
             const property = declaration.slice(0, split).trim().toLowerCase();
             let value = declaration.slice(split + 1).trim();
-            const important = /\\s*!important\\s*$/i.test(value);
-            if (important) value = value.replace(/\\s*!important\\s*$/i, '');
+            const important = /\s*!important\s*$/i.test(value);
+            if (important) value = value.replace(/\s*!important\s*$/i, '');
             values.set(property, { value, priority: important ? 'important' : '' });
           }
           const names = Array.from(values.keys());
