@@ -353,6 +353,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).not.toContain('data-cy-video-border-debug');
     expect(enabled).not.toContain('enablejsapi=1');
     expect(enabled).not.toContain('cloneNode(false)');
+    expect(enabled).toContain("frame.setAttribute('referrerpolicy', 'no-referrer')");
+    expect(enabled).toContain("frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms')");
 
     const disabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
