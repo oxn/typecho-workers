@@ -587,7 +587,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].tagName).toBe('STYLE');
     expect(appendedStyles[0].textContent).toContain('.custom-footer { display: flex; color: #123456; }');
     expect(appendedStyles[0].textContent).toContain('.badge-row { gap: 12px; }');
-    expect(appendedStyles[0].textContent).toContain('.badge-dual { font-size: 11px; border-radius: 6px; background: #079C48; /* adjust `font-size` here */ }');
+    expect(appendedStyles[0].textContent).toContain('.badge-dual { font-size: 11px; border-radius: 6px; background: #079C48;  }');
+    expect(appendedStyles[0].textContent).not.toContain('/* adjust `font-size` here */');
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
     expect(replaceCalls).toBeGreaterThan(0);
   });
