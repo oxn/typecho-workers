@@ -888,14 +888,6 @@ describe('typecho-plugin-warm-cy', () => {
       ? footer.slice(runtimeStart + runtimeStartTag.length, runtimeEnd)
       : '';
     expect(runtime).toBeTruthy();
-    expect(runtime).toContain("'text','tspan','filter'");
-    expect(runtime).toContain("'fegaussianblur'");
-    expect(runtime).toContain("'font-size'");
-    expect(runtime).toContain("'])#");
-    expect(runtime).toContain("|#[\\w:.-]+");
-    expect(runtime).toContain("'text-anchor'");
-    expect(runtime).toContain("['media','nonce','title','id','type']");
-    expect(runtime).toContain("name.startsWith('data-')");
 
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
     const replacements: unknown[] = [];
@@ -984,13 +976,130 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].tagName).toBe('STYLE');
     expect(appendedStyles[0].textContent).toContain('.custom-footer{display:flex;color:#123456}');
     expect(appendedStyles[0].textContent).toContain('.badge-row{gap:12px}');
-    expect(appendedStyles[0].textContent).toContain('.gradient-fill{background-image:url(\"#safe-gradient\")}');
+    expect(appendedStyles[0].textContent).toMatch(/background-image\s*:\s*url\(\s*["']?#safe-gradient["']?\s*\)/i);
     expect(appendedStyles[0].textContent).toContain('.badge-dual{font-size:11px;border-radius:6px;background:#079C48}');
     expect(appendedStyles[0].textContent).not.toContain('expression');
-    expect(appendedStyles[0].textContent).not.toContain('url(');
+    const cssUrls = Array.from(
+      appendedStyles[0].textContent.matchAll(/url\(\s*(?:("')(.*?)\1|([^)]*))\s*\)/gi),
+      match => (match[2] ?? match[3] ?? '').trim(),
+    );
+    expect(cssUrls).toEqual(['#safe-gradient']);
     expect(appendedStyles[0].textContent).not.toContain('behavior');
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
     expect(replaceCalls).toBeGreaterThan(0);
   });
 
+
+  it('rebuilds SVG nodes from an allowlist and keeps only local fragment references', () => {
+    const hooks = collectHooks();
+    const footer = hooks.get('archive:footer')!('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full', showHomeSearchButton: '0' }),
+    } });
+    const runtimeStartTag = '<script data-cy-inline-html-enhancement>';
+    const runtimeStart = footer.indexOf(runtimeStartTag);
+    const runtimeEnd = footer.indexOf('</script>', runtimeStart + runtimeStartTag.length);
+    const runtime = runtimeStart >= 0 && runtimeEnd >= 0
+      ? footer.slice(runtimeStart + runtimeStartTag.length, runtimeEnd)
+      : '';
+    expect(runtime).toBeTruthy();
+
+    const svgSource = '<svg viewBox="0 0 16 16" onload="alert(1)">'
+      + '<use href="#safe-symbol"></use>'
+      + '<use href="https://evil.example/external.svg#icon"></use>'
+      + '<path fill=\'url("#safe-gradient")\' d="M0 0h10v10H0z"></path>'
+      + '<path fill="url(https://evil.example/paint.svg#gradient)" d="M1 1h8v8H1z"></path>'
+      + '</svg>';
+    const marker = 'CYCYINLINEBLOCKX' + Buffer.from(svgSource, 'utf8').toString('hex') + 'XEND';
+
+    const makeNode = (localName: string, attributes: Record<string, string> = {}, childNodes: any[] = []) => ({
+      nodeType: 1,
+      localName,
+      attributes: Object.entries(attributes).map(([name, value]) => ({ name, value })),
+      childNodes,
+    });
+    const parsedRoot = makeNode('svg', { viewBox: '0 0 16 16', onload: 'alert(1)' }, [
+      makeNode('use', { href: '#safe-symbol' }),
+      makeNode('use', { href: 'https://evil.example/external.svg#icon' }),
+      makeNode('path', { fill: 'url("#safe-gradient")', d: 'M0 0h10v10H0z' }),
+      makeNode('path', { fill: 'url(https://evil.example/paint.svg#gradient)', d: 'M1 1h8v8H1z' }),
+    ]);
+    let parsedSource = '';
+    class MockDOMParser {
+      parseFromString(source: string) {
+        parsedSource = source;
+        return { querySelector: () => null, documentElement: parsedRoot };
+      }
+    }
+
+    const inserted: any[] = [];
+    const textNode: any = {
+      nodeType: 3,
+      nodeValue: marker,
+      parentElement: { closest: () => null },
+      parentNode: {
+        replaceChild(fragment: { childNodes: unknown[] }) {
+          inserted.push(...fragment.childNodes);
+        },
+      },
+      previousElementSibling: null,
+    };
+    const createSvgElement = (localName: string) => ({
+      nodeType: 1,
+      localName,
+      attributes: [] as Array<{ name: string; value: string }>,
+      childNodes: [] as any[],
+      setAttribute(name: string, value: string) { this.attributes.push({ name, value }); },
+      setAttributeNS(_namespace: string, name: string, value: string) { this.attributes.push({ name, value }); },
+      appendChild(child: any) { this.childNodes.push(child); return child; },
+    });
+    const document = {
+      body: { appendChild() {} },
+      head: { appendChild() {} },
+      createTreeWalker(_root: unknown, _whatToShow: number, filter: { acceptNode(node: unknown): number }) {
+        let visited = false;
+        return {
+          currentNode: textNode,
+          nextNode() {
+            if (visited || filter.acceptNode(textNode) !== 1) return false;
+            visited = true;
+            return true;
+          },
+        };
+      },
+      createDocumentFragment() {
+        const childNodes: any[] = [];
+        return { childNodes, appendChild(node: any) { childNodes.push(node); return node; } };
+      },
+      createTextNode(nodeValue: string) { return { nodeType: 3, nodeValue }; },
+      createElementNS(_namespace: string, localName: string) { return createSvgElement(localName); },
+      createElement(tagName: string) { return { tagName: tagName.toUpperCase(), textContent: '', setAttribute() {} }; },
+    };
+
+    runInNewContext(runtime, {
+      CSSStyleSheet: undefined,
+      DOMParser: MockDOMParser,
+      document,
+      window: { addEventListener() {} },
+      Node: { TEXT_NODE: 3, ELEMENT_NODE: 1 },
+      NodeFilter: { SHOW_TEXT: 4, FILTER_REJECT: 2, FILTER_ACCEPT: 1 },
+      TextDecoder,
+      Uint8Array,
+    });
+
+    expect(parsedSource).toBe(svgSource);
+    expect(inserted).toHaveLength(1);
+    const svg = inserted[0];
+    expect(svg.localName).toBe('svg');
+    expect(svg.attributes).toContainEqual({ name: 'viewBox', value: '0 0 16 16' });
+    expect(svg.attributes.some((attribute: { name: string }) => attribute.name.toLowerCase() === 'onload')).toBe(false);
+
+    const uses = svg.childNodes.filter((node: any) => node.localName === 'use');
+    expect(uses.map((node: any) => node.attributes.find((attribute: any) => attribute.name === 'href')?.value))
+      .toEqual(['#safe-symbol', undefined]);
+
+    const paths = svg.childNodes.filter((node: any) => node.localName === 'path');
+    expect(paths.map((node: any) => node.attributes.find((attribute: any) => attribute.name === 'fill')?.value))
+      .toEqual(['url("#safe-gradient")', undefined]);
+  });
 });
