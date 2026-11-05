@@ -262,7 +262,7 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     'img', 'button', 'label', 'blockquote', 'pre', 'code',
     'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
     'details', 'summary', 'dl', 'dt', 'dd', 'picture', 'source',
-    'video', 'audio',
+    'video', 'audio', 'iframe',
     'svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
     'ellipse', 'defs', 'lineargradient', 'linearGradient',
     'radialgradient', 'radialGradient', 'stop', 'clippath', 'clipPath',
@@ -297,6 +297,8 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     td: ['style', 'class', 'id', 'colspan', 'rowspan'],
     video: ['src', 'controls', 'width', 'height', 'poster', 'style', 'class'],
     audio: ['src', 'controls', 'style', 'class'],
+    iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'title',
+      'loading', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'allow'],
     source: ['src', 'type'],
     svg: ['width', 'height', 'viewbox', 'viewBox', 'xmlns', 'fill', 'stroke',
       'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style', 'class', 'id',
@@ -326,6 +328,7 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     use: ['id', 'href', 'xlink:href', 'width', 'height', 'x', 'y'],
     symbol: ['id', 'viewbox', 'viewBox', 'preserveAspectRatio'],
   },
+  allowedIframeHostnames: ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'],
   allowedStyles: {
     '*': {
       color: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
