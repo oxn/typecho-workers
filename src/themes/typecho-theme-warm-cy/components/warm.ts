@@ -399,7 +399,7 @@ export function renderWarmIframes(html: string): string {
 
     let result = attributes;
 
-    result = setAttribute(result, 'loading', 'lazy');
+    result = setAttribute(result, 'loading', 'eager');
     result = setAttribute(result, 'allowfullscreen', '');
     result = setAttribute(
       result,
