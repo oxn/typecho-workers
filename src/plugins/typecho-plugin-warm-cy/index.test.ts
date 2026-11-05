@@ -663,6 +663,10 @@ describe('typecho-plugin-warm-cy', () => {
       ? footer.slice(runtimeStart + runtimeStartTag.length, runtimeEnd)
       : '';
     expect(runtime).toBeTruthy();
+    expect(runtime).toContain("'text','tspan','filter'");
+    expect(runtime).toContain("'fegaussianblur'");
+    expect(runtime).toContain("'font-size'");
+    expect(runtime).toContain("'text-anchor'");
 
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
     const replacements: unknown[] = [];
