@@ -364,10 +364,10 @@ describe('typecho-plugin-warm-cy', () => {
     });
     const restored = restore(coreSanitized);
 
-    const biliIframe = restored.match(/<iframe\\b(?=[^>]*player\\.bilibili\\.com)[^>]*>/i)?.[0] ?? '';
-    const youtubeIframe = restored.match(/<iframe\\b(?=[^>]*youtube\\.com)[^>]*>/i)?.[0] ?? '';
+    const biliIframe = restored.match(/<iframe\b(?=[^>]*player\.bilibili\.com)[^>]*>/i)?.[0] ?? '';
+    const youtubeIframe = restored.match(/<iframe\b(?=[^>]*youtube\.com)[^>]*>/i)?.[0] ?? '';
     expect(biliIframe).toContain('sandbox="allow-scripts allow-same-origin"');
-    expect(biliIframe).not.toMatch(/\\breferrerpolicy\\s*=/i);
+    expect(biliIframe).not.toMatch(/\breferrerpolicy\s*=/i);
     expect(youtubeIframe).toContain('referrerpolicy="no-referrer"');
   });
 
