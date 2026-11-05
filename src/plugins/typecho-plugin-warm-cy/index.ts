@@ -387,19 +387,7 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     },
   },
 };
-// sanitize-html uses tag-specific attribute lists in preference to the global '*'
- // list. Add the safe data/aria prefixes to every explicit tag list as well,
- // otherwise attributes on div/button/etc. would still be discarded.
-function allowInlineDataAttributes(): void {
-  const allowed = INLINE_FRAGMENT_SANITIZE_OPTIONS.allowedAttributes;
-  if (!allowed || Array.isArray(allowed)) return;
-  for (const attributes of Object.values(allowed)) {
-    if (!Array.isArray(attributes)) continue;
-    if (!attributes.includes('data-*')) attributes.push('data-*');
-    if (!attributes.includes('aria-*')) attributes.push('aria-*');
-  }
-}
-allowInlineDataAttributes();
+
 
 function decodeInlinePayload(hex: string): string {
   const bytes = new Uint8Array(hex.length / 2);
@@ -425,7 +413,34 @@ function sanitizeInlineSvgReferences(source: string): string {
 }
 
 function sanitizeInlineHtmlFragment(source: string): string {
-  return sanitizeHtml(sanitizeInlineSvgReferences(source), INLINE_FRAGMENT_SANITIZE_OPTIONS);
+  // sanitize-html attribute names are exact-match entries; expand only valid
+  // data-/aria- names actually present in this fragment, rather than relying
+  // on a "data-*" attribute glob that may be treated as a literal name.
+  const baseAttributes = INLINE_FRAGMENT_SANITIZE_OPTIONS.allowedAttributes;
+  const allowedAttributes: Record<string, string[]> = Array.isArray(baseAttributes)
+    ? { '*': [...baseAttributes] }
+    : Object.fromEntries(Object.entries(baseAttributes || {}).map(([tag, names]) => [tag, [...(names || [])]]));
+  const addAttribute = (tag: string, name: string) => {
+    for (const key of ['*', tag]) {
+      const list = allowedAttributes[key] || (allowedAttributes[key] = []);
+      if (!list.includes(name)) list.push(name);
+    }
+  };
+  const tagPattern = /<([a-z][\\w:-]*)\\b([^>]*)>/gi;
+  let tagMatch: RegExpExecArray | null;
+  while ((tagMatch = tagPattern.exec(source))) {
+    const tag = tagMatch[1].toLowerCase();
+    if (!INLINE_FRAGMENT_SANITIZE_OPTIONS.allowedTags?.includes(tag)) continue;
+    const attributePattern = /(?:^|\\s)(data-[a-z0-9_.:-]+|aria-[a-z0-9_.:-]+)(?=\\s|=|$)/gi;
+    let attributeMatch: RegExpExecArray | null;
+    while ((attributeMatch = attributePattern.exec(tagMatch[2]))) {
+      addAttribute(tag, attributeMatch[1].toLowerCase());
+    }
+  }
+  return sanitizeHtml(sanitizeInlineSvgReferences(source), {
+    ...INLINE_FRAGMENT_SANITIZE_OPTIONS,
+    allowedAttributes,
+  });
 }
 
 function restoreInlineHtmlFragments(content: string): string {
