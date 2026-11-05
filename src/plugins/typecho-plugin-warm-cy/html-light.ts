@@ -1,6 +1,6 @@
 import sanitizeHtml from 'sanitize-html';
 
-// Exact legacy HTML pipeline preserved from the 2026-11-04 23:12-era CY baseline.
+// Exact CY plugin 2026.11.04.20.41 pipeline, shipped with Warm CY theme 2026.11.04.23.12.
 // Keep this implementation isolated so the lightweight mode cannot drift with full mode.
 function encodeInlinePayload(value: string): string {
   return Array.from(new TextEncoder().encode(value), byte =>
