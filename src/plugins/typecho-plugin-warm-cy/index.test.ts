@@ -10,9 +10,7 @@ const mocks = vi.hoisted(() => ({
   registerPluginAdminPath: vi.fn(),
   computeUrls: vi.fn(() => ({ adminUrl: '/admin/' })),
   getDb: vi.fn(() => ({ binding: 'test-db' })),
-  loadOptions: vi.fn(async () => ({
-    [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }),
-  })),
+  getOption: vi.fn(async () => JSON.stringify({ htmlEnhancementEnabled: '1' })),
 }));
 
 vi.mock('@/lib/admin-auth', () => ({
@@ -24,7 +22,6 @@ vi.mock('@/lib/auth', () => ({
 }));
 vi.mock('@/lib/options', () => ({
   computeUrls: mocks.computeUrls,
-  loadOptions: mocks.loadOptions,
 }));
 vi.mock('typecho/db', async () => {
   const actual = await vi.importActual<typeof import('typecho/db')>('typecho/db');
@@ -32,6 +29,7 @@ vi.mock('typecho/db', async () => {
 });
 vi.mock('cloudflare:workers', () => ({ env: { DB: { test: true } } }));
 vi.mock('typecho/plugin-sdk', () => ({
+  getOption: mocks.getOption,
   registerPluginAdminPath: mocks.registerPluginAdminPath,
   setOption: mocks.setOption,
 }));
@@ -94,9 +92,7 @@ function routeRequest(path = ADMIN_PATH, method = 'POST', body: unknown = { cid:
 describe('typecho-plugin-warm-cy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.loadOptions.mockResolvedValue({
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }),
-    });
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '1' }));
     mocks.requireAdminAction.mockResolvedValue(adminContext());
     mocks.generateSecurityToken.mockResolvedValue('fresh-csrf-token');
   });
@@ -127,7 +123,7 @@ describe('typecho-plugin-warm-cy', () => {
     const protectedSource = await handler(source);
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
     expect(mocks.getDb).toHaveBeenCalled();
-    expect(mocks.loadOptions).toHaveBeenCalled();
+    expect(mocks.getOption).toHaveBeenCalledWith(expect.anything(), PLUGIN_OPTION_KEY);
   });
 
   it('leaves standard consecutive blockquote lines unchanged', async () => {
@@ -325,9 +321,7 @@ describe('typecho-plugin-warm-cy', () => {
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
     const source = '<div class="native-content"><iframe src="https://www.youtube.com/embed/example"></iframe></div>';
-    mocks.loadOptions.mockResolvedValueOnce({
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0' }),
-    });
+    mocks.getOption.mockResolvedValueOnce(JSON.stringify({ htmlEnhancementEnabled: '0' }));
     expect(await protect(source)).toBe(source);
     expect(restore('<p>ordinary sanitized content</p>'))
       .toBe('<p>ordinary sanitized content</p>');
