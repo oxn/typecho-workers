@@ -24,7 +24,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   ]),
   allowedAttributes: {
     ...sanitizeHtml.defaults.allowedAttributes,
-    '*': [/^data-[a-z0-9_.:-]+$/i],
+    '*': ['data-*'],
     img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
     a: ['href', 'title', 'target', 'rel'],
     code: ['class'],
