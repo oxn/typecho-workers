@@ -270,7 +270,7 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     'mask', 'title', 'desc', 'use', 'symbol',
   ],
   allowedAttributes: {
-    '*': ['class', 'id', 'style', 'title', 'role', 'aria-label', 'aria-hidden'],
+    '*': ['class', 'id', 'style', 'title', 'role', 'aria-label', 'aria-hidden', 'data-*', 'aria-*'],
     a: ['href', 'target', 'rel', 'title', 'style', 'class', 'id', 'download'],
     img: ['src', 'alt', 'title', 'width', 'height', 'loading', 'class', 'style'],
     div: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden'],
