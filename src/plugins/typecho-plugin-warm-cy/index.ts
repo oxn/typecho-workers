@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.05.09.44';
+const PLUGIN_VERSION = '2026.11.05.09.45';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -544,12 +544,18 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
         if (
           hostname === 'player.bilibili.com' &&
           isHuaweiOrXiaomi &&
-          frame.getAttribute('referrerpolicy') !== 'no-referrer' &&
+          (
+            frame.getAttribute('referrerpolicy') !== 'no-referrer' ||
+            frame.getAttribute('sandbox') !== 'allow-scripts allow-same-origin allow-popups allow-forms'
+          ) &&
           frame.parentNode
         ) {
           const replacement = frame.cloneNode(false);
+          // Match the working Rin Bilibili embed policy exactly for this isolated test.
           replacement.setAttribute('referrerpolicy', 'no-referrer');
+          replacement.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
           replacement.dataset.cyBilibiliReferrerTest = 'no-referrer';
+          replacement.dataset.cyBilibiliSandboxTest = 'rin-compatible';
           replacement.style.setProperty('border', '2px solid #16a34a', 'important');
           replacement.style.setProperty('box-sizing', 'border-box', 'important');
           replacement.dataset.cyVideoBorderDebug = '1';
