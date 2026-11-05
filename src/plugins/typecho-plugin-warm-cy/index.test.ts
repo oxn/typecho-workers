@@ -350,6 +350,31 @@ describe('typecho-plugin-warm-cy', () => {
     expect(unsupportedProtected).toBe(unsupported);
   });
 
+  it('preserves Bilibili iframe markup before Markdown can split provider attributes', () => {
+    const hooks = collectHooks();
+    const markdown = hooks.get('content:markdown')!;
+    const content = hooks.get('content:content')!;
+    const source = '<iframe width="100%" height="480" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" referrerpolicy="no-referrer" src="//player.bilibili.com/player.html?isOutside=true&amp;aid=117041382098906&amp;bvid=BV1GGMC6YEMc&amp;cid=40613054036&amp;p=1"></iframe>';
+    const context = { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1', htmlEnhancementEnabled: '0' }),
+    } };
+    const protectedSource = markdown(source, context);
+    expect(protectedSource).not.toContain('scrolling=');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const sanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['iframe']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen'] },
+      allowedIframeHostnames: ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'],
+    });
+    const output = content(sanitized, context);
+    expect(output).toContain('data-cy-video-provider="bilibili"');
+    expect(output).toContain('BV1GGMC6YEMc');
+    expect(output).not.toContain('scrolling=&quot;no&quot;');
+    expect(output).not.toContain('framespacing=');
+    expect(output).not.toContain('sandbox=');
+  });
+
   it('injects the independent player runtime only when its own switch is enabled', () => {
     const handler = collectHooks().get('archive:footer')!;
     const enabled = handler('', { options: {
