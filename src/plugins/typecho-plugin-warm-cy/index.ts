@@ -556,6 +556,7 @@ const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  cons
 function inlineHtmlRuntime(enabled: boolean): string {
   const visibilityStyle = '<style data-cy-inline-html-enhancement-style>'
     + '.cy-inline-html-pending{display:' + (enabled ? 'contents' : 'none') + '!important}'
+    + (enabled ? '.warm-prose .cy-inline-html-pending iframe{border-radius:0!important}' : '')
     + '</style>';
   return visibilityStyle + '<script data-cy-inline-html-enhancement>'
     + INLINE_HTML_RUNTIME.replace('__CY_ENABLED__', enabled ? 'true' : 'false')
