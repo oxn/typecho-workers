@@ -116,6 +116,12 @@ describe('typecho-plugin-warm-cy', () => {
       options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }) },
     });
     expect(enabled).toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
+    const legacyEnabled = handler('', {
+      slug: 'cy-companion',
+      csrfToken: 'test-token',
+      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '1' }) },
+    });
+    expect(legacyEnabled).toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
@@ -301,7 +307,7 @@ describe('typecho-plugin-warm-cy', () => {
       theme: 'typecho-theme-warm-cy',
       [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0', showHomeSearchButton: '0' }),
     } });
-    expect(disabled).toContain('const enabled = false');
+    expect(disabled).not.toContain('data-cy-inline-html-enhancement');
   });
 
   it('leaves provider iframe markup untouched when the independent player is disabled', () => {
