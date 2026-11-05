@@ -854,6 +854,8 @@ describe('typecho-plugin-warm-cy', () => {
       '.unsafe { color: expression(alert(1)); background-image: url(https://evil.example/pixel); behavior: url(x); }',
       '.escaped-url { background-image: url(\\68 ttps://evil.example/pixel); }',
       '.comment-url { background-image: url(/*comment*/https://evil.example/pixel); }',
+      '.image-set-url { background-image: image-set("https://evil.example/pixel.png" 1x); }',
+      '.webkit-image-set-url { background-image: -webkit-image-set("https://evil.example/pixel.png" 1x); }',
       '</style>',
       '<div class="badge-row"><a class="badge-dual" href="https://example.com">YouTube</a></div>',
       '</div>',
@@ -983,6 +985,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).not.toContain('expression');
     expect(appendedStyles[0].textContent).not.toContain('.escaped-url');
     expect(appendedStyles[0].textContent).not.toContain('.comment-url');
+    expect(appendedStyles[0].textContent).not.toContain('.image-set-url');
+    expect(appendedStyles[0].textContent).not.toContain('.webkit-image-set-url');
     const cssUrls = Array.from(
       appendedStyles[0].textContent.matchAll(/url\(\s*(?:("')(.*?)\1|([^)]*))\s*\)/gi),
       match => (match[2] ?? match[3] ?? '').trim(),
