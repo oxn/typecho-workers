@@ -9,6 +9,10 @@ const mocks = vi.hoisted(() => ({
   generateSecurityToken: vi.fn(),
   registerPluginAdminPath: vi.fn(),
   computeUrls: vi.fn(() => ({ adminUrl: '/admin/' })),
+  getDb: vi.fn(() => ({ binding: 'test-db' })),
+  loadOptions: vi.fn(async () => ({
+    [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }),
+  })),
 }));
 
 vi.mock('@/lib/admin-auth', () => ({
@@ -20,7 +24,13 @@ vi.mock('@/lib/auth', () => ({
 }));
 vi.mock('@/lib/options', () => ({
   computeUrls: mocks.computeUrls,
+  loadOptions: mocks.loadOptions,
 }));
+vi.mock('typecho/db', async () => {
+  const actual = await vi.importActual<typeof import('typecho/db')>('typecho/db');
+  return { ...actual, getDb: mocks.getDb };
+});
+vi.mock('cloudflare:workers', () => ({ env: { DB: { test: true } } }));
 vi.mock('typecho/plugin-sdk', () => ({
   registerPluginAdminPath: mocks.registerPluginAdminPath,
   setOption: mocks.setOption,
@@ -84,6 +94,9 @@ function routeRequest(path = ADMIN_PATH, method = 'POST', body: unknown = { cid:
 describe('typecho-plugin-warm-cy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.loadOptions.mockResolvedValue({
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }),
+    });
     mocks.requireAdminAction.mockResolvedValue(adminContext());
     mocks.generateSecurityToken.mockResolvedValue('fresh-csrf-token');
   });
@@ -108,10 +121,10 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toMatch(/CY 插件版本：\d{4}\.\d{2}\.\d{2}\.\d{2}\.\d{2}/);
   });
 
-  it('leaves standard consecutive blockquote lines unchanged', () => {
+  it('leaves standard consecutive blockquote lines unchanged', async () => {
     const handler = collectHooks().get('content:markdown')!;
     const source = '> 第一行\n> 第二行\n> 第三行';
-    expect(handler(source, htmlEnabledContext())).toBe(source);
+    expect(await handler(source)).toBe(source);
   });
 
   it('restores all five Markdown Alert SVG icons after the core sanitizer', () => {
@@ -133,7 +146,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('M4.47.22');
   });
 
-  it('protects inline style/script/SVG and style attributes while leaving code examples intact', () => {
+  it('protects inline style/script/SVG and style attributes while leaving code examples intact', async () => {
     const handler = collectHooks().get('content:markdown')!;
     const input = [
       '<style>.download { color: green; }</style>',
@@ -144,7 +157,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<script>this is only an example</script>',
       '```',
     ].join('\n');
-    const output = handler(input, htmlEnabledContext());
+    const output = await handler(input);
     expect(output).toContain('CYCYINLINEBLOCKX');
     expect(output).toContain('CYCYINLINECONTAINERX');
     expect(output).not.toMatch(/CYCYINLINE(?:BLOCK|ATTR)_/);
@@ -154,7 +167,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).not.toContain('<script>window.cyInlineTest');
   });
 
-  it('preserves a complete nested div footer across Markdown blank lines', () => {
+  it('preserves a complete nested div footer across Markdown blank lines', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
@@ -171,7 +184,7 @@ describe('typecho-plugin-warm-cy', () => {
       '</div>',
     ].join('\n');
 
-    const protectedSource = protect(source, htmlEnabledContext());
+    const protectedSource = await protect(source);
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
     expect(protectedSource).not.toContain('<div class="custom-footer">');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
@@ -203,12 +216,12 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('<p><div');
   });
 
-  it('restores a single-line styled div after the core sanitizer strips div tags', () => {
+  it('restores a single-line styled div after the core sanitizer strips div tags', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
     const source = '<div class="ai-card" style="display:flex;gap:12px;padding:16px;background:#f5f5f5;border-radius:12px"><span style="color:#079C48;font-weight:bold">标题</span><a href="https://example.com" style="display:inline-flex;align-items:center">查看</a></div>';
-    const protectedSource = protect(source, htmlEnabledContext());
+    const protectedSource = await protect(source);
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const coreSanitized = sanitizeHtml(parsed, {
@@ -227,7 +240,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINECONTAINERX');
   });
 
-  it('preserves data-state-for attributes through the complete enhanced HTML fragment pipeline', () => {
+  it('preserves data-state-for attributes through the complete enhanced HTML fragment pipeline', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
@@ -251,7 +264,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('data-state-for="youtube-dynamic"');
   });
 
-  it('preserves both download-card SVG icons as inert markers for browser hydration', () => {
+  it('preserves both download-card SVG icons as inert markers for browser hydration', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
@@ -298,21 +311,23 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINEHTMLX');
   });
 
-  it('bypasses HTML protection and restoration completely when the feature is OFF', () => {
+  it('bypasses HTML protection and restoration completely when the feature is OFF', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
     const source = '<div class="native-content"><iframe src="https://www.youtube.com/embed/example"></iframe></div>';
-    const disabledContext = { options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0' }) } };
-    expect(protect(source, disabledContext)).toBe(source);
+    mocks.loadOptions.mockResolvedValueOnce({
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0' }),
+    });
+    expect(await protect(source)).toBe(source);
     expect(restore('<p>ordinary sanitized content</p>', disabledContext))
       .toBe('<p>ordinary sanitized content</p>');
   });
 
-  it('retains iframe elements and safe playback attributes in enhanced HTML fragments', () => {
+  it('retains iframe elements and safe playback attributes in enhanced HTML fragments', async () => {
     const restore = collectHooks().get('content:content')!;
     const source = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/example" width="560" height="315" title="YouTube" allow="autoplay; encrypted-media" allowfullscreen loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
-    const protectedSource = collectHooks().get('content:markdown')!(source, htmlEnabledContext());
+    const protectedSource = await collectHooks().get('content:markdown')!(source);
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const coreSanitized = sanitizeHtml(parsed, {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'ins', 'details', 'summary', 'figure', 'figcaption', 'video', 'audio', 'source', 'iframe']),
