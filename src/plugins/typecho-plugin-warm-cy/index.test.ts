@@ -592,7 +592,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(disabled).not.toContain('data-cy-video-player-styles');
   });
 
-  it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {
+  it('migrates the legacy HTML toggle to light mode without dropping existing plugin settings', async () => {
     const context = adminContext();
     mocks.requireAdminAction.mockResolvedValueOnce(context);
     const handler = collectHooks().get('route:request')!;
