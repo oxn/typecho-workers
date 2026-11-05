@@ -341,7 +341,7 @@ describe('typecho-plugin-warm-cy', () => {
     const enabled = handler(sanitized, context);
     expect(enabled).toContain('data-cy-video-player');
     expect(enabled).toContain('data-cy-video-provider="youtube"');
-    expect(enabled).toContain('data-cy-video-height="315"');
+    expect(enabled).toContain('data-cy-video-ratio="1.77778"');
     expect(enabled).toContain('data-cy-video-src="https://www.youtube.com/embed/demo"');
     expect(enabled).not.toContain('<iframe');
 
