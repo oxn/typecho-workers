@@ -177,7 +177,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<svg viewBox="0 0 16 16">',
       '<defs><linearGradient id="safe-gradient"><stop offset="0" /></linearGradient>',
       '<clipPath id="safe-clip"><rect width="10" height="10" /></clipPath></defs>',
-      '<path fill="url("#safe-gradient")" clip-path="url(\'#safe-clip\')" d="M0 0h10v10H0z" />',
+      "<path fill='url(\"#safe-gradient\")' clip-path=\"url('#safe-clip')\" d=\"M0 0h10v10H0z\" />",
       '<use href="#safe-gradient" />',
       '<use href="https://evil.example/external.svg#icon" />',
       '</svg>',
@@ -187,7 +187,7 @@ describe('typecho-plugin-warm-cy', () => {
     const payload = restored.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)?.[1];
     expect(payload).toBeTruthy();
     const svg = Buffer.from(payload!, 'hex').toString('utf8');
-    expect(svg).toContain('fill="url("#safe-gradient")"');
+    expect(svg).toContain("fill='url(\"#safe-gradient\")'");
     expect(svg).toContain('clip-path="url(\'#safe-clip\')"');
     expect(svg).toContain('href="#safe-gradient"');
     expect(svg).not.toContain('https://evil.example/external.svg#icon');
