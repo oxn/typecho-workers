@@ -406,7 +406,12 @@ export function renderWarmIframes(html: string): string {
       'allow',
       'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
     );
-    result = setAttribute(result, 'title', '视频播放器');
+    const providerTitle = hostname === 'www.youtube.com'
+      ? 'YouTube 视频播放器'
+      : hostname === 'player.bilibili.com'
+        ? 'B站视频播放器'
+        : 'Vimeo 视频播放器';
+    result = setAttribute(result, 'title', providerTitle);
 
     return `<iframe${result}>`;
   });
