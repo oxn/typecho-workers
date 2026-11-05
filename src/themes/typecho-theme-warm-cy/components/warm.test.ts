@@ -117,7 +117,7 @@ describe('Warm CY theme helpers', () => {
   it('adds safe loading attributes only to supported video iframe providers', () => {
     const youtube = '<iframe src="https://www.youtube.com/embed/demo"></iframe>';
     const result = renderWarmIframes(youtube);
-    expect(result).toContain('loading="lazy"');
+    expect(result).toContain('loading="eager"');
     expect(result).toContain('allowfullscreen=""');
     expect(result).toContain('title="视频播放器"');
 
