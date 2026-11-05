@@ -217,7 +217,7 @@ function protectInlineHtml(source: string): string {
   // in the content:content hook, then the theme's native iframe normalizer runs.
   // This also covers standalone iframes that are not inside a protected div.
   content = content.replace(
-    /<iframe\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>[\\s\\S]*?<\\/iframe\\s*>/gi,
+    /<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
     block => 'CYCYINLINECONTAINERX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND',
   );
 
