@@ -101,7 +101,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain(`CY 插件版本：2026.11.05.09.26`);
+    expect(html).toContain(`CY 插件版本：2026.11.05.09.42`);
     expect(html).toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled"[^>]*>/);
     expect(html).not.toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled" checked/);
     const enabled = handler('', {
@@ -304,14 +304,19 @@ describe('typecho-plugin-warm-cy', () => {
       theme: 'typecho-theme-warm-cy',
       [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '1', showHomeSearchButton: '0' }),
     } });
-    expect(enabled).toContain('data-cy-mobile-player-debug');
-    expect(enabled).toContain('HuaweiBrowser');
-    expect(enabled).toContain('MiuiBrowser');
+    expect(enabled).toContain('data-cy-video-border-debug');
+    expect(enabled).toContain('www.youtube.com');
+    expect(enabled).toContain('player.bilibili.com');
+    expect(enabled).toContain('player.vimeo.com');
+    expect(enabled).toContain("border', '2px solid #16a34a', 'important'");
+    expect(enabled).toContain('MutationObserver');
+    expect(enabled).not.toContain('sandboxPermissions');
     const disabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
       [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '0', showHomeSearchButton: '0' }),
     } });
-    expect(disabled).not.toContain('data-cy-mobile-player-debug');
+    expect(disabled).not.toContain('data-cy-video-border-debug');
+    expect(disabled).not.toContain("border', '2px solid #16a34a'");
   });
 
   it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {
