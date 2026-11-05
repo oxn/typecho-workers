@@ -586,7 +586,7 @@ function replaceVideoIframesWithPlaceholders(content: string): string {
 function videoPlayerRuntime(enabled: boolean): string {
   if (!enabled) return '';
   return `<style data-cy-video-player-styles>
-    .cy-video-player{position:relative;display:block;width:100%;max-width:100%;height:auto;min-height:200px;aspect-ratio:var(--cy-video-ratio,16/9);overflow:hidden;background:transparent;border-radius:0.5rem}
+    .cy-video-player{position:relative;display:block;width:100%;max-width:100%;height:auto;aspect-ratio:var(--cy-video-ratio,16/9);overflow:hidden;background:transparent;border-radius:0.5rem}
     .cy-video-player iframe{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;border:0;background:transparent}
     .cy-video-player__status{position:absolute;inset:0;display:grid;place-items:center;padding:1rem;color:inherit;background:transparent;text-align:center;font-size:14px;pointer-events:none}
     .cy-video-player__status[hidden]{display:none}
