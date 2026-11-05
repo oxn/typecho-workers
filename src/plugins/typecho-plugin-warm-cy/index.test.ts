@@ -223,7 +223,7 @@ describe('typecho-plugin-warm-cy', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
-    const source = '<div class="ai-card" style="display:flex;gap:12px;padding:16px;background:#f5f5f5;border-radius:12px"><span style="color:#079C48;font-weight:bold">标题</span><a href="https://example.com" style="display:inline-flex;align-items:center">查看</a></div>';
+    const source = '<div class="ai-card" style="display:flex;gap:12px;padding:16px;background:#f5f5f5;border-radius:12px;box-sizing:border-box;font-style:italic;text-transform:uppercase;grid-template-columns:1fr 2fr"><span style="color:#079C48;font-weight:bold">标题</span><a href="https://example.com" style="display:inline-flex;align-items:center">查看</a></div>';
     const protectedSource = protect(source, cyContentContext);
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
@@ -237,6 +237,10 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('gap:12px');
     expect(restored).toContain('background:#f5f5f5');
     expect(restored).toContain('border-radius:12px');
+    expect(restored).toContain('box-sizing:border-box');
+    expect(restored).toContain('font-style:italic');
+    expect(restored).toContain('text-transform:uppercase');
+    expect(restored).toContain('grid-template-columns:1fr 2fr');
     expect(restored).toContain('color:#079C48');
     expect(restored).toContain('href="https://example.com"');
     expect(restored).toContain('查看');
