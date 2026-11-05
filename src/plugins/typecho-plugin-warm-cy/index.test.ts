@@ -36,7 +36,7 @@ const OPTION_KEY = 'theme:typecho-theme-warm-cy';
 const cyContentContext = {
   options: {
     theme: 'typecho-theme-warm-cy',
-    [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }),
+    [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full' }),
   },
 };
 
@@ -108,6 +108,8 @@ describe('typecho-plugin-warm-cy', () => {
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
     expect(html).toContain(`CY 插件版本：2026.11.05.10.20`);
+    expect(html).toContain('data-cy-setting="htmlEnhancementMode"');
+    expect(html).toContain('<option value="off" selected>');
     expect(html).toMatch(/data-cy-setting="videoPlayerEnabled"[^>]*>/);
     expect(html).not.toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
     const enabled = handler('', {
@@ -324,7 +326,7 @@ describe('typecho-plugin-warm-cy', () => {
     const source = '<div class="diag" data-diag-id="bili-static" aria-label="播放器区域"><div class="state" data-state-for="bili-static" data-state="waiting">等待加载</div><button data-action="retry" aria-pressed="false">重试</button></div>';
     const context = { options: {
       theme: 'typecho-theme-warm-cy',
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }),
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full' }),
     } };
     const protectedSource = protect(source, context);
     const parsed = marked.parse(protectedSource, { async: false }) as string;
@@ -349,7 +351,7 @@ describe('typecho-plugin-warm-cy', () => {
     const source = '<div class="video-wrap"><iframe src="https://player.bilibili.com/player.html?bvid=BV1TEST" width="100%" height="480" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" referrerpolicy="no-referrer" allow="autoplay; fullscreen; picture-in-picture" loading="lazy"></iframe></div>';
     const context = { options: {
       theme: 'typecho-theme-warm-cy',
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', videoPlayerEnabled: '0' }),
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full', videoPlayerEnabled: '0' }),
     } };
 
     const protectedSource = protect(source, context);
@@ -378,11 +380,35 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).toContain('loading="lazy"');
   });
 
+  it('keeps legacy light mode separate from the expanded full runtime', () => {
+    const handler = collectHooks().get('archive:footer')!;
+    const light = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'light', showHomeSearchButton: '0' }),
+    } });
+    expect(light).toContain('data-cy-inline-html-enhancement');
+    expect(light).toContain('markerPattern');
+    expect(light).not.toContain('safeStylesheetText');
+
+    const full = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full', showHomeSearchButton: '0' }),
+    } });
+    expect(full).toContain('data-cy-inline-html-enhancement');
+    expect(full).toContain('safeStylesheetText');
+
+    const off = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'off', showHomeSearchButton: '0' }),
+    } });
+    expect(off).not.toContain('data-cy-inline-html-enhancement');
+  });
+
   it('adds the inline HTML runtime with the saved opt-in state', () => {
     const handler = collectHooks().get('archive:footer')!;
     const enabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '0' }),
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full', showHomeSearchButton: '0' }),
     } });
     expect(enabled).toContain('data-cy-inline-html-enhancement');
     expect(enabled).toContain('data-cy-markdown-alert-icons');
@@ -528,7 +554,7 @@ describe('typecho-plugin-warm-cy', () => {
         existingPluginSetting: 'keep',
         showCommentManagementButtons: '1',
         showHomeSearchButton: '0',
-        htmlEnhancementEnabled: '1',
+        htmlEnhancementMode: 'light',
         videoPlayerEnabled: '1',
       }),
     );
@@ -702,7 +728,7 @@ describe('typecho-plugin-warm-cy', () => {
 
     const footer = hooks.get('archive:footer')!('', { options: {
       theme: 'typecho-theme-warm-cy',
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '0' }),
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full', showHomeSearchButton: '0' }),
     } });
     const runtimeStartTag = '<script data-cy-inline-html-enhancement>';
     const runtimeStart = footer.indexOf(runtimeStartTag);
