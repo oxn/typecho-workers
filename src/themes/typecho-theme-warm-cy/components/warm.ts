@@ -380,7 +380,7 @@ export function renderWarmIframes(html: string): string {
 
     if (/\breferrerpolicy\s*=/i.test(tag)) return tag;
     return tag.replace(/\/?>$/, (closing) =>
-      \` referrerpolicy="strict-origin-when-cross-origin"\${closing}\`,
+      ' referrerpolicy="strict-origin-when-cross-origin"' + closing,
     );
   });
 }
