@@ -107,7 +107,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain(`CY 插件版本：2026.11.05.09.44`);
+    expect(html).toContain(`CY 插件版本：2026.11.05.09.45`);
     expect(html).toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled"[^>]*>/);
     expect(html).not.toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled" checked/);
     const enabled = handler('', {
@@ -318,6 +318,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).toContain('MutationObserver');
     expect(enabled).toContain('player.bilibili.com');
     expect(enabled).toContain("setAttribute('referrerpolicy', 'no-referrer')");
+    expect(enabled).toContain("setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms')");
+    expect(enabled).toContain('data-cy-bilibili-sandbox-test');
     expect(enabled).toContain('isHuaweiOrXiaomi');
     expect(enabled).toContain('cloneNode(false)');
     expect(enabled).not.toContain('sandboxPermissions');
