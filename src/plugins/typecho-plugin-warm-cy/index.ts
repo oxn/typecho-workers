@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.05.09.45';
+const PLUGIN_VERSION = '2026.11.05.09.46';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -79,7 +79,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <input type="checkbox" data-cy-setting="mobileNativePlayerEnhancementEnabled" ${mobilePlayerDebugEnabled ? 'checked' : ''}>
           <span>视频播放器绿色边框（生效测试）</span>
         </label>
-        <p>默认关闭。开启后，插件会给 YouTube、B 站和 Vimeo 的内嵌播放器添加绿色细边框；另外仅在华为/小米原生浏览器中，对 B 站 iframe 单独测试 Rin 使用的 no-referrer 策略。关闭后不执行这些实验。本项不修改视频地址、YouTube、加载方式或播放器高度。</p>
+        <p>默认关闭。开启后，插件会给 YouTube、B 站和 Vimeo 的内嵌播放器添加绿色细边框；另外仅在华为/小米原生浏览器中，对 YouTube 增加加载状态提示，并对 B 站 iframe 测试 Rin 使用的 no-referrer 策略。提示通过 YouTube IFrame API 的就绪/错误事件判断；关闭后不执行这些实验。本项不修改视频地址、YouTube、加载方式或播放器高度。</p>
       </section>
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
@@ -529,6 +529,78 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
     (() => {
       const supportedHosts = ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'];
       const isHuaweiOrXiaomi = /HuaweiBrowser|MiuiBrowser/i.test(navigator.userAgent || '');
+      const ensureYouTubeApi = (callback) => {
+        if (window.YT && window.YT.Player) { callback(); return; }
+        const previousReady = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = () => {
+          if (typeof previousReady === 'function') previousReady();
+          callback();
+        };
+        const apiScriptExists = Array.from(document.scripts).some(script =>
+          /youtube\.com\/iframe_api/.test(script.src)
+        );
+        if (!apiScriptExists) {
+          const script = document.createElement('script');
+          script.src = 'https://www.youtube.com/iframe_api';
+          script.async = true;
+          script.dataset.cyYoutubeIframeApi = '1';
+          document.head.appendChild(script);
+        }
+      };
+      const installYouTubeLoadStatus = (frame) => {
+        if (!isHuaweiOrXiaomi || frame.dataset.cyYouTubeLoadStatus) return;
+        frame.dataset.cyYouTubeLoadStatus = '1';
+        const parent = frame.parentElement;
+        if (!parent) return;
+        if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+        frame.style.position = frame.style.position || 'relative';
+        frame.style.zIndex = '1';
+        const status = document.createElement('div');
+        status.textContent = '播放器加载失败';
+        status.setAttribute('data-cy-youtube-load-status', 'pending');
+        Object.assign(status.style, {
+          position: 'absolute',
+          top: frame.offsetTop + 'px',
+          left: frame.offsetLeft + 'px',
+          width: frame.offsetWidth + 'px',
+          height: frame.offsetHeight + 'px',
+          display: 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'transparent',
+          color: '#fff',
+          fontSize: '16px',
+          fontWeight: '600',
+          textShadow: '0 1px 4px rgba(0,0,0,.95)',
+          zIndex: '2',
+          pointerEvents: 'none',
+          boxSizing: 'border-box'
+        });
+        parent.insertBefore(status, frame.nextSibling);
+        let ready = false;
+        const showFailure = () => { if (!ready) status.style.display = 'flex'; };
+        const hideFailure = () => {
+          ready = true;
+          status.remove();
+        };
+        window.setTimeout(showFailure, 12000);
+        const playerUrl = new URL(frame.src, location.href);
+        playerUrl.searchParams.set('enablejsapi', '1');
+        playerUrl.searchParams.set('origin', location.origin);
+        if (playerUrl.href !== frame.src) frame.src = playerUrl.href;
+        ensureYouTubeApi(() => {
+          try {
+            new window.YT.Player(frame, {
+              events: {
+                onReady: hideFailure,
+                onError: showFailure
+              }
+            });
+          } catch {
+            showFailure();
+          }
+        });
+      };
       const markPlayer = (frame) => {
         let hostname = '';
         try { hostname = new URL(frame.src, location.href).hostname.toLowerCase(); }
@@ -537,6 +609,7 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
         frame.style.setProperty('border', '2px solid #16a34a', 'important');
         frame.style.setProperty('box-sizing', 'border-box', 'important');
         frame.dataset.cyVideoBorderDebug = '1';
+        if (hostname === 'www.youtube.com') installYouTubeLoadStatus(frame);
 
         // Rin's working Bilibili embed uses referrerpolicy="no-referrer".
         // Recreate only Bilibili frames on Huawei/Xiaomi so the policy applies
