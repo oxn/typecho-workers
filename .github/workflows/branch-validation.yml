@@ -5,6 +5,7 @@ on:
     branches:
       - test/clean-upstream-warm-cy
       - release/2026-11-03-warm-cy-without-markdown
+      - test/cy-video-provider-load-diagnostics-20261105
   pull_request:
     branches:
       - master
