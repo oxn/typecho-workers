@@ -33,6 +33,12 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
 const OPTION_KEY = 'theme:typecho-theme-warm-cy';
+const cyContentContext = {
+  options: {
+    theme: 'typecho-theme-warm-cy',
+    [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }),
+  },
+};
 
 function collectHooks() {
   const hooks = new Map<string, Function>();
@@ -115,7 +121,7 @@ describe('typecho-plugin-warm-cy', () => {
   it('leaves standard consecutive blockquote lines unchanged', () => {
     const handler = collectHooks().get('content:markdown')!;
     const source = '> 第一行\n> 第二行\n> 第三行';
-    expect(handler(source)).toBe(source);
+    expect(handler(source, cyContentContext)).toBe(source);
   });
 
   it('restores all five Markdown Alert SVG icons after the core sanitizer', () => {
@@ -125,7 +131,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<blockquote class="markdown-alert" data-alert="' + label + '">'
       + '<p class="markdown-alert-title">' + label + '</p><p>正文</p></blockquote>',
     ).join('');
-    const restored = restore(html);
+    const restored = restore(html, cyContentContext);
     expect((restored.match(/class="markdown-alert-icon"/g) || []).length).toBe(5);
     expect((restored.match(/cy-markdown-alert-has-icon/g) || []).length).toBe(5);
     expect(restored).toContain('viewBox="0 0 16 16"');
@@ -148,7 +154,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<script>this is only an example</script>',
       '```',
     ].join('\n');
-    const output = handler(input);
+    const output = handler(input, cyContentContext);
     expect(output).toContain('CYCYINLINEBLOCKX');
     expect(output).toContain('CYCYINLINECONTAINERX');
     expect(output).not.toMatch(/CYCYINLINE(?:BLOCK|ATTR)_/);
@@ -175,7 +181,7 @@ describe('typecho-plugin-warm-cy', () => {
       '</div>',
     ].join('\n');
 
-    const protectedSource = protect(source);
+    const protectedSource = protect(source, cyContentContext);
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
     expect(protectedSource).not.toContain('<div class="custom-footer">');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
@@ -193,7 +199,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized);
+    const restored = restore(coreSanitized, cyContentContext);
 
     expect(restored).toContain('<div class="cy-inline-html-pending">');
     expect(restored).toContain('class="custom-footer"');
