@@ -101,7 +101,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain(`CY 插件版本：2026.11.05.09.26`);
+    expect(html).toContain(`CY 插件版本：2026.11.05.09.40`);
     expect(html).toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled"[^>]*>/);
     expect(html).not.toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled" checked/);
     const enabled = handler('', {
@@ -307,11 +307,16 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).toContain('data-cy-mobile-player-debug');
     expect(enabled).toContain('HuaweiBrowser');
     expect(enabled).toContain('MiuiBrowser');
+    expect(enabled).toContain('player.bilibili.com');
+    expect(enabled).toContain('allow-scripts allow-same-origin allow-popups allow-forms');
+    expect(enabled).toContain('frame.parentNode.replaceChild(replacement, frame)');
+    expect(enabled).toContain('bilibiliSandboxApplied');
     const disabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
       [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '0', showHomeSearchButton: '0' }),
     } });
     expect(disabled).not.toContain('data-cy-mobile-player-debug');
+    expect(disabled).not.toContain('allow-scripts allow-same-origin allow-popups allow-forms');
   });
 
   it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {

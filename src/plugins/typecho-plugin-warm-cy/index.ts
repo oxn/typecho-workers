@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.05.09.26';
+const PLUGIN_VERSION = '2026.11.05.09.40';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -79,7 +79,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <input type="checkbox" data-cy-setting="mobileNativePlayerEnhancementEnabled" ${mobilePlayerDebugEnabled ? 'checked' : ''}>
           <span>手机原生浏览器播放器增强（实验开关）</span>
         </label>
-        <p>默认关闭。当前版本先建立独立调试入口并验证开关保存状态，暂不修改播放器地址、加载方式或权限参数。后续播放器实验只会在开启此项时运行；关闭时不执行播放器调试代码。</p>
+        <p>默认关闭。开启后仅在华为/小米原生浏览器中，对 B 站播放器按 Rin 参考 HTML 添加 sandbox 权限并重建 iframe，使权限在首次加载时生效；不修改 B 站地址、YouTube、加载方式、Referer 或播放器高度。关闭时不执行此实验。</p>
       </section>
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
@@ -529,13 +529,35 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
         ? 'huawei'
         : /MiuiBrowser/i.test(ua) ? 'xiaomi' : '';
       if (!browser) return;
+      const sandboxPermissions = 'allow-scripts allow-same-origin allow-popups allow-forms';
       const inspectPlayers = () => {
+        let bilibiliSandboxApplied = 0;
+        for (const frame of Array.from(document.querySelectorAll('iframe'))) {
+          let hostname = '';
+          try { hostname = new URL(frame.src, location.href).hostname.toLowerCase(); }
+          catch { continue; }
+          if (hostname !== 'player.bilibili.com') continue;
+          if (frame.getAttribute('sandbox') === sandboxPermissions) continue;
+
+          // Clone before insertion so the sandbox restrictions apply on the first navigation.
+          const replacement = frame.cloneNode(false);
+          replacement.setAttribute('sandbox', sandboxPermissions);
+          if (frame.parentNode) {
+            frame.parentNode.replaceChild(replacement, frame);
+            bilibiliSandboxApplied += 1;
+          }
+        }
         const iframeHosts = Array.from(document.querySelectorAll('iframe')).map(frame => {
           try { return new URL(frame.src, location.href).hostname; }
           catch { return 'invalid-src'; }
         });
         document.documentElement.dataset.cyMobilePlayerDebug = browser;
-        console.info('[CY mobile player debug]', { browser, iframeCount: iframeHosts.length, iframeHosts });
+        console.info('[CY mobile player debug]', {
+          browser,
+          iframeCount: iframeHosts.length,
+          iframeHosts,
+          bilibiliSandboxApplied,
+        });
       };
       inspectPlayers();
       window.addEventListener('instantclick:newpage', inspectPlayers);
