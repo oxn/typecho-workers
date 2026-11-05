@@ -367,7 +367,7 @@ function plainHeadingText(inner: string): string {
  * this test isolates the effect of the HTTP Referer policy on YouTube embeds.
  */
 export function renderWarmIframes(html: string): string {
-  return html.replace(/<iframe\\b[^>]*>/gi, (tag) => {
+  return html.replace(/<iframe\b[^>]*>/gi, (tag) => {
     const srcMatch = /\bsrc\s*=\s*(["'])(.*?)\1/i.exec(tag);
     if (!srcMatch) return tag;
 
@@ -379,8 +379,8 @@ export function renderWarmIframes(html: string): string {
     }
 
     if (/\breferrerpolicy\s*=/i.test(tag)) return tag;
-    return tag.replace(/\\/?>$/, (closing) =>
-      ` referrerpolicy="strict-origin-when-cross-origin"${closing}`,
+    return tag.replace(/\/?>$/, (closing) =>
+      \` referrerpolicy="strict-origin-when-cross-origin"\${closing}\`,
     );
   });
 }
