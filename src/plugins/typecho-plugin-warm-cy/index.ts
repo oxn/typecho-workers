@@ -531,11 +531,17 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
       const isHuaweiOrXiaomi = /HuaweiBrowser|MiuiBrowser/i.test(navigator.userAgent || '');
       const ensureYouTubeApi = (callback) => {
         if (window.YT && window.YT.Player) { callback(); return; }
-        const previousReady = window.onYouTubeIframeAPIReady;
-        window.onYouTubeIframeAPIReady = () => {
-          if (typeof previousReady === 'function') previousReady();
-          callback();
-        };
+        window.__cyYoutubeApiCallbacks = window.__cyYoutubeApiCallbacks || [];
+        window.__cyYoutubeApiCallbacks.push(callback);
+        if (!window.__cyYoutubeApiHooked) {
+          window.__cyYoutubeApiHooked = true;
+          const previousReady = window.onYouTubeIframeAPIReady;
+          window.onYouTubeIframeAPIReady = () => {
+            if (typeof previousReady === 'function') previousReady();
+            const callbacks = window.__cyYoutubeApiCallbacks.splice(0);
+            callbacks.forEach(run => { try { run(); } catch {} });
+          };
+        }
         const apiScriptExists = Array.from(document.scripts).some(script =>
           /youtube\.com\/iframe_api/.test(script.src)
         );
@@ -560,10 +566,10 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
         status.setAttribute('data-cy-youtube-load-status', 'pending');
         Object.assign(status.style, {
           position: 'absolute',
-          top: frame.offsetTop + 'px',
-          left: frame.offsetLeft + 'px',
-          width: frame.offsetWidth + 'px',
-          height: frame.offsetHeight + 'px',
+          top: (frame.getBoundingClientRect().top - parent.getBoundingClientRect().top + parent.scrollTop) + 'px',
+          left: (frame.getBoundingClientRect().left - parent.getBoundingClientRect().left + parent.scrollLeft) + 'px',
+          width: frame.getBoundingClientRect().width + 'px',
+          height: frame.getBoundingClientRect().height + 'px',
           display: 'none',
           alignItems: 'center',
           justifyContent: 'center',
