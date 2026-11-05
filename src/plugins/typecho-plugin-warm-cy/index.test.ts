@@ -667,6 +667,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('border-style:dashed!important');
     expect(html).toContain('border-radius:14px!important');
     expect(html).toContain('color:#345678!important');
+    expect(html).toContain('> :not(.markdown-alert-title){color:#456789!important}');
     expect(html).toContain('color:#56789a!important');
     expect(html).toContain('width:24px!important');
     expect(html).toContain('margin-right:5px!important');
