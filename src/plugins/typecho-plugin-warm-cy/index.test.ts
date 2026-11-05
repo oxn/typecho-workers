@@ -107,15 +107,15 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain(`CY 插件版本：2026.11.05.09.44`);
-    expect(html).toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled"[^>]*>/);
-    expect(html).not.toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled" checked/);
+    expect(html).toContain(`CY 插件版本：2026.11.05.10.01`);
+    expect(html).toMatch(/data-cy-setting="videoPlayerEnabled"[^>]*>/);
+    expect(html).not.toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
     const enabled = handler('', {
       slug: 'cy-companion',
       csrfToken: 'test-token',
-      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '1' }) },
+      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }) },
     });
-    expect(enabled).toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled" checked/);
+    expect(enabled).toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
@@ -304,29 +304,56 @@ describe('typecho-plugin-warm-cy', () => {
     expect(disabled).toContain('const enabled = false');
   });
 
-  it('adds mobile player debug runtime only when the experiment switch is enabled', () => {
+  it('leaves provider iframe markup untouched when the independent player is disabled', () => {
+    const handler = collectHooks().get('content:content')!;
+    const iframe = '<iframe src="https://www.youtube.com/embed/demo" width="560" height="315"></iframe>';
+    const output = handler(iframe, { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '0' }),
+    } });
+    expect(output).toBe(iframe);
+    expect(output).not.toContain('data-cy-video-player');
+  });
+
+  it('takes over supported provider iframes only when the independent player is enabled', () => {
+    const handler = collectHooks().get('content:content')!;
+    const iframe = '<iframe src="https://www.youtube.com/embed/demo" width="560" height="315"></iframe>';
+    const enabled = handler(iframe, { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }),
+    } });
+    expect(enabled).toContain('data-cy-video-player');
+    expect(enabled).toContain('data-cy-video-provider="youtube"');
+    expect(enabled).toContain('data-cy-video-height="315"');
+    expect(enabled).toContain('data-cy-video-src="https://www.youtube.com/embed/demo"');
+    expect(enabled).not.toContain('<iframe');
+
+    const unsupported = '<iframe src="https://video.example/embed/demo"></iframe>';
+    expect(handler(unsupported, { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }),
+    } })).toBe(unsupported);
+  });
+
+  it('injects the independent player runtime only when its own switch is enabled', () => {
     const handler = collectHooks().get('archive:footer')!;
     const enabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '1', showHomeSearchButton: '0' }),
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1', showHomeSearchButton: '0' }),
     } });
-    expect(enabled).toContain('data-cy-video-border-debug');
-    expect(enabled).toContain('www.youtube.com');
-    expect(enabled).toContain('player.bilibili.com');
-    expect(enabled).toContain('player.vimeo.com');
-    expect(enabled).toContain("border', '2px solid #16a34a', 'important'");
-    expect(enabled).toContain('MutationObserver');
-    expect(enabled).toContain('player.bilibili.com');
-    expect(enabled).toContain("setAttribute('referrerpolicy', 'no-referrer')");
-    expect(enabled).toContain('isHuaweiOrXiaomi');
-    expect(enabled).toContain('cloneNode(false)');
-    expect(enabled).not.toContain('sandboxPermissions');
+    expect(enabled).toContain('data-cy-video-player-runtime');
+    expect(enabled).toContain('data-cy-video-player-styles');
+    expect(enabled).toContain('document.createElement(\\'iframe\\')');
+    expect(enabled).not.toContain('data-cy-video-border-debug');
+    expect(enabled).not.toContain('enablejsapi=1');
+    expect(enabled).not.toContain('cloneNode(false)');
+
     const disabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '0', showHomeSearchButton: '0' }),
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '0', showHomeSearchButton: '0' }),
     } });
-    expect(disabled).not.toContain('data-cy-video-border-debug');
-    expect(disabled).not.toContain("border', '2px solid #16a34a'");
+    expect(disabled).not.toContain('data-cy-video-player-runtime');
+    expect(disabled).not.toContain('data-cy-video-player-styles');
   });
 
   it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {
@@ -338,7 +365,7 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: true,
         showHomeSearchButton: false,
         htmlEnhancementEnabled: true,
-        mobileNativePlayerEnhancementEnabled: true,
+        videoPlayerEnabled: true,
       }),
       path: SETTINGS_API_PATH,
     });
@@ -352,7 +379,7 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: '1',
         showHomeSearchButton: '0',
         htmlEnhancementEnabled: '1',
-        mobileNativePlayerEnhancementEnabled: '1',
+        videoPlayerEnabled: '1',
       }),
     );
   });
