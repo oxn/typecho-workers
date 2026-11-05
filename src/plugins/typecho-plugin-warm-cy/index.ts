@@ -550,9 +550,14 @@ function protectVideoIframesForMarkdown(content: string): string {
 }
 
 function restoreVideoIframesAfterMarkdown(content: string): string {
-  return content.replace(/CYVIDEOIFRAMEX([0-9a-f]+)XEND/g, (_marker, payload: string) => {
+  const restore = (_marker: string, payload: string) => {
     try { return decodeInlinePayload(payload); } catch { return ''; }
-  });
+  };
+  // A protected iframe is plain text to Marked, so a standalone embed may
+  // be wrapped in <p>. Remove that wrapper before restoring the block iframe.
+  return content
+    .replace(/<p>\\s*CYVIDEOIFRAMEX([0-9a-f]+)XEND\\s*<\\/p>/gi, restore)
+    .replace(/CYVIDEOIFRAMEX([0-9a-f]+)XEND/g, restore);
 }
 
 function replaceVideoIframesWithPlaceholders(content: string): string {
