@@ -24,7 +24,6 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   ]),
   allowedAttributes: {
     ...sanitizeHtml.defaults.allowedAttributes,
-    '*': ['data-*', 'aria-*'],
     img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
     a: ['href', 'title', 'target', 'rel'],
     code: ['class'],
@@ -206,7 +205,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
   // the original source through the sanitizer so one plugin cannot take down
   // the article route. Security-critical filters elsewhere remain fail-closed.
   try {
-    content = await applyFilter(ctx, 'content:markdown', content, ctx);
+    content = await applyFilter(ctx, 'content:markdown', content);
   } catch (error) {
     console.error('[markdown] content:markdown filter failed:', error);
   }
@@ -215,7 +214,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
   let sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   try {
-    sanitized = await applyFilter(ctx, 'content:content', sanitized, ctx);
+    sanitized = await applyFilter(ctx, 'content:content', sanitized);
   } catch (error) {
     console.error('[markdown] content:content filter failed:', error);
   }
