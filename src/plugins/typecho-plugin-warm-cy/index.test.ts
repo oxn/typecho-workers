@@ -691,6 +691,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(runtime).toContain("'text','tspan','filter'");
     expect(runtime).toContain("'fegaussianblur'");
     expect(runtime).toContain("'font-size'");
+    expect(runtime).toContain("([\\\"'])#[\\\\w:.-]+\\\\1");
     expect(runtime).toContain("'text-anchor'");
     expect(runtime).toContain("['media','nonce','title','id','type']");
     expect(runtime).toContain("name.startsWith('data-')");
