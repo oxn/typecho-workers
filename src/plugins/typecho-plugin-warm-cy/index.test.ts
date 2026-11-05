@@ -42,10 +42,6 @@ const SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
 const OPTION_KEY = 'theme:typecho-theme-warm-cy';
 
-function htmlEnabledContext() {
-  return { options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }) } };
-}
-
 function collectHooks() {
   const hooks = new Map<string, Function>();
   init({
@@ -139,7 +135,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<blockquote class="markdown-alert" data-alert="' + label + '">'
       + '<p class="markdown-alert-title">' + label + '</p><p>正文</p></blockquote>',
     ).join('');
-    const restored = restore(html, htmlEnabledContext());
+    const restored = restore(html);
     expect((restored.match(/class="markdown-alert-icon"/g) || []).length).toBe(5);
     expect((restored.match(/cy-markdown-alert-has-icon/g) || []).length).toBe(5);
     expect(restored).toContain('viewBox="0 0 16 16"');
@@ -207,7 +203,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized, htmlEnabledContext());
+    const restored = restore(coreSanitized);
 
     expect(restored).toContain('<div class="cy-inline-html-pending">');
     expect(restored).toContain('class="custom-footer"');
@@ -233,7 +229,7 @@ describe('typecho-plugin-warm-cy', () => {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code']),
       allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, a: ['href', 'title', 'target', 'rel'] },
     });
-    const restored = restore(coreSanitized, htmlEnabledContext());
+    const restored = restore(coreSanitized);
     expect(restored).toContain('class="ai-card"');
     expect(restored).toContain('display:flex');
     expect(restored).toContain('gap:12px');
@@ -262,7 +258,7 @@ describe('typecho-plugin-warm-cy', () => {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code']),
       allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes },
     });
-    const restored = restore(coreSanitized, htmlEnabledContext());
+    const restored = restore(coreSanitized);
 
     expect(restored).toContain('data-state-for="bili-dynamic-rin"');
     expect(restored).toContain('data-state-for="bili-dynamic-plugin"');
@@ -297,7 +293,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized, htmlEnabledContext());
+    const restored = restore(coreSanitized);
 
     expect(restored).toContain('cy-inline-html-pending');
     expect(restored).toContain('href="https://pan.baidu.com/s/1otJbDx4U2bg4yL9VYw3MoA?pwd=cycy"');
@@ -337,7 +333,7 @@ describe('typecho-plugin-warm-cy', () => {
       allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen'] },
       allowedIframeHostnames: ['www.youtube.com'],
     });
-    const restored = restore(coreSanitized, htmlEnabledContext());
+    const restored = restore(coreSanitized);
     expect(restored).toContain('<iframe');
     expect(restored).toContain('src="https://www.youtube.com/embed/example"');
     expect(restored).toContain('allow="autoplay; encrypted-media"');
@@ -556,7 +552,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized, htmlEnabledContext());
+    const restored = restore(coreSanitized);
     const marker = restored.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)?.[0];
     expect(marker).toBeTruthy();
 
