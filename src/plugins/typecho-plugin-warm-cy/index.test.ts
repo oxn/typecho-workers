@@ -94,14 +94,22 @@ describe('typecho-plugin-warm-cy', () => {
     ]);
   });
 
-  it('shows the timestamped CY plugin version in its settings page', () => {
+  it('shows the timestamped CY plugin version and defaults mobile player enhancement to off', () => {
     const handler = collectHooks().get('admin:page')!;
     const html = handler('', {
       slug: 'cy-companion',
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toMatch(/CY 插件版本：\d{4}\.\d{2}\.\d{2}\.\d{2}\.\d{2}/);
+    expect(html).toContain(`CY 插件版本：2026.11.05.09.41`);
+    expect(html).toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled"[^>]*>/);
+    expect(html).not.toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled" checked/);
+    const enabled = handler('', {
+      slug: 'cy-companion',
+      csrfToken: 'test-token',
+      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '1' }) },
+    });
+    expect(enabled).toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled" checked/);
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
@@ -290,6 +298,30 @@ describe('typecho-plugin-warm-cy', () => {
     expect(disabled).toContain('const enabled = false');
   });
 
+  it('adds mobile player debug runtime only when the experiment switch is enabled', () => {
+    const handler = collectHooks().get('archive:footer')!;
+    const enabled = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '1', showHomeSearchButton: '0' }),
+    } });
+    expect(enabled).toContain('data-cy-mobile-player-debug');
+    expect(enabled).toContain('HuaweiBrowser');
+    expect(enabled).toContain('MiuiBrowser');
+    expect(enabled).toContain('player.bilibili.com');
+    expect(enabled).toContain('allow-scripts allow-same-origin allow-popups allow-forms');
+    expect(enabled).toContain('frame.parentNode.replaceChild(replacement, frame)');
+    expect(enabled).toContain('bilibiliSandboxApplied');
+    expect(enabled).toContain("frame.style.setProperty('background-color', '#fff', 'important')");
+    expect(enabled).toContain("replacement.style.setProperty('background-color', '#fff', 'important')");
+    const disabled = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '0', showHomeSearchButton: '0' }),
+    } });
+    expect(disabled).not.toContain('data-cy-mobile-player-debug');
+    expect(disabled).not.toContain('allow-scripts allow-same-origin allow-popups allow-forms');
+    expect(disabled).not.toContain("background-color', '#fff'");
+  });
+
   it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {
     const context = adminContext();
     mocks.requireAdminAction.mockResolvedValueOnce(context);
@@ -299,6 +331,7 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: true,
         showHomeSearchButton: false,
         htmlEnhancementEnabled: true,
+        mobileNativePlayerEnhancementEnabled: true,
       }),
       path: SETTINGS_API_PATH,
     });
@@ -312,6 +345,7 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: '1',
         showHomeSearchButton: '0',
         htmlEnhancementEnabled: '1',
+        mobileNativePlayerEnhancementEnabled: '1',
       }),
     );
   });
