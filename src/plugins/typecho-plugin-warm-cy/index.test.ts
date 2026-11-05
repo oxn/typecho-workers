@@ -109,7 +109,7 @@ describe('typecho-plugin-warm-cy', () => {
     });
     expect(html).toContain(`CY 插件版本：2026.11.05.10.20`);
     expect(html).toContain('data-cy-setting="htmlEnhancementMode"');
-    expect(html).toContain('<option value="off" selected>');
+    expect(html).toContain('value="off" checked');
     expect(html).toContain('data-cy-alert-style-field="NOTE.background"');
     expect(html).toContain('data-cy-alert-style-field="CAUTION.icon"');
     expect(html).toContain('data-cy-alert-icon-visible');
@@ -133,13 +133,13 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }) },
     });
-    expect(legacyHtmlMode).toContain('<option value="light" selected>');
+    expect(legacyHtmlMode).toContain('value="light" checked');
     const fullHtmlMode = handler('', {
       slug: 'cy-companion',
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full' }) },
     });
-    expect(fullHtmlMode).toContain('<option value="full" selected>');
+    expect(fullHtmlMode).toContain('value="full" checked');
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
