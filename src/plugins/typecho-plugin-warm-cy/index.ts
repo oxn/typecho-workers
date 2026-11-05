@@ -556,6 +556,9 @@ const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  cons
 function inlineHtmlRuntime(enabled: boolean): string {
   const visibilityStyle = '<style data-cy-inline-html-enhancement-style>'
     + '.cy-inline-html-pending{display:' + (enabled ? 'contents' : 'none') + '!important}'
+    // Match the theme iframe rule's specificity, but scope the correction to
+    // restored HTML. Article-authored inline styles and later style blocks win.
+    + (enabled ? '.warm-prose :where(.cy-inline-html-pending) iframe{border-radius:0}' : '')
     + '</style>';
   return visibilityStyle + '<script data-cy-inline-html-enhancement>'
     + INLINE_HTML_RUNTIME.replace('__CY_ENABLED__', enabled ? 'true' : 'false')
