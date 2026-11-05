@@ -519,8 +519,8 @@ function restoreInlineHtmlFragments(content: string): string {
  * is enabled. Other providers and explicit policies remain unchanged.
  */
 function normalizeBilibiliIframeReferrerPolicy(html: string): string {
-  return html.replace(/<iframe\\b[^>]*>/gi, tag => {
-    const srcMatch = tag.match(/\\bsrc\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))/i);
+  return html.replace(/<iframe\b[^>]*>/gi, tag => {
+    const srcMatch = tag.match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
     const src = srcMatch?.[1] ?? srcMatch?.[2] ?? srcMatch?.[3] ?? '';
     if (!src) return tag;
 
@@ -531,7 +531,7 @@ function normalizeBilibiliIframeReferrerPolicy(html: string): string {
       return tag;
     }
 
-    return tag.replace(/\\s+referrerpolicy\\s*=\\s*(?:"no-referrer"|'no-referrer'|no-referrer)(?=\\s|\\/?$)/i, '');
+    return tag.replace(/\s+referrerpolicy\s*=\s*(?:"no-referrer"|'no-referrer'|no-referrer)(?=\s|\/?$)/i, '');
   });
 }
 
