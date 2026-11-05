@@ -345,3 +345,78 @@
   background: rgba(255, 255, 255, .94);
   box-shadow: 0 4px 18px rgba(20, 40, 30, .12);
 }
+
+/* Independent Markdown Alert / Note appearance controls. */
+.cy-note-style-settings > strong {
+  display: block;
+  margin: 0 0 8px;
+  color: #26352d;
+  font-size: 15px;
+  font-weight: 650;
+}
+.cy-note-style-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.cy-note-style-card {
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #e5e9e7;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+.cy-note-style-card legend {
+  padding: 0 6px;
+  color: #34433a;
+  font-size: 13px;
+  font-weight: 700;
+}
+.cy-note-style-field {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #56635b;
+  font-size: 12px;
+}
+.cy-note-style-field input[type="color"] {
+  width: 42px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #dce4df;
+  border-radius: 5px;
+  background: #fff;
+}
+.cy-note-style-field input[type="number"],
+.cy-note-style-field select {
+  width: 82px;
+  min-height: 30px;
+  padding: 4px 6px;
+  border: 1px solid #dce4df;
+  border-radius: 5px;
+  background: #fff;
+  color: #34433a;
+}
+.cy-note-icon-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 22px;
+  margin-top: 16px;
+  color: #56635b;
+  font-size: 13px;
+}
+.cy-note-icon-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.cy-note-icon-options input[type="checkbox"] {
+  accent-color: #269b63;
+}
+@media (max-width: 767px) {
+  .cy-note-style-grid { grid-template-columns: minmax(0, 1fr); }
+}
