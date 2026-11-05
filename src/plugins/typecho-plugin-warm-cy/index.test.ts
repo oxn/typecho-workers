@@ -107,7 +107,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain(`CY 插件版本：2026.11.05.10.01`);
+    expect(html).toContain(`CY 插件版本：2026.11.05.10.20`);
     expect(html).toMatch(/data-cy-setting="videoPlayerEnabled"[^>]*>/);
     expect(html).not.toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
     const enabled = handler('', {
