@@ -542,7 +542,7 @@ function readIframeAttribute(attributes: string, name: string): string {
 }
 
 function protectVideoIframesForMarkdown(content: string): string {
-  return content.replace(/<iframe\\b([^>]*)>(?:\\s*<\\/iframe\\s*>)?/gi, (match, attributes: string) => {
+  return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe\s*>)?/gi, (match, attributes: string) => {
     const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
     if (!source || !videoProviderForSource(source)) return match;
     return 'CYVIDEOIFRAMEX' + encodeInlinePayload(match) + 'XEND';
@@ -556,20 +556,20 @@ function restoreVideoIframesAfterMarkdown(content: string): string {
   // A protected iframe is plain text to Marked, so a standalone embed may
   // be wrapped in <p>. Remove that wrapper before restoring the block iframe.
   return content
-    .replace(/<p>\\s*CYVIDEOIFRAMEX([0-9a-f]+)XEND\\s*<\\/p>/gi, restore)
+    .replace(/<p>\s*CYVIDEOIFRAMEX([0-9a-f]+)XEND\s*<\/p>/gi, restore)
     .replace(/CYVIDEOIFRAMEX([0-9a-f]+)XEND/g, restore);
 }
 
 function replaceVideoIframesWithPlaceholders(content: string): string {
-  return content.replace(/<iframe\\b([^>]*)>(?:\\s*<\\/iframe\\s*>)?/gi, (match, attributes: string) => {
+  return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe\s*>)?/gi, (match, attributes: string) => {
     const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
     const provider = videoProviderForSource(source);
     if (!source || !provider) return match;
 
     const requestedWidth = readIframeAttribute(attributes, 'width');
     const requestedHeight = readIframeAttribute(attributes, 'height');
-    const width = /^\\d{2,4}$/.test(requestedWidth) ? Number(requestedWidth) : 0;
-    const height = /^\\d{2,4}$/.test(requestedHeight) ? Number(requestedHeight) : 0;
+    const width = /^\d{2,4}$/.test(requestedWidth) ? Number(requestedWidth) : 0;
+    const height = /^\d{2,4}$/.test(requestedHeight) ? Number(requestedHeight) : 0;
     const ratio = width > 0 && height > 0
       ? Math.max(0.5, Math.min(3, width / height))
       : 16 / 9;
