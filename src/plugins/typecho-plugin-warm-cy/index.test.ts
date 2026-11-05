@@ -325,7 +325,7 @@ describe('typecho-plugin-warm-cy', () => {
 
   it('retains iframe elements and safe playback attributes in enhanced HTML fragments', async () => {
     const restore = collectHooks().get('content:content')!;
-    const source = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/example" width="560" height="315" title="YouTube" allow="autoplay; encrypted-media" allowfullscreen loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+    const source = '<div class="video-wrap"><iframe class="article-player" id="article-video" style="border-radius:14px;max-width:100%" src="https://www.youtube.com/embed/example" width="560" height="315" title="YouTube" allow="autoplay; encrypted-media" allowfullscreen loading="eager" referrerpolicy="strict-origin-when-cross-origin" data-player="article"></iframe></div>';
     const protectedSource = await collectHooks().get('content:markdown')!(source);
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const coreSanitized = sanitizeHtml(parsed, {
@@ -339,6 +339,10 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('allow="autoplay; encrypted-media"');
     expect(restored).toContain('allowfullscreen');
     expect(restored).toContain('referrerpolicy="strict-origin-when-cross-origin"');
+    expect(restored).toContain('class="article-player"');
+    expect(restored).toContain('id="article-video"');
+    expect(restored).toContain('style="border-radius:14px;max-width:100%"');
+    expect(restored).toContain('data-player="article"');
   });
 
   it('adds the inline HTML runtime with the saved opt-in state', () => {
