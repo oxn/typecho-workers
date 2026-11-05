@@ -227,6 +227,30 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINECONTAINERX');
   });
 
+  it('preserves data-state-for attributes through the complete enhanced HTML fragment pipeline', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = [
+      '<div class="diagnostic">',
+      '<div data-state-for="bili-dynamic-rin">等待诊断脚本创建 iframe…</div>',
+      '<div data-state-for="bili-dynamic-plugin">等待诊断脚本创建 iframe…</div>',
+      '<div data-state-for="youtube-dynamic">等待诊断脚本创建 iframe…</div>',
+      '</div>',
+    ].join('');
+    const protectedSource = protect(source, htmlEnabledContext());
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes },
+    });
+    const restored = restore(coreSanitized, htmlEnabledContext());
+
+    expect(restored).toContain('data-state-for="bili-dynamic-rin"');
+    expect(restored).toContain('data-state-for="bili-dynamic-plugin"');
+    expect(restored).toContain('data-state-for="youtube-dynamic"');
+  });
+
   it('preserves both download-card SVG icons as inert markers for browser hydration', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
