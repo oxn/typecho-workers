@@ -543,7 +543,7 @@ function readIframeAttribute(attributes: string, name: string): string {
 
 function replaceVideoIframesWithPlaceholders(content: string): string {
   return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe\s*>)?/gi, (match, attributes: string) => {
-    const source = readIframeAttribute(attributes, 'src');
+    const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
     const provider = videoProviderForSource(source);
     if (!source || !provider) return match;
 
