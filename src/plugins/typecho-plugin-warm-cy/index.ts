@@ -332,7 +332,9 @@ function protectInlineHtml(source: string): string {
 
   content = content.replace(
     /<(style|script|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
-    block => 'CYCYINLINEBLOCKX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND',
+    block => 'CYCYINLINEBLOCKX' + encodeInlinePayload(/^<svg\b/i.test(block)
+      ? sanitizeInlineSvgReferences(restoreProtectedSegments(block))
+      : restoreProtectedSegments(block)) + 'XEND',
   );
 
   // Preserve complete div containers as one HTML fragment. CommonMark ends a
