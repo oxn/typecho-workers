@@ -2,11 +2,11 @@ import { eq } from 'drizzle-orm';
 import sanitizeHtml from 'sanitize-html';
 import { getDb, schema } from 'typecho/db';
 import { env } from 'cloudflare:workers';
-import { registerPluginAdminPath, setOption } from 'typecho/plugin-sdk';
+import { getOption, registerPluginAdminPath, setOption } from 'typecho/plugin-sdk';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { generateSecurityToken } from '@/lib/auth';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
-import { computeUrls, loadOptions } from '@/lib/options';
+import { computeUrls } from '@/lib/options';
 import adminCss from './admin.css?raw';
 
 const THEME_ID = 'typecho-theme-warm-cy';
@@ -39,8 +39,8 @@ async function isHtmlEnhancementEnabled(): Promise<boolean> {
   // Content filters receive only the content string, not RequestContext.options.
   // Read the private plugin option through the host's cached options loader so
   // the feature switch works without changing the core filter-hook contract.
-  const options = await loadOptions(getDb(env.DB));
-  const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+  const rawSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
+  const settings = parsePluginSettings(rawSettings);
   return isEnabled(settings.htmlEnhancementEnabled, false);
 }
 
