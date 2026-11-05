@@ -202,7 +202,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           var noteStyleSettings = { types: {}, icon: {
             visible: !!root.querySelector('[data-cy-alert-icon-visible]')?.checked,
             size: Number(root.querySelector('[data-cy-alert-icon-size]')?.value || 18),
-            gap: Number(root.querySelector('[data-cy-alert-icon-gap]')?.value || 8)
+            gap: Number(root.querySelector('[data-cy-alert-icon-gap]')?.value ?? 8)
           } };
           root.querySelectorAll('[data-cy-alert-style-field]').forEach(function (field) {
             var parts = (field.dataset.cyAlertStyleField || '').split('.');
