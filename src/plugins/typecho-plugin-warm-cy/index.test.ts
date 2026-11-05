@@ -107,7 +107,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain(`CY 插件版本：2026.11.05.09.45`);
+    expect(html).toContain(`CY 插件版本：2026.11.05.09.46`);
     expect(html).toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled"[^>]*>/);
     expect(html).not.toMatch(/data-cy-setting="mobileNativePlayerEnhancementEnabled" checked/);
     const enabled = handler('', {
@@ -316,6 +316,12 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).toContain('player.vimeo.com');
     expect(enabled).toContain("border', '2px solid #16a34a', 'important'");
     expect(enabled).toContain('MutationObserver');
+    expect(enabled).toContain('installYouTubeLoadStatus');
+    expect(enabled).toContain('data-cy-youtube-load-status');
+    expect(enabled).toContain('播放器加载失败');
+    expect(enabled).toContain("searchParams.set('enablejsapi', '1')");
+    expect(enabled).toContain('onReady: hideFailure');
+    expect(enabled).toContain('onError: showFailure');
     expect(enabled).toContain('player.bilibili.com');
     expect(enabled).toContain("setAttribute('referrerpolicy', 'no-referrer')");
     expect(enabled).toContain("setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms')");
