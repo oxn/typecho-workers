@@ -274,6 +274,35 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINEHTMLX');
   });
 
+  it('bypasses HTML protection and restoration completely when the feature is OFF', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = '<div class="native-content"><iframe src="https://www.youtube.com/embed/example"></iframe></div>';
+    const disabledContext = { options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0' }) } };
+    expect(protect(source, disabledContext)).toBe(source);
+    expect(restore('<p>ordinary sanitized content</p>', disabledContext))
+      .toBe('<p>ordinary sanitized content</p>');
+  });
+
+  it('retains iframe elements and safe playback attributes in enhanced HTML fragments', () => {
+    const restore = collectHooks().get('content:content')!;
+    const source = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/example" width="560" height="315" title="YouTube" allow="autoplay; encrypted-media" allowfullscreen loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+    const protectedSource = collectHooks().get('content:markdown')!(source, htmlEnabledContext());
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'ins', 'details', 'summary', 'figure', 'figcaption', 'video', 'audio', 'source', 'iframe']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen'] },
+      allowedIframeHostnames: ['www.youtube.com'],
+    });
+    const restored = restore(coreSanitized, htmlEnabledContext());
+    expect(restored).toContain('<iframe');
+    expect(restored).toContain('src="https://www.youtube.com/embed/example"');
+    expect(restored).toContain('allow="autoplay; encrypted-media"');
+    expect(restored).toContain('allowfullscreen');
+    expect(restored).toContain('referrerpolicy="strict-origin-when-cross-origin"');
+  });
+
   it('adds the inline HTML runtime with the saved opt-in state', () => {
     const handler = collectHooks().get('archive:footer')!;
     const enabled = handler('', { options: {
@@ -291,7 +320,8 @@ describe('typecho-plugin-warm-cy', () => {
       theme: 'typecho-theme-warm-cy',
       [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0', showHomeSearchButton: '0' }),
     } });
-    expect(disabled).toContain('const enabled = false');
+    expect(disabled).not.toContain('data-cy-inline-html-enhancement');
+    expect(disabled).toContain('data-cy-markdown-alert-icons');
   });
 
   it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {
