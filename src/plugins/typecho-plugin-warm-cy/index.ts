@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.05.09.42';
+const PLUGIN_VERSION = '2026.11.05.09.43';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -79,7 +79,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <input type="checkbox" data-cy-setting="mobileNativePlayerEnhancementEnabled" ${mobilePlayerDebugEnabled ? 'checked' : ''}>
           <span>视频播放器绿色边框（生效测试）</span>
         </label>
-        <p>默认关闭。开启后，插件会给 YouTube、B 站和 Vimeo 的内嵌播放器添加绿色细边框，作为插件脚本已执行的可视标记；关闭后不添加边框。本项仅用于确认插件是否在前台生效，不改变播放器地址、加载方式、权限或高度。</p>
+        <p>默认关闭。开启后，插件会给 YouTube、B 站和 Vimeo 的内嵌播放器添加绿色细边框；另外仅在华为/小米原生浏览器中，对 B 站 iframe 单独测试 Rin 使用的 no-referrer 策略。关闭后不执行这些实验。本项不修改视频地址、YouTube、加载方式或播放器高度。</p>
       </section>
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
@@ -525,6 +525,7 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
   return `<script data-cy-video-border-debug>
     (() => {
       const supportedHosts = ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'];
+      const isHuaweiOrXiaomi = /HuaweiBrowser|MiuiBrowser/i.test(navigator.userAgent || '');
       const markPlayer = (frame) => {
         let hostname = '';
         try { hostname = new URL(frame.src, location.href).hostname.toLowerCase(); }
@@ -533,6 +534,28 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
         frame.style.setProperty('border', '2px solid #16a34a', 'important');
         frame.style.setProperty('box-sizing', 'border-box', 'important');
         frame.dataset.cyVideoBorderDebug = '1';
+
+        // Rin's working Bilibili embed uses referrerpolicy="no-referrer".
+        // Recreate only Bilibili frames on Huawei/Xiaomi so the policy applies
+        // before the replacement iframe's first navigation.
+        if (
+          hostname === 'player.bilibili.com' &&
+          isHuaweiOrXiaomi &&
+          frame.getAttribute('referrerpolicy') !== 'no-referrer' &&
+          frame.parentNode
+        ) {
+          const replacement = frame.cloneNode(false);
+          replacement.setAttribute('referrerpolicy', 'no-referrer');
+          replacement.dataset.cyBilibiliReferrerTest = 'no-referrer';
+          replacement.style.setProperty('border', '2px solid #16a34a', 'important');
+          replacement.style.setProperty('box-sizing', 'border-box', 'important');
+          replacement.dataset.cyVideoBorderDebug = '1';
+          frame.parentNode.replaceChild(replacement, frame);
+          console.info('[CY Bilibili referrer test]', {
+            browser: navigator.userAgent,
+            referrerPolicy: replacement.getAttribute('referrerpolicy'),
+          });
+        }
       };
       const scan = (root) => {
         if (root instanceof HTMLIFrameElement) markPlayer(root);
