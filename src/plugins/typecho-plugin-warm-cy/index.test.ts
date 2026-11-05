@@ -127,6 +127,19 @@ describe('typecho-plugin-warm-cy', () => {
       options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '1' }) },
     });
     expect(legacyEnabled).toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
+
+    const legacyHtmlMode = handler('', {
+      slug: 'cy-companion',
+      csrfToken: 'test-token',
+      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }) },
+    });
+    expect(legacyHtmlMode).toContain('<option value="light" selected>');
+    const fullHtmlMode = handler('', {
+      slug: 'cy-companion',
+      csrfToken: 'test-token',
+      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full' }) },
+    });
+    expect(fullHtmlMode).toContain('<option value="full" selected>');
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
@@ -381,6 +394,16 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).toContain('scrolling="no"');
     expect(output).toContain('framespacing="0"');
     expect(output).toContain('loading="lazy"');
+  });
+
+  it('leaves HTML untouched by the CY enhancement when the mode is off', () => {
+    const markdown = collectHooks().get('content:markdown')!;
+    const source = '<div class="raw-card"><style>.raw-card{color:red}</style>原始正文</div>';
+    const context = { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'off' }),
+    } };
+    expect(markdown(source, context)).toBe(source);
   });
 
   it('routes lightweight HTML content through the preserved legacy sanitizer pipeline', () => {
