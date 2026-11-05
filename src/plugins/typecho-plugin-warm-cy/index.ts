@@ -706,7 +706,9 @@ function markdownAlertIconStyles(value?: unknown): string {
     if (style.border !== defaults.border) declarations.push('border-color:' + style.border + '!important;border-left-color:' + style.border + '!important');
     if (style.borderStyle !== defaults.borderStyle) declarations.push('border-style:' + style.borderStyle + '!important');
     if (style.radius !== defaults.radius) declarations.push('border-radius:' + style.radius + 'px!important');
-    if (style.text !== defaults.text) declarations.push('color:' + style.text + '!important');
+    const bodySelector = '.warm-prose .markdown-alert[data-alert="' + type + '"] > :not(.markdown-alert-title),'
+      + '.warm-note__content .markdown-alert[data-alert="' + type + '"] > :not(.markdown-alert-title)';
+    const textRule = style.text !== defaults.text ? bodySelector + '{color:' + style.text + '!important}' : '';
     const titleRule = style.title !== defaults.title
       ? titleSelector + '{color:' + style.title + '!important}' : '';
     const iconDeclarations: string[] = [];
@@ -721,6 +723,7 @@ function markdownAlertIconStyles(value?: unknown): string {
     if (!settings.icon.visible) iconDeclarations.push('display:none!important');
     return (declarations.length ? selector + '{' + declarations.join(';') + '}' : '')
       + titleRule
+      + textRule
       + (iconDeclarations.length ? iconSelector + '{' + iconDeclarations.join(';') + '}' : '');
   }).join('');
   return '<style data-cy-markdown-alert-icons>'
