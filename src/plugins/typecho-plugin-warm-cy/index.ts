@@ -594,6 +594,10 @@ function videoPlayerRuntime(enabled: boolean): string {
         frame.allowFullscreen = true;
         frame.setAttribute('frameborder', '0');
         frame.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+        if (url.hostname.toLowerCase() === 'player.bilibili.com') {
+          frame.setAttribute('referrerpolicy', 'no-referrer');
+          frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+        }
         frame.addEventListener('load', () => {
           root.dataset.cyVideoState = 'frame-loaded';
           if (status) status.hidden = true;
