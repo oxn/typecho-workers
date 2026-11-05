@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.05.09.43';
+const PLUGIN_VERSION = '2026.11.05.09.44';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -575,12 +575,14 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
   </script>`;
 }
 
-function inlineHtmlRuntime(enabled: boolean): string {
+function inlineHtmlRuntime(): string {
+  // Injected only while the HTML enhancement is enabled; disabled mode adds
+  // neither a hiding rule nor a runtime script.
   const visibilityStyle = '<style data-cy-inline-html-enhancement-style>'
-    + '.cy-inline-html-pending{display:' + (enabled ? 'contents' : 'none') + '!important}'
+    + '.cy-inline-html-pending{display:contents!important}'
     + '</style>';
   return visibilityStyle + '<script data-cy-inline-html-enhancement>'
-    + INLINE_HTML_RUNTIME.replace('__CY_ENABLED__', enabled ? 'true' : 'false')
+    + INLINE_HTML_RUNTIME.replace('__CY_ENABLED__', 'true')
     + '</script>';
 }
 
@@ -621,27 +623,46 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
   registerPluginAdminPath(ADMIN_SETTINGS_API_PATH);
 
-  // Protect inline content blocks before the core sanitizer removes them.
-  addHook('content:markdown', pluginId, (content: string) => protectInlineHtml(content), 1);
+  // Each content feature reads its own setting from the request context.
+  addHook('content:markdown', pluginId, (content: string, requestContext?: {
+    options?: Record<string, unknown>;
+  }) => {
+    const options = requestContext?.options;
+    if (options?.theme !== THEME_ID) return content;
+    const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    if (!isEnabled(settings.htmlEnhancementEnabled, false)) return content;
+    return protectInlineHtml(content);
+  }, 1);
 
-  // Restore styled download-card fragments after the core sanitizer. The fragment
-  // is sanitized again with a narrow HTML/SVG allowlist; visibility is controlled
-  // per response by the saved opt-in setting in archive:footer.
-  addHook('content:content', pluginId, (content: string) => restoreMarkdownAlertIcons(restoreInlineHtmlFragments(content)), 1);
+  // Markdown Alert icons remain a separate legacy CY-theme behavior.
+  // HTML fragment restoration runs only when its own enhancement is enabled.
+  addHook('content:content', pluginId, (content: string, requestContext?: {
+    options?: Record<string, unknown>;
+  }) => {
+    const options = requestContext?.options;
+    if (options?.theme !== THEME_ID) return content;
+    const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    const withAlertIcons = restoreMarkdownAlertIcons(content);
+    return isEnabled(settings.htmlEnhancementEnabled, false)
+      ? restoreInlineHtmlFragments(withAlertIcons)
+      : withAlertIcons;
+  }, 1);
 
-  // Rehydrate only after Markdown sanitization; the feature is opt-in.
+  // Frontend output is scoped to Warm CY and each feature's own toggle.
   addHook('archive:footer', pluginId, (html: string, extra?: {
     options?: Record<string, unknown>;
   }) => {
     const options = extra?.options;
-    if (!options) return html;
+    if (!options || options.theme !== THEME_ID) return html;
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
-    const htmlRuntime = inlineHtmlRuntime(isEnabled(settings.htmlEnhancementEnabled, false));
-    const alertIconStyle = options.theme === THEME_ID ? markdownAlertIconStyles() : '';
-    const mobilePlayerDebug = options.theme === THEME_ID
-      ? mobilePlayerDebugRuntime(isEnabled(settings.mobileNativePlayerEnhancementEnabled, false))
+    const htmlRuntime = isEnabled(settings.htmlEnhancementEnabled, false)
+      ? inlineHtmlRuntime()
       : '';
-    if (options.theme !== THEME_ID || !isEnabled(settings.showHomeSearchButton)) {
+    const alertIconStyle = markdownAlertIconStyles();
+    const mobilePlayerDebug = mobilePlayerDebugRuntime(
+      isEnabled(settings.mobileNativePlayerEnhancementEnabled, false),
+    );
+    if (!isEnabled(settings.showHomeSearchButton)) {
       return html + alertIconStyle + htmlRuntime + mobilePlayerDebug;
     }
     const searchBase = JSON.stringify(
@@ -992,8 +1013,14 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const cid = Number(extra?.cid);
     if (!request || !options || options.theme !== THEME_ID || !Number.isSafeInteger(cid) || cid <= 0) return payload;
 
+    // Skip all comment-management work when this feature is switched off.
+    const requestSettings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    if (!isEnabled(requestSettings.showCommentManagementButtons)) return payload;
+
     const auth = await requireAdminAction(request, 'administrator', { csrf: false });
     if (isAdminActionResponse(auth) || !auth.user.authCode) return payload;
+    const featureSettings = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
+    if (!isEnabled(featureSettings.showCommentManagementButtons)) return payload;
 
     const content = await auth.db.query.contents.findFirst({
       columns: { type: true },
@@ -1002,13 +1029,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     if (!content || (content.type !== 'post' && content.type !== 'page')) return payload;
 
     const settings = parseSettings(auth.options[OPTION_KEY]);
-    const featureSettings = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
     const csrfToken = await generateSecurityToken(auth.options.secret, auth.user.authCode, auth.uid);
     return {
       ...payload,
       management: {
         canManage: true,
-        showManagementButtons: isEnabled(featureSettings.showCommentManagementButtons),
+        showManagementButtons: true,
         adminUrl: computeUrls(auth.options).adminUrl,
         contentType: content.type,
         isPinned: content.type === 'post' && parsePinnedIds(settings.pinnedIds).includes(cid),
