@@ -290,6 +290,42 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINEHTMLX');
   });
 
+  it('preserves Bilibili iframe security and playback attributes through HTML restoration', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = '<div class="video-wrap"><iframe src="https://player.bilibili.com/player.html?bvid=BV1TEST" width="100%" height="480" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" referrerpolicy="no-referrer" allow="autoplay; fullscreen; picture-in-picture" loading="lazy"></iframe></div>';
+    const context = { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', videoPlayerEnabled: '0' }),
+    } };
+
+    const protectedSource = protect(source, context);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    expect(protectedSource).not.toContain('sandbox=');
+
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const sanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['iframe']),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'loading',
+          'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'allow'],
+      },
+      allowedIframeHostnames: ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'],
+    });
+    const output = restore(sanitized, context);
+
+    expect(output).toContain('class="video-wrap"');
+    expect(output).toContain('src="https://player.bilibili.com/player.html?bvid=BV1TEST"');
+    expect(output).toContain('sandbox="allow-scripts allow-same-origin allow-popups allow-forms"');
+    expect(output).toContain('referrerpolicy="no-referrer"');
+    expect(output).toContain('allow="autoplay; fullscreen; picture-in-picture"');
+    expect(output).toContain('scrolling="no"');
+    expect(output).toContain('framespacing="0"');
+    expect(output).toContain('loading="lazy"');
+  });
+
   it('adds the inline HTML runtime with the saved opt-in state', () => {
     const handler = collectHooks().get('archive:footer')!;
     const enabled = handler('', { options: {
