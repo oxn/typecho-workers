@@ -351,6 +351,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).toContain('data-cy-markdown-alert-icons');
     expect(enabled).toContain('cy-markdown-alert-has-icon::before');
     expect(enabled).toContain('const enabled = true');
+    expect(enabled).toContain('.warm-prose :where(.cy-inline-html-pending) iframe{border-radius:0}');
+    expect(enabled).not.toContain('iframe{border-radius:0!important}');
     expect(enabled).toContain("allowedStyle.has(property)");
     expect(enabled).toContain("key !== 'style'");
     expect(enabled).toContain("script.src = url.href");
