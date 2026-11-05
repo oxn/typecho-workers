@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.05.09.40';
+const PLUGIN_VERSION = '2026.11.05.09.41';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -79,7 +79,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <input type="checkbox" data-cy-setting="mobileNativePlayerEnhancementEnabled" ${mobilePlayerDebugEnabled ? 'checked' : ''}>
           <span>手机原生浏览器播放器增强（实验开关）</span>
         </label>
-        <p>默认关闭。开启后仅在华为/小米原生浏览器中，对 B 站播放器按 Rin 参考 HTML 添加 sandbox 权限并重建 iframe，使权限在首次加载时生效；不修改 B 站地址、YouTube、加载方式、Referer 或播放器高度。关闭时不执行此实验。</p>
+        <p>默认关闭。开启后仅在华为/小米原生浏览器中，对 B 站播放器添加 Rin 参考 HTML 的 sandbox 权限，并将 iframe 背景临时设为白色，便于观察插件是否执行；不修改 B 站地址、YouTube、加载方式、Referer 或播放器高度。关闭时不执行此实验。</p>
       </section>
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
@@ -537,11 +537,16 @@ function mobilePlayerDebugRuntime(enabled: boolean): string {
           try { hostname = new URL(frame.src, location.href).hostname.toLowerCase(); }
           catch { continue; }
           if (hostname !== 'player.bilibili.com') continue;
+
+          // White is a temporary visual marker: it makes the plugin's iframe-level
+          // styling observable when the embedded player has not painted its own page.
+          frame.style.setProperty('background-color', '#fff', 'important');
           if (frame.getAttribute('sandbox') === sandboxPermissions) continue;
 
-          // Clone before insertion so the sandbox restrictions apply on the first navigation.
+          // Clone before insertion so sandbox restrictions apply on first navigation.
           const replacement = frame.cloneNode(false);
           replacement.setAttribute('sandbox', sandboxPermissions);
+          replacement.style.setProperty('background-color', '#fff', 'important');
           if (frame.parentNode) {
             frame.parentNode.replaceChild(replacement, frame);
             bilibiliSandboxApplied += 1;

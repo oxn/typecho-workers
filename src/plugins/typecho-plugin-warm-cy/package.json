@@ -23,8 +23,8 @@
       "adminPage": "cy-companion",
       "adminPageTitle": "CY 功能显示",
       "adminPageIsSettings": true,
-      "buildVersion": "2026.11.05.09.40"
+      "buildVersion": "2026.11.05.09.41"
     }
   },
-  "cyVersion": "2026.11.05.09.40"
+  "cyVersion": "2026.11.05.09.41"
 }
