@@ -349,7 +349,7 @@ describe('typecho-plugin-warm-cy', () => {
     } });
     expect(enabled).toContain('data-cy-video-player-runtime');
     expect(enabled).toContain('data-cy-video-player-styles');
-    expect(enabled).toContain('document.createElement(\\'iframe\\')');
+    expect(enabled).toContain("document.createElement('iframe')");
     expect(enabled).not.toContain('data-cy-video-border-debug');
     expect(enabled).not.toContain('enablejsapi=1');
     expect(enabled).not.toContain('cloneNode(false)');
