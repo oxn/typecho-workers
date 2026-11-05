@@ -697,6 +697,10 @@ function markdownAlertIconStyles(value?: unknown): string {
     const defaults = MARKDOWN_ALERT_STYLE_DEFAULTS[type];
     const selector = '.warm-prose .markdown-alert[data-alert="' + type + '"],'
       + '.warm-note__content .markdown-alert[data-alert="' + type + '"]';
+    const titleSelector = '.warm-prose .markdown-alert[data-alert="' + type + '"] .markdown-alert-title,'
+      + '.warm-note__content .markdown-alert[data-alert="' + type + '"] .markdown-alert-title';
+    const iconSelector = '.warm-prose .markdown-alert[data-alert="' + type + '"] .markdown-alert-title .markdown-alert-icon,'
+      + '.warm-note__content .markdown-alert[data-alert="' + type + '"] .markdown-alert-title .markdown-alert-icon';
     const declarations: string[] = [];
     if (style.background !== defaults.background) declarations.push('background:' + style.background + '!important');
     if (style.border !== defaults.border) declarations.push('border-color:' + style.border + '!important;border-left-color:' + style.border + '!important');
@@ -704,7 +708,7 @@ function markdownAlertIconStyles(value?: unknown): string {
     if (style.radius !== defaults.radius) declarations.push('border-radius:' + style.radius + 'px!important');
     if (style.text !== defaults.text) declarations.push('color:' + style.text + '!important');
     const titleRule = style.title !== defaults.title
-      ? selector + ' .markdown-alert-title{color:' + style.title + '!important}' : '';
+      ? titleSelector + '{color:' + style.title + '!important}' : '';
     const iconDeclarations: string[] = [];
     if (style.icon !== defaults.icon) iconDeclarations.push('color:' + style.icon + '!important');
     if (settings.icon.size !== 18) {
@@ -717,7 +721,7 @@ function markdownAlertIconStyles(value?: unknown): string {
     if (!settings.icon.visible) iconDeclarations.push('display:none!important');
     return (declarations.length ? selector + '{' + declarations.join(';') + '}' : '')
       + titleRule
-      + (iconDeclarations.length ? selector + ' .markdown-alert-title .markdown-alert-icon{' + iconDeclarations.join(';') + '}' : '');
+      + (iconDeclarations.length ? iconSelector + '{' + iconDeclarations.join(';') + '}' : '');
   }).join('');
   return '<style data-cy-markdown-alert-icons>'
     + '.warm-prose .markdown-alert-title.cy-markdown-alert-has-icon::before,'
