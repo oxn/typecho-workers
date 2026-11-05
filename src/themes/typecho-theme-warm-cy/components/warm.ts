@@ -368,7 +368,7 @@ function plainHeadingText(inner: string): string {
  */
 export function renderWarmIframes(html: string): string {
   return html.replace(/<iframe\\b[^>]*>/gi, (tag) => {
-    const srcMatch = /\\bsrc\\s*=\\s*(["'])(.*?)\\1/i.exec(tag);
+    const srcMatch = /\bsrc\s*=\s*(["'])(.*?)\1/i.exec(tag);
     if (!srcMatch) return tag;
 
     try {
@@ -378,7 +378,7 @@ export function renderWarmIframes(html: string): string {
       return tag;
     }
 
-    if (/\\breferrerpolicy\\s*=/i.test(tag)) return tag;
+    if (/\breferrerpolicy\s*=/i.test(tag)) return tag;
     return tag.replace(/\\/?>$/, (closing) =>
       ` referrerpolicy="strict-origin-when-cross-origin"${closing}`,
     );
