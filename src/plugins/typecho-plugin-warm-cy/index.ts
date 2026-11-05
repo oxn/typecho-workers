@@ -14,7 +14,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.04.20.41';
+const PLUGIN_VERSION = '2026.11.05.10.01';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -45,6 +45,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
+  const videoPlayerEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
       data-cy-feature-settings data-csrf-token="${escapeHtml(csrfToken)}">
@@ -73,6 +74,13 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         </label>
         <p>允许文章、笔记和独立页面正文使用内嵌 &lt;style&gt;、&lt;script&gt;、SVG，以及 HTML 的 class、id、data、aria 和 style 属性。开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布文章；评论区不受影响。</p>
       </section>
+      <section class="cy-feature-card">
+        <label class="cy-feature-toggle">
+          <input type="checkbox" data-cy-setting="videoPlayerEnabled" ${videoPlayerEnabled ? 'checked' : ''}>
+          <span>独立视频播放器（插件接管）</span>
+        </label>
+        <p>关闭时完全使用上游主题原生播放器；开启时由 CY 插件独立创建 YouTube、B 站和 Vimeo 播放器 iframe，主题不再处理这些视频。</p>
+      </section>
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
         <span data-cy-save-status role="status" aria-live="polite"></span>
@@ -89,6 +97,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
+          var videoPlayer = root.querySelector('[data-cy-setting="videoPlayerEnabled"]');
           save.disabled = true;
           status.textContent = '正在保存…';
           try {
@@ -101,7 +110,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
               body: JSON.stringify({
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
-                htmlEnhancementEnabled: !!htmlEnhancement.checked
+                htmlEnhancementEnabled: !!htmlEnhancement.checked,
+                videoPlayerEnabled: !!videoPlayer.checked
               })
             });
             var result = await response.json();
@@ -252,7 +262,7 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     'img', 'button', 'label', 'blockquote', 'pre', 'code',
     'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
     'details', 'summary', 'dl', 'dt', 'dd', 'picture', 'source',
-    'video', 'audio',
+    'video', 'audio', 'iframe',
     'svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
     'ellipse', 'defs', 'lineargradient', 'linearGradient',
     'radialgradient', 'radialGradient', 'stop', 'clippath', 'clipPath',
@@ -287,6 +297,8 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     td: ['style', 'class', 'id', 'colspan', 'rowspan'],
     video: ['src', 'controls', 'width', 'height', 'poster', 'style', 'class'],
     audio: ['src', 'controls', 'style', 'class'],
+    iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'title',
+      'loading', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'allow'],
     source: ['src', 'type'],
     svg: ['width', 'height', 'viewbox', 'viewBox', 'xmlns', 'fill', 'stroke',
       'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style', 'class', 'id',
@@ -316,6 +328,7 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     use: ['id', 'href', 'xlink:href', 'width', 'height', 'x', 'y'],
     symbol: ['id', 'viewbox', 'viewBox', 'preserveAspectRatio'],
   },
+  allowedIframeHostnames: ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'],
   allowedStyles: {
     '*': {
       color: [/^(?:#[0-9a-f]{3,8}|rgba?\([0-9.,%\s]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/i],
@@ -510,12 +523,125 @@ function markdownAlertIconStyles(): string {
 }
 
 const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  const markerPattern = /CYCYINLINEBLOCKX([0-9a-f]+)XEND|CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/g;\n  const svgTags = new Set(['svg','g','path','circle','rect','line','polyline','polygon','ellipse','defs','lineargradient','radialgradient','stop','clippath','mask','title','desc','use','symbol']);\n  const svgAttrs = new Set(['id','class','viewbox','width','height','fill','fill-rule','clip-rule','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','cx','cy','r','rx','ry','x','y','x1','x2','y1','y2','d','points','transform','preserveaspectratio','offset','stop-color','stop-opacity','gradientunits','gradienttransform','clippathunits','maskunits','maskcontentunits','clip-path','mask','filter','href','xlink:href','role','focusable','aria-hidden','aria-label']);\n  const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };\n  const safeSvgNode = node => {\n    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || '');\n    if (node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())) return null;\n    const clean = document.createElementNS('http://www.w3.org/2000/svg', node.localName);\n    for (const attr of Array.from(node.attributes)) {\n      const key = attr.name.toLowerCase(), value = attr.value;\n      if (!svgAttrs.has(key) && key !== 'style' && !key.startsWith('aria-')) continue;\n      if (key === 'style') {\n        const allowedStyle = new Set(['fill','stroke','fill-rule','clip-rule','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','stop-color','stop-opacity']);\n        const safeStyle = value.split(';').map(part => part.trim()).filter(Boolean).map(part => {\n          const split = part.indexOf(':');\n          if (split < 1) return '';\n          const property = part.slice(0, split).trim().toLowerCase();\n          const cssValue = part.slice(split + 1).trim();\n          if (!allowedStyle.has(property) || /expression|javascript:|data:|@import|[\\u0000-\\u001f]/i.test(cssValue)) return '';\n          if (/\\burl\\s*\\(/i.test(cssValue) && !/^url\\(\\s*#[\\w:.-]+\\s*\\)$/i.test(cssValue)) return '';\n          return property + ':' + cssValue;\n        }).filter(Boolean).join(';');\n        if (safeStyle) clean.setAttribute('style', safeStyle);\n        continue;\n      }\n      if ((key === 'href' || key === 'xlink:href') && !/^#[\\w:.-]+$/.test(value)) continue;\n      if (/\\burl\\s*\\(/i.test(value) && !/^\\s*url\\(\\s*#[\\w:.-]+\\s*\\)\\s*$/i.test(value)) continue;\n      if (/javascript:|data:text\\/html|[\\u0000-\\u001f]/i.test(value)) continue;\n      if (key === 'xlink:href') clean.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', value); else clean.setAttribute(attr.name, value);\n    }\n    for (const child of Array.from(node.childNodes)) { const safe = safeSvgNode(child); if (safe) clean.appendChild(safe); }\n    return clean;\n  };\n  const addBlock = raw => {\n    const match = raw.match(/^<(style|script|svg)\\b([^>]*)>([\\s\\S]*)<\\/\\1\\s*>$/i);\n    if (!match) return null;\n    const tag = match[1].toLowerCase(), attrs = match[2] || '', body = match[3] || '';\n    if (tag === 'svg') {\n      try { const parsed = new DOMParser().parseFromString(raw, 'image/svg+xml'); if (parsed.querySelector('parsererror') || parsed.documentElement.localName.toLowerCase() !== 'svg') return null; return safeSvgNode(parsed.documentElement); } catch { return null; }\n    }\n    if (tag === 'style') { const style = document.createElement('style'); const media = attrs.match(/\\bmedia\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i); if (media) style.media = media[1] || media[2] || ''; style.textContent = body; document.head.appendChild(style); return null; }\n    const script = document.createElement('script');\n    const type = attrs.match(/\\btype\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n    const scriptType = (type && (type[1] || type[2]) || '').toLowerCase();\n    if (scriptType && !['module','text/javascript','application/javascript'].includes(scriptType)) return null;\n    if (scriptType) script.type = scriptType;\n    script.textContent = body; document.body.appendChild(script); return null;\n  };\n  const hydrate = () => {\n    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode(node) { const p = node.parentElement; if (!p || p.closest('pre,code,textarea,script,style')) return NodeFilter.FILTER_REJECT; markerPattern.lastIndex = 0; return markerPattern.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });\n    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);\n    for (const node of nodes) {\n      const value = node.nodeValue || ''; markerPattern.lastIndex = 0; let last = 0, match, changed = false; const fragment = document.createDocumentFragment();\n      while ((match = markerPattern.exec(value))) {\n        changed = true; if (match.index > last) fragment.appendChild(document.createTextNode(value.slice(last, match.index)));\n        if (enabled && match[1]) { const element = addBlock(decode(match[1])); if (element) fragment.appendChild(element); }\n        else if (enabled && match[2] && match[3]) {\n          const parent = node.parentElement, previous = node.previousElementSibling;\n          const target = parent && parent.tagName.toLowerCase() === match[2] ? parent : previous && previous.tagName.toLowerCase() === match[2] ? previous : parent;\n          if (target) {\n            try {\n              const attrs = JSON.parse(decode(match[3]));\n              for (const [name, value] of Object.entries(attrs)) {\n                if (name === 'style') target.style.cssText = String(value);\n                else if (name === 'class' || name === 'id' || name === 'title' || name === 'role'\n                  || name === 'width' || name === 'height' || name === 'alt' || name === 'loading'\n                  || name === 'type' || name === 'name' || name === 'value' || name === 'placeholder'\n                  || name.startsWith('data-') || name.startsWith('aria-')) {\n                  target.setAttribute(name, String(value));\n                }\n              }\n            } catch {}\n          }\n        }\n        last = match.index + match[0].length;\n      }\n      if (changed) { if (last < value.length) fragment.appendChild(document.createTextNode(value.slice(last))); node.parentNode && node.parentNode.replaceChild(fragment, node); }\n    }\n  };\n  hydrate(); window.addEventListener('instantclick:newpage', hydrate);\n})();";
-function inlineHtmlRuntime(enabled: boolean): string {
+function videoProviderForSource(source: string): 'youtube' | 'bilibili' | 'vimeo' | null {
+  try {
+    const url = new URL(source.replace(/&amp;/g, '&'), 'https://localhost');
+    if (url.hostname === 'www.youtube.com') return 'youtube';
+    if (url.hostname === 'player.bilibili.com') return 'bilibili';
+    if (url.hostname === 'player.vimeo.com') return 'vimeo';
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function readIframeAttribute(attributes: string, name: string): string {
+  const pattern = new RegExp("\\b" + name + "\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]+))", "i");
+  const match = pattern.exec(attributes);
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
+}
+
+function replaceVideoIframesWithPlaceholders(content: string): string {
+  return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe\s*>)?/gi, (match, attributes: string) => {
+    const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
+    const provider = videoProviderForSource(source);
+    if (!source || !provider) return match;
+
+    const requestedHeight = readIframeAttribute(attributes, 'height');
+    const height = /^\d{2,4}$/.test(requestedHeight)
+      ? requestedHeight
+      : provider === 'bilibili' ? '480' : '360';
+
+    return '<div class="cy-video-player" data-cy-video-player'
+      + ' data-cy-video-provider="' + provider + '"'
+      + ' data-cy-video-src="' + escapeHtml(source) + '"'
+      + ' data-cy-video-height="' + height + '">'
+      + '<div class="cy-video-player__status" role="status">正在启动视频播放器…</div>'
+      + '</div>';
+  });
+}
+
+function videoPlayerRuntime(enabled: boolean): string {
+  if (!enabled) return '';
+  return `<style data-cy-video-player-styles>
+    .cy-video-player{position:relative;width:100%;height:480px;max-width:100%;overflow:hidden;background:#000;border-radius:0.5rem}
+    .cy-video-player iframe{display:block;width:100%;height:100%;max-width:100%;border:0}
+    .cy-video-player__status{position:absolute;inset:0;display:grid;place-items:center;padding:1rem;color:#fff;background:#111;text-align:center;font-size:14px}
+    .cy-video-player__status[hidden]{display:none}
+  </style><script data-cy-video-player-runtime>
+    (() => {
+      const supportedHosts = new Set(['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com']);
+      const mount = root => {
+        if (!root || root.dataset.cyVideoMounted === '1') return;
+        const source = root.dataset.cyVideoSrc || '';
+        let url;
+        try { url = new URL(source, location.href); } catch { return; }
+        if (!supportedHosts.has(url.hostname.toLowerCase())) return;
+
+        const status = root.querySelector('.cy-video-player__status');
+        const requestedHeight = Number.parseInt(root.dataset.cyVideoHeight || '', 10);
+        const height = Number.isFinite(requestedHeight) && requestedHeight >= 120 && requestedHeight <= 1200
+          ? requestedHeight
+          : 480;
+        root.style.height = height + 'px';
+
+        const frame = document.createElement('iframe');
+        frame.src = source;
+        frame.title = '视频播放器';
+        frame.width = '100%';
+        frame.height = String(height);
+        frame.loading = 'lazy';
+        frame.allowFullscreen = true;
+        frame.setAttribute('frameborder', '0');
+        frame.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+        if (url.hostname.toLowerCase() === 'player.bilibili.com') {
+          frame.setAttribute('referrerpolicy', 'no-referrer');
+          frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+        }
+        frame.addEventListener('load', () => {
+          root.dataset.cyVideoState = 'frame-loaded';
+          if (status) status.hidden = true;
+        }, { once: true });
+        frame.addEventListener('error', () => {
+          root.dataset.cyVideoState = 'error';
+          if (status) {
+            status.hidden = false;
+            status.textContent = '播放器框架加载失败，请检查网络或视频地址。';
+          }
+        }, { once: true });
+
+        root.appendChild(frame);
+        root.dataset.cyVideoMounted = '1';
+        root.dataset.cyVideoState = 'loading';
+      };
+
+      const scan = root => {
+        if (!root) return;
+        if (root.matches && root.matches('[data-cy-video-player]')) mount(root);
+        if (root.querySelectorAll) root.querySelectorAll('[data-cy-video-player]').forEach(mount);
+      };
+
+      const start = () => scan(document);
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start, { once: true });
+      } else {
+        start();
+      }
+      window.addEventListener('instantclick:newpage', start);
+      const observer = new MutationObserver(records => {
+        for (const record of records) record.addedNodes.forEach(scan);
+      });
+      if (document.documentElement) observer.observe(document.documentElement, { childList: true, subtree: true });
+    })();
+  </script>`;}
+function inlineHtmlRuntime(): string {
+  // Injected only while the HTML enhancement is enabled; disabled mode adds
+  // neither a hiding rule nor a runtime script.
   const visibilityStyle = '<style data-cy-inline-html-enhancement-style>'
-    + '.cy-inline-html-pending{display:' + (enabled ? 'contents' : 'none') + '!important}'
+    + '.cy-inline-html-pending{display:contents!important}'
     + '</style>';
   return visibilityStyle + '<script data-cy-inline-html-enhancement>'
-    + INLINE_HTML_RUNTIME.replace('__CY_ENABLED__', enabled ? 'true' : 'false')
+    + INLINE_HTML_RUNTIME.replace('__CY_ENABLED__', 'true')
     + '</script>';
 }
 
@@ -556,30 +682,54 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
   registerPluginAdminPath(ADMIN_SETTINGS_API_PATH);
 
-  // Protect inline content blocks before the core sanitizer removes them.
-  addHook('content:markdown', pluginId, (content: string) => protectInlineHtml(content), 1);
+  // Each content feature reads its own setting from the request context.
+  addHook('content:markdown', pluginId, (content: string, requestContext?: {
+    options?: Record<string, unknown>;
+  }) => {
+    const options = requestContext?.options;
+    if (options?.theme !== THEME_ID) return content;
+    const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    if (!isEnabled(settings.htmlEnhancementEnabled, false)) return content;
+    return protectInlineHtml(content);
+  }, 1);
 
-  // Restore styled download-card fragments after the core sanitizer. The fragment
-  // is sanitized again with a narrow HTML/SVG allowlist; visibility is controlled
-  // per response by the saved opt-in setting in archive:footer.
-  addHook('content:content', pluginId, (content: string) => restoreMarkdownAlertIcons(restoreInlineHtmlFragments(content)), 1);
+  // Markdown Alert icons remain a separate legacy CY-theme behavior.
+  // HTML fragment restoration runs only when its own enhancement is enabled.
+  addHook('content:content', pluginId, (content: string, requestContext?: {
+    options?: Record<string, unknown>;
+  }) => {
+    const options = requestContext?.options;
+    if (options?.theme !== THEME_ID) return content;
+    const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    const withAlertIcons = restoreMarkdownAlertIcons(content);
+    const withHtml = isEnabled(settings.htmlEnhancementEnabled, false)
+      ? restoreInlineHtmlFragments(withAlertIcons)
+      : withAlertIcons;
+    const videoEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
+    return videoEnabled ? replaceVideoIframesWithPlaceholders(withHtml) : withHtml;
+  }, 1);
 
-  // Rehydrate only after Markdown sanitization; the feature is opt-in.
+  // Frontend output is scoped to Warm CY and each feature's own toggle.
   addHook('archive:footer', pluginId, (html: string, extra?: {
     options?: Record<string, unknown>;
   }) => {
     const options = extra?.options;
-    if (!options) return html;
+    if (!options || options.theme !== THEME_ID) return html;
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
-    const htmlRuntime = inlineHtmlRuntime(isEnabled(settings.htmlEnhancementEnabled, false));
-    const alertIconStyle = options.theme === THEME_ID ? markdownAlertIconStyles() : '';
-    if (options.theme !== THEME_ID || !isEnabled(settings.showHomeSearchButton)) {
-      return html + alertIconStyle + htmlRuntime;
+    const htmlRuntime = isEnabled(settings.htmlEnhancementEnabled, false)
+      ? inlineHtmlRuntime()
+      : '';
+    const alertIconStyle = markdownAlertIconStyles();
+    const videoPlayer = videoPlayerRuntime(
+      isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false),
+    );
+    if (!isEnabled(settings.showHomeSearchButton)) {
+      return html + alertIconStyle + htmlRuntime + videoPlayer;
     }
     const searchBase = JSON.stringify(
       String(computeUrls(options as any).siteUrl || '/').replace(/\/?$/, '/'),
     ).replace(/</g, '\\u003c');
-    return `${html}${alertIconStyle}${htmlRuntime}<script data-warm-cy-global-search>
+    return `${html}${alertIconStyle}${htmlRuntime}${videoPlayer}<script data-warm-cy-global-search>
       (() => {
         const searchBase = ${searchBase};
         const ensureSearchControls = () => {
@@ -873,10 +1023,16 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
+        videoPlayerEnabled?: unknown;
+        mobileNativePlayerEnhancementEnabled?: unknown;
       };
+      const videoPlayerValue = typeof values.videoPlayerEnabled === 'boolean'
+        ? values.videoPlayerEnabled
+        : values.mobileNativePlayerEnhancementEnabled;
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
-        || typeof values.htmlEnhancementEnabled !== 'boolean') {
+        || typeof values.htmlEnhancementEnabled !== 'boolean'
+        || typeof videoPlayerValue !== 'boolean') {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
       }
       const current = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
@@ -885,7 +1041,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
+        videoPlayerEnabled: videoPlayerValue ? '1' : '0',
       };
+      delete next.mobileNativePlayerEnhancementEnabled;
       await setOption(auth.db, PLUGIN_OPTION_KEY, JSON.stringify(next));
       return { handled: true, response: json({ success: true }) };
     }
@@ -921,8 +1079,14 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const cid = Number(extra?.cid);
     if (!request || !options || options.theme !== THEME_ID || !Number.isSafeInteger(cid) || cid <= 0) return payload;
 
+    // Skip all comment-management work when this feature is switched off.
+    const requestSettings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    if (!isEnabled(requestSettings.showCommentManagementButtons)) return payload;
+
     const auth = await requireAdminAction(request, 'administrator', { csrf: false });
     if (isAdminActionResponse(auth) || !auth.user.authCode) return payload;
+    const featureSettings = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
+    if (!isEnabled(featureSettings.showCommentManagementButtons)) return payload;
 
     const content = await auth.db.query.contents.findFirst({
       columns: { type: true },
@@ -931,13 +1095,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     if (!content || (content.type !== 'post' && content.type !== 'page')) return payload;
 
     const settings = parseSettings(auth.options[OPTION_KEY]);
-    const featureSettings = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
     const csrfToken = await generateSecurityToken(auth.options.secret, auth.user.authCode, auth.uid);
     return {
       ...payload,
       management: {
         canManage: true,
-        showManagementButtons: isEnabled(featureSettings.showCommentManagementButtons),
+        showManagementButtons: true,
         adminUrl: computeUrls(auth.options).adminUrl,
         contentType: content.type,
         isPinned: content.type === 'post' && parsePinnedIds(settings.pinnedIds).includes(cid),

@@ -33,6 +33,12 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
 const OPTION_KEY = 'theme:typecho-theme-warm-cy';
+const cyContentContext = {
+  options: {
+    theme: 'typecho-theme-warm-cy',
+    [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }),
+  },
+};
 
 function collectHooks() {
   const hooks = new Map<string, Function>();
@@ -94,20 +100,34 @@ describe('typecho-plugin-warm-cy', () => {
     ]);
   });
 
-  it('shows the timestamped CY plugin version in its settings page', () => {
+  it('shows the timestamped CY plugin version and defaults mobile player enhancement to off', () => {
     const handler = collectHooks().get('admin:page')!;
     const html = handler('', {
       slug: 'cy-companion',
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toMatch(/CY 插件版本：\d{4}\.\d{2}\.\d{2}\.\d{2}\.\d{2}/);
+    expect(html).toContain(`CY 插件版本：2026.11.05.10.01`);
+    expect(html).toMatch(/data-cy-setting="videoPlayerEnabled"[^>]*>/);
+    expect(html).not.toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
+    const enabled = handler('', {
+      slug: 'cy-companion',
+      csrfToken: 'test-token',
+      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }) },
+    });
+    expect(enabled).toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
+    const legacyEnabled = handler('', {
+      slug: 'cy-companion',
+      csrfToken: 'test-token',
+      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ mobileNativePlayerEnhancementEnabled: '1' }) },
+    });
+    expect(legacyEnabled).toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
   });
 
   it('leaves standard consecutive blockquote lines unchanged', () => {
     const handler = collectHooks().get('content:markdown')!;
     const source = '> 第一行\n> 第二行\n> 第三行';
-    expect(handler(source)).toBe(source);
+    expect(handler(source, cyContentContext)).toBe(source);
   });
 
   it('restores all five Markdown Alert SVG icons after the core sanitizer', () => {
@@ -117,7 +137,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<blockquote class="markdown-alert" data-alert="' + label + '">'
       + '<p class="markdown-alert-title">' + label + '</p><p>正文</p></blockquote>',
     ).join('');
-    const restored = restore(html);
+    const restored = restore(html, cyContentContext);
     expect((restored.match(/class="markdown-alert-icon"/g) || []).length).toBe(5);
     expect((restored.match(/cy-markdown-alert-has-icon/g) || []).length).toBe(5);
     expect(restored).toContain('viewBox="0 0 16 16"');
@@ -140,7 +160,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<script>this is only an example</script>',
       '```',
     ].join('\n');
-    const output = handler(input);
+    const output = handler(input, cyContentContext);
     expect(output).toContain('CYCYINLINEBLOCKX');
     expect(output).toContain('CYCYINLINECONTAINERX');
     expect(output).not.toMatch(/CYCYINLINE(?:BLOCK|ATTR)_/);
@@ -167,7 +187,7 @@ describe('typecho-plugin-warm-cy', () => {
       '</div>',
     ].join('\n');
 
-    const protectedSource = protect(source);
+    const protectedSource = protect(source, cyContentContext);
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
     expect(protectedSource).not.toContain('<div class="custom-footer">');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
@@ -185,7 +205,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized);
+    const restored = restore(coreSanitized, cyContentContext);
 
     expect(restored).toContain('<div class="cy-inline-html-pending">');
     expect(restored).toContain('class="custom-footer"');
@@ -204,14 +224,14 @@ describe('typecho-plugin-warm-cy', () => {
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
     const source = '<div class="ai-card" style="display:flex;gap:12px;padding:16px;background:#f5f5f5;border-radius:12px"><span style="color:#079C48;font-weight:bold">标题</span><a href="https://example.com" style="display:inline-flex;align-items:center">查看</a></div>';
-    const protectedSource = protect(source);
+    const protectedSource = protect(source, cyContentContext);
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const coreSanitized = sanitizeHtml(parsed, {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code']),
       allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, a: ['href', 'title', 'target', 'rel'] },
     });
-    const restored = restore(coreSanitized);
+    const restored = restore(coreSanitized, cyContentContext);
     expect(restored).toContain('class="ai-card"');
     expect(restored).toContain('display:flex');
     expect(restored).toContain('gap:12px');
@@ -234,7 +254,7 @@ describe('typecho-plugin-warm-cy', () => {
       '> <a href="https://pan.baidu.com/s/1otJbDx4U2bg4yL9VYw3MoA?pwd=cycy" target="_blank" rel="noopener noreferrer" style="font-weight:bold;color:var(--accent);word-break:break-all;"><span style="display:inline-flex;align-items:center;gap:4px;background:#079C48;color:#fff;border-radius:4px;padding:4px 10px;white-space:nowrap;"><svg width="18" height="18" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;"><path d="M46 580h20v200h700" fill="#fff"/><path d="M481 734L157 449" fill="#fff"/></svg><span>下载地址</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"></path><polyline points="7 7 17 7 17 17"></polyline></svg></span></a> | 密码：cycy',
     ].join('\n');
 
-    const protectedSource = protect(source);
+    const protectedSource = protect(source, cyContentContext);
     expect(protectedSource).toContain('CYCYINLINEHTMLX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const coreSanitized = sanitizeHtml(parsed, {
@@ -251,7 +271,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized);
+    const restored = restore(coreSanitized, cyContentContext);
 
     expect(restored).toContain('cy-inline-html-pending');
     expect(restored).toContain('href="https://pan.baidu.com/s/1otJbDx4U2bg4yL9VYw3MoA?pwd=cycy"');
@@ -287,7 +307,61 @@ describe('typecho-plugin-warm-cy', () => {
       theme: 'typecho-theme-warm-cy',
       [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0', showHomeSearchButton: '0' }),
     } });
-    expect(disabled).toContain('const enabled = false');
+    expect(disabled).not.toContain('data-cy-inline-html-enhancement');
+  });
+
+  it('leaves provider iframe markup untouched when the independent player is disabled', () => {
+    const handler = collectHooks().get('content:content')!;
+    const iframe = '<iframe src="https://www.youtube.com/embed/demo" width="560" height="315"></iframe>';
+    const output = handler(iframe, { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '0' }),
+    } });
+    expect(output).toBe(iframe);
+    expect(output).not.toContain('data-cy-video-player');
+  });
+
+  it('takes over supported provider iframes only when the independent player is enabled', () => {
+    const handler = collectHooks().get('content:content')!;
+    const iframe = '<iframe src="https://www.youtube.com/embed/demo" width="560" height="315"></iframe>';
+    const enabled = handler(iframe, { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }),
+    } });
+    expect(enabled).toContain('data-cy-video-player');
+    expect(enabled).toContain('data-cy-video-provider="youtube"');
+    expect(enabled).toContain('data-cy-video-height="315"');
+    expect(enabled).toContain('data-cy-video-src="https://www.youtube.com/embed/demo"');
+    expect(enabled).not.toContain('<iframe');
+
+    const unsupported = '<iframe src="https://video.example/embed/demo"></iframe>';
+    expect(handler(unsupported, { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1' }),
+    } })).toBe(unsupported);
+  });
+
+  it('injects the independent player runtime only when its own switch is enabled', () => {
+    const handler = collectHooks().get('archive:footer')!;
+    const enabled = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '1', showHomeSearchButton: '0' }),
+    } });
+    expect(enabled).toContain('data-cy-video-player-runtime');
+    expect(enabled).toContain('data-cy-video-player-styles');
+    expect(enabled).toContain("document.createElement('iframe')");
+    expect(enabled).not.toContain('data-cy-video-border-debug');
+    expect(enabled).not.toContain('enablejsapi=1');
+    expect(enabled).not.toContain('cloneNode(false)');
+    expect(enabled).toContain("frame.setAttribute('referrerpolicy', 'no-referrer')");
+    expect(enabled).toContain("frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms')");
+
+    const disabled = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ videoPlayerEnabled: '0', showHomeSearchButton: '0' }),
+    } });
+    expect(disabled).not.toContain('data-cy-video-player-runtime');
+    expect(disabled).not.toContain('data-cy-video-player-styles');
   });
 
   it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {
@@ -299,6 +373,7 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: true,
         showHomeSearchButton: false,
         htmlEnhancementEnabled: true,
+        videoPlayerEnabled: true,
       }),
       path: SETTINGS_API_PATH,
     });
@@ -312,6 +387,7 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: '1',
         showHomeSearchButton: '0',
         htmlEnhancementEnabled: '1',
+        videoPlayerEnabled: '1',
       }),
     );
   });
@@ -460,7 +536,7 @@ describe('typecho-plugin-warm-cy', () => {
       '</div>',
     ].join('\\n');
 
-    const protectedSource = protect(source);
+    const protectedSource = protect(source, cyContentContext);
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const coreSanitized = sanitizeHtml(parsed, {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat([
@@ -476,7 +552,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized);
+    const restored = restore(coreSanitized, cyContentContext);
     const marker = restored.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)?.[0];
     expect(marker).toBeTruthy();
 

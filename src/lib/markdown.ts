@@ -180,13 +180,10 @@ export function renderCommentText(text: string, options: CommentRenderOptions = 
 export async function renderMarkdownFiltered(ctx: HookContext, text: string): Promise<string> {
   if (!text) return '';
 
-  // Full renders (filters + marked.parse + sanitizeHtml) are the expensive
-  // part of a page-cache MISS. Memoize per source text + activated plugin
-  // set — the only state the content:markdown / content:content filters can
-  // observe. Option or plugin changes clear this through
-  // resetMarkdownRenderCache() via the invalidation funnel.
+  // Filter output may depend on request options (including per-feature plugin
+  // toggles), so include them in the render cache key as well as plugin activation.
   const cacheKey = text.length <= RENDER_CACHE_MAX_SOURCE_LENGTH
-    ? `${await sha256Hex(text)}\0${[...(ctx.activatedPlugins ?? [])].sort().join(',')}`
+    ? `${await sha256Hex(text + '\0' + JSON.stringify(ctx.options ?? {}))}\0${[...(ctx.activatedPlugins ?? [])].sort().join(',')}`
     : null;
   const cached = cacheKey ? renderedFullContentCache.get(cacheKey) : undefined;
   if (cached !== undefined && cacheKey) {
@@ -205,7 +202,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
   // the original source through the sanitizer so one plugin cannot take down
   // the article route. Security-critical filters elsewhere remain fail-closed.
   try {
-    content = await applyFilter(ctx, 'content:markdown', content);
+    content = await applyFilter(ctx, 'content:markdown', content, ctx);
   } catch (error) {
     console.error('[markdown] content:markdown filter failed:', error);
   }
@@ -214,7 +211,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
   let sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   try {
-    sanitized = await applyFilter(ctx, 'content:content', sanitized);
+    sanitized = await applyFilter(ctx, 'content:content', sanitized, ctx);
   } catch (error) {
     console.error('[markdown] content:content filter failed:', error);
   }
