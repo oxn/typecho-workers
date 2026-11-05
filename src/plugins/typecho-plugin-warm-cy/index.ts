@@ -589,7 +589,7 @@ function sanitizeInlineHtmlFragment(source: string): string {
 
 function restoreInlineHtmlFragments(content: string): string {
   const restoreContainer = (payload: string): string => {
-    let source = decodeInlinePayload(payload);
+    let source = sanitizeInlineSvgReferences(decodeInlinePayload(payload));
 
     // Keep style/script blocks as inert text markers through fragment sanitization.
     // The opt-in frontend runtime restores them only when the enhancement is enabled.
@@ -642,7 +642,7 @@ function restoreInlineHtmlFragments(content: string): string {
   restored = restored.replace(/CYCYINLINEHTMLX([0-9a-f]+)XEND/g, (_marker, payload: string) => {
     // Preserve nested SVG verbatim through the HTML sanitizer. The browser
     // runtime will rebuild each SVG using its dedicated SVG allowlist.
-    const source = decodeInlinePayload(payload).replace(
+    const source = sanitizeInlineSvgReferences(decodeInlinePayload(payload)).replace(
       /<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi,
       svg => 'CYCYINLINEBLOCKX' + encodeInlinePayload(svg) + 'XEND',
     );
