@@ -113,6 +113,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('data-cy-alert-style-field="NOTE.background"');
     expect(html).toContain('data-cy-alert-style-field="CAUTION.icon"');
     expect(html).toContain('data-cy-alert-icon-visible');
+    expect(html).toContain("gap: Number(root.querySelector('[data-cy-alert-icon-gap]')?.value ?? 8)");
     expect(html).toMatch(/data-cy-setting="videoPlayerEnabled"[^>]*>/);
     expect(html).not.toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
     const enabled = handler('', {
