@@ -119,7 +119,13 @@ describe('Warm CY theme helpers', () => {
     const result = renderWarmIframes(youtube);
     expect(result).toContain('loading="eager"');
     expect(result).toContain('allowfullscreen=""');
-    expect(result).toContain('title="视频播放器"');
+    expect(result).toContain('title="YouTube 视频播放器"');
+
+    const bilibili = renderWarmIframes('<iframe src="https://player.bilibili.com/player.html?bvid=demo"></iframe>');
+    expect(bilibili).toContain('title="B站视频播放器"');
+
+    const vimeo = renderWarmIframes('<iframe src="https://player.vimeo.com/video/123"></iframe>');
+    expect(vimeo).toContain('title="Vimeo 视频播放器"');
 
     const external = '<iframe src="https://video.example/embed/demo"></iframe>';
     expect(renderWarmIframes(external)).toBe(external);
