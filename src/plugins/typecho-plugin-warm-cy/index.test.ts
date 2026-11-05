@@ -631,6 +631,7 @@ describe('typecho-plugin-warm-cy', () => {
       '.custom-footer { display: flex; color: #123456; }',
       '.badge-row { gap: 12px; }',
       '.badge-dual { font-size: 11px; border-radius: 6px; background: #079C48; /* adjust `font-size` here */ }',
+      '.unsafe { color: expression(alert(1)); background-image: url(https://evil.example/pixel); behavior: url(x); }',
       '</style>',
       '<div class="badge-row"><a class="badge-dual" href="https://example.com">YouTube</a></div>',
       '</div>',
@@ -718,7 +719,37 @@ describe('typecho-plugin-warm-cy', () => {
       createTextNode(nodeValue: string) { return { nodeType: 3, nodeValue }; },
       createElement(tagName: string) { return { tagName: tagName.toUpperCase(), textContent: '', media: '' }; },
     };
+    class MockCSSStyleSheet {
+      cssRules: any[] = [];
+      replaceSync(cssText: string) {
+        const rulePattern = /([^{}]+)\\{([^{}]*)\\}/g;
+        let match: RegExpExecArray | null;
+        while ((match = rulePattern.exec(cssText))) {
+          const selectorText = match[1].trim();
+          const declarations = match[2].split(';').map(part => part.trim()).filter(Boolean);
+          const values = new Map<string, { value: string; priority: string }>();
+          for (const declaration of declarations) {
+            const split = declaration.indexOf(':');
+            if (split < 1) continue;
+            const property = declaration.slice(0, split).trim().toLowerCase();
+            let value = declaration.slice(split + 1).trim();
+            const important = /\\s*!important\\s*$/i.test(value);
+            if (important) value = value.replace(/\\s*!important\\s*$/i, '');
+            values.set(property, { value, priority: important ? 'important' : '' });
+          }
+          const names = Array.from(values.keys());
+          const style: any = {
+            length: names.length,
+            item(index: number) { return names[index]; },
+            getPropertyValue(property: string) { return values.get(property)?.value || ''; },
+            getPropertyPriority(property: string) { return values.get(property)?.priority || ''; },
+          };
+          this.cssRules.push({ type: 1, selectorText, style });
+        }
+      }
+    }
     runInNewContext(runtime!, {
+      CSSStyleSheet: MockCSSStyleSheet,
       document,
       window: { addEventListener() {} },
       Node: { TEXT_NODE: 3, ELEMENT_NODE: 1 },
@@ -729,9 +760,12 @@ describe('typecho-plugin-warm-cy', () => {
 
     expect(appendedStyles).toHaveLength(1);
     expect(appendedStyles[0].tagName).toBe('STYLE');
-    expect(appendedStyles[0].textContent).toContain('.custom-footer { display: flex; color: #123456; }');
-    expect(appendedStyles[0].textContent).toContain('.badge-row { gap: 12px; }');
-    expect(appendedStyles[0].textContent).toContain('.badge-dual { font-size: 11px; border-radius: 6px; background: #079C48; /* adjust `font-size` here */ }');
+    expect(appendedStyles[0].textContent).toContain('.custom-footer{display:flex;color:#123456}');
+    expect(appendedStyles[0].textContent).toContain('.badge-row{gap:12px}');
+    expect(appendedStyles[0].textContent).toContain('.badge-dual{font-size:11px;border-radius:6px;background:#079C48}');
+    expect(appendedStyles[0].textContent).not.toContain('expression');
+    expect(appendedStyles[0].textContent).not.toContain('url(');
+    expect(appendedStyles[0].textContent).not.toContain('behavior');
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
     expect(replaceCalls).toBeGreaterThan(0);
   });
