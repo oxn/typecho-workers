@@ -168,11 +168,11 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
       <section class="cy-feature-card">
         <strong>正文 HTML / CSS / JavaScript 增强</strong>
         <p>关闭：完全按主题原始方式处理。轻量开启：沿用昨天的稳定处理规则。全部开启：使用今天扩展后的完整 HTML / CSS / JavaScript / SVG 处理规则。</p>
-        <select data-cy-setting="htmlEnhancementMode">
-          <option value="off" ${htmlEnhancementMode === 'off' ? 'selected' : ''}>不开启</option>
-          <option value="light" ${htmlEnhancementMode === 'light' ? 'selected' : ''}>轻量开启（稳定版）</option>
-          <option value="full" ${htmlEnhancementMode === 'full' ? 'selected' : ''}>全部开启（完整版）</option>
-        </select>
+        <div class="cy-html-mode-options">
+          <label><input type="radio" name="htmlEnhancementMode" data-cy-setting="htmlEnhancementMode" value="off" ${htmlEnhancementMode === 'off' ? 'checked' : ''}>不开启</label>
+          <label><input type="radio" name="htmlEnhancementMode" data-cy-setting="htmlEnhancementMode" value="light" ${htmlEnhancementMode === 'light' ? 'checked' : ''}>轻量开启（稳定版）</label>
+          <label><input type="radio" name="htmlEnhancementMode" data-cy-setting="htmlEnhancementMode" value="full" ${htmlEnhancementMode === 'full' ? 'checked' : ''}>全部开启（完整版）</label>
+        </div>
         <p>开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布文章；评论区不受影响。</p>
       </section>
       ${markdownAlertStyleEditorHtml(markdownAlertStyleSettings)}
@@ -198,7 +198,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         save.addEventListener('click', async function () {
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
-          var htmlMode = root.querySelector('[data-cy-setting="htmlEnhancementMode"]');
+          var htmlMode = root.querySelector('[data-cy-setting="htmlEnhancementMode"]:checked');
           var noteStyleSettings = { types: {}, icon: {
             visible: !!root.querySelector('[data-cy-alert-icon-visible]')?.checked,
             size: Number(root.querySelector('[data-cy-alert-icon-size]')?.value || 18),
