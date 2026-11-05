@@ -170,6 +170,29 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).not.toContain('<script>window.cyInlineTest');
   });
 
+  it('preserves quoted local SVG fragment references and removes external SVG references', () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const restore = collectHooks().get('content:content')!;
+    const source = [
+      '<svg viewBox="0 0 16 16">',
+      '<defs><linearGradient id="safe-gradient"><stop offset="0" /></linearGradient>',
+      '<clipPath id="safe-clip"><rect width="10" height="10" /></clipPath></defs>',
+      '<path fill="url("#safe-gradient")" clip-path="url(\'#safe-clip\')" d="M0 0h10v10H0z" />',
+      '<use href="#safe-gradient" />',
+      '<use href="https://evil.example/external.svg#icon" />',
+      '</svg>',
+    ].join('\n');
+    const protectedSource = protect(source, cyContentContext);
+    const restored = restore(protectedSource, cyContentContext);
+    const payload = restored.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)?.[1];
+    expect(payload).toBeTruthy();
+    const svg = Buffer.from(payload!, 'hex').toString('utf8');
+    expect(svg).toContain('fill="url("#safe-gradient")"');
+    expect(svg).toContain('clip-path="url(\'#safe-clip\')"');
+    expect(svg).toContain('href="#safe-gradient"');
+    expect(svg).not.toContain('https://evil.example/external.svg#icon');
+  });
+
   it('preserves a complete nested div footer across Markdown blank lines', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
@@ -691,7 +714,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(runtime).toContain("'text','tspan','filter'");
     expect(runtime).toContain("'fegaussianblur'");
     expect(runtime).toContain("'font-size'");
-    expect(runtime).toContain("([\\\"'])#[\\\\w:.-]+\\\\1");
+    expect(runtime).toContain("([\\\"'])#");
+    expect(runtime).toContain("|#[\\\\w:.-]+");
     expect(runtime).toContain("'text-anchor'");
     expect(runtime).toContain("['media','nonce','title','id','type']");
     expect(runtime).toContain("name.startsWith('data-')");
