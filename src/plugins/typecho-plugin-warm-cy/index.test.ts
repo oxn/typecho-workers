@@ -525,7 +525,7 @@ describe('typecho-plugin-warm-cy', () => {
     })).toBe(payload);
   });
 
-  it('hydrates preserved style blocks into the document head after the full Markdown pipeline', () => {
+  it('hydrates preserved style blocks into the document head after the full Markdown pipeline', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
