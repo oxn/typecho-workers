@@ -302,6 +302,28 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('<p><div');
   });
 
+  it('restores inline code nested inside a complete div container', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = '<div class="note"><strong>测试方式：</strong>不要直接双击用 <code>file://</code> 打开。</div>';
+
+    const protectedSource = protect(source, cyContentContext);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    expect(protectedSource).not.toContain('CYCYCODESEGMENT');
+
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes },
+    });
+    const restored = restore(coreSanitized, cyContentContext);
+
+    expect(restored).toContain('<code>file://</code>');
+    expect(restored).not.toContain('CYCYCODESEGMENT');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+  });
+
   it('restores a single-line styled div after the core sanitizer strips div tags', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
