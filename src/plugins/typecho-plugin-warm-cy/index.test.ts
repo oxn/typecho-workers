@@ -110,6 +110,9 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain(`CY 插件版本：2026.11.05.10.20`);
     expect(html).toContain('data-cy-setting="htmlEnhancementMode"');
     expect(html).toContain('<option value="off" selected>');
+    expect(html).toContain('data-cy-alert-style-field="NOTE.background"');
+    expect(html).toContain('data-cy-alert-style-field="CAUTION.icon"');
+    expect(html).toContain('data-cy-alert-icon-visible');
     expect(html).toMatch(/data-cy-setting="videoPlayerEnabled"[^>]*>/);
     expect(html).not.toMatch(/data-cy-setting="videoPlayerEnabled" checked/);
     const enabled = handler('', {
@@ -378,6 +381,28 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).toContain('scrolling="no"');
     expect(output).toContain('framespacing="0"');
     expect(output).toContain('loading="lazy"');
+  });
+
+  it('routes lightweight HTML content through the preserved legacy sanitizer pipeline', () => {
+    const hooks = collectHooks();
+    const markdown = hooks.get('content:markdown')!;
+    const content = hooks.get('content:content')!;
+    const context = { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'light' }),
+    } };
+    const source = '<div class="legacy-card" style="display:flex"><strong>轻量模式</strong></div>';
+    const protectedSource = markdown(source, context);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const sanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['div']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, div: ['class'] },
+    });
+    const restored = content(sanitized, context);
+    expect(restored).toContain('cy-inline-html-pending');
+    expect(restored).toContain('legacy-card');
+    expect(restored).toContain('轻量模式');
   });
 
   it('keeps legacy light mode separate from the expanded full runtime', () => {
