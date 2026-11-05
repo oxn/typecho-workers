@@ -359,55 +359,28 @@ function plainHeadingText(inner: string): string {
  * Only applies to iframe elements that have already passed
  * the application's HTML sanitizer.
  */
+/**
+ * Add back only YouTube's recommended cross-origin referrer policy.
+ *
+ * The shared HTML sanitizer removes this attribute before the theme receives
+ * the markup. Keep every other iframe attribute and provider unchanged so
+ * this test isolates the effect of the HTTP Referer policy on YouTube embeds.
+ */
 export function renderWarmIframes(html: string): string {
-  return html.replace(/<iframe\b([^>]*)>/gi, (match, rawAttributes: string) => {
-    const attributes = rawAttributes;
-
-    // Extract the original iframe source.
-    const srcMatch = attributes.match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
-    const src = srcMatch?.[1] ?? srcMatch?.[2] ?? srcMatch?.[3] ?? '';
-
-    if (!src) return match;
-
-    // Restrict processing to the supported video providers.
-    let hostname = '';
+  return html.replace(/<iframe\b[^>]*>/gi, (tag) => {
+    const srcMatch = /\bsrc\s*=\s*(["'])(.*?)\1/i.exec(tag);
+    if (!srcMatch) return tag;
 
     try {
-      hostname = new URL(src, 'https://localhost').hostname.toLowerCase();
+      const hostname = new URL(srcMatch[2]).hostname.toLowerCase();
+      if (hostname !== 'www.youtube.com') return tag;
     } catch {
-      return match;
+      return tag;
     }
 
-    const allowedHosts = [
-      'www.youtube.com',
-      'player.bilibili.com',
-      'player.vimeo.com',
-    ];
-
-    if (!allowedHosts.includes(hostname)) return match;
-
-    // Add or replace an iframe attribute without duplicating it.
-    const setAttribute = (source: string, name: string, value: string) => {
-      const pattern = new RegExp(`\\s${name}\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]+)`, 'i');
-
-      if (pattern.test(source)) {
-        return source.replace(pattern, ` ${name}="${value}"`);
-      }
-
-      return `${source} ${name}="${value}"`;
-    };
-
-    let result = attributes;
-
-    result = setAttribute(result, 'loading', 'lazy');
-    result = setAttribute(result, 'allowfullscreen', '');
-    result = setAttribute(
-      result,
-      'allow',
-      'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+    if (/\breferrerpolicy\s*=/i.test(tag)) return tag;
+    return tag.replace(/\/?>$/, (closing) =>
+      ' referrerpolicy="strict-origin-when-cross-origin"' + closing,
     );
-    result = setAttribute(result, 'title', '视频播放器');
-
-    return `<iframe${result}>`;
   });
 }
