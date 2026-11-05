@@ -211,6 +211,16 @@ function protectInlineHtml(source: string): string {
     block => 'CYCYINLINEBLOCKX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND',
   );
 
+  // Preserve each complete iframe as a block fragment before Markdown and the
+  // core sanitizer can discard it for lacking a temporary src attribute. The
+  // playback attributes are restored and validated by the fragment sanitizer
+  // in the content:content hook, then the theme's native iframe normalizer runs.
+  // This also covers standalone iframes that are not inside a protected div.
+  content = content.replace(
+    /<iframe\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>[\\s\\S]*?<\\/iframe\\s*>/gi,
+    block => 'CYCYINLINECONTAINERX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND',
+  );
+
   // Preserve complete div containers as one HTML fragment. CommonMark ends a
   // raw <div> block at blank lines, which otherwise breaks long embedded footers.
 
