@@ -27,6 +27,24 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(restored).not.toContain('CYCYINLINEBLOCKX');
   });
 
+  it('neutralizes numeric-entity encoded restoration marker prefixes', () => {
+    const payload = Array.from(new TextEncoder().encode('<script>window.__cyEntityForged = true</script>'), byte =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
+    const variants = [
+      '&#67;YCYINLINEBLOCKX' + payload + 'XEND',
+      '&#x43;YCYINLINEBLOCKX' + payload + 'XEND',
+    ];
+    for (const source of variants) {
+      const protectedSource = protectInlineHtmlLight(source);
+      expect(protectedSource).toContain('CY' + String.fromCharCode(0x200b) + 'CYINLINEBLOCKX');
+      const parsed = marked.parse(protectedSource, { async: false }) as string;
+      const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+      expect(restored).not.toContain('<script>window.__cyEntityForged');
+      expect(restored).not.toContain('CYCYINLINEBLOCKX');
+    }
+  });
+
   it('returns Markdown without literal HTML tags unchanged before scanning', () => {
     const source = '# 标题\n\n普通 Markdown、列表和代码块均无 HTML 标签。\n\n```ts\nconst value = 1;\n```';
     expect(protectInlineHtmlLight(source)).toBe(source);
