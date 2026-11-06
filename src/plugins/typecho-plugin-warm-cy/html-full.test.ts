@@ -257,7 +257,9 @@ describe('Warm CY full HTML enhancement module', () => {
     const runtime = inlineHtmlRuntime(true);
     expect(runtime).toContain("['media','nonce','title','id','type'].includes(name)");
     expect(runtime).toContain("name.startsWith('data-') || name.startsWith('aria-')");
-    expect(runtime).toContain("new DOMParser().parseFromString(raw, 'text/html')");
+    expect(runtime).toContain("const blockTemplate = document.createElement('template')");
+    expect(runtime).toContain('blockTemplate.innerHTML = raw;');
+    expect(runtime).not.toContain("new DOMParser().parseFromString(raw, 'text/html')");
     expect(runtime).toContain('parsedStyle = blockElement;');
     expect(runtime).toContain('for (const attribute of parsedStyle.attributes)');
     expect(runtime).toContain('attribute.value');
