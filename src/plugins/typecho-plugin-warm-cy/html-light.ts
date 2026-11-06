@@ -51,6 +51,11 @@ function findHtmlElementEnd(source: string, tag: string, openEnd: number): numbe
       search = commentEnd < 0 ? source.length : commentEnd + 3;
       continue;
     }
+    if (source.startsWith('<![CDATA[', start)) {
+      const cdataEnd = source.indexOf(']]>', start + 9);
+      search = cdataEnd < 0 ? source.length : cdataEnd + 3;
+      continue;
+    }
     const token = source.slice(start).match(/^<(\/?)svg\b/i);
     if (!token) {
       const otherTag = source.slice(start).match(/^<([a-z][\w:-]*)\b/i);
@@ -61,7 +66,10 @@ function findHtmlElementEnd(source: string, tag: string, openEnd: number): numbe
       const otherEnd = findHtmlTagEnd(source, start + otherTag[0].length);
       if (otherEnd < 0) return -1;
       const otherName = otherTag[1].toLowerCase();
-      if (HTML_RAW_TEXT_TAGS.has(otherName) || otherName === 'plaintext') {
+      if (otherName === 'script' || otherName === 'style') {
+        search = findHtmlElementEnd(source, otherName, otherEnd);
+        if (search < 0) return -1;
+      } else if (HTML_RAW_TEXT_TAGS.has(otherName) || otherName === 'plaintext') {
         search = findHtmlRawTextEnd(source, otherName, otherEnd);
       } else {
         search = otherEnd + 1;
