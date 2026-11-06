@@ -212,6 +212,57 @@ function preserveInlineTagAttributes(
   return output + content.slice(cursor);
 }
 
+function restoreInlineTagAttributeMarkers(
+  source: string,
+  isAllowed: (tag: string, name: string) => boolean,
+): string {
+  let output = '';
+  let cursor = 0;
+  let search = 0;
+  while (search < source.length) {
+    const start = source.indexOf('<', search);
+    if (start < 0) break;
+    if (source.startsWith('<!--', start)) {
+      const commentEnd = source.indexOf('-->', start + 4);
+      search = commentEnd < 0 ? source.length : commentEnd + 3;
+      continue;
+    }
+    const tagMatch = source.slice(start).match(/^<([a-z][\w:-]*)\b/i);
+    if (!tagMatch) {
+      search = start + 1;
+      continue;
+    }
+    const tagEnd = findHtmlTagEnd(source, start + tagMatch[0].length);
+    if (tagEnd < 0) break;
+    const markerMatch = source.slice(tagEnd + 1).match(/^CYCYINLINEATTRX([a-z][a-z0-9_:-]*)X([0-9a-f]+)XEND/i);
+    if (!markerMatch) {
+      search = tagEnd + 1;
+      continue;
+    }
+    const actualTag = tagMatch[1].toLowerCase();
+    let safe = '';
+    if (actualTag === markerMatch[1].toLowerCase()) {
+      try {
+        const attributes = JSON.parse(decodeInlinePayload(markerMatch[2])) as Record<string, unknown>;
+        safe = Object.entries(attributes).map(([name, value]) => {
+          const key = name.toLowerCase();
+          if (!isAllowed(actualTag, key)) return '';
+          const text = String(value).replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          return ' ' + key + '="' + text + '"';
+        }).join('');
+      } catch {
+        safe = '';
+      }
+    }
+    output += source.slice(cursor, start)
+      + source.slice(start, tagEnd) + safe + '>';
+    cursor = tagEnd + 1 + markerMatch[0].length;
+    search = cursor;
+  }
+  return output + source.slice(cursor);
+}
+
 function protectCompleteDivContainers(content: string, protectedSegments: string[], markerPrefix: string): string {
   const tagPattern = /<\/?div\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
   let output = '';
@@ -658,29 +709,7 @@ export function restoreInlineHtmlFragments(content: string): string {
     // Reattach preserved attributes before sanitizing the restored container.
     // Attribute values are escaped here; the fragment sanitizer remains the
     // final allowlist enforcement layer.
-    source = source.replace(
-      /(<[a-z][\w:-]*\b[^>]*>)CYCYINLINEATTRX([a-z][\w:-]*)X([0-9a-f]+)XEND/gi,
-      (marker, opening: string, tagName: string, encoded: string) => {
-        // The marker is bound to the exact opening tag that produced it.
-        // If sanitization or malformed input changes that tag, discard the
-        // attributes instead of attaching them to a different element.
-        const actualTag = opening.match(/^<([a-z][\w:-]*)\b/i)?.[1]?.toLowerCase();
-        if (!actualTag || actualTag !== tagName.toLowerCase()) return opening;
-        try {
-          const attributes = JSON.parse(decodeInlinePayload(encoded)) as Record<string, unknown>;
-          const safe = Object.entries(attributes).map(([name, value]) => {
-            const key = name.toLowerCase();
-            if (!isSafeInlineAttribute(tagName, key)) return '';
-            const text = String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-              .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return ' ' + key + '="' + text + '"';
-          }).join('');
-          return opening.replace(/>$/, safe + '>');
-        } catch {
-          return opening;
-        }
-      },
-    );
+    source = restoreInlineTagAttributeMarkers(source, isSafeInlineAttribute);
 
     const safe = sanitizeInlineHtmlFragment(source);
     return safe ? '<div class="cy-inline-html-pending">' + safe + '</div>' : '';
