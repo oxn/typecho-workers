@@ -636,6 +636,19 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).toContain('const enabled = true');
     expect(enabled).toContain("allowedStyle.has(property)");
     expect(enabled).toContain("key !== 'style'");
+    expect(enabled).toContain('const allowScripts = false;');
+
+    const scriptsEnabled = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full', htmlScriptExecutionEnabled: '1', showHomeSearchButton: '0' }),
+    } });
+    expect(scriptsEnabled).toContain('const allowScripts = true;');
+
+    const lightScriptsEnabled = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'light', htmlScriptExecutionEnabled: '1', showHomeSearchButton: '0' }),
+    } });
+    expect(lightScriptsEnabled).toContain('const allowScripts = true;');
 
     const disabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
@@ -775,6 +788,7 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: '1',
         showHomeSearchButton: '0',
         htmlEnhancementMode: 'light',
+        htmlScriptExecutionEnabled: '0',
         videoPlayerEnabled: '1',
       }),
     );
