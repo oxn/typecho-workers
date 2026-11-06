@@ -14,7 +14,10 @@ describe('Warm CY full HTML enhancement module', () => {
     const runtime = inlineHtmlRuntime(true);
     expect(runtime).toContain('let orderedScriptQueue = Promise.resolve();');
     expect(runtime).toContain('orderedScriptQueue = orderedScriptQueue.then(appendInOrder, appendInOrder);');
-    expect(runtime).toContain("new DOMParser().parseFromString('<script' + attrs + '></script>', 'text/html')");
+    expect(runtime).toContain("new DOMParser().parseFromString(raw, 'text/html')");
+    expect(runtime).toContain('const blockDocument = new DOMParser()');
+    expect(runtime).toContain('blockDocument.body.childNodes.length !== 1');
+    expect(runtime).toContain('parsedScript = blockElement;');
     expect(runtime).toContain("const hasSourceAttribute = parsedScript.hasAttribute('src');");
     expect(runtime).toContain("const source = (parsedScript.getAttribute('src') || '').trim();");
     expect(runtime).toContain('if (hasSourceAttribute && !source) return null;');
@@ -66,6 +69,16 @@ describe('Warm CY full HTML enhancement module', () => {
   it('returns Markdown without literal HTML tags unchanged before scanning', () => {
     const source = '# 标题\n\n普通 Markdown、列表和代码块均无 HTML 标签。\n\n```ts\nconst value = 1;\n```';
     expect(protectInlineHtml(source)).toBe(source);
+  });
+
+  it('preserves raw script and style blocks when quoted attributes contain greater-than signs', () => {
+    const source = '<script data-label="left > right">window.__cyQuoted = "ok";</script>\\n'
+      + '<style media="(min-width: 700px) and (max-width: 900px)">.quoted::after{content:">"}</style>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource).toContain('CYCYINLINEBLOCKX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toBe(source);
   });
 
   it('protects complete HTML containers before Markdown parsing and restores them safely', () => {
@@ -153,7 +166,8 @@ describe('Warm CY full HTML enhancement module', () => {
     const runtime = inlineHtmlRuntime(true);
     expect(runtime).toContain("['media','nonce','title','id','type'].includes(name)");
     expect(runtime).toContain("name.startsWith('data-') || name.startsWith('aria-')");
-    expect(runtime).toContain("new DOMParser().parseFromString('<style' + attrs + '></style>', 'text/html')");
+    expect(runtime).toContain("new DOMParser().parseFromString(raw, 'text/html')");
+    expect(runtime).toContain('parsedStyle = blockElement;');
     expect(runtime).toContain('for (const attribute of parsedStyle.attributes)');
     expect(runtime).toContain('attribute.value');
   });
