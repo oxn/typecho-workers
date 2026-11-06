@@ -649,7 +649,7 @@ describe('typecho-plugin-warm-cy', () => {
           tagName: tagName.toUpperCase(),
           textContent: '',
           media: '',
-          sheet: { cssRules },
+          sheet: { cssRules, deleteRule(index: number) { cssRules.splice(index, 1); } },
           remove() { removedStyles.push(this); },
         };
       },
