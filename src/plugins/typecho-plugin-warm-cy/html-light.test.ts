@@ -8,6 +8,12 @@ import {
 } from './html-light';
 
 describe('Warm CY lightweight HTML enhancement', () => {
+  it('keeps article scripts inert unless the separate execution option is enabled', () => {
+    expect(inlineHtmlRuntimeLight(true)).toContain('const allowScripts = false;');
+    expect(inlineHtmlRuntimeLight(true)).toContain("if (tag === 'script' && !allowScripts) return null;");
+    expect(inlineHtmlRuntimeLight(true, true)).toContain('const allowScripts = true;');
+  });
+
   it('returns ordinary Markdown output unchanged when no enhancement markers exist', () => {
     const content = '<p>普通文章内容，没有 HTML 增强标记。</p>';
     expect(restoreInlineHtmlFragmentsLight(content)).toBe(content);
