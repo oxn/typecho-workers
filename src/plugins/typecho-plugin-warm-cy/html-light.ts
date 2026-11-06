@@ -259,11 +259,8 @@ function protectStyledAnchors(
       search = tagEnd + 1;
       continue;
     }
-    const closePattern = /<\/a\s*>/ig;
-    closePattern.lastIndex = tagEnd + 1;
-    const close = closePattern.exec(content);
-    if (!close) break;
-    const end = closePattern.lastIndex;
+    const end = findHtmlContainerEnd(content, 'a', tagEnd);
+    if (end < 0) break;
     const block = content.slice(start, end);
     const openingTag = content.slice(start, tagEnd + 1);
     if (!/\bstyle\s*=/i.test(openingTag) && !/<svg\b/i.test(block)) {
