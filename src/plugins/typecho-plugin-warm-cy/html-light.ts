@@ -158,9 +158,10 @@ export function protectInlineHtmlLight(source: string): string {
       + 'X' + encodeInlinePayload(JSON.stringify(preserved)) + 'XEND';
   });
 
-  for (let index = protectedSegments.length - 1; index >= 0; index--) {
-    content = content.replace('CYPROTECTEDSEGMENT' + index + 'TOKEN', protectedSegments[index]);
-  }
+  content = content.replace(
+    protectedSegmentPattern,
+    (_token, index: string) => protectedSegments[Number(index)] ?? _token,
+  );
   return content;
 }
 
