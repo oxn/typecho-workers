@@ -939,12 +939,15 @@ describe('typecho-plugin-warm-cy', () => {
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
     const replacements: unknown[] = [];
     const attributeWrites: Array<[string, string]> = [];
+    const iframeWrites: Array<[string, string]> = [];
     let replaceCalls = 0;
     const attributeMarker = 'CYCYINLINEATTRXmetaX' + Buffer.from(JSON.stringify({ name: 'viewport' }), 'utf8').toString('hex') + 'XEND';
     const styleAttributeMarker = 'CYCYINLINEATTRXdivX' + Buffer.from(JSON.stringify({ style: 'color: red; background-image: url(https://evil.example/pixel); display: block' }), 'utf8').toString('hex') + 'XEND';
+    const unsafeIframeMarker = 'CYCYINLINEATTRXiframeX' + Buffer.from(JSON.stringify({ src: 'https://evil.example/iframe' }), 'utf8').toString('hex') + 'XEND';
+    const safeIframeMarker = 'CYCYINLINEATTRXiframeX' + Buffer.from(JSON.stringify({ src: 'https://player.bilibili.com/player.html?bvid=BV1TEST' }), 'utf8').toString('hex') + 'XEND';
     const textNode: any = {
       nodeType: 3,
-      nodeValue: marker + attributeMarker + styleAttributeMarker,
+      nodeValue: marker + attributeMarker + styleAttributeMarker + unsafeIframeMarker + safeIframeMarker,
       parentElement: { tagName: 'DIV', closest(selector: string) { return selector === 'article' ? scopeRoot : null; }, setAttribute(name: string, value: string) { attributeWrites.push([name, value]); } },
       parentNode: {
         replaceChild(fragment: { childNodes: unknown[] }) {
@@ -952,7 +955,7 @@ describe('typecho-plugin-warm-cy', () => {
           replacements.push(...fragment.childNodes);
         },
       },
-      previousElementSibling: null,
+      previousElementSibling: { tagName: 'IFRAME', setAttribute(name: string, value: string) { iframeWrites.push([name, value]); } },
     };
     const body = { appendChild() {} };
     const document = {
@@ -1042,6 +1045,7 @@ describe('typecho-plugin-warm-cy', () => {
       NodeFilter: { SHOW_TEXT: 4, FILTER_REJECT: 2, FILTER_ACCEPT: 1 },
       TextDecoder,
       Uint8Array,
+      URL,
     });
 
     expect(appendedStyles).toHaveLength(1);
@@ -1076,6 +1080,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(replaceCalls).toBeGreaterThan(0);
     expect(attributeWrites).toEqual([['style', 'color:red;display:block']]);
     expect(attributeWrites.some(([, value]) => value.includes('evil.example'))).toBe(false);
+    expect(iframeWrites).toEqual([['src', 'https://player.bilibili.com/player.html?bvid=BV1TEST']]);
     expect(replacements.filter((node: any) => node && typeof node.nodeValue === 'string').map((node: any) => node.nodeValue).join('')).not.toMatch(/CYCYINLINE(?:BLOCK|ATTR)/);
   });
 
