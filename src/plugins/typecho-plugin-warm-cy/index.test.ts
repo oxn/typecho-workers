@@ -55,7 +55,7 @@ function createTemplateElementMock() {
     const body = html.slice(openingEnd + 1, closeIndex);
     return {
       localName: tagName,
-      textContent: body.replace(/<[^>]*>/g, ''),
+      textContent: body,
       attributes: [],
       nonce: '',
       hasAttribute() { return false; },
@@ -1091,6 +1091,9 @@ describe('typecho-plugin-warm-cy', () => {
     const restored = restore(coreSanitized, cyContentContext);
     const marker = restored.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)?.[0];
     expect(marker).toBeTruthy();
+    const preservedBlock = Buffer.from(marker!.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)![1], 'hex').toString('utf8');
+    expect(preservedBlock).toMatch(/^<style(?:\\s|>)/i);
+    expect(preservedBlock).toContain('.custom-footer');
 
     const footer = hooks.get('archive:footer')!('', { options: {
       theme: 'typecho-theme-warm-cy',
