@@ -122,6 +122,14 @@ describe('typecho-plugin-warm-cy', () => {
     expect(mocks.getOption).toHaveBeenCalledWith(expect.anything(), PLUGIN_OPTION_KEY);
   });
 
+  it('skips the private options read for plain Markdown without HTML tags', async () => {
+    const handler = collectHooks().get('content:markdown')!;
+    const source = 'Plain Markdown **text** with a [link](https://example.com).';
+    expect(await handler(source)).toBe(source);
+    expect(mocks.getDb).not.toHaveBeenCalled();
+    expect(mocks.getOption).not.toHaveBeenCalled();
+  });
+
   it('leaves standard consecutive blockquote lines unchanged', async () => {
     const handler = collectHooks().get('content:markdown')!;
     const source = '> 第一行\n> 第二行\n> 第三行';
