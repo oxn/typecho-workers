@@ -112,6 +112,12 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(protectedSource.match(/CYCYINLINEBLOCKX/g)).toHaveLength(1);
   });
 
+  it('does not treat markup-looking strings inside script bodies as HTML blocks', () => {
+    const source = '<script>const sample = \'<pre><span style="color:red">text</span></pre>\';</script>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource.match(/CYCYINLINEBLOCKX/g)).toHaveLength(1);
+  });
+
   it('keeps nested SVG markup inside one protected block', () => {
     const source = '<svg viewBox="0 0 10 10"><g><svg viewBox="0 0 1 1"><circle r="1"/></svg></g><path d="M0 0"/></svg>';
     const protectedSource = protectInlineHtml(source);
