@@ -82,7 +82,7 @@ describe('Warm CY full HTML enhancement module', () => {
   });
 
   it('does not interpret markup-looking text inside textarea as live HTML', () => {
-    const source = '<textarea><script src="javascript:alert(1)"></script><a style="color:red">文本</a></textarea>';
+    const source = '<textarea><script src="javascript:alert(1)"></script><a style="color:red">文本</a><div class="fake">不应提取</div></textarea>';
     expect(protectInlineHtml(source)).toBe(source);
   });
 
