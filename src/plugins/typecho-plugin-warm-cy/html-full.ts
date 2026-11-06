@@ -116,6 +116,11 @@ function protectCompleteCodeElements(
     const tag = tagMatch[1].toLowerCase();
     const openEnd = findHtmlTagEnd(source, start + tagMatch[0].length);
     if (openEnd < 0) break;
+    if (tag === 'script' || tag === 'style') {
+      search = findHtmlElementEnd(source, tag, openEnd);
+      if (search < 0) break;
+      continue;
+    }
     if (tag === 'pre' || tag === 'code') {
       const closePattern = new RegExp('</' + tag + '\\s*>', 'ig');
       closePattern.lastIndex = openEnd + 1;
@@ -164,6 +169,11 @@ function protectCompleteRawHtmlBlocks(
     if (openEnd < 0) break;
     if (HTML_RAW_TEXT_TAGS.has(tag) || tag === 'plaintext') {
       search = findHtmlRawTextEnd(content, tag, openEnd);
+      continue;
+    }
+    if ((tag === 'script' || tag === 'style') && !tags.includes(tag)) {
+      search = findHtmlElementEnd(content, tag, openEnd);
+      if (search < 0) break;
       continue;
     }
     if (!tags.includes(tag)) {
@@ -273,6 +283,11 @@ function preserveInlineTagAttributes(
       search = findHtmlRawTextEnd(content, tag, tagEnd);
       continue;
     }
+    if (tag === 'script' || tag === 'style') {
+      search = findHtmlElementEnd(content, tag, tagEnd);
+      if (search < 0) break;
+      continue;
+    }
     const raw = content.slice(start, tagEnd + 1);
     const attributeStart = tagMatch[0].length;
     const attributes: Array<{ name: string; start: number; end: number; value: string }> = [];
@@ -363,6 +378,11 @@ function restoreInlineTagAttributeMarkers(
     const tagName = tagMatch[1].toLowerCase();
     if (HTML_RAW_TEXT_TAGS.has(tagName) || tagName === 'plaintext') {
       search = findHtmlRawTextEnd(source, tagName, tagEnd);
+      continue;
+    }
+    if (tagName === 'script' || tagName === 'style') {
+      search = findHtmlElementEnd(source, tagName, tagEnd);
+      if (search < 0) break;
       continue;
     }
     const markerMatch = source.slice(tagEnd + 1).match(/^CYCYINLINEATTRX([a-z][a-z0-9_:-]*)X([0-9a-f]+)XEND/i);
