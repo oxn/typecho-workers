@@ -72,6 +72,18 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(protectInlineHtmlLight(source)).toBe(source);
   });
 
+  it('does not terminate pre/code scanning on closing-tag text inside comments, scripts, or SVG', () => {
+    const sources = [
+      '<pre><!-- </pre> --><a style="color:red">注释中的结束标签</a></pre>',
+      '<code><!-- </code> --><a style="color:red">注释中的结束标签</a></code>',
+      '<pre><script>const sample = "</pre>";</script><a style="color:red">脚本字符串中的结束标签</a></pre>',
+      '<pre><svg viewBox="0 0 1 1" data-label="</pre>"><text>SVG</text></svg><a style="color:red">SVG属性中的结束标签</a></pre>',
+    ];
+    for (const source of sources) {
+      expect(protectInlineHtml(source)).toBe(source);
+    }
+  });
+
   it('does not interpret markup-looking text inside textarea as live HTML', () => {
     const source = '<textarea><script src="javascript:alert(1)"></script><a style="color:red">文本</a><div class="fake">不应提取</div></textarea>';
     expect(protectInlineHtmlLight(source)).toBe(source);
