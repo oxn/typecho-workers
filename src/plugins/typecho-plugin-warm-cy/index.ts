@@ -184,6 +184,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     options?: Record<string, unknown>;
   }) => {
     if (extra?.options?.theme !== THEME_ID) return html;
+    const pluginPath = `/admin/plugin/${ADMIN_PAGE_SLUG}`;
     return `${html}${adminNavigationRuntime(pluginPath)}`;
   }, 20);
 
