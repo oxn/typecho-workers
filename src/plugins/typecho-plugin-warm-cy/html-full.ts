@@ -31,6 +31,7 @@ function protectCompleteRawHtmlBlocks(
   protectedSegments: string[],
   markerPrefix: string,
   transform: (tag: string, block: string) => string,
+  tags: string[] = ['style', 'script', 'svg'],
 ): string {
   let output = '';
   let cursor = 0;
@@ -51,7 +52,7 @@ function protectCompleteRawHtmlBlocks(
     const tag = tagMatch[1].toLowerCase();
     const openEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
     if (openEnd < 0) break;
-    if (tag !== 'style' && tag !== 'script' && tag !== 'svg') {
+    if (!tags.includes(tag)) {
       search = openEnd + 1;
       continue;
     }
@@ -710,8 +711,11 @@ export function restoreInlineHtmlFragments(content: string): string {
 
     // Keep style/script blocks as inert text markers through fragment sanitization.
     // The opt-in frontend runtime restores them only when the enhancement is enabled.
-    source = source.replace(/<(style|script|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, block =>
-      'CYCYINLINEBLOCKX' + encodeInlinePayload(block) + 'XEND',
+    source = protectCompleteRawHtmlBlocks(
+      source,
+      [],
+      '\\u0000CYRESTORE',
+      (_tag, block) => block,
     );
 
     // Reattach preserved attributes before sanitizing the restored container.
@@ -737,9 +741,12 @@ export function restoreInlineHtmlFragments(content: string): string {
   restored = restored.replace(/CYCYINLINEHTMLX([0-9a-f]+)XEND/g, (_marker, payload: string) => {
     // Preserve nested SVG verbatim through the HTML sanitizer. The browser
     // runtime will rebuild each SVG using its dedicated SVG allowlist.
-    const source = sanitizeInlineSvgReferences(decodeInlinePayload(payload)).replace(
-      /<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi,
-      svg => 'CYCYINLINEBLOCKX' + encodeInlinePayload(svg) + 'XEND',
+    const source = protectCompleteRawHtmlBlocks(
+      sanitizeInlineSvgReferences(decodeInlinePayload(payload)),
+      [],
+      '\\u0000CYRESTORE',
+      (_tag, block) => block,
+      ['svg'],
     );
     const safe = sanitizeInlineHtmlFragment(source);
     return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
