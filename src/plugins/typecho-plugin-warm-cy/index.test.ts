@@ -1017,10 +1017,10 @@ describe('typecho-plugin-warm-cy', () => {
       cssRules: any[] = [];
       replaceSync(cssText: string) {
         const ordinaryCss = cssText
-          .replace(/@keyframes\\s+[\\w-]+\\s*\\{[\\s\\S]*?\\}\\s*\\}/g, '')
-          .replace(/@layer\\s+[\\w-]+\\s*\\{[\\s\\S]*?\\}\\s*\\}/g, '')
-          .replace(/@font-face\\s*\\{[^{}]*\\}/g, '');
-        const rulePattern = /([^{}]+)\\{([^{}]*)\\}/g;
+          .replace(/@keyframes\s+[\w-]+\s*\{[\s\S]*?\}\s*\}/g, '')
+          .replace(/@layer\s+[\w-]+\s*\{[\s\S]*?\}\s*\}/g, '')
+          .replace(/@font-face\s*\{[^{}]*\}/g, '');
+        const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
         let match: RegExpExecArray | null;
         while ((match = rulePattern.exec(ordinaryCss))) {
           const selectorText = match[1].trim();
