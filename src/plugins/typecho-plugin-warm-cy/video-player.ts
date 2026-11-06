@@ -100,7 +100,7 @@ export function videoPlayerRuntime(enabled: boolean): string {
     .cy-video-player{position:relative;display:block;width:100%;max-width:100%;height:auto;aspect-ratio:var(--cy-video-ratio,16/9);overflow:hidden;background:transparent;border-radius:0.5rem}
     .warm-prose .cy-video-player{margin:1.5rem 0;background:#000;border-radius:10px}
     @media(max-width:640px){.warm-prose .cy-video-player{margin:1rem 0;border-radius:8px}}
-    .cy-video-player iframe{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;border:0;background:transparent}
+    .cy-video-player iframe{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;margin:0;border:0;border-radius:0;box-shadow:none;background:transparent}
     .cy-video-player__status{position:absolute;inset:0;display:grid;place-items:center;padding:1rem;color:inherit;background:transparent;text-align:center;font-size:14px;pointer-events:none}
     .cy-video-player__status[hidden]{display:none}
   </style><script data-cy-video-player-runtime>
