@@ -598,7 +598,12 @@ describe('typecho-plugin-warm-cy', () => {
           appendedStyles.push(element);
         },
       },
-      createTreeWalker(_root: unknown, _whatToShow: number, filter: { acceptNode(node: unknown): number }) {
+      querySelectorAll(selector: string) {
+        expect(selector).toBe('.warm-prose');
+        return [{ articleBody: true }];
+      },
+      createTreeWalker(root: unknown, _whatToShow: number, filter: { acceptNode(node: unknown): number }) {
+        expect(root).toEqual({ articleBody: true });
         let visited = false;
         return {
           currentNode: textNode,
