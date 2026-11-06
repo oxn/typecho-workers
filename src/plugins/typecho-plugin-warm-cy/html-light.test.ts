@@ -16,7 +16,10 @@ describe('Warm CY lightweight HTML enhancement', () => {
 
   it('does not treat a script with src as an inline script in lightweight mode', () => {
     const runtime = inlineHtmlRuntimeLight(true, true);
-    expect(runtime).toContain('if (/(?:^|\\s)src(?:\\s|=|$)/i.test(attrs)) return null;');
+    expect(runtime).toContain("new DOMParser().parseFromString('<script' + attrs + '></script>', 'text/html')");
+    expect(runtime).toContain("parsedScript.hasAttribute('src')");
+    expect(runtime).toContain("parsedScript.getAttribute('type')");
+    expect(runtime).not.toContain("attrs.match(/\\\\btype");
   });
 
   it('returns ordinary Markdown output unchanged when no enhancement markers exist', () => {
