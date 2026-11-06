@@ -869,7 +869,7 @@ describe('typecho-plugin-warm-cy', () => {
     const source = [
       '<div class="custom-footer">',
       '<style>',
-      '.custom-footer { display: flex; color: #123456; }',
+      '.custom-footer { display: flex; color: #123456; border-left: 2px solid #123456; border-collapse: collapse; color-scheme: light; fill: #123456; font: 600 14px/1.5 sans-serif; overflow-x: auto; }',
       'body { background-color: #ffffff; }',
       'body.cy-test-root { color: #123456; }',
       'body > .cy-test-child { display: block; }',
@@ -1019,6 +1019,7 @@ describe('typecho-plugin-warm-cy', () => {
     const scopeSelector = appendedStyles[0].textContent.match(/^(\.cy-inline-html-scope-[a-z0-9-]+)/)?.[1];
     expect(scopeSelector).toBeTruthy();
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .custom-footer{display:flex;color:#123456}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .custom-footer{display:flex;color:#123456;border-left:2px solid #123456;border-collapse:collapse;color-scheme:light;fill:#123456;font:600 14px/1.5 sans-serif;overflow-x:auto}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector}{background-color:#ffffff}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector}.cy-test-root{color:#123456}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-child{display:block}`);
