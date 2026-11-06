@@ -22,7 +22,7 @@ It must be carried forward in every later CY plugin/theme update. Do not remove 
 2. Preserve common safe HTML attributes, including class, id, title, role, data-*, aria-*, dimensions, and permitted inline styles.
 3. Preserve safe inline CSS and style blocks; reject dangerous CSS constructs and external resource tricks.
 4. Preserve SVG viewBox casing and supported SVG geometry/paint attributes without passing unsafe SVG nodes through.
-5. Support trusted administrator-authored inline JavaScript and explicitly supported external scripts, with deterministic execution order and safe URL/type validation.
+5. Support trusted administrator-authored inline JavaScript and explicitly supported external scripts, with deterministic execution order and safe URL/type validation. Scripts within one hydration pass execute serially in source order; a failed external script releases the queue so later scripts can still run.
 6. Preserve iframe markup and safe iframe attributes such as src, width, height, title, allow, allowfullscreen, loading, referrerpolicy, and sandbox only when allowed by the content policy. The enhancement must not rewrite provider URLs or player attributes.
 7. Keep code fences, inline code, pre/code blocks, and examples inert; never execute scripts contained in code examples.
 8. Handle nested block HTML across Markdown blank lines without introducing invalid paragraph nesting.
