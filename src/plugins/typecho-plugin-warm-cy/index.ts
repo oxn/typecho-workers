@@ -313,6 +313,7 @@ function isSafeInlineAttribute(tagName: string, attributeName: string): boolean 
     img: ['src'],
     iframe: ['src', 'frameborder', 'allowfullscreen', 'referrerpolicy', 'sandbox',
       'scrolling', 'border', 'framespacing', 'allow'],
+    details: ['open'],
     th: ['colspan', 'rowspan', 'scope'],
     td: ['colspan', 'rowspan'],
   };
@@ -375,7 +376,9 @@ function protectInlineHtml(source: string): string {
   content = protectCompleteDivContainers(content, protectedSegments);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
-    const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
+    // Also capture valueless boolean attributes (checked, required, controls, etc.).
+    // They are restored as name="" which is valid HTML and survives the sanitizer.
+    const attributePattern = /([^\s=\/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
     let match: RegExpExecArray | null;
     while ((match = attributePattern.exec(attrs))) {
       const name = match[1].toLowerCase();
