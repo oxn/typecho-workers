@@ -70,6 +70,57 @@ function protectCompleteRawHtmlBlocks(
   return output + content.slice(cursor);
 }
 
+function protectStyledAnchors(
+  content: string,
+  protectedSegments: string[],
+  markerPrefix: string,
+): string {
+  let output = '';
+  let cursor = 0;
+  let search = 0;
+  while (search < content.length) {
+    const start = content.indexOf('<', search);
+    if (start < 0) break;
+    if (content.startsWith('<!--', start)) {
+      const commentEnd = content.indexOf('-->', start + 4);
+      search = commentEnd < 0 ? content.length : commentEnd + 3;
+      continue;
+    }
+    const tagMatch = content.slice(start).match(/^<([a-z][\w:-]*)\b/i);
+    if (!tagMatch) {
+      search = start + 1;
+      continue;
+    }
+    const tagEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
+    if (tagEnd < 0) break;
+    if (tagMatch[1].toLowerCase() !== 'a') {
+      search = tagEnd + 1;
+      continue;
+    }
+    const closePattern = /<\/a\s*>/ig;
+    closePattern.lastIndex = tagEnd + 1;
+    const close = closePattern.exec(content);
+    if (!close) break;
+    const end = closePattern.lastIndex;
+    const block = content.slice(start, end);
+    const openingTag = content.slice(start, tagEnd + 1);
+    if (!/\bstyle\s*=/i.test(openingTag) && !/<svg\b/i.test(block)) {
+      search = tagEnd + 1;
+      continue;
+    }
+    const markerPattern = new RegExp(markerPrefix + '([0-9]+)TOKEN', 'g');
+    const restoredBlock = block.replace(
+      markerPattern,
+      (_token, index: string) => protectedSegments[Number(index)] ?? _token,
+    );
+    output += content.slice(cursor, start)
+      + 'CYCYINLINEHTMLX' + encodeInlinePayload(restoredBlock) + 'XEND';
+    cursor = end;
+    search = end;
+  }
+  return output + content.slice(cursor);
+}
+
 function preserveInlineTagAttributes(
   content: string,
   isAllowed: (tag: string, name: string) => boolean,
@@ -272,10 +323,11 @@ export function protectInlineHtmlLight(source: string): string {
 
   // Preserve styled download-card anchors as a single fragment so nested SVG markup
   // is not fragmented by Markdown tokenization or the core HTML sanitizer.
-  content = content.replace(/<a\b[^>]*>[\s\S]*?<\/a\s*>/gi, block => {
-    if (!/\bstyle\s*=|<svg\b/i.test(block)) return block;
-    return 'CYCYINLINEHTMLX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND';
-  });
+  content = protectStyledAnchors(
+    content,
+    protectedSegments,
+    protectedSegmentPrefix,
+  );
 
   content = protectCompleteRawHtmlBlocks(
     content,
