@@ -91,6 +91,17 @@ describe('typecho-plugin-warm-cy', () => {
     mocks.generateSecurityToken.mockResolvedValue('fresh-csrf-token');
   });
 
+  it('persists the separate article JavaScript execution setting as an administrator-only setting', async () => {
+    const handler = collectHooks().get('route:request')!;
+    const result = await handler({ handled: false }, { request: routeRequest(SETTINGS_API_PATH, 'POST', {
+      showCommentManagementButtons: true, showHomeSearchButton: true,
+      htmlEnhancementMode: 'full', htmlScriptExecutionEnabled: true, videoPlayerEnabled: false,
+    }), path: SETTINGS_API_PATH });
+    expect(result.response.status).toBe(200);
+    const saved = JSON.parse(mocks.setOption.mock.calls[0][2]);
+    expect(saved.htmlScriptExecutionEnabled).toBe('1');
+  });
+
   it('registers companion admin, content and frontend hooks', () => {
     const hooks = collectHooks();
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(ADMIN_PATH);
@@ -125,6 +136,8 @@ describe('typecho-plugin-warm-cy', () => {
     });
     expect(html).toContain(`CY 插件版本：2026.11.05.10.20`);
     expect(html).toContain('data-cy-setting="htmlEnhancementMode"');
+    expect(html).toMatch(/data-cy-setting="htmlScriptExecutionEnabled"[^>]*>/);
+    expect(html).not.toMatch(/data-cy-setting="htmlScriptExecutionEnabled" checked/);
     expect(html).toContain('value="off" checked');
     expect(html).toContain('data-cy-alert-style-field="NOTE.background"');
     expect(html).toContain('data-cy-alert-style-field="CAUTION.icon"');
@@ -151,6 +164,11 @@ describe('typecho-plugin-warm-cy', () => {
       options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1' }) },
     });
     expect(legacyHtmlMode).toContain('value="light" checked');
+    const scriptsEnabled = handler('', {
+      slug: 'cy-companion', csrfToken: 'test-token',
+      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full', htmlScriptExecutionEnabled: '1' }) },
+    });
+    expect(scriptsEnabled).toMatch(/data-cy-setting="htmlScriptExecutionEnabled" checked/);
     const fullHtmlMode = handler('', {
       slug: 'cy-companion',
       csrfToken: 'test-token',
