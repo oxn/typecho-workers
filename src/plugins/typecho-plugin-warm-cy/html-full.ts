@@ -11,7 +11,7 @@ function encodeInlinePayload(value: string): string {
   ).join('');
 }
 
-function protectCompleteDivContainers(content: string, protectedSegments: string[]): string {
+function protectCompleteDivContainers(content: string, protectedSegments: string[], markerPrefix: string): string {
   const tagPattern = /<\/?div\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
   let output = '';
   let cursor = 0;
@@ -33,8 +33,9 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
     }
     if (closeEnd < 0) break;
 
+    const markerPattern = new RegExp(markerPrefix + '(\\d+)TOKEN', 'g');
     const block = content.slice(match.index, closeEnd).replace(
-      /CYPROTECTEDSEGMENT(\d+)TOKEN/g,
+      markerPattern,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
 
@@ -113,13 +114,16 @@ export function protectInlineHtml(source: string): string {
   if (!source.includes('<') && !hasReservedMarker) return source;
 
   const protectedSegments: string[] = [];
+  // A per-render unpredictable prefix prevents user text from colliding with internal code placeholders.
+  const protectedSegmentPrefix = 'CYPROTECTEDSEGMENT' + Math.random().toString(36).slice(2) + '_';
+  const protectedSegmentPattern = new RegExp(protectedSegmentPrefix + '(\\d+)TOKEN', 'g');
   const protect = (value: string): string => {
-    const marker = 'CYPROTECTEDSEGMENT' + protectedSegments.length + 'TOKEN';
+    const marker = protectedSegmentPrefix + protectedSegments.length + 'TOKEN';
     protectedSegments.push(value);
     return marker;
   };
   const restoreProtectedSegments = (value: string): string => value.replace(
-    /CYPROTECTEDSEGMENT(\d+)TOKEN/g,
+    protectedSegmentPattern,
     (_token, index: string) => protectedSegments[Number(index)] ?? _token,
   );
 
@@ -169,7 +173,7 @@ export function protectInlineHtml(source: string): string {
   // Preserve complete div containers as one HTML fragment. CommonMark ends a
   // raw <div> block at blank lines, which otherwise breaks long embedded footers.
 
-  content = protectCompleteDivContainers(content, protectedSegments);
+  content = protectCompleteDivContainers(content, protectedSegments, protectedSegmentPrefix);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     // Also capture valueless boolean attributes (checked, required, controls, etc.).
