@@ -873,6 +873,8 @@ describe('typecho-plugin-warm-cy', () => {
       'body { background-color: #ffffff; }',
       'body.cy-test-root { color: #123456; }',
       'body > .cy-test-child { display: block; }',
+      'html body .cy-test-nested-root { color: #abcdef; }',
+      'html > body > .cy-test-deep-child { display: block; }',
       ':root { --cy-test-color: #123456; }',
       '* { box-sizing: border-box; }',
       '.badge-row { gap: 12px; }',
@@ -1020,6 +1022,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector}{background-color:#ffffff}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector}.cy-test-root{color:#123456}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-child{display:block}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .cy-test-nested-root{color:#abcdef}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-deep-child{display:block}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector}{--cy-test-color:#123456}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector},${scopeSelector} *{box-sizing:border-box}`);
     expect(scopeRoot.classes.has(scopeSelector.slice(1))).toBe(true);
