@@ -41,6 +41,15 @@ const cyContentContext = {
   },
 };
 
+function decodeHtmlText(value: string): string {
+  return value
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&#x27;/gi, "'")
+    .replace(/&amp;/gi, '&');
+}
+
 function createTemplateElementMock() {
   let html = '';
   const parse = () => {
@@ -1192,7 +1201,19 @@ describe('typecho-plugin-warm-cy', () => {
           getPropertyValue(property: string) { return values.get(property)?.value || ''; },
           getPropertyPriority(property: string) { return values.get(property)?.priority || ''; },
         };
-        return { tagName: tagName.toUpperCase(), textContent: '', media: '', style };
+        let textContent = '';
+        let innerHTML = '';
+        let hasTextContent = false;
+        return {
+          tagName: tagName.toUpperCase(),
+          get textContent() { return hasTextContent ? textContent : decodeHtmlText(innerHTML); },
+          set textContent(value: string) { textContent = String(value); hasTextContent = true; },
+          get innerHTML() { return innerHTML; },
+          set innerHTML(value: string) { innerHTML = String(value); hasTextContent = false; },
+          media: '',
+          style,
+          setAttribute() {},
+        };
       },
     };
     class MockCSSStyleSheet {
@@ -1506,7 +1527,17 @@ describe('typecho-plugin-warm-cy', () => {
       createElementNS(_namespace: string, localName: string) { return createSvgElement(localName); },
       createElement(tagName: string) {
         if (tagName.toLowerCase() === 'template') return createTemplateElementMock();
-        return { tagName: tagName.toUpperCase(), textContent: '', setAttribute() {} };
+        let textContent = '';
+        let innerHTML = '';
+        let hasTextContent = false;
+        return {
+          tagName: tagName.toUpperCase(),
+          get textContent() { return hasTextContent ? textContent : decodeHtmlText(innerHTML); },
+          set textContent(value: string) { textContent = String(value); hasTextContent = true; },
+          get innerHTML() { return innerHTML; },
+          set innerHTML(value: string) { innerHTML = String(value); hasTextContent = false; },
+          setAttribute() {},
+        };
       },
     };
 
