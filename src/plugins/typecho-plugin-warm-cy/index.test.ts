@@ -214,6 +214,15 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).not.toContain('CYCYINLINE');
   });
 
+  it('respects the Note style master switch and SVG visibility option in the content hook', () => {
+    const handler = collectHooks().get('content:content')!;
+    const source = '<blockquote class="markdown-alert" data-alert="NOTE"><p class="markdown-alert-title">NOTE</p><p>正文</p></blockquote>';
+    const disabled = handler(source, { options: { theme: 'typecho-theme-warm-cy', [PLUGIN_OPTION_KEY]: JSON.stringify({ markdownAlertStyleSettings: { enabled: false } }) } });
+    expect(disabled).toBe(source);
+    const hidden = handler(source, { options: { theme: 'typecho-theme-warm-cy', [PLUGIN_OPTION_KEY]: JSON.stringify({ markdownAlertStyleSettings: { enabled: true, icon: { visible: false } } }) } });
+    expect(hidden).not.toContain('markdown-alert-icon');
+  });
+
   it('restores Note icons after the real GitHub-alert transform and core sanitizer in off mode', () => {
     const handler = collectHooks().get('content:content')!;
     const markdown = [
