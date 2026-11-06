@@ -1248,7 +1248,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector},${scopeSelector} *{box-sizing:border-box}`);
     expect(scopeRoot.classes.has(scopeSelector.slice(1))).toBe(true);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .badge-row{gap:12px}`);
-    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .gradient-fill{background-image:url(#safe-gradient)`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .gradient-fill{background-image:url("#safe-gradient")`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .badge-dual{font-size:11px;border-radius:6px;background:#079C48}`);
     expect(appendedStyles[0].textContent).not.toContain('expression');
     expect(appendedStyles[0].textContent).not.toContain('.escaped-url');
