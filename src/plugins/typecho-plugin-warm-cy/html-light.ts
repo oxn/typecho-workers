@@ -8,6 +8,54 @@ function encodeInlinePayload(value: string): string {
   ).join('');
 }
 
+function findHtmlTagEnd(source: string, start: number): number {
+  let quote = '';
+  for (let index = start; index < source.length; index++) {
+    const character = source[index];
+    if (quote) {
+      if (character === quote) quote = '';
+    } else if (character === '"' || character === "'") {
+      quote = character;
+    } else if (character === '>') {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function protectCompleteRawHtmlBlocks(
+  content: string,
+  protectedSegments: string[],
+  markerPrefix: string,
+  transform: (tag: string, block: string) => string,
+): string {
+  const openPattern = /<(style|script|svg)\b/gi;
+  let output = '';
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+  while ((match = openPattern.exec(content))) {
+    if (match.index < cursor) continue;
+    const tag = match[1].toLowerCase();
+    const openEnd = findHtmlTagEnd(content, openPattern.lastIndex);
+    if (openEnd < 0) break;
+    const closePattern = new RegExp('</' + tag + '\\s*>', 'ig');
+    closePattern.lastIndex = openEnd + 1;
+    const close = closePattern.exec(content);
+    if (!close) break;
+    const end = closePattern.lastIndex;
+    const markerPattern = new RegExp(markerPrefix + '([0-9]+)TOKEN', 'g');
+    const block = content.slice(match.index, end).replace(
+      markerPattern,
+      (_token, index: string) => protectedSegments[Number(index)] ?? _token,
+    );
+    output += content.slice(cursor, match.index)
+      + 'CYCYINLINEBLOCKX' + encodeInlinePayload(transform(tag, block)) + 'XEND';
+    cursor = end;
+    openPattern.lastIndex = end;
+  }
+  return output + content.slice(cursor);
+}
+
 function protectCompleteDivContainers(content: string, protectedSegments: string[], markerPrefix: string): string {
   const tagPattern = /<\/?div\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
   let output = '';
@@ -127,9 +175,11 @@ export function protectInlineHtmlLight(source: string): string {
     return 'CYCYINLINEHTMLX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND';
   });
 
-  content = content.replace(
-    /<(style|script|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
-    block => 'CYCYINLINEBLOCKX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND',
+  content = protectCompleteRawHtmlBlocks(
+    content,
+    protectedSegments,
+    protectedSegmentPrefix,
+    (_tag, block) => block,
   );
 
   // Preserve complete div containers as one HTML fragment. CommonMark ends a
