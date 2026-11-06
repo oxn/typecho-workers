@@ -1183,6 +1183,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(runtime).toBeTruthy();
 
     const svgSource = '<svg viewBox="0 0 16 16" onload="alert(1)">'
+      + '<defs><linearGradient id="safe-gradient"></linearGradient><symbol id="safe-symbol"></symbol></defs>'
       + '<use href="#safe-symbol"></use>'
       + '<use href="https://evil.example/external.svg#icon"></use>'
       + '<path fill=\'url("#safe-gradient")\' d="M0 0h10v10H0z"></path>'
@@ -1199,6 +1200,10 @@ describe('typecho-plugin-warm-cy', () => {
       childNodes,
     });
     const parsedRoot = makeNode('svg', { viewBox: '0 0 16 16', onload: 'alert(1)' }, [
+      makeNode('defs', {}, [
+        makeNode('linearGradient', { id: 'safe-gradient' }),
+        makeNode('symbol', { id: 'safe-symbol' }),
+      ]),
       makeNode('use', { href: '#safe-symbol' }),
       makeNode('use', { href: 'https://evil.example/external.svg#icon' }),
       makeNode('path', { fill: 'url("#safe-gradient")', d: 'M0 0h10v10H0z' }),
@@ -1207,17 +1212,26 @@ describe('typecho-plugin-warm-cy', () => {
       makeNode('path', { fill: 'url(/*comment*/#safe-gradient)', d: 'M3 3h4v4H3z' }),
     ]);
     let parsedSource = '';
+    const parsedRoot2 = makeNode('svg', { viewBox: '0 0 16 16' }, [
+      makeNode('defs', {}, [
+        makeNode('linearGradient', { id: 'safe-gradient' }),
+        makeNode('symbol', { id: 'safe-symbol' }),
+      ]),
+      makeNode('use', { href: '#safe-symbol' }),
+      makeNode('path', { fill: 'url(#safe-gradient)' }),
+    ]);
+    let parseCount = 0;
     class MockDOMParser {
       parseFromString(source: string) {
         parsedSource = source;
-        return { querySelector: () => null, documentElement: parsedRoot };
+        return { querySelector: () => null, documentElement: parseCount++ === 0 ? parsedRoot : parsedRoot2 };
       }
     }
 
     const inserted: any[] = [];
     const textNode: any = {
       nodeType: 3,
-      nodeValue: marker,
+      nodeValue: marker + marker,
       parentElement: { closest: () => null },
       parentNode: {
         replaceChild(fragment: { childNodes: unknown[] }) {
@@ -1270,7 +1284,7 @@ describe('typecho-plugin-warm-cy', () => {
     });
 
     expect(parsedSource).toBe(svgSource);
-    expect(inserted).toHaveLength(1);
+    expect(inserted).toHaveLength(2);
     const svg = inserted[0];
     expect(svg.localName).toBe('svg');
     expect(svg.attributes).toContainEqual({ name: 'viewBox', value: '0 0 16 16' });
@@ -1278,10 +1292,24 @@ describe('typecho-plugin-warm-cy', () => {
 
     const uses = svg.childNodes.filter((node: any) => node.localName === 'use');
     expect(uses.map((node: any) => node.attributes.find((attribute: any) => attribute.name === 'href')?.value))
-      .toEqual(['#safe-symbol', undefined]);
+      .toEqual(['#cy-inline-svg-1-safe-symbol', undefined]);
+    const firstIds = svg.childNodes.flatMap((node: any) => [
+      ...node.attributes.filter((attribute: any) => attribute.name === 'id').map((attribute: any) => attribute.value),
+      ...node.childNodes.flatMap((child: any) => child.attributes.filter((attribute: any) => attribute.name === 'id').map((attribute: any) => attribute.value)),
+    ]);
+    const secondSvg = inserted[1];
+    const secondIds = secondSvg.childNodes.flatMap((node: any) => [
+      ...node.attributes.filter((attribute: any) => attribute.name === 'id').map((attribute: any) => attribute.value),
+      ...node.childNodes.flatMap((child: any) => child.attributes.filter((attribute: any) => attribute.name === 'id').map((attribute: any) => attribute.value)),
+    ]);
+    expect(firstIds).toContain('cy-inline-svg-1-safe-gradient');
+    expect(secondIds).toContain('cy-inline-svg-2-safe-gradient');
+    expect(firstIds.some((id: string) => secondIds.includes(id))).toBe(false);
+    expect(secondSvg.childNodes.find((node: any) => node.localName === 'use').attributes.find((attribute: any) => attribute.name === 'href')?.value)
+      .toBe('#cy-inline-svg-2-safe-symbol');
 
     const paths = svg.childNodes.filter((node: any) => node.localName === 'path');
     expect(paths.map((node: any) => node.attributes.find((attribute: any) => attribute.name === 'fill')?.value))
-      .toEqual(['url("#safe-gradient")', undefined, undefined, undefined]);
+      .toEqual(['url(#cy-inline-svg-1-safe-gradient)', undefined, undefined, undefined]);
   });
 });
