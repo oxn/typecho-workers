@@ -14,7 +14,7 @@ describe('Warm CY frontend runtimes', () => {
   it('renders the admin navigation runtime with the configured page path', () => {
     const runtime = adminNavigationRuntime('/admin/plugin/cy-companion');
     expect(runtime).toContain('data-warm-cy-admin-navigation');
-    expect(runtime).toContain("const pluginPath = '/admin/plugin/cy-companion';");
+    expect(runtime).toContain('const pluginPath = "/admin/plugin/cy-companion";');
     expect(runtime).toContain('warm-theme-config-form');
     expect(runtime).toContain('warm-theme-settings-card');
     expect(runtime).toContain('CY 功能显示');
