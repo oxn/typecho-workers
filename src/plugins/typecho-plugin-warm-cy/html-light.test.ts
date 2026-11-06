@@ -128,6 +128,13 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(runtime).toContain('data:');
   });
 
+  it('preserves CSP nonce and safe metadata attributes on scoped style blocks', () => {
+    const runtime = inlineHtmlRuntimeLight(true);
+    expect(runtime).toContain("['media','nonce','title','id','type'].includes(name)");
+    expect(runtime).toContain("name.startsWith('data-') || name.startsWith('aria-')");
+    expect(runtime).toContain("style.setAttribute(name, styleAttribute[2] || styleAttribute[3] || styleAttribute[4] || '')");
+  });
+
   it('preserves data and aria attributes plus common grid and box-sizing inline styles', () => {
     const source = '<div data-cy-layout="grid" aria-label="布局测试" style="display:grid;grid-auto-flow:column;box-sizing:border-box"><span>内容</span></div>';
     const protectedSource = protectInlineHtmlLight(source);
