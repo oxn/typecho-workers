@@ -886,7 +886,7 @@ describe('typecho-plugin-warm-cy', () => {
       '.animated { animation: 1s linear cy-spin; animation-name: cy-spin; }',
       '@layer sample { .layered { color: #123456; } }',
       '@font-face { font-family: "Open Sans"; src: local("Open Sans"); font-weight: 400; }',
-      '.font-test { font-family: "Open Sans", sans-serif; }',
+      '.font-test { font-family: "Open Sans", sans-serif; font: 600 14px/1.5 "Open Sans", sans-serif; }',
       ':root { --cy-test-color: #123456; }',
       '* { box-sizing: border-box; }',
       '.badge-row { gap: 12px; }',
@@ -1108,7 +1108,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .animated{animation:1s linear ${scopeSelector.slice(1)}-cy-spin;animation-name:${scopeSelector.slice(1)}-cy-spin}`);
     expect(appendedStyles[0].textContent).toContain(`@layer ${scopeSelector.slice(1)}.sample{${scopeSelector} .layered{color:#123456}}`);
     expect(appendedStyles[0].textContent).toContain(`@font-face{font-family:"${scopeSelector.slice(1)}-font-0";src:local("Open Sans");font-weight:400}`);
-    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .font-test{font-family:"${scopeSelector.slice(1)}-font-0", sans-serif}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .font-test{font-family:"${scopeSelector.slice(1)}-font-0", sans-serif;font:600 14px/1.5 "${scopeSelector.slice(1)}-font-0", sans-serif}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector}{--cy-test-color:#123456}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector},${scopeSelector} *{box-sizing:border-box}`);
     expect(scopeRoot.classes.has(scopeSelector.slice(1))).toBe(true);
