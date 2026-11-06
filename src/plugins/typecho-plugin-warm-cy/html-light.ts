@@ -99,7 +99,7 @@ export function protectInlineHtmlLight(source: string): string {
   // raw <div> block at blank lines, which otherwise breaks long embedded footers.
 
   content = protectCompleteDivContainers(content, protectedSegments);
-  content = content.replace(/<([a-z][a-z0-9:.-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
+  content = content.replace(/<([a-z][a-z0-9_:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
     let match: RegExpExecArray | null;
@@ -298,7 +298,7 @@ export function restoreInlineHtmlFragmentsLight(content: string): string {
     // Attribute values are escaped here; the fragment sanitizer remains the
     // final allowlist enforcement layer.
     source = source.replace(
-      /(<[a-z][\w:-]*\b[^>]*>)CYCYINLINEATTRX([a-z][a-z0-9:.-]*)X([0-9a-f]+)XEND/gi,
+      /(<[a-z][\w:-]*\b[^>]*>)CYCYINLINEATTRX([a-z][a-z0-9_:-]*)X([0-9a-f]+)XEND/gi,
       (marker, opening: string, _tag: string, encoded: string) => {
         try {
           const attributes = JSON.parse(decodeInlinePayload(encoded)) as Record<string, unknown>;
