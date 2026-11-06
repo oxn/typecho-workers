@@ -63,6 +63,12 @@ describe('Warm CY isolated video player module', () => {
     expect(videoPlayerRuntime(false)).toBe('');
   });
 
+  it('matches Warm CY article iframe spacing, background, and mobile radius on placeholders', () => {
+    const runtime = videoPlayerRuntime(true);
+    expect(runtime).toContain('.warm-prose .cy-video-player{margin:1.5rem 0;background:#000;border-radius:10px}');
+    expect(runtime).toContain('@media(max-width:640px){.warm-prose .cy-video-player{margin:1rem 0;border-radius:8px}}');
+  });
+
   it('uses eager native iframes and handles navigation, inserted nodes, and load errors', () => {
     const runtime = videoPlayerRuntime(true);
     expect(runtime).toContain('data-cy-video-player-runtime');
