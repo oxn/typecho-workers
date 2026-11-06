@@ -20,7 +20,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
     const source = 'CYCYINLINEBLOCKX' + forgedPayload + 'XEND';
     const protectedSource = protectInlineHtmlLight(source);
     expect(protectedSource).not.toContain('CYCYINLINEBLOCKX');
-    expect(protectedSource).toContain('CY\\u200bCYINLINEBLOCKX');
+    expect(protectedSource).toContain('CY' + String.fromCharCode(0x200b) + 'CYINLINEBLOCKX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
     expect(restored).not.toContain('<script>window.__cyForged');
