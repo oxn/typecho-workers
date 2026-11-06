@@ -33,7 +33,7 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
     }
     if (closeEnd < 0) break;
 
-    const markerPattern = new RegExp(markerPrefix + '(\\d+)TOKEN', 'g');
+    const markerPattern = new RegExp(markerPrefix + '([0-9]+)TOKEN', 'g');
     const block = content.slice(match.index, closeEnd).replace(
       markerPattern,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
@@ -116,7 +116,7 @@ export function protectInlineHtml(source: string): string {
   const protectedSegments: string[] = [];
   // A per-render unpredictable prefix prevents user text from colliding with internal code placeholders.
   const protectedSegmentPrefix = 'CYPROTECTEDSEGMENT' + Math.random().toString(36).slice(2) + '_';
-  const protectedSegmentPattern = new RegExp(protectedSegmentPrefix + '(\\d+)TOKEN', 'g');
+  const protectedSegmentPattern = new RegExp(protectedSegmentPrefix + '([0-9]+)TOKEN', 'g');
   const protect = (value: string): string => {
     const marker = protectedSegmentPrefix + protectedSegments.length + 'TOKEN';
     protectedSegments.push(value);
@@ -152,7 +152,7 @@ export function protectInlineHtml(source: string): string {
   }).join('\n');
   // Normalize literal and numeric-character-reference spellings outside protected code.
   content = content.replace(markerPrefixPattern, (_marker, name: string) =>
-    'CY\\u200bCY' + decodeNumericCharacterReferences(name),
+    'CY' + String.fromCharCode(0x200b) + 'CY' + decodeNumericCharacterReferences(name),
   );
 
 
