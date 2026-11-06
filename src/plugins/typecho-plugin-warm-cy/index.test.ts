@@ -1257,7 +1257,12 @@ describe('typecho-plugin-warm-cy', () => {
       + '<linearGradient id="ambiguous-gradient"></linearGradient><linearGradient id="ambiguous-gradient"></linearGradient>'
       + '<filter id="safe-filter"><feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"></feGaussianBlur>'
       + '<feColorMatrix in="blur" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0"></feColorMatrix>'
-      + '<feOffset in="blur" dx="1" dy="2"></feOffset><feMerge><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs>'
+      + '<feOffset in="blur" dx="1" dy="2"></feOffset>'
+      + '<feConvolveMatrix order="3" kernelMatrix="0 1 0 1 -4 1 0 1 0" divisor="1" bias="0" targetX="1" targetY="1" edgeMode="duplicate" preserveAlpha="true"></feConvolveMatrix>'
+      + '<feDisplacementMap in="SourceGraphic" in2="blur" scale="4" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>'
+      + '<feMorphology in="SourceGraphic" operator="dilate" radius="2"></feMorphology>'
+      + '<feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent="2" offset="0"></feFuncR></feComponentTransfer>'
+      + '<feMerge><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs>'
       + '<use href="#safe-symbol"></use>'
       + '<use href="https://evil.example/external.svg#icon"></use>'
       + '<path fill=\'url("#safe-gradient")\' marker-end="url(#safe-marker)" d="M0 0h10v10H0z"></path>'
@@ -1287,6 +1292,10 @@ describe('typecho-plugin-warm-cy', () => {
           makeNode('feGaussianBlur', { in: 'SourceAlpha', stdDeviation: '2', result: 'blur' }),
           makeNode('feColorMatrix', { in: 'blur', type: 'matrix', values: '1 0 0 0 0' }),
           makeNode('feOffset', { in: 'blur', dx: '1', dy: '2' }),
+          makeNode('feConvolveMatrix', { order: '3', kernelMatrix: '0 1 0 1 -4 1 0 1 0', divisor: '1', bias: '0', targetX: '1', targetY: '1', edgeMode: 'duplicate', preserveAlpha: 'true' }),
+          makeNode('feDisplacementMap', { in: 'SourceGraphic', in2: 'blur', scale: '4', xChannelSelector: 'R', yChannelSelector: 'G' }),
+          makeNode('feMorphology', { in: 'SourceGraphic', operator: 'dilate', radius: '2' }),
+          makeNode('feComponentTransfer', {}, [makeNode('feFuncR', { type: 'gamma', amplitude: '1', exponent: '2', offset: '0' })]),
           makeNode('feMerge', {}, [makeNode('feMergeNode', { in: 'SourceGraphic' })]),
         ]),
       ]),
@@ -1412,7 +1421,11 @@ describe('typecho-plugin-warm-cy', () => {
     const filter = svg.childNodes.flatMap((node: any) => node.childNodes || [])
       .find((node: any) => node.localName === 'filter');
     expect(filter.childNodes.map((node: any) => node.localName))
-      .toEqual(['feGaussianBlur', 'feColorMatrix', 'feOffset', 'feMerge']);
+      .toEqual(['feGaussianBlur', 'feColorMatrix', 'feOffset', 'feConvolveMatrix',
+        'feDisplacementMap', 'feMorphology', 'feComponentTransfer', 'feMerge']);
+    expect(filter.childNodes[3].attributes).toContainEqual({ name: 'kernelMatrix', value: '0 1 0 1 -4 1 0 1 0' });
+    expect(filter.childNodes[4].attributes).toContainEqual({ name: 'xChannelSelector', value: 'R' });
+    expect(filter.childNodes[6].childNodes[0].attributes).toContainEqual({ name: 'amplitude', value: '1' });
     expect(filter.childNodes[0].attributes).toContainEqual({ name: 'stdDeviation', value: '2' });
     expect(filter.childNodes[1].attributes).toContainEqual({ name: 'values', value: '1 0 0 0 0' });
   });
