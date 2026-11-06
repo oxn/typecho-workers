@@ -253,6 +253,17 @@ describe('typecho-plugin-warm-cy', () => {
     expect(svg).not.toContain('https://evil.example/external.svg#icon');
   });
 
+  it('drops inline attribute markers when their tag does not match the opening element', () => {
+    const restore = collectHooks().get('content:content')!;
+    const forgedAttributes = Buffer.from(JSON.stringify({ class: 'must-not-attach' }), 'utf8').toString('hex');
+    const fragment = '<div>CYCYINLINEATTRXspanX' + forgedAttributes + 'XEND</div>';
+    const container = 'CYCYINLINECONTAINERX' + Buffer.from(fragment, 'utf8').toString('hex') + 'XEND';
+    const restored = restore(container, cyContentContext);
+
+    expect(restored).not.toContain('must-not-attach');
+    expect(restored).not.toContain('CYCYINLINEATTRX');
+  });
+
   it('preserves a complete nested div footer across Markdown blank lines', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
