@@ -95,6 +95,12 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(protectedSource).not.toContain(hex('attacker.invalid'));
   });
 
+  it('collects SVG references only from elements retained by the safe SVG tree builder', () => {
+    const runtime = inlineHtmlRuntime();
+    expect(runtime).toContain('const collectSvgIds = (node, idMap, duplicateIds = new Set()) =>');
+    expect(runtime).toContain("node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())");
+  });
+
   it('retains SVG external-reference guards in the browser runtime', () => {
     const runtime = inlineHtmlRuntime();
     expect(runtime).toContain('xlink:href');
