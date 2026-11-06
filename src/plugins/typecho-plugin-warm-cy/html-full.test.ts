@@ -143,4 +143,11 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(runtime).toContain('new DOMParser()');
     expect(runtime).toContain('safeStylesheetText');
   });
+  it('retains layout and visual properties used by the uploaded article fixtures', () => {
+    const runtime = inlineHtmlRuntime();
+    for (const property of ['backdrop-filter', '-webkit-backdrop-filter', 'margin-bottom', 'inset', 'content']) {
+      expect(runtime).toContain("'" + property + "'");
+    }
+  });
+
 });
