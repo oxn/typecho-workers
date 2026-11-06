@@ -736,11 +736,12 @@ describe('typecho-plugin-warm-cy', () => {
     const runtimeEnd = footer.indexOf('</script>', runtimeStart + runtimeStartTag.length);
     const runtime = footer.slice(runtimeStart + runtimeStartTag.length, runtimeEnd);
     const external = '<script src="https://cdn.example.test/library.js"></script>';
+    const failingExternal = '<script src="https://cdn.example.test/optional.js"></script>';
     const inline = '<script>window.libraryReady = true;</script>';
     const marker = (source: string) => 'CYCYINLINEBLOCKX' + Buffer.from(source).toString('hex') + 'XEND';
     const textNode: any = {
       nodeType: 3,
-      nodeValue: marker(external) + marker(inline),
+      nodeValue: marker(external) + marker(failingExternal) + marker(inline),
       parentElement: { closest: () => null },
       parentNode: { replaceChild() {} },
       previousElementSibling: null,
@@ -795,7 +796,13 @@ describe('typecho-plugin-warm-cy', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(appendedScripts).toHaveLength(2);
-    expect(appendedScripts[1].textContent).toBe('window.libraryReady = true;');
+    expect(appendedScripts[1].src).toBe('https://cdn.example.test/optional.js');
+
+    appendedScripts[1].dispatch('error');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(appendedScripts).toHaveLength(3);
+    expect(appendedScripts[2].textContent).toBe('window.libraryReady = true;');
   });
 
 });
