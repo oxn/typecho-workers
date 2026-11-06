@@ -77,6 +77,17 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(protectInlineHtmlLight(source)).toBe(source);
   });
 
+  it('preserves quoted greater-than characters in safe inline attributes', () => {
+    const source = '<span data-label="left > right" title="a > b">属性边界</span>';
+    const protectedSource = protectInlineHtmlLight(source);
+    expect(protectedSource).toContain('CYCYINLINEATTRXspanX');
+    expect(protectedSource).toContain('6c656674203e207269676874');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+    expect(restored).toContain('CYCYINLINEATTRXspanX');
+    expect(restored).toContain('属性边界');
+  });
+
   it('preserves inline attributes through Markdown parsing and fragment sanitization', () => {
     const source = '<span class="cy-card" style="color:red;display:block">轻量模式</span>';
     const protectedSource = protectInlineHtmlLight(source);
