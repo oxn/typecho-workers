@@ -885,6 +885,9 @@ describe('typecho-plugin-warm-cy', () => {
       '@keyframes cy-spin { from { opacity: 0; } to { opacity: 1; } }',
       '.animated { animation: 1s linear cy-spin; animation-name: cy-spin; }',
       '@layer sample { .layered { color: #123456; } }',
+      '@media (max-width: 600px) { .mobile { display: block; } }',
+      '@supports (display: grid) { .supported { display: grid; } }',
+      '@container card (min-width: 400px) { .contained { display: block; } }',
       '@font-face { font-family: "Open Sans"; src: local("Open Sans"); font-weight: 400; }',
       '.font-test { font-family: "Open Sans", sans-serif; font: 600 14px/1.5 "Open Sans", sans-serif; }',
       ':root { --cy-test-color: #123456; }',
@@ -1019,7 +1022,10 @@ describe('typecho-plugin-warm-cy', () => {
         const ordinaryCss = cssText
           .replace(/@keyframes\s+[\w-]+\s*\{[\s\S]*?\}\s*\}/g, '')
           .replace(/@layer\s+[\w-]+\s*\{[\s\S]*?\}\s*\}/g, '')
-          .replace(/@font-face\s*\{[^{}]*\}/g, '');
+          .replace(/@font-face\s*\{[^{}]*\}/g, '')
+          .replace(/@media\s*[^{}]+\{[\s\S]*?\}\s*\}/g, '')
+          .replace(/@supports\s*[^{}]+\{[\s\S]*?\}\s*\}/g, '')
+          .replace(/@container\s*[^{}]+\{[\s\S]*?\}\s*\}/g, '');
         const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
         let match: RegExpExecArray | null;
         while ((match = rulePattern.exec(ordinaryCss))) {
@@ -1070,6 +1076,30 @@ describe('typecho-plugin-warm-cy', () => {
             cssRules: [{ type: 1, selectorText: '.layered', style: makeStyle({ color: '#123456' }) }],
           });
         }
+        if (cssText.includes('@media (max-width: 600px)')) {
+          this.cssRules.push({
+            type: 4,
+            cssText: '@media (max-width: 600px) { .mobile { display: block; } }',
+            conditionText: '(max-width: 600px)',
+            cssRules: [{ type: 1, selectorText: '.mobile', style: makeStyle({ display: 'block' }) }],
+          });
+        }
+        if (cssText.includes('@supports (display: grid)')) {
+          this.cssRules.push({
+            type: 12,
+            cssText: '@supports (display: grid) { .supported { display: grid; } }',
+            conditionText: '(display: grid)',
+            cssRules: [{ type: 1, selectorText: '.supported', style: makeStyle({ display: 'grid' }) }],
+          });
+        }
+        if (cssText.includes('@container card')) {
+          this.cssRules.push({
+            type: 0,
+            cssText: '@container card (min-width: 400px) { .contained { display: block; } }',
+            conditionText: 'card (min-width: 400px)',
+            cssRules: [{ type: 1, selectorText: '.contained', style: makeStyle({ display: 'block' }) }],
+          });
+        }
         if (cssText.includes('@font-face')) {
           this.cssRules.push({
             type: 5,
@@ -1107,6 +1137,9 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain(`@keyframes ${scopeSelector.slice(1)}-cy-spin{from{opacity:0}to{opacity:1}}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .animated{animation:1s linear ${scopeSelector.slice(1)}-cy-spin;animation-name:${scopeSelector.slice(1)}-cy-spin}`);
     expect(appendedStyles[0].textContent).toContain(`@layer ${scopeSelector.slice(1)}.sample{${scopeSelector} .layered{color:#123456}}`);
+    expect(appendedStyles[0].textContent).toContain(`@media (max-width: 600px){${scopeSelector} .mobile{display:block}}`);
+    expect(appendedStyles[0].textContent).toContain(`@supports (display: grid){${scopeSelector} .supported{display:grid}}`);
+    expect(appendedStyles[0].textContent).toContain(`@container card (min-width: 400px){${scopeSelector} .contained{display:block}}`);
     expect(appendedStyles[0].textContent).toContain(`@font-face{font-family:"${scopeSelector.slice(1)}-font-0";src:local("Open Sans");font-weight:400}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .font-test{font-family:"${scopeSelector.slice(1)}-font-0", sans-serif;font:600 14px/1.5 "${scopeSelector.slice(1)}-font-0", sans-serif}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector}{--cy-test-color:#123456}`);
