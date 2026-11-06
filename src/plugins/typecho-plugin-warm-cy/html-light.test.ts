@@ -16,7 +16,10 @@ describe('Warm CY lightweight HTML enhancement', () => {
 
   it('does not treat a script with src as an inline script in lightweight mode', () => {
     const runtime = inlineHtmlRuntimeLight(true, true);
-    expect(runtime).toContain("new DOMParser().parseFromString('<script' + attrs + '></script>', 'text/html')");
+    expect(runtime).toContain("new DOMParser().parseFromString(raw, 'text/html')");
+    expect(runtime).toContain('const blockDocument = new DOMParser()');
+    expect(runtime).toContain('blockDocument.body.childNodes.length !== 1');
+    expect(runtime).toContain('parsedScript = blockElement;');
     expect(runtime).toContain("parsedScript.hasAttribute('src')");
     expect(runtime).toContain("parsedScript.getAttribute('type')");
     expect(runtime).not.toContain("attrs.match(/\\\\btype");
@@ -57,6 +60,16 @@ describe('Warm CY lightweight HTML enhancement', () => {
       expect(restored).not.toContain('<script>window.__cyEntityForged');
       expect(restored).not.toContain('CYCYINLINEBLOCKX');
     }
+  });
+
+  it('preserves raw script and style blocks when quoted attributes contain greater-than signs', () => {
+    const source = '<script data-label="left > right">window.__cyQuoted = "ok";</script>\\n'
+      + '<style media="(min-width: 700px) and (max-width: 900px)">.quoted::after{content:">"}</style>';
+    const protectedSource = protectInlineHtmlLight(source);
+    expect(protectedSource).toContain('CYCYINLINEBLOCKX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+    expect(restored).toBe(source);
   });
 
   it('returns Markdown without literal HTML tags unchanged before scanning', () => {
@@ -140,7 +153,8 @@ describe('Warm CY lightweight HTML enhancement', () => {
     const runtime = inlineHtmlRuntimeLight(true);
     expect(runtime).toContain("['media','nonce','title','id','type'].includes(name)");
     expect(runtime).toContain("name.startsWith('data-') || name.startsWith('aria-')");
-    expect(runtime).toContain("new DOMParser().parseFromString('<style' + attrs + '></style>', 'text/html')");
+    expect(runtime).toContain("new DOMParser().parseFromString(raw, 'text/html')");
+    expect(runtime).toContain('parsedStyle = blockElement;');
     expect(runtime).toContain('for (const attribute of parsedStyle.attributes)');
     expect(runtime).toContain('attribute.value');
   });
