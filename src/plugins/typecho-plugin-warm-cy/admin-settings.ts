@@ -63,15 +63,15 @@ export function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown,
         <p>控制 Warm CY 所有页面的主导航是否显示搜索图标。关闭后全站不显示搜索入口。</p>
       </section>
       <section class="cy-feature-card">
-        <strong>正文 HTML / CSS / JavaScript 增强</strong>
-        <p>关闭：完全按主题原始方式处理。轻量开启：沿用昨天的稳定处理规则。全部开启：使用今天扩展后的完整 HTML / CSS / JavaScript / SVG 处理规则。</p>
+        <strong>正文 HTML / CSS / SVG 增强</strong>
+        <p>关闭：完全按主题原始方式处理。轻量开启：沿用稳定处理规则。全部开启：使用完整 HTML / CSS / SVG 解析与恢复规则。JavaScript 执行由下方独立开关控制。</p>
         <div class="cy-html-mode-options">
           <label><input type="radio" name="htmlEnhancementMode" data-cy-setting="htmlEnhancementMode" value="off" ${htmlEnhancementMode === 'off' ? 'checked' : ''}>不开启</label>
           <label><input type="radio" name="htmlEnhancementMode" data-cy-setting="htmlEnhancementMode" value="light" ${htmlEnhancementMode === 'light' ? 'checked' : ''}>轻量开启（稳定版）</label>
           <label><input type="radio" name="htmlEnhancementMode" data-cy-setting="htmlEnhancementMode" value="full" ${htmlEnhancementMode === 'full' ? 'checked' : ''}>全部开启（完整版）</label>
         </div>
         <label class="cy-feature-toggle"><input type="checkbox" data-cy-setting="htmlScriptExecutionEnabled" ${htmlScriptExecutionEnabled ? 'checked' : ''}><span>允许正文 JavaScript 执行</span></label>
-        <p>默认关闭。开启后，轻量版和全量版中保留的正文脚本才会在访客浏览器执行；仅适用于所有文章作者均可信的站点。此设置不影响 HTML / CSS / SVG 解析能力。</p>
+        <p>默认关闭。开启后，轻量版支持的内联脚本，以及全量版允许的内联和 HTTP/HTTPS 外部脚本，才会在访客浏览器执行。仅适用于所有文章作者均可信的站点；关闭此项不影响 HTML / CSS / SVG 解析能力。</p>
       </section>
       ${markdownAlertStyleEditorHtml(markdownAlertStyleSettings)}
       <section class="cy-feature-card">
