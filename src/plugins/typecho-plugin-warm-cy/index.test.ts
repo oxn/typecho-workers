@@ -2659,6 +2659,7 @@ describe('typecho-plugin-warm-cy', () => {
       },
       createTextNode(nodeValue: string) { return { nodeType: 3, nodeValue }; },
       createElement(tagName: string) {
+        if (tagName.toLowerCase() === 'template') return createTemplateElementMock();
         const values = new Map<string, { value: string; priority: string }>();
         const style: any = {
           set cssText(value: string) {
@@ -2983,7 +2984,9 @@ describe('typecho-plugin-warm-cy', () => {
       },
       createTextNode(nodeValue: string) { return { nodeType: 3, nodeValue }; },
       createElementNS(_namespace: string, localName: string) { return createSvgElement(localName); },
-      createElement(tagName: string) { return { tagName: tagName.toUpperCase(), textContent: '', setAttribute() {} }; },
+      createElement(tagName: string) {
+        if (tagName.toLowerCase() === 'template') return createTemplateElementMock();
+        const values = new Map<string, { value: string; priority: string }>();
     };
 
     runInNewContext(runtime, {
