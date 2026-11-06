@@ -455,6 +455,49 @@ describe('typecho-plugin-warm-cy', () => {
     expect(output).toContain('aria-pressed="false"');
   });
 
+  it('preserves safe form, image, and media attributes through HTML restoration', () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = '<div><form method="post"><label for="email">邮箱</label><input id="email" type="email" name="email" placeholder="name@example.com" required checked disabled minlength="4" maxlength="80"><video controls preload="metadata" poster="https://cdn.example/poster.jpg" src="https://cdn.example/video.mp4"></video><img src="https://cdn.example/photo.jpg" alt="示例图片" loading="lazy"></form></div>';
+    const context = { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full' }),
+    } };
+    const protectedSource = protect(source, context);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const sanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+        'form', 'label', 'input', 'video', 'img',
+      ]),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        form: ['method'],
+        label: ['for'],
+        input: ['id', 'type', 'name', 'placeholder', 'required', 'checked',
+          'disabled', 'minlength', 'maxlength'],
+        video: ['controls', 'preload', 'poster', 'src'],
+        img: ['src', 'alt', 'loading'],
+      },
+    });
+    const output = restore(sanitized, context);
+    expect(output).toContain('method="post"');
+    expect(output).toContain('for="email"');
+    expect(output).toContain('type="email"');
+    expect(output).toContain('name="email"');
+    expect(output).toContain('required=""');
+    expect(output).toContain('checked=""');
+    expect(output).toContain('disabled=""');
+    expect(output).toContain('minlength="4"');
+    expect(output).toContain('maxlength="80"');
+    expect(output).toContain('controls=""');
+    expect(output).toContain('preload="metadata"');
+    expect(output).toContain('poster="https://cdn.example/poster.jpg"');
+    expect(output).toContain('src="https://cdn.example/video.mp4"');
+    expect(output).toContain('alt="示例图片"');
+    expect(output).toContain('loading="lazy"');
+  });
+
   it('preserves Bilibili iframe security and playback attributes through HTML restoration', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
