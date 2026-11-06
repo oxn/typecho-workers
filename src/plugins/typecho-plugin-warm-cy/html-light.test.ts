@@ -94,7 +94,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
   it('revalidates restored inline styles and scopes restored style blocks at runtime', () => {
     const runtime = inlineHtmlRuntimeLight(true);
     expect(runtime).toContain('const safeInlineStyleText = value =>');
-    expect(runtime).toContain("const safeCss = safeInlineStyleText(value)");
+    expect(runtime).toContain("const safeStyle = safeInlineStyleText(value)");
     expect(runtime).toContain('const safeCss = safeStylesheetText(body, scopeRoot)');
     expect(runtime).not.toContain('target.style.cssText = String(value)');
     expect(runtime).toContain('cy-inline-light-scope-');
