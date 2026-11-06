@@ -94,6 +94,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
   it('scopes lightweight SVG ids and rewrites only unambiguous local references', () => {
     const runtime = inlineHtmlRuntimeLight(true);
     expect(runtime).toContain('const collectSvgIds = (node, idMap, duplicateIds = new Set()) =>');
+    expect(runtime).toContain("node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())");
     expect(runtime).toContain('idMap.delete(attr.value)');
     expect(runtime).toContain('cy-inline-light-svg-');
     expect(runtime).toContain('const rewriteSvgReferences = (value, idMap) =>');
