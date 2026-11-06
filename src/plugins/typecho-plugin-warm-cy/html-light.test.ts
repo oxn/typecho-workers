@@ -146,6 +146,18 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(restored).toContain('属性边界');
   });
 
+  it('does not terminate styled anchors on closing-tag text inside comments, scripts, or nested SVG', () => {
+    const source = '<a style="color:red" href="https://example.com"><!-- </a> -->'
+      + '<script>const sample = "</a>";</script>'
+      + '<svg viewBox="0 0 1 1"><a href="#inside"><text>SVG链接</text></a></svg>'
+      + '<span>完整锚点内容</span></a>';
+    const protectedSource = protectInlineHtml(source);
+    const hex = Array.from(new TextEncoder().encode(source), byte =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
+    expect(protectedSource).toContain('CYCYINLINEHTMLX' + hex + 'XEND');
+  });
+
   it('protects styled anchors whose quoted attributes contain greater-than signs', () => {
     const source = '<a style="color:red > blue" href="https://example.com/?a=1>b">链接<svg viewBox="0 0 1 1"><path d="M0 0"/></svg></a>';
     const protectedSource = protectInlineHtmlLight(source);
