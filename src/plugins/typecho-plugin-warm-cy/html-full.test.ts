@@ -114,6 +114,12 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(runtime).toContain('url');
   });
 
+  it('gives root-level embedded CSS a real box while keeping ordinary wrappers layout-transparent', () => {
+    const runtime = inlineHtmlRuntime();
+    expect(runtime).toContain("scopeRoot.classList.add('cy-inline-html-root-scope')");
+    expect(runtime).toContain('.cy-inline-html-pending.cy-inline-html-root-scope{display:block!important}');
+  });
+
   it('keeps scripts and styles inert until the optional browser runtime hydrates them', () => {
     const source = '<div class="card"><style>.card{display:flex}</style><script>window.example = true</script>正文</div>';
     const protectedSource = protectInlineHtml(source);
