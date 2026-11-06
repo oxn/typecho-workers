@@ -16,9 +16,9 @@ describe('Warm CY lightweight HTML enhancement', () => {
 
   it('does not treat a script with src as an inline script in lightweight mode', () => {
     const runtime = inlineHtmlRuntimeLight(true, true);
-    expect(runtime).toContain("new DOMParser().parseFromString(raw, 'text/html')");
-    expect(runtime).toContain('const blockDocument = new DOMParser()');
-    expect(runtime).toContain('blockDocument.body.childNodes.length !== 1');
+    expect(runtime).toContain("const blockTemplate = document.createElement('template')");
+    expect(runtime).toContain('blockTemplate.innerHTML = raw;');
+    expect(runtime).toContain('blockTemplate.content.childNodes.length !== 1');
     expect(runtime).toContain('parsedScript = blockElement;');
     expect(runtime).toContain("parsedScript.hasAttribute('src')");
     expect(runtime).toContain("parsedScript.getAttribute('type')");
