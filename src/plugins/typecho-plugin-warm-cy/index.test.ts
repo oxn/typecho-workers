@@ -1028,6 +1028,8 @@ describe('typecho-plugin-warm-cy', () => {
     };
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
     let parsedStylesheetText = '';
+    let parsedRuleCount = 0;
+    let serializedDeclarationReads = 0;
     const replacements: unknown[] = [];
     const attributeWrites: Array<[string, string]> = [];
     const iframeWrites: Array<[string, string]> = [];
@@ -1128,11 +1130,12 @@ describe('typecho-plugin-warm-cy', () => {
           const names = Array.from(values.keys());
           const style: any = {
             length: names.length,
-            item(index: number) { return names[index]; },
+            item(index: number) { serializedDeclarationReads += 1; return names[index]; },
             getPropertyValue(property: string) { return values.get(property)?.value || ''; },
             getPropertyPriority(property: string) { return values.get(property)?.priority || ''; },
           };
           this.cssRules.push({ type: 1, selectorText, style });
+          parsedRuleCount = this.cssRules.length;
         }
         const makeStyle = (properties: Record<string, string>) => {
           const names = Object.keys(properties);
@@ -1227,6 +1230,8 @@ describe('typecho-plugin-warm-cy', () => {
     });
 
     expect(parsedStylesheetText).toContain('.custom-footer {');
+    expect(parsedRuleCount).toBeGreaterThan(0);
+    expect(serializedDeclarationReads).toBeGreaterThan(0);
     expect(appendedStyles).toHaveLength(1);
     expect(appendedStyles[0].tagName).toBe('STYLE');
     const scopeSelector = appendedStyles[0].textContent.match(/^(\.cy-inline-html-scope-[a-z0-9-]+)/)?.[1];
