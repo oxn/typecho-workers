@@ -89,7 +89,7 @@ function markdownAlertStyleEditorHtml(value: unknown): string {
       + type + '.borderStyle" data-cy-default-value="solid">' + borderOptions + '</select></label></div></fieldset>';
   }).join('');
   return '<section class="cy-feature-card cy-note-style-settings"><strong>五种 Note 与图标样式</strong>'
-    + '<p>总开关关闭时恢复主题原生 Note 样式；开启后可分别调整五种提示框及 SVG 图标。恢复默认会回到当前主题默认配色、圆角和图标尺寸。</p>'
+    + '<p>总开关关闭时恢复主题原生 Note 样式；开启后可分别调整五种提示框及 SVG 图标。恢复默认会回到 CY 插件内置的预设样式（与主题无关），包括五种 Note 的全部颜色、边框、圆角，以及 SVG 图标显示、尺寸和间距。</p>'
     + '<label class="cy-feature-toggle"><input type="checkbox" data-cy-alert-style-enabled' + (settings.enabled ? ' checked' : '') + '>启用五种 Note 与图标个性化样式</label>'
     + '<div class="cy-note-style-grid">' + cards + '</div>'
     + '<div class="cy-note-icon-options"><label><input type="checkbox" data-cy-alert-icon-visible data-cy-default-checked="true"'
