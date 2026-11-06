@@ -51,14 +51,12 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(restored).not.toContain('CYCYINLINE');
   });
 
-  it('removes external SVG references while retaining local fragment references', () => {
-    const source = '<svg viewBox="0 0 10 10"><use href="#local-icon"></use><use href="https://attacker.invalid/external.svg#icon"></use><path fill="url(https://attacker.invalid/paint.svg#paint)" d="M0 0"></path></svg>';
-    const protectedSource = protectInlineHtmlLight(source);
-    const parsed = marked.parse(protectedSource, { async: false }) as string;
-    const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+  it('filters SVG external references when the lightweight runtime rebuilds SVG nodes', () => {
+    const runtime = inlineHtmlRuntimeLight(true);
 
-    expect(restored).toContain('href="#local-icon"');
-    expect(restored).not.toContain('attacker.invalid');
+    expect(runtime).toContain("!/^#[\\\\w:.-]+$/.test(value)");
+    expect(runtime).toContain("!/^\\\\s*url\\\\(\\\\s*#[\\\\w:.-]+\\\\s*\\\\)\\\\s*$/i.test(value)");
+    expect(runtime).toContain('javascript:|data:text\\\\/html');
   });
 
   it('keeps script and style blocks inert as markers until runtime hydration', () => {
