@@ -4,6 +4,12 @@ import sanitizeHtml from 'sanitize-html';
 import { inlineHtmlRuntime, protectInlineHtml, restoreInlineHtmlFragments } from './html-full';
 
 describe('Warm CY full HTML enhancement module', () => {
+  it('keeps article scripts inert unless the separate execution option is enabled', () => {
+    expect(inlineHtmlRuntime()).toContain('const allowScripts = false;');
+    expect(inlineHtmlRuntime()).toContain("if (tag === 'script' && !allowScripts) return null;");
+    expect(inlineHtmlRuntime(true)).toContain('const allowScripts = true;');
+  });
+
   it('returns ordinary Markdown output unchanged when no enhancement markers exist', () => {
     const content = '<p>普通文章内容，没有 HTML 增强标记。</p>';
     expect(restoreInlineHtmlFragments(content)).toBe(content);
