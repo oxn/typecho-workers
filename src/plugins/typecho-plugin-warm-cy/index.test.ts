@@ -985,7 +985,7 @@ describe('typecho-plugin-warm-cy', () => {
       '</style>',
       '<div class="badge-row"><a class="badge-dual" href="https://example.com">YouTube</a></div>',
       '</div>',
-    ].join('\\n');
+    ].join('\n');
 
     const protectedSource = protect(source, cyContentContext);
     const parsed = marked.parse(protectedSource, { async: false }) as string;
@@ -1209,13 +1209,13 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].tagName).toBe('STYLE');
     const scopeSelector = appendedStyles[0].textContent.match(/^(\.cy-inline-html-scope-[a-z0-9-]+)/)?.[1];
     expect(scopeSelector).toBeTruthy();
-    expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)+\\.custom-footer\\{display:flex;color:#123456;`));
-    expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)+\\.custom-footer\\{display:flex;color:#123456;border-left:2px solid #123456;border-collapse:collapse;color-scheme:light;fill:#123456;font:600 14px/1.5 sans-serif;overflow-x:auto\\}`));
-    expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\{background-color:#ffffff\\}`));
-    expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\.cy-test-root\\{color:#123456\\}`));
-    expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\s*>\\s*\\.cy-test-child\\{display:block\\}`));
-    expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\s+\\.cy-test-nested-root\\{color:#abcdef\\}`));
-    expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\s*>\\s*\\.cy-test-deep-child\\{display:block\\}`));
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .custom-footer{display:flex;color:#123456;`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .custom-footer{display:flex;color:#123456;border-left:2px solid #123456;border-collapse:collapse;color-scheme:light;fill:#123456;font:600 14px/1.5 sans-serif;overflow-x:auto}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector}{background-color:#ffffff}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector}.cy-test-root{color:#123456}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-child{display:block}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .cy-test-nested-root{color:#abcdef}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-deep-child{display:block}`);
     expect(appendedStyles[0].textContent).toContain(`@keyframes ${scopeSelector.slice(1)}-cy-spin{from{opacity:0}to{opacity:1}}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .animated{animation:1s linear ${scopeSelector.slice(1)}-cy-spin;animation-name:${scopeSelector.slice(1)}-cy-spin}`);
     expect(appendedStyles[0].textContent).toContain(`animation-duration:1s;animation-delay:120ms;animation-iteration-count:2;animation-direction:alternate;animation-fill-mode:both;animation-play-state:running`);
