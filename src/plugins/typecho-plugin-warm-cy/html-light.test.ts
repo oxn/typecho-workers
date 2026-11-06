@@ -100,7 +100,9 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(runtime).toContain("key === 'aria-labelledby' || key === 'aria-describedby'");
     expect(runtime).toContain("key === 'href' || key === 'xlink:href'");
     expect(runtime).toContain('safeSvgNode(parsed.documentElement, idMap)');
-    expect(() => new Function(runtime)).not.toThrow();
+    const script = runtime.match(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/i)?.[1];
+    expect(script).toBeTruthy();
+    expect(() => new Function(script!)).not.toThrow();
   });
 
   it('revalidates restored inline styles and scopes restored style blocks at runtime', () => {
