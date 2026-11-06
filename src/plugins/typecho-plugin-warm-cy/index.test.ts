@@ -1126,6 +1126,7 @@ describe('typecho-plugin-warm-cy', () => {
     let replaceCalls = 0;
     let receivedCssText = '';
     let parsedRuleCount = 0;
+    let parsedDeclarationCount = 0;
     const attributeMarker = 'CYCYINLINEATTRXmetaX' + Buffer.from(JSON.stringify({ name: 'viewport' }), 'utf8').toString('hex') + 'XEND';
     const styleAttributeMarker = 'CYCYINLINEATTRXdivX' + Buffer.from(JSON.stringify({ style: 'color: red; background-image: url(https://evil.example/pixel); display: block' }), 'utf8').toString('hex') + 'XEND';
     const unsafeIframeMarker = 'CYCYINLINEATTRXiframeX' + Buffer.from(JSON.stringify({ src: 'https://evil.example/iframe' }), 'utf8').toString('hex') + 'XEND';
@@ -1239,6 +1240,7 @@ describe('typecho-plugin-warm-cy', () => {
           };
         };
         parsedRuleCount = this.cssRules.length;
+        parsedDeclarationCount = this.cssRules.reduce((total, rule) => total + (rule.style?.length || 0), 0);
         // The lightweight CSSOM mock does not implement shorthand expansion.
         // Supply the browser-equivalent declaration map so the runtime's
         // keyframe-name rewriting can be asserted independently of the mock.
@@ -1325,6 +1327,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(scopeRoot.classes.size).toBeGreaterThan(0);
     expect(receivedCssText).toContain('.custom-footer');
     expect(parsedRuleCount).toBeGreaterThan(0);
+    expect(parsedDeclarationCount).toBeGreaterThan(0);
     expect(appendedStyles).toHaveLength(1);
     expect(appendedStyles[0].tagName).toBe('STYLE');
     const scopeSelector = appendedStyles[0].textContent.match(/^(\.cy-inline-html-scope-[a-z0-9-]+)/)?.[1];
