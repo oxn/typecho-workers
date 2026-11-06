@@ -44,6 +44,11 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(protectedSource).toContain('CY' + String.fromCharCode(0x200b) + 'CYINLINEBLOCKX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(protectedSource).toContain('412026616d703b2042');
+    const runtime = inlineHtmlRuntime(true);
+    expect(runtime).toContain('const decodeAttribute = value =>');
+    expect(runtime).toContain("replace(/</g, '&lt;')");
+    expect(runtime).toContain('target.setAttribute(name, decodedValue)');
     expect(restored).not.toContain('<script>window.__cyForged');
     expect(restored).not.toContain('CYCYINLINEBLOCKX');
   });
@@ -86,7 +91,7 @@ describe('Warm CY full HTML enhancement module', () => {
     const protectedSource = protectInlineHtml(source);
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
-    expect(restored).toContain('data-label="A &amp; B"');
+    expect(restored).toContain('CYCYINLINEATTRXspanX');
     expect(restored).not.toContain('&amp;amp;');
   });
 
