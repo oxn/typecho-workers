@@ -11,7 +11,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
   it('preserves inline attributes through Markdown parsing and fragment sanitization', () => {
     const source = '<span class="cy-card" style="color:red;display:block">轻量模式</span>';
     const protectedSource = protectInlineHtmlLight(source);
-    expect(protectedSource).toContain('CYCYINLINEATTRXdivX');
+    expect(protectedSource).toContain('CYCYINLINEATTRXspanX');
 
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
