@@ -829,6 +829,15 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('.warm-note__content .markdown-alert[data-alert="NOTE"] .markdown-alert-title');
   });
 
+  it('does not inject Note customization CSS when the Note style master switch is off', () => {
+    const handler = collectHooks().get('archive:footer')!;
+    const html = handler('<footer>existing</footer>', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ showHomeSearchButton: false, markdownAlertStyleSettings: { enabled: false } }),
+    } });
+    expect(html).toBe('<footer>existing</footer>');
+  });
+
   it('validates and stores Note style settings without dropping other plugin options', async () => {
     const context = adminContext();
     mocks.requireAdminAction.mockResolvedValueOnce(context);
@@ -840,6 +849,7 @@ describe('typecho-plugin-warm-cy', () => {
         htmlEnhancementMode: 'full',
         videoPlayerEnabled: false,
         markdownAlertStyleSettings: {
+          enabled: false,
           types: {
             NOTE: { background: 'red', border: '#123456', title: '#234567', text: '#345678', icon: '#456789', radius: 99, borderStyle: 'invalid' },
           },
@@ -852,6 +862,7 @@ describe('typecho-plugin-warm-cy', () => {
     const saved = JSON.parse(mocks.setOption.mock.calls[0][2]);
     expect(saved.existingPluginSetting).toBe('keep');
     expect(saved.htmlEnhancementMode).toBe('full');
+    expect(saved.markdownAlertStyleSettings.enabled).toBe(false);
     expect(saved.markdownAlertStyleSettings.types.NOTE).toEqual({
       background: '#eef2ff',
       border: '#123456',
