@@ -100,14 +100,21 @@ export function videoPlayerRuntime(enabled: boolean): string {
     .cy-video-player__status[hidden]{display:none}
   </style><script data-cy-video-player-runtime>
     (() => {
-      const supportedHosts = new Set(['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com']);
+      const providerHosts = new Map([
+        ['youtube', 'www.youtube.com'],
+        ['bilibili', 'player.bilibili.com'],
+        ['vimeo', 'player.vimeo.com']
+      ]);
       const mount = root => {
         if (!root || root.dataset.cyVideoMounted === '1') return;
         const source = root.dataset.cyVideoSrc || '';
         let url;
-        try { url = new URL(source, location.href); } catch { return; }
+        // Protocol-relative embeds inherit HTTPS regardless of the page URL.
+        // Recheck the same strict URL policy used by the server-side transformer.
+        try { url = new URL(source, 'https://localhost'); } catch { return; }
         const provider = root.dataset.cyVideoProvider || '';
-        if (!supportedHosts.has(url.hostname.toLowerCase()) || !['youtube', 'bilibili', 'vimeo'].includes(provider)) return;
+        if (url.protocol !== 'https:' || url.username || url.password || url.port
+          || providerHosts.get(provider) !== url.hostname.toLowerCase()) return;
 
         const status = root.querySelector('.cy-video-player__status');
         const ratio = Number.parseFloat(root.dataset.cyVideoRatio || '');
