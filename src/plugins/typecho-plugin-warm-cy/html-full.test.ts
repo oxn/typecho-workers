@@ -14,9 +14,9 @@ describe('Warm CY full HTML enhancement module', () => {
     const runtime = inlineHtmlRuntime(true);
     expect(runtime).toContain('let orderedScriptQueue = Promise.resolve();');
     expect(runtime).toContain('orderedScriptQueue = orderedScriptQueue.then(appendInOrder, appendInOrder);');
-    expect(runtime).toContain("new DOMParser().parseFromString(raw, 'text/html')");
-    expect(runtime).toContain('const blockDocument = new DOMParser()');
-    expect(runtime).toContain('blockDocument.body.childNodes.length !== 1');
+    expect(runtime).toContain("const blockTemplate = document.createElement('template')");
+    expect(runtime).toContain('blockTemplate.innerHTML = raw;');
+    expect(runtime).toContain('blockTemplate.content.childNodes.length !== 1');
     expect(runtime).toContain('parsedScript = blockElement;');
     expect(runtime).toContain("const hasSourceAttribute = parsedScript.hasAttribute('src');");
     expect(runtime).toContain("const source = (parsedScript.getAttribute('src') || '').trim();");
