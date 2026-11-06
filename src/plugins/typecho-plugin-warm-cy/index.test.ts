@@ -588,8 +588,8 @@ describe('typecho-plugin-warm-cy', () => {
 
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string; sheet?: unknown }> = [];
     const removedStyles: unknown[] = [];
-    const scopedRule: any = { type: 1, selectorText: '.custom-footer, .badge-dual' };
-    const nestedRule: any = { type: 1, selectorText: '.badge-row' };
+    const scopedRule: any = { type: 1, selectorText: '.custom-footer, .badge-dual:is(.active, [data-kind="a,b"])::before' };
+    const nestedRule: any = { type: 1, selectorText: '.badge-row::after' };
     const mediaRules: any = [nestedRule];
     mediaRules.deleteRule = (index: number) => mediaRules.splice(index, 1);
     const mediaRule: any = { type: 4, cssRules: mediaRules, deleteRule(index: number) { this.cssRules.splice(index, 1); } };
@@ -670,8 +670,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain('.badge-dual { font-size: 11px; border-radius: 6px; background: #079C48;  }');
     expect(appendedStyles[0].textContent).not.toContain('/* adjust `font-size` here */');
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
-    expect(scopedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) :is(.custom-footer, .badge-dual)');
-    expect(nestedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) :is(.badge-row)');
+    expect(scopedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) .custom-footer, :where(.warm-prose:not(.warm-note-prose)) .badge-dual:is(.active, [data-kind="a,b"])::before');
+    expect(nestedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) .badge-row::after');
     expect(keyframeStep.selectorText).toBe('from');
     expect(cssRules).not.toContain(fontFaceRule);
     expect(appendedStyles[0].media).toBe('');
