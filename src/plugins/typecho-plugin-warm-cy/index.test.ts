@@ -602,7 +602,7 @@ describe('typecho-plugin-warm-cy', () => {
         },
       },
       querySelectorAll(selector: string) {
-        expect(selector).toBe('.warm-prose');
+        expect(selector).toBe('.warm-prose:not(.warm-note-prose)');
         return [{ articleBody: true }];
       },
       createTreeWalker(root: unknown, _whatToShow: number, filter: { acceptNode(node: unknown): number }) {
