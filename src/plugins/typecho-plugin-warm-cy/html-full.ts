@@ -84,6 +84,9 @@ function isSafeInlineAttribute(tagName: string, attributeName: string): boolean 
 }
 
 export function protectInlineHtml(source: string): string {
+  // Every transformation below targets literal HTML tags; avoid Markdown scanning when none can exist.
+  if (!source.includes('<')) return source;
+
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
     const marker = 'CYCYCODESEGMENT' + protectedSegments.length + 'TOKEN';

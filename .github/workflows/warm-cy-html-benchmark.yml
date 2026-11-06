@@ -1,0 +1,35 @@
+name: Warm CY HTML benchmark
+
+on:
+  push:
+    branches:
+      - test/cy-video-provider-load-diagnostics-20261105
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warm-cy-html-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Run HTML benchmarks
+        run: bun run src/plugins/typecho-plugin-warm-cy/benchmarks/html-benchmark.ts
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: warm-cy-html-benchmark
+          path: artifacts/warm-cy-html-benchmark.json
+          if-no-files-found: error
+          retention-days: 14

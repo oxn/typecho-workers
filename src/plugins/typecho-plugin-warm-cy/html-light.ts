@@ -48,6 +48,9 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
   return output + content.slice(cursor);
 }
 export function protectInlineHtmlLight(source: string): string {
+  // Every transformation below targets literal HTML tags; avoid Markdown scanning when none can exist.
+  if (!source.includes('<')) return source;
+
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
     const marker = 'CYCYCODESEGMENT' + protectedSegments.length + 'TOKEN';

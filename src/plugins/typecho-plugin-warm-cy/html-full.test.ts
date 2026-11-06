@@ -9,6 +9,11 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(restoreInlineHtmlFragments(content)).toBe(content);
   });
 
+  it('returns Markdown without literal HTML tags unchanged before scanning', () => {
+    const source = '# 标题\n\n普通 Markdown、列表和代码块均无 HTML 标签。\n\n```ts\nconst value = 1;\n```';
+    expect(protectInlineHtml(source)).toBe(source);
+  });
+
   it('protects complete HTML containers before Markdown parsing and restores them safely', () => {
     const source = '<div class="custom-card" style="display:flex;gap:12px"><strong>独立 HTML</strong><a href="https://example.com">查看</a></div>';
     const protectedSource = protectInlineHtml(source);

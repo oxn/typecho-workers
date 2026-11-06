@@ -13,6 +13,11 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(restoreInlineHtmlFragmentsLight(content)).toBe(content);
   });
 
+  it('returns Markdown without literal HTML tags unchanged before scanning', () => {
+    const source = '# 标题\n\n普通 Markdown、列表和代码块均无 HTML 标签。\n\n```ts\nconst value = 1;\n```';
+    expect(protectInlineHtmlLight(source)).toBe(source);
+  });
+
   it('preserves inline attributes through Markdown parsing and fragment sanitization', () => {
     const source = '<span class="cy-card" style="color:red;display:block">轻量模式</span>';
     const protectedSource = protectInlineHtmlLight(source);
