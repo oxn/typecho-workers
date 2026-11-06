@@ -38,6 +38,7 @@ export function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown,
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementMode = getHtmlEnhancementMode(settings);
+  const htmlScriptExecutionEnabled = isEnabled(settings.htmlScriptExecutionEnabled, false);
   const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   const videoPlayerEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
   return `
@@ -69,7 +70,8 @@ export function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown,
           <label><input type="radio" name="htmlEnhancementMode" data-cy-setting="htmlEnhancementMode" value="light" ${htmlEnhancementMode === 'light' ? 'checked' : ''}>轻量开启（稳定版）</label>
           <label><input type="radio" name="htmlEnhancementMode" data-cy-setting="htmlEnhancementMode" value="full" ${htmlEnhancementMode === 'full' ? 'checked' : ''}>全部开启（完整版）</label>
         </div>
-        <p>开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布文章；评论区不受影响。</p>
+        <label class="cy-feature-toggle"><input type="checkbox" data-cy-setting="htmlScriptExecutionEnabled" ${htmlScriptExecutionEnabled ? 'checked' : ''}><span>允许正文 JavaScript 执行</span></label>
+        <p>默认关闭。开启后，轻量版和全量版中保留的正文脚本才会在访客浏览器执行；仅适用于所有文章作者均可信的站点。此设置不影响 HTML / CSS / SVG 解析能力。</p>
       </section>
       ${markdownAlertStyleEditorHtml(markdownAlertStyleSettings)}
       <section class="cy-feature-card">
@@ -107,6 +109,7 @@ export function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown,
             noteStyleSettings.types[parts[0]][parts[1]] = field.type === 'number' ? Number(field.value) : field.value;
           });
           var videoPlayer = root.querySelector('[data-cy-setting="videoPlayerEnabled"]');
+          var htmlScriptExecution = root.querySelector('[data-cy-setting="htmlScriptExecutionEnabled"]');
           save.disabled = true;
           status.textContent = '正在保存…';
           try {
@@ -120,6 +123,7 @@ export function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown,
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
                 htmlEnhancementMode: htmlMode.value,
+                htmlScriptExecutionEnabled: !!htmlScriptExecution.checked,
                 markdownAlertStyleSettings: noteStyleSettings,
                 videoPlayerEnabled: !!videoPlayer.checked
               })
