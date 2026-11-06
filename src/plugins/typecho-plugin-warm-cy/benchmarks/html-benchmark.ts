@@ -15,7 +15,7 @@ import {
 } from '../html-full';
 
 type Mode = 'light' | 'full';
-type Stage = 'protect' | 'restore' | 'pipeline' | 'runtime';
+type Stage = 'protect' | 'restore' | 'isolated-pipeline' | 'runtime';
 type Sample = { mode: Mode; stage: Stage; case: string; medianMs: number; p95Ms: number; iterations: number; inputBytes: number; outputBytes: number; outputSha256: string };
 
 const cases: Array<{ name: string; source: string }> = [
@@ -106,7 +106,7 @@ for (const item of cases) {
     const sanitized = sanitizeHtml(markdown);
     results.push(measure(mode, 'protect', item.name, item.source, () => impl.protect(item.source)));
     results.push(measure(mode, 'restore', item.name, sanitized, () => impl.restore(sanitized)));
-    results.push(measure(mode, 'pipeline', item.name, item.source, () => pipeline(mode, item.source)));
+    results.push(measure(mode, 'isolated-pipeline', item.name, item.source, () => pipeline(mode, item.source)));
   }
 }
 for (const mode of ['light', 'full'] as const) {
@@ -116,7 +116,7 @@ for (const mode of ['light', 'full'] as const) {
 const report = {
   generatedAt: new Date().toISOString(),
   runtime: { bun: process.versions.bun || null, node: process.version, platform: process.platform, arch: process.arch },
-  note: 'CI Node/Bun benchmark of the actual plugin functions; not a Cloudflare Workers or browser end-to-end benchmark. Light/full output parity is reported, not assumed.',
+  note: 'CI Node/Bun benchmark of actual plugin protect/restore/runtime functions. The isolated pipeline uses marked plus sanitize-html defaults, not the private core SANITIZE_OPTIONS or renderMarkdownFiltered request path; it is a comparative harness only, not an exact production pipeline. Not a Cloudflare Workers or browser end-to-end benchmark. Light/full output parity is reported, not assumed.',
   warmups: WARMUPS,
   iterations: ITERATIONS,
   parity,
