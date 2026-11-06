@@ -671,8 +671,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain('.badge-dual { font-size: 11px; border-radius: 6px; background: #079C48;  }');
     expect(appendedStyles[0].textContent).not.toContain('/* adjust `font-size` here */');
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
-    expect(scopedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) .custom-footer, :where(.warm-prose:not(.warm-note-prose)) .badge-dual:is(.active, [data-kind="a,b"])::before');
-    expect(nestedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) .badge-row::after');
+    expect(scopedRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .custom-footer, .warm-prose:not(.warm-note-prose) .badge-dual:is(.active, [data-kind="a,b"])::before');
+    expect(nestedRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .badge-row::after');
     expect(keyframeStep.selectorText).toBe('from');
     expect(cssRules).not.toContain(fontFaceRule);
     expect(cssRules).not.toContain(layerStatementRule);
