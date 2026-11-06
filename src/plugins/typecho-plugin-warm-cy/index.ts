@@ -619,7 +619,7 @@ function restoreInlineHtmlFragments(content: string): string {
         // The marker is bound to the exact opening tag that produced it.
         // If sanitization or malformed input changes that tag, discard the
         // attributes instead of attaching them to a different element.
-        const actualTag = opening.match(/^<([a-z][\\w:-]*)\\b/i)?.[1]?.toLowerCase();
+        const actualTag = opening.match(/^<([a-z][\w:-]*)\b/i)?.[1]?.toLowerCase();
         if (!actualTag || actualTag !== tagName.toLowerCase()) return opening;
         try {
           const attributes = JSON.parse(decodeInlinePayload(encoded)) as Record<string, unknown>;
