@@ -14,6 +14,8 @@ describe('Warm CY full HTML enhancement module', () => {
     const runtime = inlineHtmlRuntime(true);
     expect(runtime).toContain('let orderedScriptQueue = Promise.resolve();');
     expect(runtime).toContain('orderedScriptQueue = orderedScriptQueue.then(appendInOrder, appendInOrder);');
+    expect(runtime).toContain("const hasSourceAttribute = /(?:^|\\\\s)src(?:\\\\s|=|$)/i.test(attrs);");
+    expect(runtime).toContain('if (hasSourceAttribute && !source) return null;');
     expect(runtime).toContain("if (script.hasAttribute('async'))");
     expect(runtime).toContain("new RegExp('(?:^|\\s)' + name + '(?:\\s|=|$)', 'i')");
     expect(runtime).toContain("script.addEventListener('load', resolve, { once: true })");
