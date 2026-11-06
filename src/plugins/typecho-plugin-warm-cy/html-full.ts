@@ -84,6 +84,10 @@ function isSafeInlineAttribute(tagName: string, attributeName: string): boolean 
 }
 
 export function protectInlineHtml(source: string): string {
+  // User-authored text must never be interpreted as an internal restoration marker.
+  // Insert an invisible separator before the fast path so forged markers cannot
+  // reach the browser runtime, while preserving their visible appearance.
+  source = source.replace(/CYCY(INLINE(?:CONTAINER|HTML|BLOCK|ATTR)|CODESEGMENT)/g, 'CY\u200bCY$1');
   // Every transformation below targets literal HTML tags; avoid Markdown scanning when none can exist.
   if (!source.includes('<')) return source;
 
