@@ -78,7 +78,7 @@ function markdownAlertStyleEditorHtml(value: unknown): string {
       ['radius', '圆角（px）', 'number'],
     ] as const).map(([key, label, inputType]) =>
       '<label class="cy-note-style-field"><span>' + label + '</span><input type="' + inputType
-      + '" data-cy-alert-style-field="' + type + '.' + key + '" value="' + escapeAlertHtml(style[key]) + '"'
+      + '" data-cy-alert-style-field="' + type + '.' + key + '" data-cy-default-value="' + escapeAlertHtml(MARKDOWN_ALERT_STYLE_DEFAULTS[type][key]) + '" value="' + escapeAlertHtml(style[key]) + '"'
       + (inputType === 'number' ? ' min="0" max="32" step="1"' : '') + '></label>',
     ).join('');
     const borderOptions = ['solid', 'dashed', 'dotted', 'double', 'none'].map(option =>
@@ -86,7 +86,7 @@ function markdownAlertStyleEditorHtml(value: unknown): string {
     ).join('');
     return '<fieldset class="cy-note-style-card"><legend>' + type + '</legend><div class="cy-note-style-grid">'
       + fields + '<label class="cy-note-style-field"><span>边框样式</span><select data-cy-alert-style-field="'
-      + type + '.borderStyle">' + borderOptions + '</select></label></div></fieldset>';
+      + type + '.borderStyle" data-cy-default-value="solid">' + borderOptions + '</select></label></div></fieldset>';
   }).join('');
   return '<section class="cy-feature-card cy-note-style-settings"><strong>五种 Note 与图标样式</strong>'
     + '<p>总开关关闭时恢复主题原生 Note 样式；开启后可分别调整五种提示框及 SVG 图标。恢复默认会回到当前主题默认配色、圆角和图标尺寸。</p>'
