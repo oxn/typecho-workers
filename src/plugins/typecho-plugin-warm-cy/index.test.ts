@@ -589,7 +589,8 @@ describe('typecho-plugin-warm-cy', () => {
     } });
     expect(light).toContain('data-cy-inline-html-enhancement');
     expect(light).toContain('markerPattern');
-    expect(light).not.toContain('safeStylesheetText');
+    expect(light).toContain('safeStylesheetText');
+    expect(light).toContain('cy-inline-light-scope-');
 
     const full = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
