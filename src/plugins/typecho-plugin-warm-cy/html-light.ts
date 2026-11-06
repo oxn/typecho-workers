@@ -23,6 +23,16 @@ function findHtmlTagEnd(source: string, start: number): number {
   return -1;
 }
 
+const HTML_RAW_TEXT_TAGS = new Set(['textarea', 'title', 'xmp', 'iframe', 'noembed', 'noframes', 'noscript']);
+
+function findHtmlRawTextEnd(source: string, tag: string, openEnd: number): number {
+  if (tag === 'plaintext') return source.length;
+  const closePattern = new RegExp('</' + tag + '\\s*>', 'ig');
+  closePattern.lastIndex = openEnd + 1;
+  const close = closePattern.exec(source);
+  return close ? closePattern.lastIndex : source.length;
+}
+
 function protectCompleteRawHtmlBlocks(
   content: string,
   protectedSegments: string[],
@@ -49,6 +59,10 @@ function protectCompleteRawHtmlBlocks(
     const tag = tagMatch[1].toLowerCase();
     const openEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
     if (openEnd < 0) break;
+    if (HTML_RAW_TEXT_TAGS.has(tag) || tag === 'plaintext') {
+      search = findHtmlRawTextEnd(content, tag, openEnd);
+      continue;
+    }
     if (!tags.includes(tag)) {
       search = openEnd + 1;
       continue;
@@ -95,6 +109,10 @@ function protectStyledAnchors(
     const tagEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
     if (tagEnd < 0) break;
     const tagName = tagMatch[1].toLowerCase();
+    if (HTML_RAW_TEXT_TAGS.has(tagName) || tagName === 'plaintext') {
+      search = findHtmlRawTextEnd(content, tagName, tagEnd);
+      continue;
+    }
     if (tagName === 'script' || tagName === 'style' || tagName === 'svg') {
       const rawClose = new RegExp('</' + tagName + '\\s*>', 'ig');
       rawClose.lastIndex = tagEnd + 1;
@@ -153,6 +171,10 @@ function preserveInlineTagAttributes(
     const tag = tagMatch[1].toLowerCase();
     const tagEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
     if (tagEnd < 0) break;
+    if (HTML_RAW_TEXT_TAGS.has(tag) || tag === 'plaintext') {
+      search = findHtmlRawTextEnd(content, tag, tagEnd);
+      continue;
+    }
     const raw = content.slice(start, tagEnd + 1);
     const attributeStart = tagMatch[0].length;
     const attributes: Array<{ name: string; start: number; end: number; value: string }> = [];
@@ -240,6 +262,11 @@ function restoreInlineTagAttributeMarkers(
     }
     const tagEnd = findHtmlTagEnd(source, start + tagMatch[0].length);
     if (tagEnd < 0) break;
+    const tagName = tagMatch[1].toLowerCase();
+    if (HTML_RAW_TEXT_TAGS.has(tagName) || tagName === 'plaintext') {
+      search = findHtmlRawTextEnd(source, tagName, tagEnd);
+      continue;
+    }
     const markerMatch = source.slice(tagEnd + 1).match(/^CYCYINLINEATTRX([a-z][a-z0-9_:-]*)X([0-9a-f]+)XEND/i);
     if (!markerMatch) {
       search = tagEnd + 1;
