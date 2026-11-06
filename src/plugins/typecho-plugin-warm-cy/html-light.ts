@@ -285,6 +285,11 @@ function sanitizeInlineHtmlFragment(source: string): string {
 }
 
 export function restoreInlineHtmlFragmentsLight(content: string): string {
+  if (!content.includes('CYCYINLINECONTAINERX')
+    && !content.includes('CYCYINLINEHTMLX')
+    && !content.includes('CYCYINLINEBLOCKX')
+    && !content.includes('CYCYINLINEATTRX')) return content;
+
   const restoreContainer = (payload: string): string => {
     let source = decodeInlinePayload(payload);
 
