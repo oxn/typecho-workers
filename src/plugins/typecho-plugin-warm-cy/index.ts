@@ -287,6 +287,38 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
 
   return output + content.slice(cursor);
 }
+function isSafeInlineAttribute(tagName: string, attributeName: string): boolean {
+  const tag = tagName.toLowerCase();
+  const name = attributeName.toLowerCase();
+  if (name.startsWith('data-') || name.startsWith('aria-')) return true;
+  if (['style', 'class', 'id', 'title', 'role', 'width', 'height', 'alt', 'loading',
+    'type', 'name', 'value', 'placeholder'].includes(name)) return true;
+  const allowedByTag: Record<string, string[]> = {
+    a: ['href', 'target', 'rel', 'download'],
+    label: ['for'],
+    button: ['disabled'],
+    input: ['checked', 'disabled', 'required', 'readonly', 'min', 'max', 'step',
+      'minlength', 'maxlength', 'pattern', 'autocomplete', 'accept', 'multiple'],
+    select: ['multiple', 'disabled', 'required', 'size'],
+    option: ['selected', 'disabled', 'label'],
+    optgroup: ['label', 'disabled'],
+    textarea: ['rows', 'cols', 'disabled', 'required', 'readonly', 'minlength',
+      'maxlength', 'wrap'],
+    fieldset: ['disabled'],
+    form: ['method', 'enctype', 'target', 'autocomplete'],
+    output: ['for'],
+    video: ['src', 'controls', 'poster', 'preload'],
+    audio: ['src', 'controls', 'preload'],
+    source: ['src'],
+    img: ['src'],
+    iframe: ['src', 'frameborder', 'allowfullscreen', 'referrerpolicy', 'sandbox',
+      'scrolling', 'border', 'framespacing', 'allow'],
+    th: ['colspan', 'rowspan', 'scope'],
+    td: ['colspan', 'rowspan'],
+  };
+  return allowedByTag[tag]?.includes(name) ?? false;
+}
+
 function protectInlineHtml(source: string): string {
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
@@ -347,12 +379,7 @@ function protectInlineHtml(source: string): string {
     let match: RegExpExecArray | null;
     while ((match = attributePattern.exec(attrs))) {
       const name = match[1].toLowerCase();
-      if (name === 'style' || name === 'class' || name === 'id' || name === 'title'
-        || name === 'role' || name === 'width' || name === 'height' || name === 'alt'
-        || name === 'loading' || name === 'type' || name === 'name' || name === 'value'
-        || name === 'placeholder'
-        || (tag.toLowerCase() === 'iframe' && ['src', 'frameborder', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'allow'].includes(name))
-        || name.startsWith('data-') || name.startsWith('aria-')) {
+      if (isSafeInlineAttribute(tag, name)) {
         preserved[name] = match[2] ?? match[3] ?? match[4] ?? '';
       }
     }
@@ -647,12 +674,7 @@ function restoreInlineHtmlFragments(content: string): string {
           const attributes = JSON.parse(decodeInlinePayload(encoded)) as Record<string, unknown>;
           const safe = Object.entries(attributes).map(([name, value]) => {
             const key = name.toLowerCase();
-            if (!(key === 'style' || key === 'class' || key === 'id' || key === 'title'
-              || key === 'role' || key === 'width' || key === 'height' || key === 'alt'
-              || key === 'loading' || key === 'type' || key === 'name' || key === 'value'
-              || key === 'placeholder'
-              || (tagName.toLowerCase() === 'iframe' && ['src', 'frameborder', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'allow'].includes(key))
-              || key.startsWith('data-') || key.startsWith('aria-'))) return '';
+            if (!isSafeInlineAttribute(tagName, key)) return '';
             const text = String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
               .replace(/</g, '&lt;').replace(/>/g, '&gt;');
             return ' ' + key + '="' + text + '"';
