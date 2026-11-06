@@ -1027,6 +1027,7 @@ describe('typecho-plugin-warm-cy', () => {
       setAttribute(name: string, value: string) { scopeRoot.attributes[name] = value; },
     };
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
+    let parsedStylesheetText = '';
     const replacements: unknown[] = [];
     const attributeWrites: Array<[string, string]> = [];
     const iframeWrites: Array<[string, string]> = [];
@@ -1101,6 +1102,7 @@ describe('typecho-plugin-warm-cy', () => {
     class MockCSSStyleSheet {
       cssRules: any[] = [];
       replaceSync(cssText: string) {
+        parsedStylesheetText = cssText;
         const ordinaryCss = cssText
           .replace(/@keyframes\s+[\w-]+\s*\{[\s\S]*?\}\s*\}/g, '')
           .replace(/@layer\s+[\w-]+\s*\{[\s\S]*?\}\s*\}/g, '')
@@ -1224,6 +1226,7 @@ describe('typecho-plugin-warm-cy', () => {
       URL,
     });
 
+    expect(parsedStylesheetText).toContain('.custom-footer {');
     expect(appendedStyles).toHaveLength(1);
     expect(appendedStyles[0].tagName).toBe('STYLE');
     const scopeSelector = appendedStyles[0].textContent.match(/^(\.cy-inline-html-scope-[a-z0-9-]+)/)?.[1];
