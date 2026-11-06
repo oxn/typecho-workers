@@ -91,6 +91,17 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(runtime).toContain('javascript:|data:text');
   });
 
+  it('revalidates restored inline styles and scopes restored style blocks at runtime', () => {
+    const runtime = inlineHtmlRuntimeLight(true);
+    expect(runtime).toContain('const safeInlineStyleText = value =>');
+    expect(runtime).toContain("const safeCss = safeInlineStyleText(value)");
+    expect(runtime).toContain('const safeCss = safeStylesheetText(body, scopeRoot)');
+    expect(runtime).not.toContain('target.style.cssText = String(value)');
+    expect(runtime).toContain('cy-inline-light-scope-');
+    expect(runtime).toContain('allowedProperties.has(property)');
+    expect(runtime).toContain('javascript\\\\s*:');
+  });
+
   it('keeps script and style blocks inert as markers until runtime hydration', () => {
     const source = '<div class="card"><style>.card{display:flex}</style><script>window.cyUnsafe = true</script>正文</div>';
     const protectedSource = protectInlineHtmlLight(source);
