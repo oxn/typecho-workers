@@ -918,6 +918,13 @@ describe('typecho-plugin-warm-cy', () => {
       : '';
     expect(runtime).toBeTruthy();
 
+    const scopeRoot: any = {
+      attributes: {} as Record<string, string>,
+      classes: new Set<string>(),
+      classList: { add(name: string) { scopeRoot.classes.add(name); } },
+      getAttribute(name: string) { return scopeRoot.attributes[name] || null; },
+      setAttribute(name: string, value: string) { scopeRoot.attributes[name] = value; },
+    };
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
     const replacements: unknown[] = [];
     const attributeWrites: Array<[string, string]> = [];
@@ -934,13 +941,6 @@ describe('typecho-plugin-warm-cy', () => {
         },
       },
       previousElementSibling: null,
-    };
-    const scopeRoot: any = {
-      attributes: {} as Record<string, string>,
-      classes: new Set<string>(),
-      classList: { add(name: string) { scopeRoot.classes.add(name); } },
-      getAttribute(name: string) { return scopeRoot.attributes[name] || null; },
-      setAttribute(name: string, value: string) { scopeRoot.attributes[name] = value; },
     };
     const body = { appendChild() {} };
     const document = {
