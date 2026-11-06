@@ -140,7 +140,9 @@ describe('Warm CY lightweight HTML enhancement', () => {
     const runtime = inlineHtmlRuntimeLight(true);
     expect(runtime).toContain("['media','nonce','title','id','type'].includes(name)");
     expect(runtime).toContain("name.startsWith('data-') || name.startsWith('aria-')");
-    expect(runtime).toContain("style.setAttribute(name, styleAttribute[2] || styleAttribute[3] || styleAttribute[4] || '')");
+    expect(runtime).toContain("new DOMParser().parseFromString('<style' + attrs + '></style>', 'text/html')");
+    expect(runtime).toContain('for (const attribute of parsedStyle.attributes)');
+    expect(runtime).toContain('attribute.value');
   });
 
   it('preserves data and aria attributes plus common grid and box-sizing inline styles', () => {
