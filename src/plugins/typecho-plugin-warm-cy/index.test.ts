@@ -920,11 +920,13 @@ describe('typecho-plugin-warm-cy', () => {
 
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
     const replacements: unknown[] = [];
+    const attributeWrites: Array<[string, string]> = [];
     let replaceCalls = 0;
+    const attributeMarker = 'CYCYINLINEATTRXmetaX' + Buffer.from(JSON.stringify({ name: 'viewport' }), 'utf8').toString('hex') + 'XEND';
     const textNode: any = {
       nodeType: 3,
-      nodeValue: marker,
-      parentElement: { closest: () => scopeRoot },
+      nodeValue: marker + attributeMarker,
+      parentElement: { tagName: 'DIV', closest: () => scopeRoot, setAttribute(name: string, value: string) { attributeWrites.push([name, value]); } },
       parentNode: {
         replaceChild(fragment: { childNodes: unknown[] }) {
           replaceCalls += 1;
@@ -1031,6 +1033,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(normalizedCssUrls).toEqual(['#safe-gradient']);
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
     expect(replaceCalls).toBeGreaterThan(0);
+    expect(attributeWrites).toEqual([]);
+    expect(replacements.filter((node: any) => node && typeof node.nodeValue === 'string').map((node: any) => node.nodeValue).join('')).not.toMatch(/CYCYINLINE(?:BLOCK|ATTR)/);
   });
 
 
