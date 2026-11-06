@@ -4,6 +4,11 @@ import sanitizeHtml from 'sanitize-html';
 import { inlineHtmlRuntime, protectInlineHtml, restoreInlineHtmlFragments } from './html-full';
 
 describe('Warm CY full HTML enhancement module', () => {
+  it('returns ordinary Markdown output unchanged when no enhancement markers exist', () => {
+    const content = '<p>普通文章内容，没有 HTML 增强标记。</p>';
+    expect(restoreInlineHtmlFragments(content)).toBe(content);
+  });
+
   it('protects complete HTML containers before Markdown parsing and restores them safely', () => {
     const source = '<div class="custom-card" style="display:flex;gap:12px"><strong>独立 HTML</strong><a href="https://example.com">查看</a></div>';
     const protectedSource = protectInlineHtml(source);
