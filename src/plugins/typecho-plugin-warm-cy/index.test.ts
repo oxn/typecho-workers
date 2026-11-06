@@ -586,7 +586,18 @@ describe('typecho-plugin-warm-cy', () => {
       : '';
     expect(runtime).toBeTruthy();
 
-    const appendedStyles: Array<{ tagName: string; textContent: string; media?: string }> = [];
+    const appendedStyles: Array<{ tagName: string; textContent: string; media?: string; sheet?: unknown }> = [];
+    const removedStyles: unknown[] = [];
+    const scopedRule: any = { type: 1, selectorText: '.custom-footer' };
+    const nestedRule: any = { type: 1, selectorText: '.badge-row' };
+    const mediaRules: any = [nestedRule];
+    mediaRules.deleteRule = (index: number) => mediaRules.splice(index, 1);
+    const mediaRule: any = { type: 4, cssRules: mediaRules, deleteRule(index: number) { this.cssRules.splice(index, 1); } };
+    const keyframeStep: any = { type: 1, selectorText: 'from' };
+    const keyframesRule: any = { type: 7, cssRules: [keyframeStep] };
+    const fontFaceRule: any = { type: 5 };
+    const cssRules: any = [scopedRule, mediaRule, keyframesRule, fontFaceRule];
+    cssRules.deleteRule = (index: number) => cssRules.splice(index, 1);
     const replacements: unknown[] = [];
     let replaceCalls = 0;
     const textNode: any = {
@@ -633,7 +644,15 @@ describe('typecho-plugin-warm-cy', () => {
         };
       },
       createTextNode(nodeValue: string) { return { nodeType: 3, nodeValue }; },
-      createElement(tagName: string) { return { tagName: tagName.toUpperCase(), textContent: '', media: '' }; },
+      createElement(tagName: string) {
+        return {
+          tagName: tagName.toUpperCase(),
+          textContent: '',
+          media: '',
+          sheet: { cssRules },
+          remove() { removedStyles.push(this); },
+        };
+      },
     };
     runInNewContext(runtime!, {
       document,
@@ -651,6 +670,12 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain('.badge-dual { font-size: 11px; border-radius: 6px; background: #079C48;  }');
     expect(appendedStyles[0].textContent).not.toContain('/* adjust `font-size` here */');
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
+    expect(scopedRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) :is(.custom-footer)');
+    expect(nestedRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) :is(.badge-row)');
+    expect(keyframeStep.selectorText).toBe('from');
+    expect(cssRules).not.toContain(fontFaceRule);
+    expect(appendedStyles[0].media).toBe('');
+    expect(removedStyles).toHaveLength(0);
     expect(replaceCalls).toBeGreaterThan(0);
   });
 
