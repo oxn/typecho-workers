@@ -20,6 +20,7 @@ describe('Warm CY Markdown Alert presentation module', () => {
     expect(settings.types.NOTE.borderStyle).toBe('dashed');
     expect(settings.types.TIP.radius).toBe(0);
     expect(settings.types.TIP.borderStyle).toBe('solid');
+    expect(settings.enabled).toBe(true);
     expect(settings.icon).toEqual({ visible: false, size: 32, gap: 0 });
     expect(Object.keys(settings.types)).toEqual(['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION']);
   });
@@ -31,7 +32,10 @@ describe('Warm CY Markdown Alert presentation module', () => {
       expect(html).toContain(type);
       expect(html).toContain(type + '.background');
     }
+    expect(html).toContain('data-cy-alert-style-enabled');
     expect(html).toContain('data-cy-alert-icon-visible');
+    expect(html).toContain('data-cy-alert-reset');
+    expect(html).toContain('data-cy-default-value="#eef2ff"');
   });
 
   it('restores the correct SVG icon without duplicating an existing icon', () => {
@@ -40,6 +44,13 @@ describe('Warm CY Markdown Alert presentation module', () => {
     expect(restored).toContain('<svg class="markdown-alert-icon"');
     expect(restored).toContain('cy-markdown-alert-has-icon');
     expect(restoreMarkdownAlertIcons(restored)).toBe(restored);
+  });
+
+  it('restores no custom SVG when the master or icon visibility toggle is off', () => {
+    const source = '<blockquote data-alert="NOTE"><p class="markdown-alert-title">标题</p><p>正文</p></blockquote>';
+    expect(restoreMarkdownAlertIcons(source, { enabled: false })).toBe(source);
+    expect(restoreMarkdownAlertIcons(source, { enabled: true, icon: { visible: false } })).toBe(source);
+    expect(markdownAlertIconStyles({ enabled: false })).toBe('');
   });
 
   it('returns ordinary content unchanged without alert markers', () => {
