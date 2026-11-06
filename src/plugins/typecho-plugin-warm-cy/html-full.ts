@@ -416,6 +416,11 @@ function sanitizeInlineHtmlFragment(source: string): string {
 }
 
 export function restoreInlineHtmlFragments(content: string): string {
+  if (!content.includes('CYCYINLINECONTAINERX')
+    && !content.includes('CYCYINLINEHTMLX')
+    && !content.includes('CYCYINLINEBLOCKX')
+    && !content.includes('CYCYINLINEATTRX')) return content;
+
   const restoreContainer = (payload: string): string => {
     let source = sanitizeInlineSvgReferences(decodeInlinePayload(payload));
 
