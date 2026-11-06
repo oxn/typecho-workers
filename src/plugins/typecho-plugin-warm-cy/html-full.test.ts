@@ -9,6 +9,20 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(restoreInlineHtmlFragments(content)).toBe(content);
   });
 
+  it('neutralizes user-authored restoration markers before they can reach the runtime', () => {
+    const forgedPayload = Array.from(new TextEncoder().encode('<script>window.__cyForged = true</script>'), byte =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
+    const source = 'CYCYINLINEBLOCKX' + forgedPayload + 'XEND';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource).not.toContain('CYCYINLINEBLOCKX');
+    expect(protectedSource).toContain('CY\\u200bCYINLINEBLOCKX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).not.toContain('<script>window.__cyForged');
+    expect(restored).not.toContain('CYCYINLINEBLOCKX');
+  });
+
   it('returns Markdown without literal HTML tags unchanged before scanning', () => {
     const source = '# 标题\n\n普通 Markdown、列表和代码块均无 HTML 标签。\n\n```ts\nconst value = 1;\n```';
     expect(protectInlineHtml(source)).toBe(source);
