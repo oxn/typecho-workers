@@ -6,8 +6,9 @@ It must be carried forward in every later CY plugin/theme update. Do not remove 
 
 ## Scope and isolation
 
-- The feature applies only to article, note, and standalone-page body content, scoped to the rendered `.warm-prose` containers.
-- Browser hydration must query and walk only `.warm-prose`; it must never scan the whole document body, comments, navigation, footer, or other site chrome.
+- The feature applies only to article and standalone-page body content, scoped to `.warm-prose` containers that are not marked `.warm-note-prose`.
+- Note content is rendered and owned by the independent notes plugin and is explicitly outside this feature's scope.
+- Browser hydration must query and walk only `.warm-prose:not(.warm-note-prose)`; it must never scan note bodies, the whole document body, comments, navigation, footer, or other site chrome.
 - It must not process comments.
 - It must not take ownership of video players or alter the theme's native iframe behavior.
 - Each feature switch is independent. Turning this feature off must not disable or alter unrelated CY features.
