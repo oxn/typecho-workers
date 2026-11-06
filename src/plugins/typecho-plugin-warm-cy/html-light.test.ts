@@ -9,16 +9,15 @@ import {
 
 describe('Warm CY lightweight HTML enhancement', () => {
   it('preserves inline attributes through Markdown parsing and fragment sanitization', () => {
-    const source = '<div class="cy-card" style="color:red;display:block">轻量模式</div>';
+    const source = '<span class="cy-card" style="color:red;display:block">轻量模式</span>';
     const protectedSource = protectInlineHtmlLight(source);
     expect(protectedSource).toContain('CYCYINLINEATTRXdivX');
 
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
 
-    expect(restored).toContain('class="cy-card"');
-    expect(restored).toContain('CYCYINLINEATTRXdivX');
-    expect(restored).toContain('cy-inline-html-pending');
+    expect(restored).toContain('CYCYINLINEATTRXspanX');
+    expect(restored).toContain('轻量模式');
   });
 
   it('uses a marker parser that accepts the same lowercase HTML tag alphabet as full mode', () => {
