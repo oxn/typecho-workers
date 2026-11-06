@@ -596,7 +596,8 @@ describe('typecho-plugin-warm-cy', () => {
     const keyframeStep: any = { type: 1, selectorText: 'from' };
     const keyframesRule: any = { type: 7, cssRules: [keyframeStep] };
     const fontFaceRule: any = { type: 5 };
-    const cssRules: any = [scopedRule, mediaRule, keyframesRule, fontFaceRule];
+    const layerStatementRule: any = { type: 19, cssText: '@layer reset, theme;' };
+    const cssRules: any = [scopedRule, mediaRule, keyframesRule, fontFaceRule, layerStatementRule];
     cssRules.deleteRule = (index: number) => cssRules.splice(index, 1);
     const replacements: unknown[] = [];
     let replaceCalls = 0;
@@ -674,6 +675,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(nestedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) .badge-row::after');
     expect(keyframeStep.selectorText).toBe('from');
     expect(cssRules).not.toContain(fontFaceRule);
+    expect(cssRules).not.toContain(layerStatementRule);
     expect(appendedStyles[0].media).toBe('');
     expect(removedStyles).toHaveLength(0);
     expect(replaceCalls).toBeGreaterThan(0);
