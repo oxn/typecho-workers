@@ -1092,7 +1092,7 @@ describe('typecho-plugin-warm-cy', () => {
     const marker = restored.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)?.[0];
     expect(marker).toBeTruthy();
     const preservedBlock = Buffer.from(marker!.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)![1], 'hex').toString('utf8');
-    expect(preservedBlock).toMatch(/^<style(?:\\s|>)/i);
+    expect(preservedBlock.startsWith('<style>') || preservedBlock.startsWith('<style ')).toBe(true);
     expect(preservedBlock).toContain('.custom-footer');
 
     const footer = hooks.get('archive:footer')!('', { options: {
