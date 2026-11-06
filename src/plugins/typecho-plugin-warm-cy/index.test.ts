@@ -944,7 +944,7 @@ describe('typecho-plugin-warm-cy', () => {
     const textNode: any = {
       nodeType: 3,
       nodeValue: marker + attributeMarker,
-      parentElement: { tagName: 'DIV', closest: () => scopeRoot, setAttribute(name: string, value: string) { attributeWrites.push([name, value]); } },
+      parentElement: { tagName: 'DIV', closest(selector: string) { return selector === 'article' ? scopeRoot : null; }, setAttribute(name: string, value: string) { attributeWrites.push([name, value]); } },
       parentNode: {
         replaceChild(fragment: { childNodes: unknown[] }) {
           replaceCalls += 1;
@@ -956,6 +956,7 @@ describe('typecho-plugin-warm-cy', () => {
     const body = { appendChild() {} };
     const document = {
       body,
+      querySelectorAll() { return []; },
       head: {
         appendChild(element: { tagName: string; textContent: string; media?: string }) {
           appendedStyles.push(element);
