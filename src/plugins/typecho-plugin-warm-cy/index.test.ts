@@ -1030,6 +1030,7 @@ describe('typecho-plugin-warm-cy', () => {
     const replacements: unknown[] = [];
     const attributeWrites: Array<[string, string]> = [];
     const styleProbeWrites: string[] = [];
+    const markerMatches: Array<[string, string, string]> = [];
     const iframeWrites: Array<[string, string]> = [];
     let replaceCalls = 0;
     const attributeMarker = 'CYCYINLINEATTRXmetaX' + Buffer.from(JSON.stringify({ name: 'viewport' }), 'utf8').toString('hex') + 'XEND';
@@ -1215,10 +1216,14 @@ describe('typecho-plugin-warm-cy', () => {
         }
       }
     }
-    runInNewContext(runtime!, {
+    const instrumentedRuntime = runtime!.replace(
+      'while ((match = markerPattern.exec(value))) {',
+      'while ((match = markerPattern.exec(value))) { window.__markerMatches.push([match[1] || "", match[2] || "", match[3] || ""]);',
+    );
+    runInNewContext(instrumentedRuntime, {
       CSSStyleSheet: MockCSSStyleSheet,
       document,
-      window: { addEventListener() {} },
+      window: { __markerMatches: markerMatches, addEventListener() {} },
       Node: { TEXT_NODE: 3, ELEMENT_NODE: 1 },
       NodeFilter: { SHOW_TEXT: 4, FILTER_REJECT: 2, FILTER_ACCEPT: 1 },
       TextDecoder,
@@ -1265,6 +1270,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(normalizedCssUrls).toEqual(['#safe-gradient']);
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
     expect(replaceCalls).toBeGreaterThan(0);
+    expect(markerMatches.map(([, tag]) => tag)).toContain('div');
     expect(styleProbeWrites).toContain('color: red; background-image: url(https://evil.example/pixel); display: block');
     expect(attributeWrites).toEqual([['style', 'color:red;display:block']]);
     expect(attributeWrites.some(([, value]) => value.includes('evil.example'))).toBe(false);
