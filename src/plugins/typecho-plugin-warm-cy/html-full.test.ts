@@ -16,7 +16,7 @@ describe('Warm CY full HTML enhancement module', () => {
     const source = 'CYCYINLINEBLOCKX' + forgedPayload + 'XEND';
     const protectedSource = protectInlineHtml(source);
     expect(protectedSource).not.toContain('CYCYINLINEBLOCKX');
-    expect(protectedSource).toContain('CY\\u200bCYINLINEBLOCKX');
+    expect(protectedSource).toContain('CY' + String.fromCharCode(0x200b) + 'CYINLINEBLOCKX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
     expect(restored).not.toContain('<script>window.__cyForged');
