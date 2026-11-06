@@ -95,7 +95,7 @@ export function globalSearchRuntime(searchBase: string): string {
 export function adminNavigationRuntime(pluginPath: string): string {
   return `<script data-warm-cy-admin-navigation>
       (() => {
-        const pluginPath = '/admin/plugin/${ADMIN_PAGE_SLUG}';
+        const pluginPath = ${JSON.stringify(pluginPath)};
         const groups = document.querySelectorAll('.typecho-head-nav menu > li');
         for (const group of groups) {
           const heading = group.querySelector(':scope > a');
