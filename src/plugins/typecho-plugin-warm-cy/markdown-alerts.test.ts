@@ -47,7 +47,6 @@ describe('Warm CY Markdown Alert presentation module', () => {
     expect(html).toContain('data-cy-default-value="#fecaca"');
     expect(html).toContain('data-cy-default-value="#dc2626"');
     expect(html).toContain('data-cy-default-value="8"');
-    expect(html).toContain('data-cy-default-value="18"');
     expect(html).toContain('data-cy-default-checked="true"');
     expect(html).toContain('data-cy-default-value="18"');
     expect(html).toContain('data-cy-default-value="8"');
