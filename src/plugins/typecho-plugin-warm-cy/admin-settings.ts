@@ -97,7 +97,7 @@ export function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown,
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlMode = root.querySelector('[data-cy-setting="htmlEnhancementMode"]:checked');
-          var noteStyleSettings = { types: {}, icon: {
+          var noteStyleSettings = { enabled: !!root.querySelector('[data-cy-alert-style-enabled]')?.checked, types: {}, icon: {
             visible: !!root.querySelector('[data-cy-alert-icon-visible]')?.checked,
             size: Number(root.querySelector('[data-cy-alert-icon-size]')?.value || 18),
             gap: Number(root.querySelector('[data-cy-alert-icon-gap]')?.value ?? 8)
@@ -109,6 +109,28 @@ export function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown,
             noteStyleSettings.types[parts[0]][parts[1]] = field.type === 'number' ? Number(field.value) : field.value;
           });
           var videoPlayer = root.querySelector('[data-cy-setting="videoPlayerEnabled"]');
+          var noteStyleEnabled = root.querySelector('[data-cy-alert-style-enabled]');
+          var noteStyleReset = root.querySelector('[data-cy-alert-reset]');
+          var noteStyleFields = root.querySelectorAll('[data-cy-alert-style-field], [data-cy-alert-icon-visible], [data-cy-alert-icon-size], [data-cy-alert-icon-gap]');
+          function syncNoteStyleControls() {
+            noteStyleFields.forEach(function (field) { field.disabled = !noteStyleEnabled.checked; });
+          }
+          noteStyleEnabled.addEventListener('change', syncNoteStyleControls);
+          syncNoteStyleControls();
+          noteStyleReset.addEventListener('click', function () {
+            root.querySelectorAll('[data-cy-alert-style-field]').forEach(function (field) {
+              field.value = field.dataset.cyDefaultValue || '';
+            });
+            var visible = root.querySelector('[data-cy-alert-icon-visible]');
+            var size = root.querySelector('[data-cy-alert-icon-size]');
+            var gap = root.querySelector('[data-cy-alert-icon-gap]');
+            visible.checked = visible.dataset.cyDefaultChecked === 'true';
+            size.value = size.dataset.cyDefaultValue || '18';
+            gap.value = gap.dataset.cyDefaultValue || '8';
+            noteStyleEnabled.checked = true;
+            syncNoteStyleControls();
+            status.textContent = '已恢复默认样式，请点击保存设置生效';
+          });
           var htmlScriptExecution = root.querySelector('[data-cy-setting="htmlScriptExecutionEnabled"]');
           save.disabled = true;
           status.textContent = '正在保存…';
