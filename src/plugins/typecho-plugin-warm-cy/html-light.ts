@@ -31,7 +31,7 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
     if (closeEnd < 0) break;
 
     const block = content.slice(match.index, closeEnd).replace(
-      /CYCYCODESEGMENT(\d+)TOKEN/g,
+      /CYPROTECTEDSEGMENT(\d+)TOKEN/g,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
 
@@ -47,22 +47,43 @@ function protectCompleteDivContainers(content: string, protectedSegments: string
 
   return output + content.slice(cursor);
 }
+function createEntityAwareMarkerPrefixPattern(): RegExp {
+  const character = (value: string): string => {
+    const code = value.charCodeAt(0);
+    return '(?:' + value + '|&#0*' + code + ';?|&#x0*' + code.toString(16) + ';?)';
+  };
+  const entityAware = (value: string): string => Array.from(value, character).join('');
+  const names = ['INLINECONTAINERX', 'INLINEHTMLX', 'INLINEBLOCKX', 'INLINEATTRX', 'CODESEGMENT'];
+  return new RegExp('(?:' + entityAware('CYCY') + ')('
+    + names.map(entityAware).join('|') + ')', 'gi');
+}
+
+function decodeNumericCharacterReferences(value: string): string {
+  return value.replace(/&#(?:x([0-9a-f]{1,8})|([0-9]{1,10}));?/gi, (_match, hex: string, decimal: string) => {
+    const code = Number.parseInt(hex || decimal, hex ? 16 : 10);
+    return Number.isFinite(code) && code > 0 && code <= 0x10ffff
+      && !(code >= 0xd800 && code <= 0xdfff)
+      ? String.fromCodePoint(code)
+      : '\ufffd';
+  });
+}
+
 export function protectInlineHtmlLight(source: string): string {
-  // User-authored text must never be interpreted as an internal restoration marker.
-  // Insert an invisible separator before the fast path so forged markers cannot
-  // reach the browser runtime, while preserving their visible appearance.
-  source = source.replace(/CYCY(INLINE(?:CONTAINER|HTML|BLOCK|ATTR)|CODESEGMENT)/g, 'CY\u200bCY$1');
-  // Every transformation below targets literal HTML tags; avoid Markdown scanning when none can exist.
-  if (!source.includes('<')) return source;
+  // Keep the ordinary-Markdown fast path, but inspect literal and entity-encoded
+  // reserved marker prefixes before allowing content to reach the browser runtime.
+  const markerPrefixPattern = createEntityAwareMarkerPrefixPattern();
+  const hasReservedMarker = markerPrefixPattern.test(source);
+  markerPrefixPattern.lastIndex = 0;
+  if (!source.includes('<') && !hasReservedMarker) return source;
 
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
-    const marker = 'CYCYCODESEGMENT' + protectedSegments.length + 'TOKEN';
+    const marker = 'CYPROTECTEDSEGMENT' + protectedSegments.length + 'TOKEN';
     protectedSegments.push(value);
     return marker;
   };
   const restoreProtectedSegments = (value: string): string => value.replace(
-    /CYCYCODESEGMENT(\d+)TOKEN/g,
+    /CYPROTECTEDSEGMENT(\d+)TOKEN/g,
     (_token, index: string) => protectedSegments[Number(index)] ?? _token,
   );
 
@@ -89,6 +110,11 @@ export function protectInlineHtmlLight(source: string): string {
 
     return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
   }).join('\n');
+  // Normalize literal and numeric-character-reference spellings outside protected code.
+  content = content.replace(markerPrefixPattern, (_marker, name: string) =>
+    'CY\\u200bCY' + decodeNumericCharacterReferences(name),
+  );
+
 
   // Preserve styled download-card anchors as a single fragment so nested SVG markup
   // is not fragmented by Markdown tokenization or the core HTML sanitizer.
@@ -129,7 +155,7 @@ export function protectInlineHtmlLight(source: string): string {
   });
 
   for (let index = protectedSegments.length - 1; index >= 0; index--) {
-    content = content.replace('CYCYCODESEGMENT' + index + 'TOKEN', protectedSegments[index]);
+    content = content.replace('CYPROTECTEDSEGMENT' + index + 'TOKEN', protectedSegments[index]);
   }
   return content;
 }
