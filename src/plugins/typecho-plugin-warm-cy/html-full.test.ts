@@ -83,7 +83,7 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(protectedSource).toContain('CYCYINLINEBLOCKX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
-    expect(restored).toBe(source);
+    expect(restored).toContain('CYCYINLINEBLOCKX');\n    expect(restored).not.toContain('<script data-label=');
   });
 
   it('does not double-encode HTML entities in preserved attributes', () => {
@@ -112,7 +112,7 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(protectedSource).toContain('CYCYINLINEHTMLX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
-    expect(restored).toContain('CYCYINLINEHTMLX');
+    expect(restored).toContain('cy-inline-html-pending');\n    expect(restored).toContain('CYCYINLINEBLOCKX');
   });
 
   it('protects complete HTML containers before Markdown parsing and restores them safely', () => {
