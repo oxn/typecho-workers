@@ -1183,10 +1183,12 @@ describe('typecho-plugin-warm-cy', () => {
     expect(runtime).toBeTruthy();
 
     const svgSource = '<svg viewBox="0 0 16 16" aria-labelledby="safe-symbol" onload="alert(1)">'
-      + '<defs><linearGradient id="safe-gradient"></linearGradient><symbol id="safe-symbol"></symbol></defs>'
+      + '<defs><linearGradient id="safe-gradient"></linearGradient><symbol id="safe-symbol"></symbol>'
+      + '<marker id="safe-marker"><circle cx="2" cy="2" r="1"></circle></marker>'
+      + '<pattern id="safe-pattern"><rect width="2" height="2"></rect></pattern></defs>'
       + '<use href="#safe-symbol"></use>'
       + '<use href="https://evil.example/external.svg#icon"></use>'
-      + '<path fill=\'url("#safe-gradient")\' d="M0 0h10v10H0z"></path>'
+      + '<path fill=\'url("#safe-gradient")\' marker-end="url(#safe-marker)" d="M0 0h10v10H0z"></path>'
       + '<path fill="url(https://evil.example/paint.svg#gradient)" d="M1 1h8v8H1z"></path>'
       + '<path fill="url(\\23 safe-gradient)" d="M2 2h6v6H2z"></path>'
       + '<path fill="url(/*comment*/#safe-gradient)" d="M3 3h4v4H3z"></path>'
@@ -1203,10 +1205,14 @@ describe('typecho-plugin-warm-cy', () => {
       makeNode('defs', {}, [
         makeNode('linearGradient', { id: 'safe-gradient' }),
         makeNode('symbol', { id: 'safe-symbol' }),
+        makeNode('marker', { id: 'safe-marker' }, [makeNode('circle', { cx: '2', cy: '2', r: '1' })]),
+        makeNode('pattern', { id: 'safe-pattern' }, [makeNode('rect', { width: '2', height: '2' })]),
+        makeNode('marker', { id: 'safe-marker' }, [makeNode('circle', { cx: '2', cy: '2', r: '1' })]),
+        makeNode('pattern', { id: 'safe-pattern' }, [makeNode('rect', { width: '2', height: '2' })]),
       ]),
       makeNode('use', { href: '#safe-symbol' }),
       makeNode('use', { href: 'https://evil.example/external.svg#icon' }),
-      makeNode('path', { fill: 'url("#safe-gradient")', d: 'M0 0h10v10H0z' }),
+      makeNode('path', { fill: 'url("#safe-gradient")', 'marker-end': 'url(#safe-marker)', d: 'M0 0h10v10H0z' }),
       makeNode('path', { fill: 'url(https://evil.example/paint.svg#gradient)', d: 'M1 1h8v8H1z' }),
       makeNode('path', { fill: 'url(\\23 safe-gradient)', d: 'M2 2h6v6H2z' }),
       makeNode('path', { fill: 'url(/*comment*/#safe-gradient)', d: 'M3 3h4v4H3z' }),
@@ -1304,6 +1310,8 @@ describe('typecho-plugin-warm-cy', () => {
       ...node.childNodes.flatMap((child: any) => child.attributes.filter((attribute: any) => attribute.name === 'id').map((attribute: any) => attribute.value)),
     ]);
     expect(firstIds).toContain('cy-inline-svg-1-safe-gradient');
+    expect(firstIds).toContain('cy-inline-svg-1-safe-marker');
+    expect(firstIds).toContain('cy-inline-svg-1-safe-pattern');
     expect(secondIds).toContain('cy-inline-svg-2-safe-gradient');
     expect(firstIds.some((id: string) => secondIds.includes(id))).toBe(false);
     expect(secondSvg.childNodes.find((node: any) => node.localName === 'use').attributes.find((attribute: any) => attribute.name === 'href')?.value)
@@ -1314,5 +1322,7 @@ describe('typecho-plugin-warm-cy', () => {
     const paths = svg.childNodes.filter((node: any) => node.localName === 'path');
     expect(paths.map((node: any) => node.attributes.find((attribute: any) => attribute.name === 'fill')?.value))
       .toEqual(['url(#cy-inline-svg-1-safe-gradient)', undefined, undefined, undefined]);
+    expect(paths[0].attributes.find((attribute: any) => attribute.name === 'marker-end')?.value)
+      .toBe('url(#cy-inline-svg-1-safe-marker)');
   });
 });
