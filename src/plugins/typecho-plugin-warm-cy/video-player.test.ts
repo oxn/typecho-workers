@@ -52,6 +52,13 @@ describe('Warm CY isolated video player module', () => {
     expect(replaceVideoIframesWithPlaceholders(untrusted)).toBe(untrusted);
   });
 
+  it('returns ordinary article content unchanged when no iframe or marker exists', () => {
+    const source = '<p>普通文章正文，不包含视频。</p>';
+    expect(protectVideoIframesForMarkdown(source)).toBe(source);
+    expect(restoreVideoIframesAfterMarkdown(source)).toBe(source);
+    expect(replaceVideoIframesWithPlaceholders(source)).toBe(source);
+  });
+
   it('keeps the browser runtime fully disabled when the feature is off', () => {
     expect(videoPlayerRuntime(false)).toBe('');
   });
