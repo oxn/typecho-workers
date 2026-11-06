@@ -42,86 +42,34 @@ const cyContentContext = {
 };
 
 function createTemplateElementMock() {
-  let source = '';
-  const readElement = () => {
-    let openingEnd = -1;
-    let quote = '';
-    for (let index = 1; index < source.length; index++) {
-      const character = source[index];
-      if (quote) {
-        if (character === quote) quote = '';
-      } else if (character === '"' || character === "'") {
-        quote = character;
-      } else if (character === '>') {
-        openingEnd = index;
-        break;
-      }
-    }
+  let html = '';
+  const parse = () => {
+    const openingEnd = html.indexOf('>');
     if (openingEnd < 0) return null;
-    const opening = source.slice(0, openingEnd + 1);
-    const tagMatch = opening.match(/^<([A-Za-z][A-Za-z0-9:-]*)/);
-    if (!tagMatch) return null;
-    const tagName = tagMatch[1].toLowerCase();
+    const opening = html.slice(0, openingEnd + 1);
+    const tagName = opening.match(/^<([A-Za-z][A-Za-z0-9:-]*)/)?.[1]?.toLowerCase();
+    if (!tagName) return null;
     const closeToken = '</' + tagName + '>';
-    const closeIndex = source.toLowerCase().lastIndexOf(closeToken);
+    const closeIndex = html.toLowerCase().lastIndexOf(closeToken);
     if (closeIndex < openingEnd + 1) return null;
-
-    const attributes: Array<{ name: string; value: string }> = [];
-    let cursor = tagMatch[0].length;
-    while (cursor < opening.length - 1) {
-      while (cursor < opening.length - 1 && opening[cursor].trim() === '') cursor++;
-      if (cursor >= opening.length - 1 || opening[cursor] === '/') break;
-      const nameStart = cursor;
-      while (cursor < opening.length - 1
-        && opening[cursor].trim() !== ''
-        && opening[cursor] !== '='
-        && opening[cursor] !== '/'
-        && opening[cursor] !== '>') cursor++;
-      if (cursor === nameStart) {
-        cursor++;
-        continue;
-      }
-      const name = opening.slice(nameStart, cursor).toLowerCase();
-      while (cursor < opening.length - 1 && opening[cursor].trim() === '') cursor++;
-      let value = '';
-      if (opening[cursor] === '=') {
-        cursor++;
-        while (cursor < opening.length - 1 && opening[cursor].trim() === '') cursor++;
-        const delimiter = opening[cursor] === '"' || opening[cursor] === "'" ? opening[cursor] : '';
-        if (delimiter) {
-          cursor++;
-          const valueStart = cursor;
-          while (cursor < opening.length - 1 && opening[cursor] !== delimiter) cursor++;
-          value = opening.slice(valueStart, cursor);
-          if (opening[cursor] === delimiter) cursor++;
-        } else {
-          const valueStart = cursor;
-          while (cursor < opening.length - 1 && opening[cursor].trim() !== '' && opening[cursor] !== '>') cursor++;
-          value = opening.slice(valueStart, cursor);
-        }
-      }
-      attributes.push({ name, value });
-    }
-
-    const values = new Map(attributes.map(attribute => [attribute.name, attribute.value]));
-    const body = source.slice(openingEnd + 1, closeIndex);
+    const body = html.slice(openingEnd + 1, closeIndex);
     return {
       localName: tagName,
       textContent: body.replace(/<[^>]*>/g, ''),
-      attributes,
-      nonce: values.get('nonce') || '',
-      hasAttribute(name: string) { return values.has(name.toLowerCase()); },
-      getAttribute(name: string) { return values.get(name.toLowerCase()) ?? null; },
+      attributes: [],
+      nonce: '',
+      hasAttribute() { return false; },
+      getAttribute() { return null; },
     };
   };
   const content = {
-    get firstElementChild() { return readElement(); },
-    get childNodes() { const element = readElement(); return element ? [element] : []; },
+    get firstElementChild() { return parse(); },
+    get childNodes() { const element = parse(); return element ? [element] : []; },
   };
   return {
     content,
-    get innerHTML() { return source; },
-    set innerHTML(value: string) { source = String(value); },
+    set innerHTML(value: string) { html = String(value); },
+    get innerHTML() { return html; },
   };
 }
 
@@ -1540,7 +1488,8 @@ describe('typecho-plugin-warm-cy', () => {
       createElementNS(_namespace: string, localName: string) { return createSvgElement(localName); },
       createElement(tagName: string) {
         if (tagName.toLowerCase() === 'template') return createTemplateElementMock();
-        const values = new Map<string, { value: string; priority: string }>();
+        return { tagName: tagName.toUpperCase(), textContent: '', setAttribute() {} };
+      },
     };
 
     runInNewContext(runtime, {
