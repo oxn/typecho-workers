@@ -74,7 +74,8 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(protectedSource).toContain('CYCYINLINEBLOCKX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
-    expect(restored).toContain('CYCYINLINEBLOCKX');\n    expect(restored).not.toContain('<script data-label=');
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+    expect(restored).not.toContain('<script data-label=');
   });
 
   it('returns Markdown without literal HTML tags unchanged before scanning', () => {
@@ -108,7 +109,8 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(protectedSource).toContain('CYCYINLINEHTMLX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
-    expect(restored).toContain('cy-inline-html-pending');\n    expect(restored).toContain('CYCYINLINEBLOCKX');
+    expect(restored).toContain('cy-inline-html-pending');
+    expect(restored).toContain('CYCYINLINEBLOCKX');
   });
 
   it('preserves inline attributes through Markdown parsing and fragment sanitization', () => {
