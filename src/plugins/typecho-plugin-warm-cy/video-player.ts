@@ -50,6 +50,7 @@ function readIframeAttribute(attributes: string, name: string): string {
 }
 
 export function protectVideoIframesForMarkdown(content: string): string {
+  if (!/<iframe\b/i.test(content)) return content;
   return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe\s*>)?/gi, (match, attributes: string) => {
     const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
     if (!source || !videoProviderForSource(source)) return match;
@@ -58,6 +59,7 @@ export function protectVideoIframesForMarkdown(content: string): string {
 }
 
 export function restoreVideoIframesAfterMarkdown(content: string): string {
+  if (!content.includes('CYVIDEOIFRAMEX')) return content;
   const restore = (_marker: string, payload: string) => {
     try { return decodeVideoPayload(payload); } catch { return ''; }
   };
@@ -69,6 +71,7 @@ export function restoreVideoIframesAfterMarkdown(content: string): string {
 }
 
 export function replaceVideoIframesWithPlaceholders(content: string): string {
+  if (!/<iframe\b/i.test(content)) return content;
   return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe\s*>)?/gi, (match, attributes: string) => {
     const source = readIframeAttribute(attributes, 'src').replace(/&amp;/g, '&');
     const provider = videoProviderForSource(source);
