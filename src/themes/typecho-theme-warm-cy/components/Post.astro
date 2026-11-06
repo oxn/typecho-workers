@@ -9,7 +9,7 @@ import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
-import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, renderWarmIframes, warmArticleSummary, warmSettings } from './warm';
+import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings } from './warm';
 
 type Props = ThemePostProps;
 
@@ -29,8 +29,7 @@ const optimizedContent = optimizeContentImages(
   settings.imageOptimizeParams,
   urls.siteUrl,
 );
-const safeVideoContent = isNote ? optimizedContent : renderWarmIframes(optimizedContent);
-const toc = isNote ? { html: safeVideoContent, items: [] } : prepareArticleToc(safeVideoContent);
+const toc = isNote ? { html: optimizedContent, items: [] } : prepareArticleToc(optimizedContent);
 const displayContent = toc.html;
 const tocItems = toc.items;
 const intelligenceSummary = !isNote && pluginCtx.activatedPlugins.has('typecho-plugin-intelligence')
