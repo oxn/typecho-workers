@@ -81,6 +81,15 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(restored).toBe(source);
   });
 
+  it('does not double-encode HTML entities in preserved attributes', () => {
+    const source = '<span data-label="A &amp; B">实体属性</span>';
+    const protectedSource = protectInlineHtml(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toContain('data-label="A &amp; B"');
+    expect(restored).not.toContain('&amp;amp;');
+  });
+
   it('preserves quoted greater-than characters in safe inline attributes', () => {
     const source = '<span data-label="left > right" title="a > b">属性边界</span>';
     const protectedSource = protectInlineHtml(source);
