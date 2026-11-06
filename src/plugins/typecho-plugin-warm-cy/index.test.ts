@@ -97,8 +97,23 @@ describe('typecho-plugin-warm-cy', () => {
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(SETTINGS_API_PATH);
     expect([...hooks.keys()].sort()).toEqual([
       'admin:footer', 'admin:header', 'admin:page',
-      'archive:footer', 'comment:list', 'content:content', 'content:markdown', 'route:request',
+      'archive:footer', 'comment:list', 'content:content', 'content:markdown', 'route:request', 'system:begin',
     ]);
+  });
+
+  it('uses upstream system:begin context without requiring a core filter signature extension', () => {
+    const hooks = collectHooks();
+    hooks.get('system:begin')!({
+      options: {
+        theme: 'typecho-theme-warm-cy',
+        [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementMode: 'full' }),
+      },
+    });
+
+    const source = '<div class="plugin-owned"><strong>独立插件处理</strong></div>';
+    const protectedSource = hooks.get('content:markdown')!(source);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    expect(protectedSource).not.toContain('<div class="plugin-owned">');
   });
 
   it('shows the timestamped CY plugin version and defaults mobile player enhancement to off', () => {
