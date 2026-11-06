@@ -44,7 +44,7 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(protectedSource).toContain('CY' + String.fromCharCode(0x200b) + 'CYINLINEBLOCKX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
-    expect(protectedSource).toContain('412026616d703b2042');
+    expect(protectedSource).toContain(forgedPayload);
     const runtime = inlineHtmlRuntime(true);
     expect(runtime).toContain('const decodeAttribute = value =>');
     expect(runtime).toContain("replace(/</g, '&lt;')");
