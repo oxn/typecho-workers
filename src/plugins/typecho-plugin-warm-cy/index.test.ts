@@ -1253,13 +1253,19 @@ describe('typecho-plugin-warm-cy', () => {
     const svgSource = '<svg viewBox="0 0 16 16" aria-labelledby="safe-symbol" onload="alert(1)">'
       + '<defs><linearGradient id="safe-gradient"></linearGradient><symbol id="safe-symbol"></symbol>'
       + '<marker id="safe-marker"><circle cx="2" cy="2" r="1"></circle></marker>'
-      + '<pattern id="safe-pattern"><rect width="2" height="2"></rect></pattern></defs>'
+      + '<pattern id="safe-pattern"><rect width="2" height="2"></rect></pattern>'
+      + '<linearGradient id="ambiguous-gradient"></linearGradient><linearGradient id="ambiguous-gradient"></linearGradient>'
+      + '<filter id="safe-filter"><feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"></feGaussianBlur>'
+      + '<feColorMatrix in="blur" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0"></feColorMatrix>'
+      + '<feOffset in="blur" dx="1" dy="2"></feOffset><feMerge><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs>'
       + '<use href="#safe-symbol"></use>'
       + '<use href="https://evil.example/external.svg#icon"></use>'
       + '<path fill=\'url("#safe-gradient")\' marker-end="url(#safe-marker)" d="M0 0h10v10H0z"></path>'
       + '<path fill="url(https://evil.example/paint.svg#gradient)" d="M1 1h8v8H1z"></path>'
       + '<path fill="url(\\23 safe-gradient)" d="M2 2h6v6H2z"></path>'
       + '<path fill="url(/*comment*/#safe-gradient)" d="M3 3h4v4H3z"></path>'
+      + '<path fill="url(#ambiguous-gradient)" d="M4 4h3v3H4z"></path>'
+      + '<path filter="url(#safe-filter)" d="M5 5h2v2H5z"></path>'
       + '</svg>';
     const marker = 'CYCYINLINEBLOCKX' + Buffer.from(svgSource, 'utf8').toString('hex') + 'XEND';
 
@@ -1275,8 +1281,14 @@ describe('typecho-plugin-warm-cy', () => {
         makeNode('symbol', { id: 'safe-symbol' }),
         makeNode('marker', { id: 'safe-marker' }, [makeNode('circle', { cx: '2', cy: '2', r: '1' })]),
         makeNode('pattern', { id: 'safe-pattern' }, [makeNode('rect', { width: '2', height: '2' })]),
-        makeNode('marker', { id: 'safe-marker' }, [makeNode('circle', { cx: '2', cy: '2', r: '1' })]),
-        makeNode('pattern', { id: 'safe-pattern' }, [makeNode('rect', { width: '2', height: '2' })]),
+        makeNode('linearGradient', { id: 'ambiguous-gradient' }),
+        makeNode('linearGradient', { id: 'ambiguous-gradient' }),
+        makeNode('filter', { id: 'safe-filter' }, [
+          makeNode('feGaussianBlur', { in: 'SourceAlpha', stdDeviation: '2', result: 'blur' }),
+          makeNode('feColorMatrix', { in: 'blur', type: 'matrix', values: '1 0 0 0 0' }),
+          makeNode('feOffset', { in: 'blur', dx: '1', dy: '2' }),
+          makeNode('feMerge', {}, [makeNode('feMergeNode', { in: 'SourceGraphic' })]),
+        ]),
       ]),
       makeNode('use', { href: '#safe-symbol' }),
       makeNode('use', { href: 'https://evil.example/external.svg#icon' }),
@@ -1284,6 +1296,8 @@ describe('typecho-plugin-warm-cy', () => {
       makeNode('path', { fill: 'url(https://evil.example/paint.svg#gradient)', d: 'M1 1h8v8H1z' }),
       makeNode('path', { fill: 'url(\\23 safe-gradient)', d: 'M2 2h6v6H2z' }),
       makeNode('path', { fill: 'url(/*comment*/#safe-gradient)', d: 'M3 3h4v4H3z' }),
+      makeNode('path', { fill: 'url(#ambiguous-gradient)', d: 'M4 4h3v3H4z' }),
+      makeNode('path', { filter: 'url(#safe-filter)', d: 'M5 5h2v2H5z' }),
     ]);
     let parsedSource = '';
     const parsedRoot2 = makeNode('svg', { viewBox: '0 0 16 16', 'aria-labelledby': 'safe-symbol' }, [
@@ -1392,5 +1406,14 @@ describe('typecho-plugin-warm-cy', () => {
       .toEqual(['url(#cy-inline-svg-1-safe-gradient)', undefined, undefined, undefined]);
     expect(paths[0].attributes.find((attribute: any) => attribute.name === 'marker-end')?.value)
       .toBe('url(#cy-inline-svg-1-safe-marker)');
+    expect(paths[4].attributes.find((attribute: any) => attribute.name === 'fill')).toBeUndefined();
+    expect(paths[5].attributes.find((attribute: any) => attribute.name === 'filter')?.value)
+      .toBe('url(#cy-inline-svg-1-safe-filter)');
+    const filter = svg.childNodes.flatMap((node: any) => node.childNodes || [])
+      .find((node: any) => node.localName === 'filter');
+    expect(filter.childNodes.map((node: any) => node.localName))
+      .toEqual(['feGaussianBlur', 'feColorMatrix', 'feOffset', 'feMerge']);
+    expect(filter.childNodes[0].attributes).toContainEqual({ name: 'stdDeviation', value: '2' });
+    expect(filter.childNodes[1].attributes).toContainEqual({ name: 'values', value: '1 0 0 0 0' });
   });
 });
