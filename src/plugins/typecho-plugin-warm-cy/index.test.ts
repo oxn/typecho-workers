@@ -992,8 +992,8 @@ describe('typecho-plugin-warm-cy', () => {
               if (split < 1) continue;
               const property = declaration.slice(0, split).trim().toLowerCase();
               let cssValue = declaration.slice(split + 1).trim();
-              const important = /\\s*!important\\s*$/i.test(cssValue);
-              if (important) cssValue = cssValue.replace(/\\s*!important\\s*$/i, '');
+              const important = /\s*!important\s*$/i.test(cssValue);
+              if (important) cssValue = cssValue.replace(/\s*!important\s*$/i, '');
               values.set(property, { value: cssValue, priority: important ? 'important' : '' });
             }
           },
