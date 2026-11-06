@@ -67,6 +67,11 @@ describe('Warm CY lightweight HTML enhancement', () => {
     }
   });
 
+  it('protects pre and code examples with quoted greater-than attributes', () => {
+    const source = '<pre data-note="left > right"><code><script>window.__cyText = true;</script></code></pre>';
+    expect(protectInlineHtmlLight(source)).toBe(source);
+  });
+
   it('does not interpret markup-looking text inside textarea as live HTML', () => {
     const source = '<textarea><script src="javascript:alert(1)"></script><a style="color:red">文本</a></textarea>';
     expect(protectInlineHtmlLight(source)).toBe(source);
