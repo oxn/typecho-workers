@@ -870,6 +870,9 @@ describe('typecho-plugin-warm-cy', () => {
       '<div class="custom-footer">',
       '<style>',
       '.custom-footer { display: flex; color: #123456; }',
+      'body { background-color: #ffffff; }',
+      ':root { --cy-test-color: #123456; }',
+      '* { box-sizing: border-box; }',
       '.badge-row { gap: 12px; }',
       '.gradient-fill { background-image: url(\"#safe-gradient\"); }',
       '.badge-dual { font-size: 11px; border-radius: 6px; background: #079C48; /* adjust `font-size` here */ }',
@@ -921,7 +924,7 @@ describe('typecho-plugin-warm-cy', () => {
     const textNode: any = {
       nodeType: 3,
       nodeValue: marker,
-      parentElement: { closest: () => null },
+      parentElement: { closest: () => scopeRoot },
       parentNode: {
         replaceChild(fragment: { childNodes: unknown[] }) {
           replaceCalls += 1;
@@ -929,6 +932,13 @@ describe('typecho-plugin-warm-cy', () => {
         },
       },
       previousElementSibling: null,
+    };
+    const scopeRoot: any = {
+      attributes: {} as Record<string, string>,
+      classes: new Set<string>(),
+      classList: { add(name: string) { scopeRoot.classes.add(name); } },
+      getAttribute(name: string) { return scopeRoot.attributes[name] || null; },
+      setAttribute(name: string, value: string) { scopeRoot.attributes[name] = value; },
     };
     const body = { appendChild() {} };
     const document = {
@@ -1000,10 +1010,14 @@ describe('typecho-plugin-warm-cy', () => {
 
     expect(appendedStyles).toHaveLength(1);
     expect(appendedStyles[0].tagName).toBe('STYLE');
-    expect(appendedStyles[0].textContent).toContain('.custom-footer{display:flex;color:#123456}');
-    expect(appendedStyles[0].textContent).toContain('.badge-row{gap:12px}');
-    expect(appendedStyles[0].textContent).toMatch(/background-image\s*:\s*url\(\s*["']?#safe-gradient["']?\s*\)/i);
-    expect(appendedStyles[0].textContent).toContain('.badge-dual{font-size:11px;border-radius:6px;background:#079C48}');
+    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1 .custom-footer{display:flex;color:#123456}');
+    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1{background-color:#ffffff}');
+    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1{--cy-test-color:#123456}');
+    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1,.cy-inline-html-scope-1 *{box-sizing:border-box}');
+    expect(scopeRoot.classes.has('cy-inline-html-scope-1')).toBe(true);
+    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1 .badge-row{gap:12px}');
+    expect(appendedStyles[0].textContent).toMatch(/\.cy-inline-html-scope-1 \.gradient-fill\{background-image\s*:\s*url\(\s*["']?#safe-gradient["']?\s*\)/i);
+    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1 .badge-dual{font-size:11px;border-radius:6px;background:#079C48}');
     expect(appendedStyles[0].textContent).not.toContain('expression');
     expect(appendedStyles[0].textContent).not.toContain('.escaped-url');
     expect(appendedStyles[0].textContent).not.toContain('.comment-url');
