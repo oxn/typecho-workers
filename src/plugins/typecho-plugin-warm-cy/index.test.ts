@@ -1214,8 +1214,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\{background-color:#ffffff\\}`));
     expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\.cy-test-root\\{color:#123456\\}`));
     expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\s*>\\s*\\.cy-test-child\\{display:block\\}`));
-    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .cy-test-nested-root{color:#abcdef}`);
-    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-deep-child{display:block}`);
+    expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\s+\\.cy-test-nested-root\\{color:#abcdef\\}`));
+    expect(appendedStyles[0].textContent).toMatch(new RegExp(`${scopeSelector}(?:\\\\n|\\s)*body\\s*>\\s*\\.cy-test-deep-child\\{display:block\\}`));
     expect(appendedStyles[0].textContent).toContain(`@keyframes ${scopeSelector.slice(1)}-cy-spin{from{opacity:0}to{opacity:1}}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .animated{animation:1s linear ${scopeSelector.slice(1)}-cy-spin;animation-name:${scopeSelector.slice(1)}-cy-spin}`);
     expect(appendedStyles[0].textContent).toContain(`animation-duration:1s;animation-delay:120ms;animation-iteration-count:2;animation-direction:alternate;animation-fill-mode:both;animation-play-state:running`);
