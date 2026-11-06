@@ -88,6 +88,15 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(restored).toContain('属性边界');
   });
 
+  it('protects styled anchors whose quoted attributes contain greater-than signs', () => {
+    const source = '<a style="color:red > blue" href="https://example.com/?a=1>b">链接<svg viewBox="0 0 1 1"><path d="M0 0"/></svg></a>';
+    const protectedSource = protectInlineHtmlLight(source);
+    expect(protectedSource).toContain('CYCYINLINEHTMLX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+    expect(restored).toContain('CYCYINLINEHTMLX');
+  });
+
   it('preserves inline attributes through Markdown parsing and fragment sanitization', () => {
     const source = '<span class="cy-card" style="color:red;display:block">轻量模式</span>';
     const protectedSource = protectInlineHtmlLight(source);
