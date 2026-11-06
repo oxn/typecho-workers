@@ -76,6 +76,11 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(protectInlineHtml(source)).toBe(source);
   });
 
+  it('does not interpret markup-looking text inside textarea as live HTML', () => {
+    const source = '<textarea><script src="javascript:alert(1)"></script><a style="color:red">文本</a></textarea>';
+    expect(protectInlineHtml(source)).toBe(source);
+  });
+
   it('preserves raw script and style blocks when quoted attributes contain greater-than signs', () => {
     const source = '<script data-label="left > right">window.__cyQuoted = "ok";</script>\\n'
       + '<style media="(min-width: 700px) and (max-width: 900px)">.quoted::after{content:">"}</style>';
