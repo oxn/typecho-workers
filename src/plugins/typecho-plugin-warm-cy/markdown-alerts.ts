@@ -107,6 +107,9 @@ const MARKDOWN_ALERT_ICONS: Record<string, string> = {
 };;
 
 export function restoreMarkdownAlertIcons(content: string): string {
+  // Most articles contain no GitHub-style alert block. Avoid running the
+  // full blockquote replacement expression when its required markers are absent.
+  if (!content.includes('<blockquote') || !content.includes('data-alert')) return content;
   return content.replace(
     /<blockquote\b([^>]*\bdata-alert=(["'])(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\2[^>]*)>([\s\S]*?)<\/blockquote>/gi,
     (_full, attributes: string, _quote: string, rawLabel: string, inner: string) => {
