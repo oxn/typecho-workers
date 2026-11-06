@@ -1124,6 +1124,8 @@ describe('typecho-plugin-warm-cy', () => {
     const attributeWrites: Array<[string, string]> = [];
     const iframeWrites: Array<[string, string]> = [];
     let replaceCalls = 0;
+    let receivedCssText = '';
+    let parsedRuleCount = 0;
     const attributeMarker = 'CYCYINLINEATTRXmetaX' + Buffer.from(JSON.stringify({ name: 'viewport' }), 'utf8').toString('hex') + 'XEND';
     const styleAttributeMarker = 'CYCYINLINEATTRXdivX' + Buffer.from(JSON.stringify({ style: 'color: red; background-image: url(https://evil.example/pixel); display: block' }), 'utf8').toString('hex') + 'XEND';
     const unsafeIframeMarker = 'CYCYINLINEATTRXiframeX' + Buffer.from(JSON.stringify({ src: 'https://evil.example/iframe' }), 'utf8').toString('hex') + 'XEND';
@@ -1195,6 +1197,7 @@ describe('typecho-plugin-warm-cy', () => {
     class MockCSSStyleSheet {
       cssRules: any[] = [];
       replaceSync(cssText: string) {
+        receivedCssText = cssText;
         const ordinaryCss = cssText
           .replace(/@keyframes\s+[\w-]+\s*\{[\s\S]*?\}\s*\}/g, '')
           .replace(/@layer\s+[\w-]+\s*\{[\s\S]*?\}\s*\}/g, '')
@@ -1235,6 +1238,7 @@ describe('typecho-plugin-warm-cy', () => {
             getPropertyPriority() { return ''; },
           };
         };
+        parsedRuleCount = this.cssRules.length;
         // The lightweight CSSOM mock does not implement shorthand expansion.
         // Supply the browser-equivalent declaration map so the runtime's
         // keyframe-name rewriting can be asserted independently of the mock.
@@ -1318,6 +1322,9 @@ describe('typecho-plugin-warm-cy', () => {
       URL,
     });
 
+    expect(scopeRoot.classes.size).toBeGreaterThan(0);
+    expect(receivedCssText).toContain('.custom-footer');
+    expect(parsedRuleCount).toBeGreaterThan(0);
     expect(appendedStyles).toHaveLength(1);
     expect(appendedStyles[0].tagName).toBe('STYLE');
     const scopeSelector = appendedStyles[0].textContent.match(/^(\.cy-inline-html-scope-[a-z0-9-]+)/)?.[1];
