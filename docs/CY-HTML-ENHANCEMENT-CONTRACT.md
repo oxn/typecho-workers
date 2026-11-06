@@ -49,3 +49,9 @@ At minimum, tests must cover:
 ## Update rule
 
 Any future refactor that touches Markdown filters, sanitizer options, content rendering hooks, archive footer injection, or plugin settings must run these tests and preserve this contract. Do not delete this document as cleanup without replacing it with an equivalent contract and regression suite.
+## CSS and script execution boundaries
+
+- Restored style blocks must be parsed by the browser CSSOM and every ordinary style selector must be scoped beneath .warm-prose:not(.warm-note-prose). Grouping rules such as media/supports/container/layer must retain their structure while their nested style rules are scoped.
+- Global descriptor rules and unsupported at-rules (including imports, font-face, page, namespace, and unknown rule types) must be rejected rather than injected unscoped. If CSSOM parsing or scoping is unavailable, discard the style block (fail closed).
+- Keyframe step selectors are not ordinary document selectors and must not be prefixed. Their definitions remain global CSS identifiers; article-authored animation names are trusted-author content and may collide with other page styles.
+- Inline and external scripts are trusted administrator-authored code, not sandboxed content. They execute in the page's normal JavaScript context and can access the full document. Never describe body-scoped extraction as DOM sandboxing. Keep type/protocol/origin validation and preserve deterministic order.
