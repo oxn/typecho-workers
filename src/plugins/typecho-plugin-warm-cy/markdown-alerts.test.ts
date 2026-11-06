@@ -48,8 +48,11 @@ describe('Warm CY Markdown Alert presentation module', () => {
     expect(html).toContain('data-cy-default-value="#dc2626"');
     expect(html).toContain('data-cy-default-value="8"');
     expect(html).toContain('data-cy-default-value="18"');
-    expect(html).toContain('data-cy-default-value="true"');
-    expect(html).toContain('data-cy-default-value="solid"');
+    expect(html).toContain('data-cy-default-checked="true"');
+    expect(html).toContain('data-cy-default-value="18"');
+    expect(html).toContain('data-cy-default-value="8"');
+    expect((html.match(/data-cy-alert-style-field=/g) || []).length).toBe(35);
+    expect((html.match(/data-cy-default-value="solid"/g) || []).length).toBe(5);
   });
 
   it('restores the correct SVG icon without duplicating an existing icon', () => {
