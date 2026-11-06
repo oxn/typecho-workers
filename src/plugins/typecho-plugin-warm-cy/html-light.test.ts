@@ -91,6 +91,18 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(runtime).toContain('javascript:|data:text');
   });
 
+  it('scopes lightweight SVG ids and rewrites only unambiguous local references', () => {
+    const runtime = inlineHtmlRuntimeLight(true);
+    expect(runtime).toContain('const collectSvgIds = (node, idMap, duplicateIds = new Set()) =>');
+    expect(runtime).toContain('idMap.delete(attr.value)');
+    expect(runtime).toContain('cy-inline-light-svg-');
+    expect(runtime).toContain('const rewriteSvgReferences = (value, idMap) =>');
+    expect(runtime).toContain("key === 'aria-labelledby' || key === 'aria-describedby'");
+    expect(runtime).toContain("key === 'href' || key === 'xlink:href'");
+    expect(runtime).toContain('safeSvgNode(parsed.documentElement, idMap)');
+    expect(() => new Function(runtime)).not.toThrow();
+  });
+
   it('revalidates restored inline styles and scopes restored style blocks at runtime', () => {
     const runtime = inlineHtmlRuntimeLight(true);
     expect(runtime).toContain('const safeInlineStyleText = value =>');
