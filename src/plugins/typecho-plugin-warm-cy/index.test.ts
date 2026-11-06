@@ -264,6 +264,7 @@ describe('typecho-plugin-warm-cy', () => {
       '</style>',
       '',
       '<div class="footer-links"><p>服务商</p></div>',
+      '<div class="inline-style-test" style="border-left: 2px solid #123456; border-collapse: collapse; color-scheme: light; fill: #123456; font: 600 14px/1.5 sans-serif; overflow-x: auto;">inline</div>',
       '',
       '<script>window.cyFooterTest = true;</script>',
       '<svg viewBox="0 0 16 16"><path d="M1 1h14v14H1z"></path></svg>',
@@ -293,6 +294,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('<div class="cy-inline-html-pending">');
     expect(restored).toContain('class="custom-footer"');
     expect(restored).toContain('class="footer-links"');
+    expect(restored).toContain('style="border-left:2px solid #123456;border-collapse:collapse;color-scheme:light;fill:#123456;font:600 14px/1.5 sans-serif;overflow-x:auto"');
     expect(restored).toContain('CYCYINLINEBLOCKX');
     expect(restored).toContain('CYCYINLINEBLOCKX3c7374796c653e0a2e637573746f6d2d666f6f746572207b20646973706c61793a20666c65783b207d0a3c2f7374796c653eXEND');
     expect(restored).toContain('CYCYINLINEBLOCKX3c7363726970743e77696e646f772e6379466f6f74657254657374203d20747275653b3c2f7363726970743eXEND');
