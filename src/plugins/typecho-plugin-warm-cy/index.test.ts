@@ -907,7 +907,7 @@ describe('typecho-plugin-warm-cy', () => {
       'html body .cy-test-nested-root { color: #abcdef; }',
       'html > body > .cy-test-deep-child { display: block; }',
       '@keyframes cy-spin { from { opacity: 0; } to { opacity: 1; } }',
-      '.animated { animation: 1s linear cy-spin; animation-name: cy-spin; }',
+      '.animated { animation: 1s linear cy-spin; animation-name: cy-spin; animation-duration: 1s; animation-delay: 120ms; animation-iteration-count: 2; animation-direction: alternate; animation-fill-mode: both; animation-play-state: running; }',
       '@layer sample { .layered { color: #123456; } }',
       '@media (max-width: 600px) { .mobile { display: block; } }',
       '@supports (display: grid) { .supported { display: grid; } }',
