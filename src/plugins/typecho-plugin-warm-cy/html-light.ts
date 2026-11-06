@@ -29,29 +29,43 @@ function protectCompleteRawHtmlBlocks(
   markerPrefix: string,
   transform: (tag: string, block: string) => string,
 ): string {
-  const openPattern = /<(style|script|svg)\b/gi;
   let output = '';
   let cursor = 0;
-  let match: RegExpExecArray | null;
-  while ((match = openPattern.exec(content))) {
-    if (match.index < cursor) continue;
-    const tag = match[1].toLowerCase();
-    const openEnd = findHtmlTagEnd(content, openPattern.lastIndex);
+  let search = 0;
+  while (search < content.length) {
+    const start = content.indexOf('<', search);
+    if (start < 0) break;
+    if (content.startsWith('<!--', start)) {
+      const commentEnd = content.indexOf('-->', start + 4);
+      search = commentEnd < 0 ? content.length : commentEnd + 3;
+      continue;
+    }
+    const tagMatch = content.slice(start).match(/^<([a-z][\w:-]*)\b/i);
+    if (!tagMatch) {
+      search = start + 1;
+      continue;
+    }
+    const tag = tagMatch[1].toLowerCase();
+    const openEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
     if (openEnd < 0) break;
+    if (tag !== 'style' && tag !== 'script' && tag !== 'svg') {
+      search = openEnd + 1;
+      continue;
+    }
     const closePattern = new RegExp('</' + tag + '\\s*>', 'ig');
     closePattern.lastIndex = openEnd + 1;
     const close = closePattern.exec(content);
     if (!close) break;
     const end = closePattern.lastIndex;
     const markerPattern = new RegExp(markerPrefix + '([0-9]+)TOKEN', 'g');
-    const block = content.slice(match.index, end).replace(
+    const block = content.slice(start, end).replace(
       markerPattern,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
-    output += content.slice(cursor, match.index)
+    output += content.slice(cursor, start)
       + 'CYCYINLINEBLOCKX' + encodeInlinePayload(transform(tag, block)) + 'XEND';
     cursor = end;
-    openPattern.lastIndex = end;
+    search = end;
   }
   return output + content.slice(cursor);
 }
