@@ -92,6 +92,15 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(restored).toContain('属性边界');
   });
 
+  it('protects styled anchors whose quoted attributes contain greater-than signs', () => {
+    const source = '<a style="color:red > blue" href="https://example.com/?a=1>b">链接<svg viewBox="0 0 1 1"><path d="M0 0"/></svg></a>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource).toContain('CYCYINLINEHTMLX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toContain('CYCYINLINEHTMLX');
+  });
+
   it('protects complete HTML containers before Markdown parsing and restores them safely', () => {
     const source = '<div class="custom-card" style="display:flex;gap:12px"><strong>独立 HTML</strong><a href="https://example.com">查看</a></div>';
     const protectedSource = protectInlineHtml(source);
