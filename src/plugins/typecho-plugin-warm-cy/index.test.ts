@@ -1014,16 +1014,18 @@ describe('typecho-plugin-warm-cy', () => {
 
     expect(appendedStyles).toHaveLength(1);
     expect(appendedStyles[0].tagName).toBe('STYLE');
-    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1 .custom-footer{display:flex;color:#123456}');
-    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1{background-color:#ffffff}');
-    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1.cy-test-root{color:#123456}');
-    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1 > .cy-test-child{display:block}');
-    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1{--cy-test-color:#123456}');
-    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1,.cy-inline-html-scope-1 *{box-sizing:border-box}');
-    expect(scopeRoot.classes.has('cy-inline-html-scope-1')).toBe(true);
-    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1 .badge-row{gap:12px}');
-    expect(appendedStyles[0].textContent).toMatch(/\.cy-inline-html-scope-1 \.gradient-fill\{background-image\s*:\s*url\(\s*["']?#safe-gradient["']?\s*\)/i);
-    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1 .badge-dual{font-size:11px;border-radius:6px;background:#079C48}');
+    const scopeSelector = appendedStyles[0].textContent.match(/^(\.cy-inline-html-scope-[a-z0-9-]+)/)?.[1];
+    expect(scopeSelector).toBeTruthy();
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .custom-footer{display:flex;color:#123456}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector}{background-color:#ffffff}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector}.cy-test-root{color:#123456}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-child{display:block}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector}{--cy-test-color:#123456}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector},${scopeSelector} *{box-sizing:border-box}`);
+    expect(scopeRoot.classes.has(scopeSelector.slice(1))).toBe(true);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .badge-row{gap:12px}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .gradient-fill{background-image:url(#safe-gradient)`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .badge-dual{font-size:11px;border-radius:6px;background:#079C48}`);
     expect(appendedStyles[0].textContent).not.toContain('expression');
     expect(appendedStyles[0].textContent).not.toContain('.escaped-url');
     expect(appendedStyles[0].textContent).not.toContain('.comment-url');
