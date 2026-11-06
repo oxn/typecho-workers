@@ -609,11 +609,13 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     return await isHtmlEnhancementEnabled() ? protectInlineHtml(content) : content;
   }, 1);
 
-  // Alert icons remain independent. HTML fragments are restored only when
-  // the Markdown stage inserted our opt-in protection markers.
-  addHook('content:content', pluginId, (content: string) => {
+  // Alert icons remain independent. Re-check the opt-in switch before restoring
+  // HTML markers: content:content is async-capable, and user-authored text must
+  // never activate fragment restoration while the feature is disabled.
+  addHook('content:content', pluginId, async (content: string) => {
     const withAlertIcons = restoreMarkdownAlertIcons(content);
-    return withAlertIcons.includes('CYCYINLINE')
+    if (!withAlertIcons.includes('CYCYINLINE')) return withAlertIcons;
+    return await isHtmlEnhancementEnabled()
       ? restoreInlineHtmlFragments(withAlertIcons)
       : withAlertIcons;
   }, 1);
