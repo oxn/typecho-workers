@@ -128,14 +128,14 @@ describe('typecho-plugin-warm-cy', () => {
     expect(await handler(source)).toBe(source);
   });
 
-  it('restores all five Markdown Alert SVG icons after the core sanitizer', () => {
+  it('restores all five Markdown Alert SVG icons after the core sanitizer', async () => {
     const restore = collectHooks().get('content:content')!;
     const labels = ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'];
     const html = labels.map(label =>
       '<blockquote class="markdown-alert" data-alert="' + label + '">'
       + '<p class="markdown-alert-title">' + label + '</p><p>正文</p></blockquote>',
     ).join('');
-    const restored = restore(html);
+    const restored = await restore(html);
     expect((restored.match(/class="markdown-alert-icon"/g) || []).length).toBe(5);
     expect((restored.match(/cy-markdown-alert-has-icon/g) || []).length).toBe(5);
     expect(restored).toContain('viewBox="0 0 16 16"');
@@ -203,7 +203,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized);
+    const restored = await restore(coreSanitized);
 
     expect(restored).toContain('<div class="cy-inline-html-pending">');
     expect(restored).toContain('class="custom-footer"');
@@ -229,7 +229,7 @@ describe('typecho-plugin-warm-cy', () => {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code']),
       allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, a: ['href', 'title', 'target', 'rel'] },
     });
-    const restored = restore(coreSanitized);
+    const restored = await restore(coreSanitized);
     expect(restored).toContain('class="ai-card"');
     expect(restored).toContain('display:flex');
     expect(restored).toContain('gap:12px');
@@ -258,7 +258,7 @@ describe('typecho-plugin-warm-cy', () => {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code']),
       allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes },
     });
-    const restored = restore(coreSanitized);
+    const restored = await restore(coreSanitized);
 
     expect(restored).toContain('data-state-for="bili-dynamic-rin"');
     expect(restored).toContain('data-state-for="bili-dynamic-plugin"');
@@ -293,7 +293,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized);
+    const restored = await restore(coreSanitized);
 
     expect(restored).toContain('cy-inline-html-pending');
     expect(restored).toContain('href="https://pan.baidu.com/s/1otJbDx4U2bg4yL9VYw3MoA?pwd=cycy"');
@@ -317,10 +317,13 @@ describe('typecho-plugin-warm-cy', () => {
     const protect = hooks.get('content:markdown')!;
     const restore = hooks.get('content:content')!;
     const source = '<div class="native-content"><iframe src="https://www.youtube.com/embed/example"></iframe></div>';
-    mocks.getOption.mockResolvedValueOnce(JSON.stringify({ htmlEnhancementEnabled: '0' }));
+    const disabledSettings = JSON.stringify({ htmlEnhancementEnabled: '0' });
+    mocks.getOption.mockResolvedValue(disabledSettings);
     expect(await protect(source)).toBe(source);
-    expect(restore('<p>ordinary sanitized content</p>'))
+    expect(await restore('<p>ordinary sanitized content</p>'))
       .toBe('<p>ordinary sanitized content</p>');
+    const forgedMarker = 'CYCYINLINEHTMLX3c64697620636c6173733d22666f72676564223e68696464656e3c2f6469763eXEND';
+    expect(await restore(forgedMarker)).toBe(forgedMarker);
   });
 
   it('retains iframe elements and safe playback attributes in enhanced HTML fragments', async () => {
@@ -333,7 +336,7 @@ describe('typecho-plugin-warm-cy', () => {
       allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen'] },
       allowedIframeHostnames: ['www.youtube.com'],
     });
-    const restored = restore(coreSanitized);
+    const restored = await restore(coreSanitized);
     expect(restored).toContain('<iframe');
     expect(restored).toContain('src="https://www.youtube.com/embed/example"');
     expect(restored).toContain('allow="autoplay; encrypted-media"');
@@ -559,7 +562,7 @@ describe('typecho-plugin-warm-cy', () => {
         p: ['class'],
       },
     });
-    const restored = restore(coreSanitized);
+    const restored = await restore(coreSanitized);
     const marker = restored.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)?.[0];
     expect(marker).toBeTruthy();
 
