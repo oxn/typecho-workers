@@ -152,9 +152,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
     const htmlMode = getHtmlEnhancementMode(settings);
     const htmlRuntime = htmlMode === 'light'
-      ? inlineHtmlRuntimeLight(true)
+      ? inlineHtmlRuntimeLight(true, isEnabled(settings.htmlScriptExecutionEnabled, false))
       : htmlMode === 'full'
-        ? inlineHtmlRuntime()
+        ? inlineHtmlRuntime(isEnabled(settings.htmlScriptExecutionEnabled, false))
         : '';
     const alertIconStyle = markdownAlertIconStyles(settings.markdownAlertStyleSettings);
     const videoPlayer = videoPlayerRuntime(
@@ -239,6 +239,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
         htmlEnhancementMode?: unknown;
+        htmlScriptExecutionEnabled?: unknown;
         markdownAlertStyleSettings?: unknown;
         videoPlayerEnabled?: unknown;
         mobileNativePlayerEnhancementEnabled?: unknown;
@@ -254,6 +255,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
         || (htmlMode !== 'off' && htmlMode !== 'light' && htmlMode !== 'full')
+        || (values.htmlScriptExecutionEnabled !== undefined && typeof values.htmlScriptExecutionEnabled !== 'boolean')
         || typeof videoPlayerValue !== 'boolean') {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
       }
@@ -263,6 +265,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementMode: htmlMode,
+        htmlScriptExecutionEnabled: values.htmlScriptExecutionEnabled === true ? '1' : '0',
         videoPlayerEnabled: videoPlayerValue ? '1' : '0',
       };
       if (values.markdownAlertStyleSettings !== undefined) {
