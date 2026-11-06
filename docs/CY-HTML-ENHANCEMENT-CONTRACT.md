@@ -7,6 +7,7 @@ It must be carried forward in every later CY plugin/theme update. Do not remove 
 ## Scope and isolation
 
 - The feature applies only to article and standalone-page body content, scoped to `.warm-prose` containers that are not marked `.warm-note-prose`.
+- Runtime and enhancement styles may be injected only when `typecho-theme-warm-cy` is the active theme; the companion plugin must not affect other themes.
 - Note content is rendered and owned by the independent notes plugin and is explicitly outside this feature's scope.
 - Browser hydration must query and walk only `.warm-prose:not(.warm-note-prose)`; it must never scan note bodies, the whole document body, comments, navigation, footer, or other site chrome.
 - It must not process comments.
