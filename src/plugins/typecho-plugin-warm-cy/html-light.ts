@@ -33,6 +33,55 @@ function findHtmlRawTextEnd(source: string, tag: string, openEnd: number): numbe
   return close ? closePattern.lastIndex : source.length;
 }
 
+function findHtmlElementEnd(source: string, tag: string, openEnd: number): number {
+  if (tag !== 'svg') {
+    const closePattern = new RegExp('</' + tag + '\\s*>', 'ig');
+    closePattern.lastIndex = openEnd + 1;
+    const close = closePattern.exec(source);
+    return close ? closePattern.lastIndex : -1;
+  }
+
+  let depth = 1;
+  let search = openEnd + 1;
+  while (search < source.length) {
+    const start = source.indexOf('<', search);
+    if (start < 0) return -1;
+    if (source.startsWith('<!--', start)) {
+      const commentEnd = source.indexOf('-->', start + 4);
+      search = commentEnd < 0 ? source.length : commentEnd + 3;
+      continue;
+    }
+    const token = source.slice(start).match(/^<(\/?)svg\b/i);
+    if (!token) {
+      const otherTag = source.slice(start).match(/^<([a-z][\w:-]*)\b/i);
+      if (!otherTag) {
+        search = start + 1;
+        continue;
+      }
+      const otherEnd = findHtmlTagEnd(source, start + otherTag[0].length);
+      if (otherEnd < 0) return -1;
+      const otherName = otherTag[1].toLowerCase();
+      if (HTML_RAW_TEXT_TAGS.has(otherName) || otherName === 'plaintext') {
+        search = findHtmlRawTextEnd(source, otherName, otherEnd);
+      } else {
+        search = otherEnd + 1;
+      }
+      continue;
+    }
+
+    const tagEnd = findHtmlTagEnd(source, start + token[0].length);
+    if (tagEnd < 0) return -1;
+    if (token[1] === '/') {
+      depth--;
+      if (depth === 0) return tagEnd + 1;
+    } else if (!/\/\s*>$/.test(source.slice(start, tagEnd + 1))) {
+      depth++;
+    }
+    search = tagEnd + 1;
+  }
+  return -1;
+}
+
 function protectCompleteCodeElements(
   source: string,
   protect: (value: string) => string,
@@ -110,11 +159,8 @@ function protectCompleteRawHtmlBlocks(
       search = openEnd + 1;
       continue;
     }
-    const closePattern = new RegExp('</' + tag + '\\s*>', 'ig');
-    closePattern.lastIndex = openEnd + 1;
-    const close = closePattern.exec(content);
-    if (!close) break;
-    const end = closePattern.lastIndex;
+    const end = findHtmlElementEnd(content, tag, openEnd);
+    if (end < 0) break;
     const markerPattern = new RegExp(markerPrefix + '([0-9]+)TOKEN', 'g');
     const block = content.slice(start, end).replace(
       markerPattern,
@@ -157,10 +203,8 @@ function protectStyledAnchors(
       continue;
     }
     if (tagName === 'script' || tagName === 'style' || tagName === 'svg') {
-      const rawClose = new RegExp('</' + tagName + '\\s*>', 'ig');
-      rawClose.lastIndex = tagEnd + 1;
-      const close = rawClose.exec(content);
-      search = close ? rawClose.lastIndex : content.length;
+      const rawEnd = findHtmlElementEnd(content, tagName, tagEnd);
+      search = rawEnd >= 0 ? rawEnd : content.length;
       continue;
     }
     if (tagName !== 'a') {
