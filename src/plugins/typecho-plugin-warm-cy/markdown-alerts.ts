@@ -19,6 +19,7 @@ const MARKDOWN_ALERT_STYLE_DEFAULTS: Record<string, Record<string, string | numb
 };
 
 type MarkdownAlertStyleSettings = {
+  enabled: boolean;
   types: Record<string, Record<string, string | number>>;
   icon: { visible: boolean; size: number; gap: number };
 };
@@ -54,6 +55,7 @@ function normalizeMarkdownAlertStyleSettings(value: unknown): MarkdownAlertStyle
     };
   }
   return {
+    enabled: typeof source.enabled === 'boolean' ? source.enabled : true,
     types,
     icon: {
       visible: typeof sourceIcon.visible === 'boolean' ? sourceIcon.visible : true,
@@ -87,14 +89,16 @@ function markdownAlertStyleEditorHtml(value: unknown): string {
       + type + '.borderStyle">' + borderOptions + '</select></label></div></fieldset>';
   }).join('');
   return '<section class="cy-feature-card cy-note-style-settings"><strong>五种 Note 与图标样式</strong>'
-    + '<p>每种提示框可独立调整背景、边框、标题、正文、图标颜色、圆角和边框样式。设置只影响 Warm CY 的五种 Markdown Alert，不改变识别规则和 HTML 结构。</p>'
+    + '<p>总开关关闭时恢复主题原生 Note 样式；开启后可分别调整五种提示框及 SVG 图标。恢复默认会回到当前主题默认配色、圆角和图标尺寸。</p>'
+    + '<label class="cy-feature-toggle"><input type="checkbox" data-cy-alert-style-enabled' + (settings.enabled ? ' checked' : '') + '>启用五种 Note 与图标个性化样式</label>'
     + '<div class="cy-note-style-grid">' + cards + '</div>'
-    + '<div class="cy-note-icon-options"><label><input type="checkbox" data-cy-alert-icon-visible'
+    + '<div class="cy-note-icon-options"><label><input type="checkbox" data-cy-alert-icon-visible data-cy-default-checked="true"'
     + (settings.icon.visible ? ' checked' : '') + '>显示 SVG 图标</label>'
-    + '<label>图标大小（px）<input type="number" min="12" max="32" step="1" data-cy-alert-icon-size value="'
+    + '<label>图标大小（px）<input type="number" min="12" max="32" step="1" data-cy-alert-icon-size data-cy-default-value="18" value="'
     + settings.icon.size + '"></label>'
-    + '<label>图标与标题间距（px）<input type="number" min="0" max="20" step="1" data-cy-alert-icon-gap value="'
-    + settings.icon.gap + '"></label></div></section>';
+    + '<label>图标与标题间距（px）<input type="number" min="0" max="20" step="1" data-cy-alert-icon-gap data-cy-default-value="8" value="'
+    + settings.icon.gap + '"></label>'
+    + '<button type="button" class="btn" data-cy-alert-reset>恢复默认样式</button></div></section>';
 }
 
 const MARKDOWN_ALERT_ICONS: Record<string, string> = {
@@ -106,7 +110,9 @@ const MARKDOWN_ALERT_ICONS: Record<string, string> = {
   CAUTION: '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>',
 };;
 
-export function restoreMarkdownAlertIcons(content: string): string {
+export function restoreMarkdownAlertIcons(content: string, value?: unknown): string {
+  const settings = normalizeMarkdownAlertStyleSettings(value);
+  if (!settings.enabled || !settings.icon.visible) return content;
   // Most articles contain no GitHub-style alert block. Avoid running the
   // full blockquote replacement expression when its required markers are absent.
   if (!content.includes('<blockquote') || !content.includes('data-alert')) return content;
@@ -134,6 +140,7 @@ export function restoreMarkdownAlertIcons(content: string): string {
 
 export function markdownAlertIconStyles(value?: unknown): string {
   const settings = normalizeMarkdownAlertStyleSettings(value);
+  if (!settings.enabled) return '';
   const rules = MARKDOWN_ALERT_TYPES.map(type => {
     const style = settings.types[type];
     const defaults = MARKDOWN_ALERT_STYLE_DEFAULTS[type];
