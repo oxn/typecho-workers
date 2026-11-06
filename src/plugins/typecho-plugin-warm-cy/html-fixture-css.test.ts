@@ -13,9 +13,9 @@ function fixtureCssProperties(): Set<string> {
   const properties = new Set<string>();
   for (const path of fixturePaths) {
     const source = readFileSync(new URL(path, import.meta.url), 'utf8');
-    const styleBlocks = source.matchAll(/<style\\b[^>]*>([\\s\\S]*?)<\\/style\\s*>/gi);
+    const styleBlocks = source.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi);
     for (const block of styleBlocks) {
-      for (const match of block[1].matchAll(/(?:^|[;{])\\s*([-\\w]+)\\s*:/g)) {
+      for (const match of block[1].matchAll(/(?:^|[;{])\s*([-\w]+)\s*:/g)) {
         const property = match[1].toLowerCase();
         if (!property.startsWith('--')) properties.add(property);
       }
@@ -25,7 +25,7 @@ function fixtureCssProperties(): Set<string> {
 }
 
 function runtimeCssProperties(runtime: string): Set<string> {
-  const match = runtime.match(/const allowedProperties = new Set\\(\\[([\\s\\S]*?)\\]\\);/);
+  const match = runtime.match(/const allowedProperties = new Set\(\[([\s\S]*?)\]\);/);
   if (!match) throw new Error('CSS allowlist not found in HTML runtime');
   return new Set(Array.from(match[1].matchAll(/'([^']+)'/g), item => item[1]));
 }
