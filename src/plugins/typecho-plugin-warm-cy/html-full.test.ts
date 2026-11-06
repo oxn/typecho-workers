@@ -14,9 +14,12 @@ describe('Warm CY full HTML enhancement module', () => {
     const runtime = inlineHtmlRuntime(true);
     expect(runtime).toContain('let orderedScriptQueue = Promise.resolve();');
     expect(runtime).toContain('orderedScriptQueue = orderedScriptQueue.then(appendInOrder, appendInOrder);');
-    expect(runtime).toContain("const hasSourceAttribute = /(?:^|\\s)src(?:\\s|=|$)/i.test(attrs);");
+    expect(runtime).toContain("new DOMParser().parseFromString('<script' + attrs + '></script>', 'text/html')");
+    expect(runtime).toContain("const hasSourceAttribute = parsedScript.hasAttribute('src');");
+    expect(runtime).toContain("const source = (parsedScript.getAttribute('src') || '').trim();");
     expect(runtime).toContain('if (hasSourceAttribute && !source) return null;');
-    expect(runtime).toContain("const source = (script.getAttribute('src') || '').trim();");
+    expect(runtime).toContain('for (const attribute of parsedScript.attributes)');
+    expect(runtime).not.toContain('const attributePattern = /([a-zA-Z_:]');
     expect(runtime).toContain("if (script.hasAttribute('async'))");
     expect(runtime).toContain("new RegExp('(?:^|\\s)' + name + '(?:\\s|=|$)', 'i')");
     expect(runtime).toContain("script.addEventListener('load', resolve, { once: true })");
