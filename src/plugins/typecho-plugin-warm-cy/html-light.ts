@@ -33,6 +33,49 @@ function findHtmlRawTextEnd(source: string, tag: string, openEnd: number): numbe
   return close ? closePattern.lastIndex : source.length;
 }
 
+function protectCompleteCodeElements(
+  source: string,
+  protect: (value: string) => string,
+): string {
+  let output = '';
+  let cursor = 0;
+  let search = 0;
+  while (search < source.length) {
+    const start = source.indexOf('<', search);
+    if (start < 0) break;
+    if (source.startsWith('<!--', start)) {
+      const commentEnd = source.indexOf('-->', start + 4);
+      search = commentEnd < 0 ? source.length : commentEnd + 3;
+      continue;
+    }
+    const tagMatch = source.slice(start).match(/^<([a-z][\w:-]*)\b/i);
+    if (!tagMatch) {
+      search = start + 1;
+      continue;
+    }
+    const tag = tagMatch[1].toLowerCase();
+    const openEnd = findHtmlTagEnd(source, start + tagMatch[0].length);
+    if (openEnd < 0) break;
+    if (tag === 'pre' || tag === 'code') {
+      const closePattern = new RegExp('</' + tag + '\\s*>', 'ig');
+      closePattern.lastIndex = openEnd + 1;
+      const close = closePattern.exec(source);
+      if (!close) break;
+      const end = closePattern.lastIndex;
+      output += source.slice(cursor, start) + protect(source.slice(start, end));
+      cursor = end;
+      search = end;
+      continue;
+    }
+    if (HTML_RAW_TEXT_TAGS.has(tag) || tag === 'plaintext') {
+      search = findHtmlRawTextEnd(source, tag, openEnd);
+      continue;
+    }
+    search = openEnd + 1;
+  }
+  return output + source.slice(cursor);
+}
+
 function protectCompleteRawHtmlBlocks(
   content: string,
   protectedSegments: string[],
@@ -379,7 +422,7 @@ export function protectInlineHtmlLight(source: string): string {
     (_token, index: string) => protectedSegments[Number(index)] ?? _token,
   );
 
-  let content = source.replace(/<(pre|code)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
+  let content = protectCompleteCodeElements(source, protect);
   let fenceChar = '';
   let fenceLength = 0;
   const lines = content.split('\n');
