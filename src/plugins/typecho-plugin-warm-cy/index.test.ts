@@ -941,9 +941,10 @@ describe('typecho-plugin-warm-cy', () => {
     const attributeWrites: Array<[string, string]> = [];
     let replaceCalls = 0;
     const attributeMarker = 'CYCYINLINEATTRXmetaX' + Buffer.from(JSON.stringify({ name: 'viewport' }), 'utf8').toString('hex') + 'XEND';
+    const styleAttributeMarker = 'CYCYINLINEATTRXdivX' + Buffer.from(JSON.stringify({ style: 'color: red; background-image: url(https://evil.example/pixel); display: block' }), 'utf8').toString('hex') + 'XEND';
     const textNode: any = {
       nodeType: 3,
-      nodeValue: marker + attributeMarker,
+      nodeValue: marker + attributeMarker + styleAttributeMarker,
       parentElement: { tagName: 'DIV', closest(selector: string) { return selector === 'article' ? scopeRoot : null; }, setAttribute(name: string, value: string) { attributeWrites.push([name, value]); } },
       parentNode: {
         replaceChild(fragment: { childNodes: unknown[] }) {
@@ -981,7 +982,28 @@ describe('typecho-plugin-warm-cy', () => {
         };
       },
       createTextNode(nodeValue: string) { return { nodeType: 3, nodeValue }; },
-      createElement(tagName: string) { return { tagName: tagName.toUpperCase(), textContent: '', media: '' }; },
+      createElement(tagName: string) {
+        const values = new Map<string, { value: string; priority: string }>();
+        const style: any = {
+          set cssText(value: string) {
+            values.clear();
+            for (const declaration of value.split(';').map(part => part.trim()).filter(Boolean)) {
+              const split = declaration.indexOf(':');
+              if (split < 1) continue;
+              const property = declaration.slice(0, split).trim().toLowerCase();
+              let cssValue = declaration.slice(split + 1).trim();
+              const important = /\\s*!important\\s*$/i.test(cssValue);
+              if (important) cssValue = cssValue.replace(/\\s*!important\\s*$/i, '');
+              values.set(property, { value: cssValue, priority: important ? 'important' : '' });
+            }
+          },
+          get length() { return values.size; },
+          item(index: number) { return Array.from(values.keys())[index]; },
+          getPropertyValue(property: string) { return values.get(property)?.value || ''; },
+          getPropertyPriority(property: string) { return values.get(property)?.priority || ''; },
+        };
+        return { tagName: tagName.toUpperCase(), textContent: '', media: '', style };
+      },
     };
     class MockCSSStyleSheet {
       cssRules: any[] = [];
@@ -1052,7 +1074,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(normalizedCssUrls).toEqual(['#safe-gradient']);
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
     expect(replaceCalls).toBeGreaterThan(0);
-    expect(attributeWrites).toEqual([]);
+    expect(attributeWrites).toEqual([['style', 'color:red;display:block']]);
+    expect(attributeWrites.some(([, value]) => value.includes('evil.example'))).toBe(false);
     expect(replacements.filter((node: any) => node && typeof node.nodeValue === 'string').map((node: any) => node.nodeValue).join('')).not.toMatch(/CYCYINLINE(?:BLOCK|ATTR)/);
   });
 
