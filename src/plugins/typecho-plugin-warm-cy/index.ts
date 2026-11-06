@@ -606,6 +606,10 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // plugin's private option through the host options loader; do not depend on
   // an extra RequestContext argument that the core does not pass.
   addHook('content:markdown', pluginId, async (content: string) => {
+    // Plain Markdown cannot contain an enhancement fragment. Avoid a private
+    // options-table D1 read for the common case; only inspect the feature
+    // switch when the source actually contains an HTML tag.
+    if (!/<\/?[a-z][\w:-]*(?:\s[^<>]*|\/?)>/i.test(content)) return content;
     return await isHtmlEnhancementEnabled() ? protectInlineHtml(content) : content;
   }, 1);
 
