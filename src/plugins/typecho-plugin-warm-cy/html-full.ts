@@ -96,7 +96,15 @@ function protectStyledAnchors(
     }
     const tagEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
     if (tagEnd < 0) break;
-    if (tagMatch[1].toLowerCase() !== 'a') {
+    const tagName = tagMatch[1].toLowerCase();
+    if (tagName === 'script' || tagName === 'style' || tagName === 'svg') {
+      const rawClose = new RegExp('</' + tagName + '\\s*>', 'ig');
+      rawClose.lastIndex = tagEnd + 1;
+      const close = rawClose.exec(content);
+      search = close ? rawClose.lastIndex : content.length;
+      continue;
+    }
+    if (tagName !== 'a') {
       search = tagEnd + 1;
       continue;
     }
