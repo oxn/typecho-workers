@@ -627,7 +627,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const options = extra?.options;
     if (!options) return html;
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
-    const htmlRuntime = isEnabled(settings.htmlEnhancementEnabled, false) ? inlineHtmlRuntime(true) : '';
+    const htmlRuntime = options.theme === THEME_ID && isEnabled(settings.htmlEnhancementEnabled, false)
+      ? inlineHtmlRuntime(true)
+      : '';
     const alertIconStyle = options.theme === THEME_ID ? markdownAlertIconStyles() : '';
     if (options.theme !== THEME_ID || !isEnabled(settings.showHomeSearchButton)) {
       return html + alertIconStyle + htmlRuntime;
