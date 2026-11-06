@@ -882,6 +882,11 @@ describe('typecho-plugin-warm-cy', () => {
       'body > .cy-test-child { display: block; }',
       'html body .cy-test-nested-root { color: #abcdef; }',
       'html > body > .cy-test-deep-child { display: block; }',
+      '@keyframes cy-spin { from { opacity: 0; } to { opacity: 1; } }',
+      '.animated { animation: 1s linear cy-spin; animation-name: cy-spin; }',
+      '@layer sample { .layered { color: #123456; } }',
+      '@font-face { font-family: "Open Sans"; src: local("Open Sans"); font-weight: 400; }',
+      '.font-test { font-family: "Open Sans", sans-serif; }',
       ':root { --cy-test-color: #123456; }',
       '* { box-sizing: border-box; }',
       '.badge-row { gap: 12px; }',
@@ -1011,9 +1016,13 @@ describe('typecho-plugin-warm-cy', () => {
     class MockCSSStyleSheet {
       cssRules: any[] = [];
       replaceSync(cssText: string) {
-        const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
+        const ordinaryCss = cssText
+          .replace(/@keyframes\\s+[\\w-]+\\s*\\{[\\s\\S]*?\\}\\s*\\}/g, '')
+          .replace(/@layer\\s+[\\w-]+\\s*\\{[\\s\\S]*?\\}\\s*\\}/g, '')
+          .replace(/@font-face\\s*\\{[^{}]*\\}/g, '');
+        const rulePattern = /([^{}]+)\\{([^{}]*)\\}/g;
         let match: RegExpExecArray | null;
-        while ((match = rulePattern.exec(cssText))) {
+        while ((match = rulePattern.exec(ordinaryCss))) {
           const selectorText = match[1].trim();
           const declarations = match[2].split(';').map(part => part.trim()).filter(Boolean);
           const values = new Map<string, { value: string; priority: string }>();
@@ -1034,6 +1043,42 @@ describe('typecho-plugin-warm-cy', () => {
             getPropertyPriority(property: string) { return values.get(property)?.priority || ''; },
           };
           this.cssRules.push({ type: 1, selectorText, style });
+        }
+        const makeStyle = (properties: Record<string, string>) => {
+          const names = Object.keys(properties);
+          return {
+            length: names.length,
+            item(index: number) { return names[index]; },
+            getPropertyValue(property: string) { return properties[property] || ''; },
+            getPropertyPriority() { return ''; },
+          };
+        };
+        if (cssText.includes('@keyframes cy-spin')) {
+          this.cssRules.push({
+            type: 7,
+            cssText: '@keyframes cy-spin { from { opacity: 0; } to { opacity: 1; } }',
+            cssRules: [
+              { type: 8, keyText: 'from', style: makeStyle({ opacity: '0' }) },
+              { type: 8, keyText: 'to', style: makeStyle({ opacity: '1' }) },
+            ],
+          });
+        }
+        if (cssText.includes('@layer sample')) {
+          this.cssRules.push({
+            type: 0,
+            cssText: '@layer sample { .layered { color: #123456; } }',
+            cssRules: [{ type: 1, selectorText: '.layered', style: makeStyle({ color: '#123456' }) }],
+          });
+        }
+        if (cssText.includes('@font-face')) {
+          this.cssRules.push({
+            type: 5,
+            style: makeStyle({
+              'font-family': '"Open Sans"',
+              src: 'local("Open Sans")',
+              'font-weight': '400',
+            }),
+          });
         }
       }
     }
@@ -1059,6 +1104,11 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-child{display:block}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .cy-test-nested-root{color:#abcdef}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-deep-child{display:block}`);
+    expect(appendedStyles[0].textContent).toContain(`@keyframes ${scopeSelector.slice(1)}-cy-spin{from{opacity:0}to{opacity:1}}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .animated{animation:1s linear ${scopeSelector.slice(1)}-cy-spin;animation-name:${scopeSelector.slice(1)}-cy-spin}`);
+    expect(appendedStyles[0].textContent).toContain(`@layer ${scopeSelector.slice(1)}.sample{${scopeSelector} .layered{color:#123456}}`);
+    expect(appendedStyles[0].textContent).toContain(`@font-face{font-family:"${scopeSelector.slice(1)}-font-0";src:local("Open Sans");font-weight:400}`);
+    expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .font-test{font-family:"${scopeSelector.slice(1)}-font-0", sans-serif}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector}{--cy-test-color:#123456}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector},${scopeSelector} *{box-sizing:border-box}`);
     expect(scopeRoot.classes.has(scopeSelector.slice(1))).toBe(true);
