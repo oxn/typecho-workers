@@ -19,9 +19,9 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(runtime).toContain("const source = (parsedScript.getAttribute('src') || '').trim();");
     expect(runtime).toContain('if (hasSourceAttribute && !source) return null;');
     expect(runtime).toContain('for (const attribute of parsedScript.attributes)');
+    expect(runtime).toContain('attribute.value');
     expect(runtime).not.toContain('const attributePattern = /([a-zA-Z_:]');
     expect(runtime).toContain("if (script.hasAttribute('async'))");
-    expect(runtime).toContain("new RegExp('(?:^|\\s)' + name + '(?:\\s|=|$)', 'i')");
     expect(runtime).toContain("script.addEventListener('load', resolve, { once: true })");
     expect(runtime).toContain("script.addEventListener('error', resolve, { once: true })");
   });
