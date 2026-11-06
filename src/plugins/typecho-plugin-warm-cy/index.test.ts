@@ -871,6 +871,8 @@ describe('typecho-plugin-warm-cy', () => {
       '<style>',
       '.custom-footer { display: flex; color: #123456; }',
       'body { background-color: #ffffff; }',
+      'body.cy-test-root { color: #123456; }',
+      'body > .cy-test-child { display: block; }',
       ':root { --cy-test-color: #123456; }',
       '* { box-sizing: border-box; }',
       '.badge-row { gap: 12px; }',
@@ -1014,6 +1016,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].tagName).toBe('STYLE');
     expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1 .custom-footer{display:flex;color:#123456}');
     expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1{background-color:#ffffff}');
+    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1.cy-test-root{color:#123456}');
+    expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1 > .cy-test-child{display:block}');
     expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1{--cy-test-color:#123456}');
     expect(appendedStyles[0].textContent).toContain('.cy-inline-html-scope-1,.cy-inline-html-scope-1 *{box-sizing:border-box}');
     expect(scopeRoot.classes.has('cy-inline-html-scope-1')).toBe(true);
