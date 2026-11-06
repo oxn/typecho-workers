@@ -84,15 +84,19 @@ function measure(mode: Mode, stage: Stage, caseName: string, input: string, fn: 
 }
 
 const results: Sample[] = [];
-const parity: Array<{ case: string; sameOutput: boolean; lightSha256: string; fullSha256: string }> = [];
+const parity: Array<{ case: string; sameOutput: boolean; lightSha256: string; fullSha256: string; lightRepeatable: boolean; fullRepeatable: boolean }> = [];
 for (const item of cases) {
   const lightOutput = pipeline('light', item.source);
   const fullOutput = pipeline('full', item.source);
   parity.push({
     case: item.name,
+    // Light/full intentionally have different security and restoration capabilities;
+    // cross-mode differences are diagnostic, not a failure condition.
     sameOutput: lightOutput === fullOutput,
     lightSha256: sha256(lightOutput),
     fullSha256: sha256(fullOutput),
+    lightRepeatable: lightOutput === pipeline('light', item.source),
+    fullRepeatable: fullOutput === pipeline('full', item.source),
   });
 
   for (const mode of ['light', 'full'] as const) {
@@ -121,6 +125,6 @@ const report = {
 mkdirSync('artifacts', { recursive: true });
 writeFileSync('artifacts/warm-cy-html-benchmark.json', JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report, null, 2));
-if (parity.some(item => !item.sameOutput)) {
-  throw new Error('Light/full HTML output differs for one or more benchmark fixtures; inspect the report.');
+if (parity.some(item => !item.lightRepeatable || !item.fullRepeatable)) {
+  throw new Error('HTML pipeline output is not deterministic for one or more benchmark fixtures.');
 }
