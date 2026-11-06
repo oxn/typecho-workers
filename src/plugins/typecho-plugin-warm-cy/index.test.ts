@@ -374,6 +374,14 @@ describe('typecho-plugin-warm-cy', () => {
     } });
     expect(disabled).not.toContain('data-cy-inline-html-enhancement');
     expect(disabled).toContain('data-cy-markdown-alert-icons');
+
+    const otherTheme = handler('', { options: {
+      theme: 'another-theme',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '1' }),
+    } });
+    expect(otherTheme).not.toContain('data-cy-inline-html-enhancement');
+    expect(otherTheme).not.toContain('data-cy-inline-html-enhancement-style');
+    expect(otherTheme).not.toContain('data-cy-markdown-alert-icons');
   });
 
   it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {
