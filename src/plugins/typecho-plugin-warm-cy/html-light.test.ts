@@ -37,7 +37,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
     const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
 
     expect(restored).toContain('危险链接');
-    expect(restored).not.toMatch(/onclick|javascript:|attacker\\.invalid/i);
+    expect(restored).not.toMatch(/onclick|javascript:|attacker\.invalid/i);
   });
 
   it('keeps HTML-looking examples inside fenced code as escaped text', () => {
@@ -49,6 +49,26 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(restored).toContain('&lt;div');
     expect(restored).toContain('示例');
     expect(restored).not.toContain('CYCYINLINE');
+  });
+
+  it('removes external SVG references while retaining local fragment references', () => {
+    const source = '<svg viewBox="0 0 10 10"><use href="#local-icon"></use><use href="https://attacker.invalid/external.svg#icon"></use><path fill="url(https://attacker.invalid/paint.svg#paint)" d="M0 0"></path></svg>';
+    const protectedSource = protectInlineHtmlLight(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+
+    expect(restored).toContain('href="#local-icon"');
+    expect(restored).not.toContain('attacker.invalid');
+  });
+
+  it('keeps script and style blocks inert as markers until runtime hydration', () => {
+    const source = '<div class="card"><style>.card{display:flex}</style><script>window.cyUnsafe = true</script>正文</div>';
+    const protectedSource = protectInlineHtmlLight(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+    expect(restored).not.toContain('<script>window.cyUnsafe = true</script>');
   });
 
   it('retains SVG external-reference guards in the browser runtime', () => {
