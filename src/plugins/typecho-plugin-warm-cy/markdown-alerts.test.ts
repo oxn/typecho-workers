@@ -42,6 +42,11 @@ describe('Warm CY Markdown Alert presentation module', () => {
     expect(restoreMarkdownAlertIcons(restored)).toBe(restored);
   });
 
+  it('returns ordinary content unchanged without alert markers', () => {
+    const source = '<p>这是一篇普通文章，没有 Markdown Alert。</p>';
+    expect(restoreMarkdownAlertIcons(source)).toBe(source);
+  });
+
   it('generates per-alert style rules and suppresses legacy pseudo-icons', () => {
     const css = markdownAlertIconStyles({
       types: { NOTE: { background: '#ffffff', border: '#000000' } },
