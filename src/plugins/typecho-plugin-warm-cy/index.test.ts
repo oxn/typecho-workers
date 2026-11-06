@@ -294,12 +294,12 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('<div class="cy-inline-html-pending">');
     expect(restored).toContain('class="custom-footer"');
     expect(restored).toContain('class="footer-links"');
-    expect(restored).toMatch(/style="[^"]*border-left:\\s*2px solid #123456[^"]*"/);
-    expect(restored).toMatch(/style="[^"]*border-collapse:\\s*collapse[^"]*"/);
-    expect(restored).toMatch(/style="[^"]*color-scheme:\\s*light[^"]*"/);
-    expect(restored).toMatch(/style="[^"]*fill:\\s*#123456[^"]*"/);
-    expect(restored).toMatch(/style="[^"]*font:\\s*600 14px\\/1.5 sans-serif[^"]*"/);
-    expect(restored).toMatch(/style="[^"]*overflow-x:\\s*auto[^"]*"/);
+    expect(restored).toMatch(/style="[^"]*border-left:\s*2px solid #123456[^"]*"/);
+    expect(restored).toMatch(/style="[^"]*border-collapse:\s*collapse[^"]*"/);
+    expect(restored).toMatch(/style="[^"]*color-scheme:\s*light[^"]*"/);
+    expect(restored).toMatch(/style="[^"]*fill:\s*#123456[^"]*"/);
+    expect(restored).toMatch(/style="[^"]*font:\s*600 14px\/1.5 sans-serif[^"]*"/);
+    expect(restored).toMatch(/style="[^"]*overflow-x:\s*auto[^"]*"/);
     expect(restored).toContain('CYCYINLINEBLOCKX');
     expect(restored).toContain('CYCYINLINEBLOCKX3c7374796c653e0a2e637573746f6d2d666f6f746572207b20646973706c61793a20666c65783b207d0a3c2f7374796c653eXEND');
     expect(restored).toContain('CYCYINLINEBLOCKX3c7363726970743e77696e646f772e6379466f6f74657254657374203d20747275653b3c2f7363726970743eXEND');
