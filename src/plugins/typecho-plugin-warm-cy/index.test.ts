@@ -786,21 +786,18 @@ describe('typecho-plugin-warm-cy', () => {
       Uint8Array,
     });
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(appendedScripts).toHaveLength(1);
     expect(appendedScripts[0].src).toBe('https://cdn.example.test/library.js');
     expect(appendedScripts[0].async).toBe(false);
 
     appendedScripts[0].dispatch('load');
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(appendedScripts).toHaveLength(2);
     expect(appendedScripts[1].src).toBe('https://cdn.example.test/optional.js');
 
     appendedScripts[1].dispatch('error');
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(appendedScripts).toHaveLength(3);
     expect(appendedScripts[2].textContent).toBe('window.libraryReady = true;');
   });
