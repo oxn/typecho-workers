@@ -260,7 +260,7 @@ describe('typecho-plugin-warm-cy', () => {
     const source = [
       '<div class="custom-footer">',
       '<style>',
-      '.custom-footer { display: flex; }',
+      '.custom-footer { display: flex; border-left: 2px solid #123456; border-collapse: collapse; color-scheme: light; fill: #123456; font: 600 14px/1.5 sans-serif; overflow-x: auto; }',
       '</style>',
       '',
       '<div class="footer-links"><p>服务商</p></div>',
