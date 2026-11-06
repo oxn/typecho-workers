@@ -3,7 +3,7 @@ import type { ThemePageProps } from '@/lib/theme-props';
 import { optimizeContentImages } from './warm-image';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
-import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
+import { formatWarmDate, plainExcerpt, renderWarmIframes, warmSettings } from './warm';
 
 type Props = ThemePageProps;
 const {
@@ -12,7 +12,7 @@ const {
 } = Astro.props;
 const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
 const settings = warmSettings(options);
-const displayContent = optimizeContentImages(page.content, settings.imageOptimizeParams, urls.siteUrl);
+const displayContent = renderWarmIframes(optimizeContentImages(page.content, settings.imageOptimizeParams, urls.siteUrl));
 ---
 <WarmShell
   title={page.title}
