@@ -131,7 +131,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const requestOptions = resolveCyPluginSettings(requestContext);
     if (requestOptions?.theme !== THEME_ID) return content;
     const settings = parsePluginSettings(requestOptions.pluginSettings);
-    const withAlertIcons = restoreMarkdownAlertIcons(content);
+    const withAlertIcons = restoreMarkdownAlertIcons(content, settings.markdownAlertStyleSettings);
     const htmlMode = getHtmlEnhancementMode(settings);
     const withHtml = htmlMode === 'light'
       ? restoreInlineHtmlFragmentsLight(withAlertIcons)
