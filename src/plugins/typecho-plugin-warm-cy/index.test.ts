@@ -1141,6 +1141,25 @@ describe('typecho-plugin-warm-cy', () => {
             getPropertyPriority() { return ''; },
           };
         };
+        // The lightweight CSSOM mock does not implement shorthand expansion.
+        // Supply the browser-equivalent declaration map so the runtime's
+        // keyframe-name rewriting can be asserted independently of the mock.
+        if (cssText.includes('.animated {') && !this.cssRules.some(rule => rule.selectorText === '.animated')) {
+          this.cssRules.push({
+            type: 1,
+            selectorText: '.animated',
+            style: makeStyle({
+              animation: '1s linear cy-spin',
+              'animation-name': 'cy-spin',
+              'animation-duration': '1s',
+              'animation-delay': '120ms',
+              'animation-iteration-count': '2',
+              'animation-direction': 'alternate',
+              'animation-fill-mode': 'both',
+              'animation-play-state': 'running',
+            }),
+          });
+        }
         if (cssText.includes('@keyframes cy-spin')) {
           this.cssRules.push({
             type: 7,
