@@ -1182,7 +1182,7 @@ describe('typecho-plugin-warm-cy', () => {
       : '';
     expect(runtime).toBeTruthy();
 
-    const svgSource = '<svg viewBox="0 0 16 16" onload="alert(1)">'
+    const svgSource = '<svg viewBox="0 0 16 16" aria-labelledby="safe-symbol" onload="alert(1)">'
       + '<defs><linearGradient id="safe-gradient"></linearGradient><symbol id="safe-symbol"></symbol></defs>'
       + '<use href="#safe-symbol"></use>'
       + '<use href="https://evil.example/external.svg#icon"></use>'
@@ -1199,7 +1199,7 @@ describe('typecho-plugin-warm-cy', () => {
       attributes: Object.entries(attributes).map(([name, value]) => ({ name, value })),
       childNodes,
     });
-    const parsedRoot = makeNode('svg', { viewBox: '0 0 16 16', onload: 'alert(1)' }, [
+    const parsedRoot = makeNode('svg', { viewBox: '0 0 16 16', 'aria-labelledby': 'safe-symbol', onload: 'alert(1)' }, [
       makeNode('defs', {}, [
         makeNode('linearGradient', { id: 'safe-gradient' }),
         makeNode('symbol', { id: 'safe-symbol' }),
@@ -1212,7 +1212,7 @@ describe('typecho-plugin-warm-cy', () => {
       makeNode('path', { fill: 'url(/*comment*/#safe-gradient)', d: 'M3 3h4v4H3z' }),
     ]);
     let parsedSource = '';
-    const parsedRoot2 = makeNode('svg', { viewBox: '0 0 16 16' }, [
+    const parsedRoot2 = makeNode('svg', { viewBox: '0 0 16 16', 'aria-labelledby': 'safe-symbol' }, [
       makeNode('defs', {}, [
         makeNode('linearGradient', { id: 'safe-gradient' }),
         makeNode('symbol', { id: 'safe-symbol' }),
@@ -1288,6 +1288,7 @@ describe('typecho-plugin-warm-cy', () => {
     const svg = inserted[0];
     expect(svg.localName).toBe('svg');
     expect(svg.attributes).toContainEqual({ name: 'viewBox', value: '0 0 16 16' });
+    expect(svg.attributes).toContainEqual({ name: 'aria-labelledby', value: 'cy-inline-svg-1-safe-symbol' });
     expect(svg.attributes.some((attribute: { name: string }) => attribute.name.toLowerCase() === 'onload')).toBe(false);
 
     const uses = svg.childNodes.filter((node: any) => node.localName === 'use');
@@ -1307,6 +1308,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(firstIds.some((id: string) => secondIds.includes(id))).toBe(false);
     expect(secondSvg.childNodes.find((node: any) => node.localName === 'use').attributes.find((attribute: any) => attribute.name === 'href')?.value)
       .toBe('#cy-inline-svg-2-safe-symbol');
+    expect(secondSvg.attributes.find((attribute: any) => attribute.name === 'aria-labelledby')?.value)
+      .toBe('cy-inline-svg-2-safe-symbol');
 
     const paths = svg.childNodes.filter((node: any) => node.localName === 'path');
     expect(paths.map((node: any) => node.attributes.find((attribute: any) => attribute.name === 'fill')?.value))
