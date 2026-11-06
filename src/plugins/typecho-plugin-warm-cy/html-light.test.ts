@@ -173,4 +173,11 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(runtime).toContain('const enabled = false');
     expect(runtime).toContain('.cy-inline-html-pending{display:none!important}');
   });
+  it('retains layout and visual properties used by the uploaded article fixtures', () => {
+    const runtime = inlineHtmlRuntimeLight(true);
+    for (const property of ['backdrop-filter', '-webkit-backdrop-filter', 'margin-bottom', 'inset', 'content']) {
+      expect(runtime).toContain("'" + property + "'");
+    }
+  });
+
 });
