@@ -30,6 +30,34 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(restored).toContain('轻量模式');
   });
 
+  it('removes executable event handlers and dangerous link/style values after restoration', () => {
+    const source = '<a href="javascript:alert(1)" onclick="alert(1)" style="color:red;background-image:url(https://attacker.invalid/x)">危险链接</a>';
+    const protectedSource = protectInlineHtmlLight(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+
+    expect(restored).toContain('危险链接');
+    expect(restored).not.toMatch(/onclick|javascript:|attacker\\.invalid/i);
+  });
+
+  it('keeps HTML-looking examples inside fenced code as escaped text', () => {
+    const source = '```html\n<div onclick="alert(1)">示例</div>\n```';
+    const protectedSource = protectInlineHtmlLight(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+
+    expect(restored).toContain('&lt;div');
+    expect(restored).toContain('示例');
+    expect(restored).not.toContain('CYCYINLINE');
+  });
+
+  it('retains SVG external-reference guards in the browser runtime', () => {
+    const runtime = inlineHtmlRuntimeLight(true);
+    expect(runtime).toContain('xlink:href');
+    expect(runtime).toContain('javascript:');
+    expect(runtime).toContain('url');
+  });
+
   it('uses a marker parser that accepts the same lowercase HTML tag alphabet as full mode', () => {
     const runtime = inlineHtmlRuntimeLight(true);
     expect(runtime).toContain('CYCYINLINEATTRX([a-z][a-z0-9_:-]*)X([0-9a-f]+)XEND');
