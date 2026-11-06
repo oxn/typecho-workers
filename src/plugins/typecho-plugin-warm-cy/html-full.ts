@@ -414,46 +414,96 @@ function restoreInlineTagAttributeMarkers(
   return output + source.slice(cursor);
 }
 
-function protectCompleteDivContainers(content: string, protectedSegments: string[], markerPrefix: string): string {
-  const tagPattern = /<\/?div\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
-  let output = '';
-  let cursor = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = tagPattern.exec(content))) {
-    if (/^<\//.test(match[0]) || /\/\s*>$/.test(match[0])) continue;
-
-    let depth = 1;
-    let closeEnd = -1;
-    let nested: RegExpExecArray | null;
-    while ((nested = tagPattern.exec(content))) {
-      if (/^<\//.test(nested[0])) depth -= 1;
-      else if (!/\/\s*>$/.test(nested[0])) depth += 1;
-      if (depth === 0) {
-        closeEnd = tagPattern.lastIndex;
-        break;
+function findCompleteDivEnd(content: string, openEnd: number): number {
+  let depth = 1;
+  let search = openEnd + 1;
+  while (search < content.length) {
+    const start = content.indexOf('<', search);
+    if (start < 0) return -1;
+    if (content.startsWith('<!--', start)) {
+      const commentEnd = content.indexOf('-->', start + 4);
+      search = commentEnd < 0 ? content.length : commentEnd + 3;
+      continue;
+    }
+    const tagMatch = content.slice(start).match(/^<(\/?)([a-z][\w:-]*)\b/i);
+    if (!tagMatch) {
+      search = start + 1;
+      continue;
+    }
+    const tag = tagMatch[2].toLowerCase();
+    const tagEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
+    if (tagEnd < 0) return -1;
+    if (tag === 'script' || tag === 'style' || tag === 'svg') {
+      search = findHtmlElementEnd(content, tag, tagEnd);
+      if (search < 0) return -1;
+      continue;
+    }
+    if (HTML_RAW_TEXT_TAGS.has(tag) || tag === 'plaintext') {
+      search = findHtmlRawTextEnd(content, tag, tagEnd);
+      continue;
+    }
+    if (tag === 'div') {
+      if (tagMatch[1] === '/') {
+        depth--;
+        if (depth === 0) return tagEnd + 1;
+      } else if (!/\/\s*>$/.test(content.slice(start, tagEnd + 1))) {
+        depth++;
       }
     }
-    if (closeEnd < 0) break;
+    search = tagEnd + 1;
+  }
+  return -1;
+}
 
+function protectCompleteDivContainers(content: string, protectedSegments: string[], markerPrefix: string): string {
+  let output = '';
+  let cursor = 0;
+  let search = 0;
+  while (search < content.length) {
+    const start = content.indexOf('<', search);
+    if (start < 0) break;
+    if (content.startsWith('<!--', start)) {
+      const commentEnd = content.indexOf('-->', start + 4);
+      search = commentEnd < 0 ? content.length : commentEnd + 3;
+      continue;
+    }
+    const tagMatch = content.slice(start).match(/^<(\/?)([a-z][\w:-]*)\b/i);
+    if (!tagMatch) {
+      search = start + 1;
+      continue;
+    }
+    const tag = tagMatch[2].toLowerCase();
+    const tagEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
+    if (tagEnd < 0) break;
+    if (tag === 'script' || tag === 'style' || tag === 'svg') {
+      search = findHtmlElementEnd(content, tag, tagEnd);
+      if (search < 0) break;
+      continue;
+    }
+    if (HTML_RAW_TEXT_TAGS.has(tag) || tag === 'plaintext') {
+      search = findHtmlRawTextEnd(content, tag, tagEnd);
+      continue;
+    }
+    if (tag !== 'div' || tagMatch[1] === '/' || /\/\s*>$/.test(content.slice(start, tagEnd + 1))) {
+      search = tagEnd + 1;
+      continue;
+    }
+    const end = findCompleteDivEnd(content, tagEnd);
+    if (end < 0) break;
     const markerPattern = new RegExp(markerPrefix + '([0-9]+)TOKEN', 'g');
-    const block = content.slice(match.index, closeEnd).replace(
+    const block = content.slice(start, end).replace(
       markerPattern,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
-
-    // Protect every complete div container, not only multiline footers.
-    // Even a single-line div is stripped by the core sanitizer, which breaks
-    // its class/style attributes and makes the remaining content look plain.
-
-    output += content.slice(cursor, match.index)
+    output += content.slice(cursor, start)
       + 'CYCYINLINECONTAINERX' + encodeInlinePayload(block) + 'XEND';
-    cursor = closeEnd;
-    tagPattern.lastIndex = closeEnd;
+    cursor = end;
+    search = end;
   }
-
   return output + content.slice(cursor);
 }
+
+
 function isSafeInlineAttribute(tagName: string, attributeName: string): boolean {
   const tag = tagName.toLowerCase();
   const name = attributeName.toLowerCase();
