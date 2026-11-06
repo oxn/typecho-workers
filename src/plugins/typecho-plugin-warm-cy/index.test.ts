@@ -373,6 +373,9 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).toContain("key !== 'style'");
     expect(enabled).toContain("script.src = url.href");
     expect(enabled).toContain("script.integrity");
+    expect(enabled).toContain('scriptExecutionQueue = scriptExecutionQueue.then(appendScript, appendScript)');
+    expect(enabled).toContain("script.addEventListener('load', finish");
+    expect(enabled).toContain("script.addEventListener('error', finish");
     expect(enabled).toContain("@import\\b");
     expect(enabled).toContain("url\\(");
 
@@ -721,6 +724,78 @@ describe('typecho-plugin-warm-cy', () => {
       Uint8Array,
     });
     expect(unavailableStyles).toEqual([{ media: 'not all', removed: true }]);
+  });
+
+  it('executes external and inline scripts sequentially in source order', async () => {
+    const footer = collectHooks().get('archive:footer')!('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '0' }),
+    } });
+    const runtimeStartTag = '<script data-cy-inline-html-enhancement>';
+    const runtimeStart = footer.indexOf(runtimeStartTag);
+    const runtimeEnd = footer.indexOf('</script>', runtimeStart + runtimeStartTag.length);
+    const runtime = footer.slice(runtimeStart + runtimeStartTag.length, runtimeEnd);
+    const external = '<script src="https://cdn.example.test/library.js"></script>';
+    const inline = '<script>window.libraryReady = true;</script>';
+    const marker = (source: string) => 'CYCYINLINEBLOCKX' + Buffer.from(source).toString('hex') + 'XEND';
+    const textNode: any = {
+      nodeType: 3,
+      nodeValue: marker(external) + marker(inline),
+      parentElement: { closest: () => null },
+      parentNode: { replaceChild() {} },
+      previousElementSibling: null,
+    };
+    const appendedScripts: any[] = [];
+    const document = {
+      body: { appendChild(script: any) { appendedScripts.push(script); return script; } },
+      head: { appendChild() {} },
+      querySelectorAll() { return [{}]; },
+      createTreeWalker(_root: unknown, _what: number, filter: { acceptNode(node: unknown): number }) {
+        let visited = false;
+        return {
+          currentNode: textNode,
+          nextNode() {
+            if (visited || filter.acceptNode(textNode) !== 1) return false;
+            visited = true;
+            return true;
+          },
+        };
+      },
+      createDocumentFragment() {
+        return { childNodes: [] as unknown[], appendChild(node: unknown) { this.childNodes.push(node); return node; } };
+      },
+      createTextNode(nodeValue: string) { return { nodeType: 3, nodeValue }; },
+      createElement(tagName: string) {
+        const listeners: Record<string, Function> = {};
+        return {
+          tagName: tagName.toUpperCase(), type: '', src: '', async: true, textContent: '',
+          addEventListener(name: string, callback: Function) { listeners[name] = callback; },
+          dispatch(name: string) { listeners[name]?.(); },
+        };
+      },
+    };
+    runInNewContext(runtime, {
+      document,
+      window: { addEventListener() {} },
+      location: { origin: 'https://example.com' },
+      URL,
+      Node: { TEXT_NODE: 3, ELEMENT_NODE: 1 },
+      NodeFilter: { SHOW_TEXT: 4, FILTER_REJECT: 2, FILTER_ACCEPT: 1 },
+      TextDecoder,
+      Uint8Array,
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(appendedScripts).toHaveLength(1);
+    expect(appendedScripts[0].src).toBe('https://cdn.example.test/library.js');
+    expect(appendedScripts[0].async).toBe(false);
+
+    appendedScripts[0].dispatch('load');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(appendedScripts).toHaveLength(2);
+    expect(appendedScripts[1].textContent).toBe('window.libraryReady = true;');
   });
 
 });
