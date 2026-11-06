@@ -128,6 +128,23 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(runtime).toContain('data:');
   });
 
+  it('preserves data and aria attributes plus common grid and box-sizing inline styles', () => {
+    const source = '<div data-cy-layout="grid" aria-label="布局测试" style="display:grid;grid-auto-flow:column;box-sizing:border-box"><span>内容</span></div>';
+    const protectedSource = protectInlineHtmlLight(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
+    expect(restored).toContain('data-cy-layout="grid"');
+    expect(restored).toContain('aria-label="布局测试"');
+    expect(restored).toContain('grid-auto-flow:column');
+    expect(restored).toContain('box-sizing:border-box');
+  });
+
+  it('gives root-level embedded CSS a real box while keeping ordinary wrappers layout-transparent', () => {
+    const runtime = inlineHtmlRuntimeLight(true);
+    expect(runtime).toContain("scopeRoot.classList.add('cy-inline-html-root-scope')");
+    expect(runtime).toContain('.cy-inline-html-pending.cy-inline-html-root-scope{display:block!important}');
+  });
+
   it('keeps script and style blocks inert as markers until runtime hydration', () => {
     const source = '<div class="card"><style>.card{display:flex}</style><script>window.cyUnsafe = true</script>正文</div>';
     const protectedSource = protectInlineHtmlLight(source);
