@@ -1,0 +1,275 @@
+import { describe, expect, it } from 'vitest';
+import { marked } from 'marked';
+import sanitizeHtml from 'sanitize-html';
+import { inlineHtmlRuntime, protectInlineHtml, restoreInlineHtmlFragments } from './html-full';
+
+describe('Warm CY full HTML enhancement module', () => {
+  it('keeps article scripts inert unless the separate execution option is enabled', () => {
+    expect(inlineHtmlRuntime()).toContain('const allowScripts = false;');
+    expect(inlineHtmlRuntime()).toContain("if (tag === 'script' && !allowScripts) return null;");
+    expect(inlineHtmlRuntime(true)).toContain('const allowScripts = true;');
+  });
+
+  it('preserves ordered full-mode script execution while honoring explicit async', () => {
+    const runtime = inlineHtmlRuntime(true);
+    expect(runtime).toContain('let orderedScriptQueue = Promise.resolve();');
+    expect(runtime).toContain('orderedScriptQueue = orderedScriptQueue.then(appendInOrder, appendInOrder);');
+    expect(runtime).toContain("const blockTemplate = document.createElement('template')");
+    expect(runtime).toContain('blockTemplate.innerHTML = raw;');
+    expect(runtime).toContain('blockTemplate.content.childNodes.length !== 1');
+    expect(runtime).toContain('parsedScript = blockElement;');
+    expect(runtime).toContain("const hasSourceAttribute = parsedScript.hasAttribute('src');");
+    expect(runtime).toContain("const source = (parsedScript.getAttribute('src') || '').trim();");
+    expect(runtime).toContain('if (hasSourceAttribute && !source) return null;');
+    expect(runtime).toContain('for (const attribute of parsedScript.attributes)');
+    expect(runtime).toContain('attribute.value');
+    expect(runtime).not.toContain('const attributePattern = /([a-zA-Z_:]');
+    expect(runtime).toContain("if (script.hasAttribute('async'))");
+    expect(runtime).toContain("script.addEventListener('load', resolve, { once: true })");
+    expect(runtime).toContain("script.addEventListener('error', resolve, { once: true })");
+  });
+
+  it('returns ordinary Markdown output unchanged when no enhancement markers exist', () => {
+    const content = '<p>普通文章内容，没有 HTML 增强标记。</p>';
+    expect(restoreInlineHtmlFragments(content)).toBe(content);
+  });
+
+  it('neutralizes user-authored restoration markers before they can reach the runtime', () => {
+    const forgedPayload = Array.from(new TextEncoder().encode('<script>window.__cyForged = true</script>'), byte =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
+    const source = 'CYCYINLINEBLOCKX' + forgedPayload + 'XEND';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource).not.toContain('CYCYINLINEBLOCKX');
+    expect(protectedSource).toContain('CY' + String.fromCharCode(0x200b) + 'CYINLINEBLOCKX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(protectedSource).toContain(forgedPayload);
+    const runtime = inlineHtmlRuntime(true);
+    expect(runtime).toContain('const decodeAttribute = value =>');
+    expect(runtime).toContain("replace(/</g, '&lt;')");
+    expect(runtime).toContain('target.setAttribute(name, decodedValue)');
+    expect(restored).not.toContain('<script>window.__cyForged');
+    expect(restored).not.toContain('CYCYINLINEBLOCKX');
+  });
+
+  it('neutralizes numeric-entity encoded restoration marker prefixes', () => {
+    const payload = Array.from(new TextEncoder().encode('<script>window.__cyEntityForged = true</script>'), byte =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
+    const variants = [
+      '&#67;YCYINLINEBLOCKX' + payload + 'XEND',
+      '&#x43;YCYINLINEBLOCKX' + payload + 'XEND',
+    ];
+    for (const source of variants) {
+      const protectedSource = protectInlineHtml(source);
+      expect(protectedSource).toContain('CY' + String.fromCharCode(0x200b) + 'CYINLINEBLOCKX');
+      const parsed = marked.parse(protectedSource, { async: false }) as string;
+      const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+      expect(restored).not.toContain('<script>window.__cyEntityForged');
+      expect(restored).not.toContain('CYCYINLINEBLOCKX');
+    }
+  });
+
+  it('returns Markdown without literal HTML tags unchanged before scanning', () => {
+    const source = '# 标题\n\n普通 Markdown、列表和代码块均无 HTML 标签。\n\n```ts\nconst value = 1;\n```';
+    expect(protectInlineHtml(source)).toBe(source);
+  });
+
+  it('protects pre and code examples with quoted greater-than attributes', () => {
+    const source = '<pre data-note="left > right"><code><script>window.__cyText = true;</script></code></pre>';
+    expect(protectInlineHtml(source)).toBe(source);
+  });
+
+  it('does not terminate pre/code scanning on closing-tag text inside comments, scripts, or SVG', () => {
+    const sources = [
+      '<pre><!-- </pre> --><a style="color:red">注释中的结束标签</a></pre>',
+      '<code><!-- </code> --><a style="color:red">注释中的结束标签</a></code>',
+      '<pre><script>const sample = "</pre>";</script><a style="color:red">脚本字符串中的结束标签</a></pre>',
+      '<pre><svg viewBox="0 0 1 1" data-label="</pre>"><text>SVG</text></svg><a style="color:red">SVG属性中的结束标签</a></pre>',
+    ];
+    for (const source of sources) {
+      expect(protectInlineHtml(source)).toBe(source);
+    }
+  });
+
+  it('does not interpret markup-looking text inside textarea as live HTML', () => {
+    const source = '<textarea><script src="javascript:alert(1)"></script><a style="color:red">文本</a><div class="fake">不应提取</div></textarea>';
+    expect(protectInlineHtml(source)).toBe(source);
+  });
+
+  it('preserves raw script and style blocks when quoted attributes contain greater-than signs', () => {
+    const source = '<script data-label="left > right">window.__cyQuoted = "ok";</script>\\n'
+      + '<style media="(min-width: 700px) and (max-width: 900px)">.quoted::after{content:">"}</style>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource).toContain('CYCYINLINEBLOCKX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+    expect(restored).not.toContain('<script data-label=');
+  });
+
+  it('does not double-encode HTML entities in preserved attributes', () => {
+    const source = '<span data-label="A &amp; B">实体属性</span>';
+    const protectedSource = protectInlineHtml(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toContain('CYCYINLINEATTRXspanX');
+    expect(restored).not.toContain('&amp;amp;');
+  });
+
+  it('ignores SVG-looking text inside comments and CDATA while matching nested SVG', () => {
+    const source = '<svg viewBox="0 0 10 10"><!-- <svg></svg> --><![CDATA[<svg></svg>]]><g><svg viewBox="0 0 1 1"><circle r="1"/></svg></g></svg>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource.match(/CYCYINLINEBLOCKX/g)).toHaveLength(1);
+  });
+
+  it('does not treat markup-looking strings inside script bodies as HTML blocks', () => {
+    const source = '<script>const sample = \'<pre><span style="color:red">text</span></pre>\';</script>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource.match(/CYCYINLINEBLOCKX/g)).toHaveLength(1);
+  });
+
+  it('keeps nested SVG markup inside one protected block', () => {
+    const source = '<svg viewBox="0 0 10 10"><g><svg viewBox="0 0 1 1"><circle r="1"/></svg></g><path d="M0 0"/></svg>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource.match(/CYCYINLINEBLOCKX/g)).toHaveLength(1);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+  });
+
+  it('preserves quoted greater-than characters in safe inline attributes', () => {
+    const source = '<span data-label="left > right" title="a > b">属性边界</span>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource).toContain('CYCYINLINEATTRXspanX');
+    expect(protectedSource).toContain('6c656674203e207269676874');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toContain('CYCYINLINEATTRXspanX');
+    expect(restored).toContain('属性边界');
+  });
+
+  it('does not terminate styled anchors on closing-tag text inside comments, scripts, or nested SVG', () => {
+    const source = '<a style="color:red" href="https://example.com"><!-- </a> -->'
+      + '<script>const sample = "</a>";</script>'
+      + '<svg viewBox="0 0 1 1"><a href="#inside"><text>SVG链接</text></a></svg>'
+      + '<span>完整锚点内容</span></a>';
+    const protectedSource = protectInlineHtml(source);
+    const hex = Array.from(new TextEncoder().encode(source), byte =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
+    expect(protectedSource).toContain('CYCYINLINEHTMLX' + hex + 'XEND');
+  });
+
+  it('protects styled anchors whose quoted attributes contain greater-than signs', () => {
+    const source = '<a style="color:red > blue" href="https://example.com/?a=1>b">链接<svg viewBox="0 0 1 1"><path d="M0 0"/></svg></a>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource).toContain('CYCYINLINEHTMLX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toContain('cy-inline-html-pending');
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+  });
+
+  it('protects complete HTML containers before Markdown parsing and restores them safely', () => {
+    const source = '<div class="custom-card" style="display:flex;gap:12px"><strong>独立 HTML</strong><a href="https://example.com">查看</a></div>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    expect(protectedSource).not.toContain('<div class="custom-card">');
+
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const sanitized = sanitizeHtml(parsed);
+    const restored = restoreInlineHtmlFragments(sanitized);
+    expect(restored).toContain('class="custom-card"');
+    expect(restored).toContain('display:flex');
+    expect(restored).toContain('gap:12px');
+    expect(restored).toContain('href="https://example.com"');
+    expect(restored).toContain('独立 HTML');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+  });
+
+  it('removes executable event handlers and dangerous link/style values after restoration', () => {
+    const source = '<a href="javascript:alert(1)" onclick="alert(1)" style="color:red;background-image:url(https://attacker.invalid/x)">危险链接</a>';
+    const protectedSource = protectInlineHtml(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+
+    expect(restored).toContain('危险链接');
+    expect(restored).not.toMatch(/onclick|javascript:|attacker\.invalid/i);
+  });
+
+  it('keeps HTML-looking examples inside fenced code as escaped text', () => {
+    const source = '```html\n<div onclick="alert(1)">示例</div>\n```';
+    const protectedSource = protectInlineHtml(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+
+    expect(restored).toContain('&lt;div');
+    expect(restored).toContain('示例');
+    expect(restored).not.toContain('CYCYINLINE');
+  });
+
+  it('filters SVG external references before encoding protected SVG payloads', () => {
+    const source = '<svg viewBox="0 0 10 10"><use href="#local-icon"></use><use href="https://attacker.invalid/external.svg#icon"></use><path fill="url(https://attacker.invalid/paint.svg#paint)" d="M0 0"></path></svg>';
+    const protectedSource = protectInlineHtml(source);
+    const hex = (value: string) => Array.from(new TextEncoder().encode(value), byte =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
+
+    expect(protectedSource).toContain(hex('href="#local-icon"'));
+    expect(protectedSource).not.toContain(hex('attacker.invalid'));
+  });
+
+  it('collects SVG references only from elements retained by the safe SVG tree builder', () => {
+    const runtime = inlineHtmlRuntime();
+    expect(runtime).toContain('const collectSvgIds = (node, idMap, duplicateIds = new Set()) =>');
+    expect(runtime).toContain("node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())");
+  });
+
+  it('retains SVG external-reference guards in the browser runtime', () => {
+    const runtime = inlineHtmlRuntime();
+    expect(runtime).toContain('xlink:href');
+    expect(runtime).toContain('javascript:');
+    expect(runtime).toContain('url');
+  });
+
+  it('gives root-level embedded CSS a real box while keeping ordinary wrappers layout-transparent', () => {
+    const runtime = inlineHtmlRuntime();
+    expect(runtime).toContain("scopeRoot.classList.add('cy-inline-html-root-scope')");
+    expect(runtime).toContain("node.parentElement.closest('.warm-prose')");
+    expect(runtime).toContain('.cy-inline-html-pending.cy-inline-html-root-scope{display:block!important}');
+  });
+
+  it('keeps scripts and styles inert until the optional browser runtime hydrates them', () => {
+    const source = '<div class="card"><style>.card{display:flex}</style><script>window.example = true</script>正文</div>';
+    const protectedSource = protectInlineHtml(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+    expect(restored).not.toContain('<script>window.example = true</script>');
+    const runtime = inlineHtmlRuntime();
+    expect(runtime).toContain('data-cy-inline-html-enhancement');
+    expect(runtime).toContain('new DOMParser()');
+    expect(runtime).toContain('safeStylesheetText');
+  });
+  it('preserves CSP nonce and safe metadata attributes on scoped style blocks', () => {
+    const runtime = inlineHtmlRuntime(true);
+    expect(runtime).toContain("['media','nonce','title','id','type'].includes(name)");
+    expect(runtime).toContain("name.startsWith('data-') || name.startsWith('aria-')");
+    expect(runtime).toContain("const blockTemplate = document.createElement('template')");
+    expect(runtime).toContain('blockTemplate.innerHTML = raw;');
+    expect(runtime).not.toContain("new DOMParser().parseFromString(raw, 'text/html')");
+    expect(runtime).toContain('parsedStyle = blockElement;');
+    expect(runtime).toContain('for (const attribute of parsedStyle.attributes)');
+    expect(runtime).toContain('attribute.value');
+  });
+
+  it('retains layout and visual properties used by the uploaded article fixtures', () => {
+    const runtime = inlineHtmlRuntime();
+    for (const property of ['backdrop-filter', '-webkit-backdrop-filter', 'margin-bottom', 'inset', 'content']) {
+      expect(runtime).toContain("'" + property + "'");
+    }
+  });
+
+});

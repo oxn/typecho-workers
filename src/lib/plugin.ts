@@ -118,8 +118,6 @@ export type FilterHandler = (value: any, ...args: any[]) => any | Promise<any>;
 
 export interface HookContext {
   activatedPlugins: Set<string>;
-  /** Optional request options for feature-aware filters. */
-  options?: Record<string, any>;
 }
 
 export interface PluginInitContext {

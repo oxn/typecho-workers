@@ -5,7 +5,6 @@ import {
   normalizeCommentInitialLoadMode,
   normalizeContinuousLoadMode,
   parsePinnedIds,
-  renderWarmIframes,
   warmArticleSummary,
   plainExcerpt,
   prepareArticleToc,
@@ -114,16 +113,5 @@ describe('Warm CY theme helpers', () => {
     expect(warmArticleSummary({ hasPassword: false, passwordVerified: false }, null)).toBe('');
   });
 
-  it('adds safe loading attributes only to supported video iframe providers', () => {
-    const youtube = '<iframe src="https://www.youtube.com/embed/demo"></iframe>';
-    const result = renderWarmIframes(youtube);
-    expect(result).toContain('loading="eager"');
-    expect(result).toContain('allowfullscreen=""');
-    expect(result).toContain('title="视频播放器"');
-
-    const external = '<iframe src="https://video.example/embed/demo"></iframe>';
-    expect(renderWarmIframes(external)).toBe(external);
-    expect(renderWarmIframes('<p>plain content</p>')).toBe('<p>plain content</p>');
-  });
 
 });

@@ -169,3 +169,37 @@
 - 拼音插件接口增加非空标题校验，并补充 malformed JSON、空白标题和超过 500 字符标题的测试；编辑器端手动修改保护、异步响应过期保护及重新生成按钮均已检查。
 - 最新提交 b6d393f37af28929a7a3f369bed5536bc14480bf 的 CI run 41634463987 成功：130 个测试文件、1510 项测试通过；Astro build 成功；Markdown 插件 4 个客户端入口资源检查通过。
 - 本次改动仍未触碰核心。固定基线对照 158 个核心文件逐个 Blob SHA 检查，差异 0。以上 CI 不包含 Wrangler 部署或真实浏览器端交互验收。
+
+## 本轮补充审计（2026-11-06）：内容 Hook 请求上下文隔离边界
+
+### 已核实的上游调用链
+
+- `src/lib/context.ts` 的 `buildContext()` 为每个请求创建独立 `RequestContext`，并在请求生命周期中触发 `system:begin`，该 Hook 收到当前 context。
+- 但固定上游 `src/lib/markdown.ts` 的 `renderMarkdownFiltered(ctx, text)` 调用 `applyFilter(ctx, 'content:markdown', content)` 与 `applyFilter(ctx, 'content:content', sanitized)` 时，只传入内容值，没有把当前 context 作为额外参数传给过滤器。
+- `applyFilter()` 本身支持额外参数，但调用方没有传递；因此插件回调声明第二个参数并不能获得请求 options。文章和页面的 `content` 在主题组件接收 Props 之前已经由上游渲染，主题组件无法在当前链路中补传原始 Markdown 和请求 context。
+- `renderMarkdownFiltered()` 的缓存键当前只包含源文本与已启用插件 ID，不包含插件设置快照。任何未来的请求级内容过滤都必须同时评估缓存键，不能只增加 Hook 参数而忽略缓存串用。
+
+### 当前插件实现的风险与结论
+
+- Warm CY 伴随插件当前在 `system:begin` 中把 theme 与插件设置写入模块级 `activeCyPluginSettings`，之后由内容过滤器读取。
+- 这不是可靠的请求级隔离：请求 A 的 `system:begin` 与其 Markdown 过滤之间可能被请求 B 的 `system:begin` 插入，A 随后会读到 B 的快照。单线程事件循环并不能消除异步请求交错。
+- 该配置目前是站点级选项，正常情况下各请求值相同；但设置更新、主题切换或不同请求快照交错时，仍不能保证按请求读取。现有测试验证了 Hook 可读取一次 `system:begin` 快照，没有验证并发交错隔离。
+- 在“不修改任何上游核心文件”的约束下，当前已确认的公开插件 Hook 没有把请求 context 传给 Markdown 过滤器的途径。不能用模块级变量、定时清理或单线程假设伪装成已解决。
+- 因此此项保留为明确的未解决风险，不把当前模块级快照方案标记为并发安全，也不擅自修改核心。
+
+### 若将来允许调整上游接口，最小方案
+
+1. 由上游 `renderMarkdownFiltered()` 在调用两个内容过滤器时，将当前请求 context 作为显式额外参数传入。
+2. 插件只从该参数读取当前请求的 `options`，移除 `activeCyPluginSettings` 与 `system:begin` 模块级快照。
+3. 审查并调整 Markdown 渲染缓存键，使会影响输出的插件设置纳入键值，或确保每次相关设置写入都可靠清空对应缓存。
+4. 增加 A/B 两个请求交错执行的回归测试，证明 A 的设置不会影响 B，反之亦然。
+5. 以上涉及上游核心接口；在用户明确放宽核心文件保护原则之前，不实施。
+
+### 主题与插件职责复核
+
+- 主题保留页面结构、导航/搜索对话框的 DOM、文章目录、置顶文章展示、评论组件 UI、图片呈现、笔记媒体、分页与加载交互。这些都依赖主题布局或页面 Props，属于主题呈现职责。
+- 伴随插件保留正文 HTML 保护/恢复、安全过滤、视频 iframe 接管及播放器运行时、Markdown Alert 图标样式设置、全局搜索运行时、管理 API、评论管理权限元数据和插件设置页。这些是可独立开关或需要宿主 Hook/权限的增强行为。
+- 评论管理按钮的实际 HTML 由主题 `WarmComments.astro` 渲染；插件通过 `comment:list` 验证管理员并提供 `management` metadata/CSRF token。UI 留在主题、权限与元数据留在插件的边界是合理的，不应把主题组件整体搬入插件。
+- `WarmShell.astro` 保留搜索对话框和触发按钮；插件的 `globalSearchRuntime()` 负责增强其搜索交互。DOM/视觉属于主题，跨页面运行时行为属于插件。
+- `warm.ts` 中的置顶 ID、页脚链接、图片参数、连续加载和评论加载模式读取属于主题设置与呈现；插件设置中的搜索按钮、评论管理、HTML 增强、Alert 样式和视频开关由伴随插件控制。主题读取少量插件开关用于决定是否渲染 UI，不等于插件行为被错误地复制进主题。
+- 伴随插件仍直接依赖宿主内部的 `@/lib/auth`、`@/lib/admin-auth`、`@/lib/options`，因此它是当前仓库的本地宿主伴随插件，不是可直接安装到任意 Typecho Workers 实例的通用公共插件。不得自行复制鉴权实现来消除这项依赖。
