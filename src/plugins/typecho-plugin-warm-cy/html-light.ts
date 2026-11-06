@@ -90,6 +90,39 @@ function findHtmlElementEnd(source: string, tag: string, openEnd: number): numbe
   return -1;
 }
 
+function findHtmlContainerEnd(source: string, tag: string, openEnd: number): number {
+  let search = openEnd + 1;
+  while (search < source.length) {
+    const start = source.indexOf('<', search);
+    if (start < 0) return -1;
+    if (source.startsWith('<!--', start)) {
+      const commentEnd = source.indexOf('-->', start + 4);
+      search = commentEnd < 0 ? source.length : commentEnd + 3;
+      continue;
+    }
+    const tagMatch = source.slice(start).match(/^<(\/?)([a-z][\w:-]*)\b/i);
+    if (!tagMatch) {
+      search = start + 1;
+      continue;
+    }
+    const name = tagMatch[2].toLowerCase();
+    const tagEnd = findHtmlTagEnd(source, start + tagMatch[0].length);
+    if (tagEnd < 0) return -1;
+    if (name === tag && tagMatch[1] === '/') return tagEnd + 1;
+    if (name === 'script' || name === 'style' || name === 'svg') {
+      search = findHtmlElementEnd(source, name, tagEnd);
+      if (search < 0) return -1;
+      continue;
+    }
+    if (HTML_RAW_TEXT_TAGS.has(name) || name === 'plaintext') {
+      search = findHtmlRawTextEnd(source, name, tagEnd);
+      continue;
+    }
+    search = tagEnd + 1;
+  }
+  return -1;
+}
+
 function protectCompleteCodeElements(
   source: string,
   protect: (value: string) => string,
@@ -119,11 +152,8 @@ function protectCompleteCodeElements(
       continue;
     }
     if (tag === 'pre' || tag === 'code') {
-      const closePattern = new RegExp('</' + tag + '\\s*>', 'ig');
-      closePattern.lastIndex = openEnd + 1;
-      const close = closePattern.exec(source);
-      if (!close) break;
-      const end = closePattern.lastIndex;
+      const end = findHtmlContainerEnd(source, tag, openEnd);
+      if (end < 0) break;
       output += source.slice(cursor, start) + protect(source.slice(start, end));
       cursor = end;
       search = end;
