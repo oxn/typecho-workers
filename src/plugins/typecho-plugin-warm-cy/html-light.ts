@@ -70,6 +70,94 @@ function protectCompleteRawHtmlBlocks(
   return output + content.slice(cursor);
 }
 
+function preserveInlineTagAttributes(
+  content: string,
+  isAllowed: (tag: string, name: string) => boolean,
+): string {
+  let output = '';
+  let cursor = 0;
+  let search = 0;
+  while (search < content.length) {
+    const start = content.indexOf('<', search);
+    if (start < 0) break;
+    if (content.startsWith('<!--', start)) {
+      const commentEnd = content.indexOf('-->', start + 4);
+      search = commentEnd < 0 ? content.length : commentEnd + 3;
+      continue;
+    }
+    const tagMatch = content.slice(start).match(/^<([a-z][\w:-]*)\b/i);
+    if (!tagMatch) {
+      search = start + 1;
+      continue;
+    }
+    const tag = tagMatch[1].toLowerCase();
+    const tagEnd = findHtmlTagEnd(content, start + tagMatch[0].length);
+    if (tagEnd < 0) break;
+    const raw = content.slice(start, tagEnd + 1);
+    const attributeStart = tagMatch[0].length;
+    const attributes: Array<{ name: string; start: number; end: number; value: string }> = [];
+    let index = attributeStart;
+    while (index < raw.length - 1) {
+      while (index < raw.length - 1 && /\s/.test(raw[index])) index++;
+      if (raw[index] === '/') {
+        index++;
+        continue;
+      }
+      const attrStart = index;
+      while (index < raw.length - 1 && !/[\s=/>]/.test(raw[index])) index++;
+      if (index === attrStart) {
+        index++;
+        continue;
+      }
+      const name = raw.slice(attrStart, index).toLowerCase();
+      while (index < raw.length - 1 && /\s/.test(raw[index])) index++;
+      let value = '';
+      if (raw[index] === '=') {
+        index++;
+        while (index < raw.length - 1 && /\s/.test(raw[index])) index++;
+        const quote = raw[index] === '"' || raw[index] === "'" ? raw[index] : '';
+        if (quote) {
+          index++;
+          const valueStart = index;
+          while (index < raw.length - 1 && raw[index] !== quote) index++;
+          value = raw.slice(valueStart, index);
+          if (raw[index] === quote) index++;
+        } else {
+          const valueStart = index;
+          while (index < raw.length - 1 && !/[\s>]/.test(raw[index])) index++;
+          value = raw.slice(valueStart, index);
+        }
+      }
+      attributes.push({ name, start: attrStart, end: index, value });
+    }
+    const preserved: Record<string, string> = {};
+    const removals: Array<{ start: number; end: number }> = [];
+    for (const attribute of attributes) {
+      if (!isAllowed(tag, attribute.name)) continue;
+      if (!Object.prototype.hasOwnProperty.call(preserved, attribute.name)) {
+        preserved[attribute.name] = attribute.value;
+      }
+      removals.push({ start: attribute.start, end: attribute.end });
+    }
+    if (!Object.keys(preserved).length) {
+      search = tagEnd + 1;
+      continue;
+    }
+    let cleanAttrs = raw.slice(attributeStart, raw.length - 1);
+    for (const removal of removals.sort((left, right) => right.start - left.start)) {
+      const from = removal.start - attributeStart;
+      const to = removal.end - attributeStart;
+      cleanAttrs = cleanAttrs.slice(0, from) + cleanAttrs.slice(to);
+    }
+    output += content.slice(cursor, start)
+      + '<' + tagMatch[1] + cleanAttrs + '>CYCYINLINEATTRX' + tag
+      + 'X' + encodeInlinePayload(JSON.stringify(preserved)) + 'XEND';
+    cursor = tagEnd + 1;
+    search = cursor;
+  }
+  return output + content.slice(cursor);
+}
+
 function protectCompleteDivContainers(content: string, protectedSegments: string[], markerPrefix: string): string {
   const tagPattern = /<\/?div\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
   let output = '';
@@ -200,27 +288,13 @@ export function protectInlineHtmlLight(source: string): string {
   // raw <div> block at blank lines, which otherwise breaks long embedded footers.
 
   content = protectCompleteDivContainers(content, protectedSegments, protectedSegmentPrefix);
-  content = content.replace(/<([a-z][a-z0-9_:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
-    const preserved: Record<string, string> = {};
-    const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
-    let match: RegExpExecArray | null;
-    while ((match = attributePattern.exec(attrs))) {
-      const name = match[1].toLowerCase();
-      if (name === 'style' || name === 'class' || name === 'id' || name === 'title'
-        || name === 'role' || name === 'width' || name === 'height' || name === 'alt'
-        || name === 'loading' || name === 'type' || name === 'name' || name === 'value'
-        || name === 'placeholder'
-        || name.startsWith('data-') || name.startsWith('aria-')) {
-        preserved[name] = match[2] ?? match[3] ?? match[4] ?? '';
-      }
-    }
-    if (!Object.keys(preserved).length) return full;
-    const cleanAttrs = attrs.replace(attributePattern, (attribute, name: string) =>
-      Object.prototype.hasOwnProperty.call(preserved, name.toLowerCase()) ? '' : attribute,
-    );
-    return '<' + tag + cleanAttrs + '>CYCYINLINEATTRX' + tag.toLowerCase()
-      + 'X' + encodeInlinePayload(JSON.stringify(preserved)) + 'XEND';
-  });
+    content = preserveInlineTagAttributes(
+    content,
+    (tag, name) => name === 'style' || name === 'class' || name === 'id' || name === 'title'
+      || name === 'role' || name === 'width' || name === 'height' || name === 'alt'
+      || name === 'loading' || name === 'type' || name === 'name' || name === 'value'
+      || name === 'placeholder' || name.startsWith('data-') || name.startsWith('aria-'),
+  );
 
   content = content.replace(
     protectedSegmentPattern,
