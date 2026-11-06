@@ -14,7 +14,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(inlineHtmlRuntimeLight(true, true)).toContain('const allowScripts = true;');
   });
 
-  it('does not treat a script with src as an inline script in lightweight mode', () => {\n    const runtime = inlineHtmlRuntimeLight(true, true);\n    expect(runtime).toContain('if (/(?:^|\\\\s)src(?:\\\\s|=|$)/i.test(attrs)) return null;');\n  });\n\n  it('returns ordinary Markdown output unchanged when no enhancement markers exist', () => {
+  it('does not treat a script with src as an inline script in lightweight mode', () => {\n    const runtime = inlineHtmlRuntimeLight(true, true);\n    expect(runtime).toContain('if (/(?:^|\\s)src(?:\\s|=|$)/i.test(attrs)) return null;');\n  });\n\n  it('returns ordinary Markdown output unchanged when no enhancement markers exist', () => {
     const content = '<p>普通文章内容，没有 HTML 增强标记。</p>';
     expect(restoreInlineHtmlFragmentsLight(content)).toBe(content);
   });
