@@ -36,6 +36,20 @@ describe('Warm CY Markdown Alert presentation module', () => {
     expect(html).toContain('data-cy-alert-icon-visible');
     expect(html).toContain('data-cy-alert-reset');
     expect(html).toContain('data-cy-default-value="#eef2ff"');
+    expect(html).toContain('data-cy-default-value="#c7d2fe"');
+    expect(html).toContain('data-cy-default-value="#4338ca"');
+    expect(html).toContain('data-cy-default-value="#bbf7d0"');
+    expect(html).toContain('data-cy-default-value="#15803d"');
+    expect(html).toContain('data-cy-default-value="#e9d5ff"');
+    expect(html).toContain('data-cy-default-value="#9333ea"');
+    expect(html).toContain('data-cy-default-value="#fde68a"');
+    expect(html).toContain('data-cy-default-value="#a16207"');
+    expect(html).toContain('data-cy-default-value="#fecaca"');
+    expect(html).toContain('data-cy-default-value="#dc2626"');
+    expect(html).toContain('data-cy-default-value="8"');
+    expect(html).toContain('data-cy-default-value="18"');
+    expect(html).toContain('data-cy-default-value="true"');
+    expect(html).toContain('data-cy-default-value="solid"');
   });
 
   it('restores the correct SVG icon without duplicating an existing icon', () => {
