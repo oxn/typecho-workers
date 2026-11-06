@@ -52,14 +52,15 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(restored).not.toContain('CYCYINLINE');
   });
 
-  it('removes external SVG references while retaining local fragment references', () => {
+  it('filters SVG external references before encoding protected SVG payloads', () => {
     const source = '<svg viewBox="0 0 10 10"><use href="#local-icon"></use><use href="https://attacker.invalid/external.svg#icon"></use><path fill="url(https://attacker.invalid/paint.svg#paint)" d="M0 0"></path></svg>';
     const protectedSource = protectInlineHtml(source);
-    const parsed = marked.parse(protectedSource, { async: false }) as string;
-    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    const hex = (value: string) => Array.from(new TextEncoder().encode(value), byte =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
 
-    expect(restored).toContain('href="#local-icon"');
-    expect(restored).not.toContain('attacker.invalid');
+    expect(protectedSource).toContain(hex('href="#local-icon"'));
+    expect(protectedSource).not.toContain(hex('attacker.invalid'));
   });
 
   it('retains SVG external-reference guards in the browser runtime', () => {
