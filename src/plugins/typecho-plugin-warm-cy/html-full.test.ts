@@ -127,6 +127,7 @@ describe('Warm CY full HTML enhancement module', () => {
   it('gives root-level embedded CSS a real box while keeping ordinary wrappers layout-transparent', () => {
     const runtime = inlineHtmlRuntime();
     expect(runtime).toContain("scopeRoot.classList.add('cy-inline-html-root-scope')");
+    expect(runtime).toContain("node.parentElement.closest('.warm-prose')");
     expect(runtime).toContain('.cy-inline-html-pending.cy-inline-html-root-scope{display:block!important}');
   });
 
