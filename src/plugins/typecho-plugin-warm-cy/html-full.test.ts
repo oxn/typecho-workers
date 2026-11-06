@@ -106,6 +106,15 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(restored).not.toContain('&amp;amp;');
   });
 
+  it('keeps nested SVG markup inside one protected block', () => {
+    const source = '<svg viewBox="0 0 10 10"><g><svg viewBox="0 0 1 1"><circle r="1"/></svg></g><path d="M0 0"/></svg>';
+    const protectedSource = protectInlineHtml(source);
+    expect(protectedSource.match(/CYCYINLINEBLOCKX/g)).toHaveLength(1);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const restored = restoreInlineHtmlFragments(sanitizeHtml(parsed));
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+  });
+
   it('preserves quoted greater-than characters in safe inline attributes', () => {
     const source = '<span data-label="left > right" title="a > b">属性边界</span>';
     const protectedSource = protectInlineHtml(source);
