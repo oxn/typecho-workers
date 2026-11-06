@@ -10,7 +10,7 @@ describe('Warm CY full HTML enhancement module', () => {
     expect(inlineHtmlRuntime(true)).toContain('const allowScripts = true;');
   });
 
-  it('returns ordinary Markdown output unchanged when no enhancement markers exist', () => {
+  it('preserves ordered full-mode script execution while honoring explicit async', () => {\n    const runtime = inlineHtmlRuntime(true);\n    expect(runtime).toContain('let orderedScriptQueue = Promise.resolve();');\n    expect(runtime).toContain('orderedScriptQueue = orderedScriptQueue.then(appendInOrder, appendInOrder);');\n    expect(runtime).toContain("if (script.hasAttribute('async'))");\n    expect(runtime).toContain("new RegExp('(?:^|\\\\s)' + name + '(?:\\\\s|=|$)', 'i')");\n    expect(runtime).toContain("script.addEventListener('load', resolve, { once: true })");\n    expect(runtime).toContain("script.addEventListener('error', resolve, { once: true })");\n  });\n\n  it('returns ordinary Markdown output unchanged when no enhancement markers exist', () => {
     const content = '<p>普通文章内容，没有 HTML 增强标记。</p>';
     expect(restoreInlineHtmlFragments(content)).toBe(content);
   });
