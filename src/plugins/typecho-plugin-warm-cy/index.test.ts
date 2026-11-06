@@ -264,6 +264,19 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINEATTRX');
   });
 
+  it('restores inline attributes when their marker matches the opening element', () => {
+    const restore = collectHooks().get('content:content')!;
+    const attributes = Buffer.from(JSON.stringify({ class: 'restored-inline', title: 'safe title' }), 'utf8').toString('hex');
+    const fragment = '<span>CYCYINLINEATTRXspanX' + attributes + 'XENDcontent</span>';
+    const container = 'CYCYINLINECONTAINERX' + Buffer.from(fragment, 'utf8').toString('hex') + 'XEND';
+    const restored = restore(container, cyContentContext);
+
+    expect(restored).toContain('class="restored-inline"');
+    expect(restored).toContain('title="safe title"');
+    expect(restored).toContain('content</span>');
+    expect(restored).not.toContain('CYCYINLINEATTRX');
+  });
+
   it('preserves a complete nested div footer across Markdown blank lines', () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
