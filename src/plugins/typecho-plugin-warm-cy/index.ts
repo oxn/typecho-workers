@@ -9,7 +9,7 @@ import adminCss from './admin.css?raw';
 import { inlineHtmlRuntimeLight, protectInlineHtmlLight, restoreInlineHtmlFragmentsLight } from './html-light';
 import { inlineHtmlRuntime, protectInlineHtml, restoreInlineHtmlFragments } from './html-full';
 import { protectVideoIframesForMarkdown, restoreVideoIframesAfterMarkdown, replaceVideoIframesWithPlaceholders, videoPlayerRuntime } from './video-player';
-import { markdownAlertIconStyles, markdownAlertStyleEditorHtml, normalizeMarkdownAlertStyleSettings, restoreMarkdownAlertIcons } from './markdown-alerts';
+import { markdownAlertIconStyles, normalizeMarkdownAlertStyleSettings, restoreMarkdownAlertIcons } from './markdown-alerts';
 import { featureSettingsPageHtml } from './admin-settings';
 
 const THEME_ID = 'typecho-theme-warm-cy';
