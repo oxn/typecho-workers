@@ -40,7 +40,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
     expect(protectedSource).toContain('CY' + String.fromCharCode(0x200b) + 'CYINLINEBLOCKX');
     const parsed = marked.parse(protectedSource, { async: false }) as string;
     const restored = restoreInlineHtmlFragmentsLight(sanitizeHtml(parsed));
-    expect(protectedSource).toContain('412026616d703b2042');
+    expect(protectedSource).toContain(forgedPayload);
     const runtime = inlineHtmlRuntimeLight(true);
     expect(runtime).toContain('const decodeAttribute = value =>');
     expect(runtime).toContain("replace(/</g, '&lt;')");
@@ -80,7 +80,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
       '<pre><svg viewBox="0 0 1 1" data-label="</pre>"><text>SVG</text></svg><a style="color:red">SVG属性中的结束标签</a></pre>',
     ];
     for (const source of sources) {
-      expect(protectInlineHtml(source)).toBe(source);
+      expect(protectInlineHtmlLight(source)).toBe(source);
     }
   });
 
@@ -151,7 +151,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
       + '<script>const sample = "</a>";</script>'
       + '<svg viewBox="0 0 1 1"><a href="#inside"><text>SVG链接</text></a></svg>'
       + '<span>完整锚点内容</span></a>';
-    const protectedSource = protectInlineHtml(source);
+    const protectedSource = protectInlineHtmlLight(source);
     const hex = Array.from(new TextEncoder().encode(source), byte =>
       byte.toString(16).padStart(2, '0'),
     ).join('');
@@ -231,7 +231,7 @@ describe('Warm CY lightweight HTML enhancement', () => {
   it('revalidates restored inline styles and scopes restored style blocks at runtime', () => {
     const runtime = inlineHtmlRuntimeLight(true);
     expect(runtime).toContain('const safeInlineStyleText = value =>');
-    expect(runtime).toContain("const safeStyle = safeInlineStyleText(value)");
+    expect(runtime).toContain("const safeStyle = safeInlineStyleText(decodedValue)");
     expect(runtime).toContain('const safeCss = safeStylesheetText(body, scopeRoot)');
     expect(runtime).not.toContain('target.style.cssText = String(value)');
     expect(runtime).toContain('cy-inline-light-scope-');
@@ -244,7 +244,9 @@ describe('Warm CY lightweight HTML enhancement', () => {
     const runtime = inlineHtmlRuntimeLight(true);
     expect(runtime).toContain("['media','nonce','title','id','type'].includes(name)");
     expect(runtime).toContain("name.startsWith('data-') || name.startsWith('aria-')");
-    expect(runtime).toContain("new DOMParser().parseFromString(raw, 'text/html')");
+    expect(runtime).toContain("const blockTemplate = document.createElement('template')");
+    expect(runtime).toContain('blockTemplate.innerHTML = raw;');
+    expect(runtime).not.toContain("new DOMParser().parseFromString(raw, 'text/html')");
     expect(runtime).toContain('parsedStyle = blockElement;');
     expect(runtime).toContain('for (const attribute of parsedStyle.attributes)');
     expect(runtime).toContain('attribute.value');
