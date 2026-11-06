@@ -1160,6 +1160,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} > .cy-test-deep-child{display:block}`);
     expect(appendedStyles[0].textContent).toContain(`@keyframes ${scopeSelector.slice(1)}-cy-spin{from{opacity:0}to{opacity:1}}`);
     expect(appendedStyles[0].textContent).toContain(`${scopeSelector} .animated{animation:1s linear ${scopeSelector.slice(1)}-cy-spin;animation-name:${scopeSelector.slice(1)}-cy-spin}`);
+    expect(appendedStyles[0].textContent).toContain(`animation-duration:1s;animation-delay:120ms;animation-iteration-count:2;animation-direction:alternate;animation-fill-mode:both;animation-play-state:running`);
     expect(appendedStyles[0].textContent).toContain(`@layer ${scopeSelector.slice(1)}.sample{${scopeSelector} .layered{color:#123456}}`);
     expect(appendedStyles[0].textContent).toContain(`@media (max-width: 600px){${scopeSelector} .mobile{display:block}}`);
     expect(appendedStyles[0].textContent).toContain(`@supports (display: grid){${scopeSelector} .supported{display:grid}}`);
