@@ -69,6 +69,11 @@ describe('Warm CY isolated video player module', () => {
     expect(runtime).toContain('@media(max-width:640px){.warm-prose .cy-video-player{margin:1rem 0;border-radius:8px}}');
   });
 
+  it('resets theme iframe spacing and decoration inside the isolated player frame', () => {
+    const runtime = videoPlayerRuntime(true);
+    expect(runtime).toContain('margin:0;border:0;border-radius:0;box-shadow:none;background:transparent');
+  });
+
   it('uses eager native iframes and handles navigation, inserted nodes, and load errors', () => {
     const runtime = videoPlayerRuntime(true);
     expect(runtime).toContain('data-cy-video-player-runtime');
