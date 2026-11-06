@@ -17,6 +17,18 @@ const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
 const PLUGIN_VERSION = '2026.11.05.10.20';
 
+let activeCyPluginSettings: { theme: unknown; pluginSettings: unknown } | null = null;
+
+function resolveCyPluginSettings(requestContext?: {
+  options?: Record<string, unknown>;
+}): { theme: unknown; pluginSettings: unknown } | null {
+  const options = requestContext?.options;
+  if (options) {
+    return { theme: options.theme, pluginSettings: options[PLUGIN_OPTION_KEY] };
+  }
+  return activeCyPluginSettings;
+}
+
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
   try {
@@ -995,13 +1007,27 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
   registerPluginAdminPath(ADMIN_SETTINGS_API_PATH);
 
-  // Each content feature reads its own setting from the request context.
+  // The upstream content filters intentionally receive only their value.
+  // Capture site-wide options through the normal request lifecycle hook instead
+  // of extending or modifying the core filter signature.
+  addHook('system:begin', pluginId, (context?: {
+    options?: Record<string, unknown>;
+  }) => {
+    const options = context?.options;
+    activeCyPluginSettings = options
+      ? { theme: options.theme, pluginSettings: options[PLUGIN_OPTION_KEY] }
+      : null;
+  });
+
+  // Optional second arguments keep these handlers easy to unit-test and
+  // compatible with third-party callers; upstream core uses the captured
+  // system:begin snapshot because it passes only the content value.
   addHook('content:markdown', pluginId, (content: string, requestContext?: {
     options?: Record<string, unknown>;
   }) => {
-    const options = requestContext?.options;
-    if (options?.theme !== THEME_ID) return content;
-    const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    const requestOptions = resolveCyPluginSettings(requestContext);
+    if (requestOptions?.theme !== THEME_ID) return content;
+    const settings = parsePluginSettings(requestOptions.pluginSettings);
     const videoEnabled = isEnabled(settings.videoPlayerEnabled ?? settings.mobileNativePlayerEnhancementEnabled, false);
     const withVideo = videoEnabled ? protectVideoIframesForMarkdown(content) : content;
     const htmlMode = getHtmlEnhancementMode(settings);
@@ -1015,9 +1041,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('content:content', pluginId, (content: string, requestContext?: {
     options?: Record<string, unknown>;
   }) => {
-    const options = requestContext?.options;
-    if (options?.theme !== THEME_ID) return content;
-    const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    const requestOptions = resolveCyPluginSettings(requestContext);
+    if (requestOptions?.theme !== THEME_ID) return content;
+    const settings = parsePluginSettings(requestOptions.pluginSettings);
     const withAlertIcons = restoreMarkdownAlertIcons(content);
     const htmlMode = getHtmlEnhancementMode(settings);
     const withHtml = htmlMode === 'light'
