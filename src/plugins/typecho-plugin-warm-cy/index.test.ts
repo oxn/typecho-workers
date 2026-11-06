@@ -588,7 +588,7 @@ describe('typecho-plugin-warm-cy', () => {
 
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string; sheet?: unknown }> = [];
     const removedStyles: unknown[] = [];
-    const scopedRule: any = { type: 1, selectorText: '.custom-footer' };
+    const scopedRule: any = { type: 1, selectorText: '.custom-footer, .badge-dual' };
     const nestedRule: any = { type: 1, selectorText: '.badge-row' };
     const mediaRules: any = [nestedRule];
     mediaRules.deleteRule = (index: number) => mediaRules.splice(index, 1);
@@ -670,13 +670,47 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).toContain('.badge-dual { font-size: 11px; border-radius: 6px; background: #079C48;  }');
     expect(appendedStyles[0].textContent).not.toContain('/* adjust `font-size` here */');
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
-    expect(scopedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) :is(.custom-footer)');
+    expect(scopedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) :is(.custom-footer, .badge-dual)');
     expect(nestedRule.selectorText).toBe(':where(.warm-prose:not(.warm-note-prose)) :is(.badge-row)');
     expect(keyframeStep.selectorText).toBe('from');
     expect(cssRules).not.toContain(fontFaceRule);
     expect(appendedStyles[0].media).toBe('');
     expect(removedStyles).toHaveLength(0);
     expect(replaceCalls).toBeGreaterThan(0);
+
+    // If the browser cannot expose a mutable CSSOM, the restored style block
+    // must be removed instead of becoming an unscoped page-wide stylesheet.
+    const unavailableStyles: Array<{ media: string; removed: boolean }> = [];
+    const unavailableDocument = {
+      ...document,
+      head: {
+        appendChild(element: { media: string }) {
+          unavailableStyles.push({ media: element.media || '', removed: false });
+        },
+      },
+      createElement() {
+        const style = {
+          tagName: 'STYLE',
+          textContent: '',
+          media: '',
+          sheet: null,
+          remove() {
+            const record = unavailableStyles[unavailableStyles.length - 1];
+            if (record) record.removed = true;
+          },
+        };
+        return style;
+      },
+    };
+    runInNewContext(runtime!, {
+      document: unavailableDocument,
+      window: { addEventListener() {} },
+      Node: { TEXT_NODE: 3, ELEMENT_NODE: 1 },
+      NodeFilter: { SHOW_TEXT: 4, FILTER_REJECT: 2, FILTER_ACCEPT: 1 },
+      TextDecoder,
+      Uint8Array,
+    });
+    expect(unavailableStyles).toEqual([{ media: 'not all', removed: true }]);
   });
 
 });
