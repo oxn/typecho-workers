@@ -1094,6 +1094,11 @@ describe('typecho-plugin-warm-cy', () => {
     const preservedBlock = Buffer.from(marker!.match(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/)![1], 'hex').toString('utf8');
     expect(preservedBlock.startsWith('<style>') || preservedBlock.startsWith('<style ')).toBe(true);
     expect(preservedBlock).toContain('.custom-footer');
+    const templateProbe: any = createTemplateElementMock();
+    templateProbe.innerHTML = preservedBlock;
+    expect(templateProbe.content.firstElementChild?.localName).toBe('style');
+    expect(templateProbe.content.firstElementChild?.textContent).toContain('.custom-footer');
+    expect(templateProbe.content.childNodes).toHaveLength(1);
 
     const footer = hooks.get('archive:footer')!('', { options: {
       theme: 'typecho-theme-warm-cy',
