@@ -34,10 +34,12 @@ describe('typecho-plugin-pinyin', () => {
     vi.clearAllMocks();
   });
 
-  it('converts Chinese titles into URL-safe pinyin slugs', () => {
-    expect(titleToPinyinSlug('你好 Typecho')).toBe('ni-hao-typecho');
-    expect(titleToPinyinSlug('  ')).toBe('');
+  it('joins consecutive Chinese pinyin syllables and uses hyphens only for source separators', () => {
+    expect(titleToPinyinSlug('你好 Typecho')).toBe('nihao-typecho');
+    expect(titleToPinyinSlug('中华人民共和国')).toBe('zhonghuarenmingongheguo');
+    expect(titleToPinyinSlug('我的文章：标题')).toBe('wodewenzhang-biaoti');
     expect(titleToPinyinSlug('Hello, World!')).toBe('hello-world');
+    expect(titleToPinyinSlug('  ')).toBe('');
   });
 
   it('registers a dedicated admin route', () => {
