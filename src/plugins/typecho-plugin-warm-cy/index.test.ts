@@ -145,7 +145,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.07.19.21');
+    expect(html).toContain('CY 插件版本：2026.11.07.19.35');
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
@@ -637,7 +637,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(decodeFinalIframeMarkup(restored)).toBe(source);
   });
 
-  it('decodes query separators only in an allowed iframe src and leaves ordinary links escaped', async () => {
+  it('preserves iframe query separators verbatim and leaves ordinary links escaped', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
     const source = '<a href="https://example.org/watch?a=1&b=2">ordinary link</a>\n\n<iframe src="https://video.example.org/embed/1?a=1&b=2"></iframe>';
