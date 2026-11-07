@@ -504,16 +504,25 @@ describe('typecho-plugin-warm-cy', () => {
     });
     expect(result.response.status).toBe(200);
     expect(await result.response.json()).toEqual({ success: true });
-    expect(mocks.setOption).toHaveBeenCalledWith(
-      context.db,
-      PLUGIN_OPTION_KEY,
-      JSON.stringify({
-        existingPluginSetting: 'keep',
-        showCommentManagementButtons: '1',
-        showHomeSearchButton: '0',
-        htmlEnhancementEnabled: '1',
-      }),
-    );
+    expect(mocks.setOption).toHaveBeenCalledTimes(1);
+    const savedSettings = JSON.parse(mocks.setOption.mock.calls[0][2] as string);
+    expect(savedSettings).toMatchObject({
+      existingPluginSetting: 'keep',
+      showCommentManagementButtons: '1',
+      showHomeSearchButton: '0',
+      htmlEnhancementEnabled: '1',
+      markdownAlertStyleSettings: {
+        enabled: true,
+        types: expect.objectContaining({
+          NOTE: expect.objectContaining({ background: expect.any(String) }),
+          TIP: expect.objectContaining({ background: expect.any(String) }),
+          IMPORTANT: expect.objectContaining({ background: expect.any(String) }),
+          WARNING: expect.objectContaining({ background: expect.any(String) }),
+          CAUTION: expect.objectContaining({ background: expect.any(String) }),
+        }),
+        icon: expect.objectContaining({ visible: true }),
+      },
+    });
   });
 
   it('rejects non-POST requests to the pin endpoint', async () => {
