@@ -22,7 +22,7 @@ const DEFAULT_IFRAME_VIDEO_HOSTNAMES = [
   'player.vimeo.com',
 ];
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.07.19.21';
+const PLUGIN_VERSION = '2026.11.07.19.35';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
