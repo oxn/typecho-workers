@@ -209,6 +209,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('<p>普通正文保留</p>');
     expect(restored).toContain('media.trusted.example/embed/1');
     expect(restored).not.toContain('evil.example');
+    expect(restored).not.toContain('trusted.example.evil.test');
     expect(restored).not.toContain('CYCYINLINE');
   });
 
