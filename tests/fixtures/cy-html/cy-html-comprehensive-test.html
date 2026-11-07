@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CY HTML 通用还原综合测试文章</title>
+<style>
+  :root { color-scheme: light dark; --accent:#16834a; --surface:#f3f6f4; --border:#d6dfd9; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; font:16px/1.75 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:960px; margin:auto; }
+  .test-banner { padding:16px 20px; border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:12px; background:var(--surface); }
+  .test-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+  .test-card { padding:14px; border:1px solid var(--border); border-radius:10px; }
+  .test-button { display:inline-block; padding:9px 15px; border-radius:8px; color:white; background:var(--accent); text-decoration:none; }
+  .muted { opacity:.72; }
+  .sample-table { width:100%; border-collapse:collapse; }
+  .sample-table th,.sample-table td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  .sample-table th { background:var(--surface); }
+  .svg-label { font:14px sans-serif; fill:currentColor; }
+  .danger-example { color:#b42318; }
+  @media (max-width:600px) { body { padding:12px; } }
+</style>
+</head>
+<body>
+<main id="cy-html-test-root" data-diag-id="cy-html-full-2026" data-state="source" aria-label="CY HTML 综合测试文章">
+  <header class="test-banner" data-section="intro">
+    <h1>CY HTML 通用还原综合测试</h1>
+    <p>用途：将本文作为文章正文发布，再对比<strong>原始 HTML</strong>与<strong>文章输出后的源代码</strong>。本页包含多种常见 HTML 结构和属性。</p>
+    <p class="muted">测试标识：<code>CY-HTML-2026-01</code>　版本：1.0</p>
+  </header>
+
+  <section id="test-basic" data-test="basic" aria-labelledby="basic-title">
+    <h2 id="basic-title">一、基础语义标签与属性</h2>
+    <article class="test-card" data-card-id="article-a">
+      <h3>文章卡片标题</h3>
+      <p>普通段落、<strong>粗体</strong>、<em>斜体</em>、<u>下划线</u>、<del>删除线</del>、
+        <mark>标记文字</mark>、<small>小号文字</small>、H<sub>2</sub>O、x<sup>2</sup>。</p>
+      <p><abbr title="HyperText Markup Language">HTML</abbr>、
+        <time datetime="2026-11-05T12:00:00+08:00">2026年11月5日</time>、
+        <span data-custom-flag="keep-me" aria-label="自定义属性测试">带 data 与 aria 属性的 span</span>。</p>
+      <p><a href="https://example.com/" target="_blank" rel="noopener noreferrer" data-link-kind="external">普通外链</a></p>
+    </article>
+  </section>
+
+  <section id="test-layout" data-test="layout">
+    <h2>二、布局、嵌套容器与空行</h2>
+    <div class="test-card" id="nested-parent" data-parent="outer">
+      <h3>外层 DIV</h3>
+      <p>外层第一段。</p>
+
+      <div class="test-grid" data-layout="grid">
+        <div class="test-card" data-grid-cell="one">网格单元 A</div>
+        <div class="test-card" data-grid-cell="two">网格单元 B</div>
+        <div class="test-card" data-grid-cell="three">网格单元 C</div>
+      </div>
+
+      <p>外层第二段。检查空行是否导致容器被截断。</p>
+      <section class="test-card" data-nested-section="yes">
+        <h4>嵌套 SECTION</h4>
+        <p>嵌套内容。</p>
+        <footer data-footer="nested">嵌套页脚</footer>
+      </section>
+    </div>
+  </section>
+
+  <section id="test-css" data-test="css">
+    <h2>三、CSS 样式属性</h2>
+    <div class="test-card" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px;background:#f0f5f1;border:1px solid #9ab7a4;border-radius:12px;box-sizing:border-box">
+      <span style="font-weight:700;color:#167346;text-shadow:1px 1px 1px #aaa">文字阴影与颜色</span>
+      <span style="font-style:italic;text-transform:uppercase">italic uppercase</span>
+      <span style="display:inline-block;flex:1 1 160px;text-align:center">flex item</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;grid-template-rows:auto;gap:8px;margin-top:12px">
+      <div class="test-card" style="grid-column:1;grid-row:1">Grid 1</div>
+      <div class="test-card" style="grid-column:2;grid-row:1">Grid 2</div>
+    </div>
+    <p style="color:#16834a;background-color:#eef8f0;padding:8px;border-left:4px solid #16834a">内联样式颜色、背景、边框测试。</p>
+  </section>
+
+  <section id="test-list-table" data-test="lists-tables">
+    <h2>四、列表、引用与表格</h2>
+    <ul><li>无序项目一</li><li>无序项目二<ul><li>嵌套项目</li></ul></li></ul>
+    <ol><li>有序项目一</li><li>有序项目二</li></ol>
+    <blockquote cite="https://example.com/">
+      <p>引用块第一行。</p>
+      <p>引用块第二行，检查段落和换行。</p>
+      <footer>—— 测试引用来源</footer>
+    </blockquote>
+    <table class="sample-table" data-table-id="table-01">
+      <thead><tr><th scope="col">项目</th><th scope="col">预期</th><th scope="col">标记</th></tr></thead>
+      <tbody>
+        <tr><td>class</td><td>保留</td><td><code>class="sample-table"</code></td></tr>
+        <tr><td>data 属性</td><td>保留</td><td><code>data-table-id</code></td></tr>
+        <tr><td>ARIA</td><td>保留</td><td><code>aria-label</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="test-details" data-test="interactive-html">
+    <h2>五、折叠、表单与原生交互</h2>
+    <details open data-details-id="details-01">
+      <summary>点击展开/收起的内容</summary>
+      <p>details / summary 内容区域。</p>
+    </details>
+    <form action="https://example.com/" method="get" data-form-id="safe-demo" onsubmit="return false">
+      <fieldset>
+        <legend>表单标签保留测试（不提交）</legend>
+        <label for="cy-name">文本框：</label>
+        <input id="cy-name" name="name" type="text" value="CY Test" placeholder="请输入文字" data-input-role="demo">
+        <label for="cy-choice">下拉框：</label>
+        <select id="cy-choice" name="choice"><option value="a" selected>选项 A</option><option value="b">选项 B</option></select>
+        <label for="cy-message">多行文本：</label>
+        <textarea id="cy-message" name="message" rows="2">多行文本测试</textarea>
+        <button type="button" class="test-button" data-action="test-button">普通按钮（无提交动作）</button>
+        <output name="result" aria-live="polite">表单 output</output>
+      </fieldset>
+    </form>
+    <p>进度：<progress value="70" max="100">70%</progress>　仪表：<meter min="0" max="100" value="82">82</meter></p>
+  </section>
+
+  <section id="test-svg" data-test="svg">
+    <h2>六、SVG 图标、渐变、文字与滤镜</h2>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 100" width="360" height="100" role="img" aria-label="SVG 渐变文字滤镜测试" data-svg-id="svg-01">
+      <defs>
+        <linearGradient id="cy-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#16834a"></stop>
+          <stop offset="100%" stop-color="#58a6ff"></stop>
+        </linearGradient>
+        <filter id="cy-blur"><feGaussianBlur stdDeviation="1.2"></feGaussianBlur></filter>
+      </defs>
+      <rect x="2" y="2" width="356" height="96" rx="12" fill="none" stroke="#16834a"></rect>
+      <circle cx="42" cy="50" r="22" fill="url(#cy-grad)"></circle>
+      <text x="82" y="57" font-size="24" font-weight="700" fill="url(#cy-grad)" filter="url(#cy-blur)">SVG Text CY</text>
+      <tspan x="82" dy="22" class="svg-label">Tspan / gradient / filter</tspan>
+    </svg>
+  </section>
+
+  <section id="test-media" data-test="media">
+    <h2>七、图片、音视频与 iframe</h2>
+    <figure>
+      <img src="https://placehold.co/640x240/png?text=HTML+Image+Test" alt="图片加载测试占位图" width="640" height="240" loading="lazy" data-image-id="image-01">
+      <figcaption>图片尺寸、alt、loading、data 属性。</figcaption>
+    </figure>
+    <p>原生 video 标签（无媒体源，仅检查标签与属性保留）：</p>
+    <video controls width="480" height="270" poster="https://placehold.co/480x270/png?text=Video+Poster" data-video-id="native-video"></video>
+    <p>原生 audio 标签（无媒体源，仅检查标签与属性保留）：</p>
+    <audio controls preload="none" data-audio-id="native-audio"></audio>
+    <p>授权平台 iframe 示例（测试时请自行替换成你拥有使用权的视频地址）：</p>
+    <iframe src="https://www.youtube.com/embed/aqz-KE-bpKQ" title="YouTube iframe test" width="560" height="315" loading="lazy" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" data-iframe-id="provider-youtube"></iframe>
+    <p>非视频 iframe 安全边界测试：该外站应按插件的安全策略处理，不应无条件放行。</p>
+    <iframe src="https://example.com/" title="Generic external iframe test" width="560" height="180" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer" data-iframe-id="generic-external"></iframe>
+  </section>
+
+  <section id="test-code" data-test="code">
+    <h2>八、代码块与特殊字符</h2>
+    <pre><code class="language-js">const test = {
+  dataStateFor: "cy-html-full-2026",
+  html: "&lt;div data-demo='yes'&gt;HTML&lt;/div&gt;",
+  safe: true
+};
+console.log(test);</code></pre>
+    <p>字符转义：&amp; &lt; &gt; &quot; &#39; 中文字符。</p>
+    <p>链接查询参数：<a href="https://example.com/?a=1&amp;b=2">带 &amp;amp; 的 URL</a></p>
+  </section>
+
+  <section id="test-security" data-test="security">
+    <h2>九、安全过滤边界（预期应被过滤）</h2>
+    <p>以下内容仅用于检查危险属性不会被保留：</p>
+    <div onclick="alert('should-not-run')" onmouseover="alert('should-not-run')" data-safe-marker="keep">
+      这个容器的 data-safe-marker 应保留，onclick / onmouseover 不应保留。
+    </div>
+    <a href="javascript:alert('xss')" class="danger-example">危险 javascript 链接（href 应被清理）</a>
+    <img src="x" alt="broken image" onerror="alert('should-not-run')">
+    <p>不要为了保留普通属性而放开 on* 事件属性、javascript: URL 或不受信任 iframe。</p>
+  </section>
+
+  <section id="test-footer" data-test="footer">
+    <h2>十、嵌套页脚与连续空行</h2>
+    <div class="test-card" data-footer-wrapper="true">
+      <p>页脚前一段。</p>
+
+      <footer class="test-card" data-footer-id="footer-01" aria-label="测试页脚">
+        <p><strong>CY HTML 测试页脚</strong></p>
+        <p>检查多层 div/footer、空行、class、style、data 和 aria 属性。</p>
+        <nav aria-label="页脚导航"><a href="#test-basic">回到顶部</a></nav>
+      </footer>
+    </div>
+  </section>
+
+  <hr>
+  <p><strong>验收重点：</strong>结构标签是否存在；class/id/style 是否保留；data-* / aria-* 是否保留；SVG 是否完整；style/script 是否按插件开关工作；iframe 是否遵循安全白名单；危险 on* 与 javascript: 是否被移除。</p>
+  <p class="muted">本文件作为源码输入测试样例。若需测试 Typecho 文章管线，请复制 body 内 main 的内容到文章 HTML 模式中；保留此原文件作为对照基准。</p>
+</main>
+</body>
+</html>
