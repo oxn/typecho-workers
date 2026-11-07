@@ -69,7 +69,15 @@ function getCanonicalDomainRedirect(request: Request, siteUrl: unknown): Respons
   const destination = new URL(canonical.origin);
   destination.pathname = current.pathname;
   destination.search = current.search;
-  return Response.redirect(destination.toString(), 302);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: destination.toString(),
+      // The switch must be reversible without a browser/CDN retaining a
+      // permanent redirect after the administrator turns it off.
+      'Cache-Control': 'no-store',
+    },
+  });
 }
 
 function isCanonicalRedirectExcludedPath(path: string): boolean {
