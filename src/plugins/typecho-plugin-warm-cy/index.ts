@@ -473,7 +473,7 @@ function sanitizeInlineSvgReferences(source: string): string {
 
 function sanitizeInlineHtmlFragment(source: string): string {
   const safeFormActions = source.replace(
-    /\\saction\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))/gi,
+    /\saction\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi,
     (attribute, doubleQuoted: string | undefined, singleQuoted: string | undefined, bare: string | undefined) => {
       const value = (doubleQuoted ?? singleQuoted ?? bare ?? '').trim();
       if (!value || value.startsWith('//')) return '';
