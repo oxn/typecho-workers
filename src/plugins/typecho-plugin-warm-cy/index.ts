@@ -163,7 +163,7 @@ function protectIframeVideoFragments(source: string): string {
 
   content = content.replace(/CYIFRAMEVIDEOX/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
   content = content.replace(
-    /<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*(?:\/\s*>|>[\s\S]*?<\/iframe\s*>|>)/gi,
+    /<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*(?:\/\s*>|>[\s\S]*?<\/iframe\s*>)/gi,
     iframe => 'CYIFRAMEVIDEOX' + encodeInlinePayload(iframe) + 'XEND',
   );
   return content.replace(/CYIFRAMECODE(\d+)XEND/g,
