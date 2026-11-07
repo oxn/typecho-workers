@@ -635,6 +635,21 @@ describe('typecho-plugin-warm-cy', () => {
     expect(post).toEqual({});
   });
 
+  it('keeps protocol-relative request paths on the configured canonical host', async () => {
+    const handler = collectHooks().get('route:request')!;
+    const result = await handler({}, {
+      request: new Request('https://blog.oook.top//attacker.example/path?x=1'),
+      path: '//attacker.example/path',
+      options: {
+        siteUrl: 'https://oook.top',
+        [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
+      },
+    });
+    expect(result.response.status).toBe(302);
+    expect(new URL(result.response.headers.get('location')!).hostname).toBe('oook.top');
+    expect(result.response.headers.get('location')).toBe('https://oook.top//attacker.example/path?x=1');
+  });
+
   it('uses the canonical siteUrl scheme when redirecting the same host', async () => {
     const handler = collectHooks().get('route:request')!;
     const result = await handler({}, {
