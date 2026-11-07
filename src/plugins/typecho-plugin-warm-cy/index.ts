@@ -180,7 +180,7 @@ function restoreIframeOnly(content: string, allowedHostnames: string[]): string 
         'loading', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing',
         'class', 'id', 'style', 'role', 'data-*', 'aria-*',
       ] },
-      allowedIframeHostnames: [],
+      allowedIframeHostnames: undefined,
       allowedSchemes: ['http', 'https'],
       allowedSchemesAppliedToAttributes: ['src'],
       allowProtocolRelative: true,
