@@ -216,7 +216,9 @@ function restoreIframeVideoFragments(content: string, allowedHostnames: string[]
   // The zero-width character prevents user-authored marker-like text from
   // being mistaken for a generated iframe placeholder. Restore it only after
   // generated placeholders have been consumed, preserving the original text.
-  return content.replace(/CY\u200bIFRAMEVIDEOX/gi, 'CYIFRAMEVIDEOX');
+  return content
+    .replace(/CY\u200bIFRAMEVIDEOX/gi, 'CYIFRAMEVIDEOX')
+    .replace(/CY\u200bIFRAMECODE/gi, 'CYIFRAMECODE');
 }
 
 function escapeHtml(value: unknown): string {
