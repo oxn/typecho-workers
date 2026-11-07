@@ -523,9 +523,30 @@ describe('typecho-plugin-warm-cy', () => {
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain('cY\u200bifRameFINALX' + Buffer.from(forged).toString('hex') + 'XEND');
+    expect(restored).toContain('cY\u2060ifRameFINALX' + Buffer.from(forged).toString('hex') + 'XEND');
     expect(restored).toContain(codeLiteral);
     expect(restored).toContain('CYIFRAMECODE12XEND');
+    expect(decodeFinalIframeMarkup(restored)).toBe('<iframe src="https://video.example.org/embed/real"></iframe>');
+  });
+
+  it('keeps plain-text internal-looking markers separate from generated protected segments', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'video.example.org',
+    }));
+    const source = [
+      'CYIFRAMECODE0XEND',
+      '```text',
+      'ordinary code example',
+      '```',
+      '<iframe src="https://video.example.org/embed/real"></iframe>',
+    ].join('\\n');
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain('CY\\u2060IFRAMECODE0XEND');
     expect(decodeFinalIframeMarkup(restored)).toBe('<iframe src="https://video.example.org/embed/real"></iframe>');
   });
 
