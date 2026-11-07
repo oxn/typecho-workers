@@ -579,6 +579,8 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: true,
         showHomeSearchButton: false,
         htmlEnhancementEnabled: true,
+        iframeVideoEnhancementEnabled: true,
+        iframeVideoAllowedHostnames: 'youtube.com\\nplayer.bilibili.com',
         canonicalDomainRedirectEnabled: true,
       }),
       path: SETTINGS_API_PATH,
@@ -592,6 +594,8 @@ describe('typecho-plugin-warm-cy', () => {
       showCommentManagementButtons: '1',
       showHomeSearchButton: '0',
       htmlEnhancementEnabled: '1',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'youtube.com\\nplayer.bilibili.com',
       canonicalDomainRedirectEnabled: '1',
       markdownAlertStyleSettings: {
         enabled: true,
