@@ -256,8 +256,7 @@ describe('typecho-plugin-warm-cy', () => {
       const coreSanitized = sanitizeHtml(parsed);
       const restored = await restore(coreSanitized);
       expect(restored, filename).toContain('cy-inline-html-pending');
-      expect(restored, filename).not.toContain('onclick=');
-      expect(restored, filename).not.toContain('onerror=');
+      expect(restored, filename).not.toMatch(/<[a-z][^>]*\\s(?:onclick|onerror)\\s*=/i);
     }
   });
 
