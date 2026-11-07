@@ -134,41 +134,43 @@ function encodeInlinePayload(value: string): string {
   ).join('');
 }
 
-function protectCompleteDivContainers(content: string, protectedSegments: string[]): string {
-  const tagPattern = /<\/?div\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
+function protectCompleteHtmlContainers(content: string, protectedSegments: string[]): string {
+  const containerTags = new Set([
+    'main', 'article', 'section', 'aside', 'div', 'header', 'footer', 'nav',
+    'figure', 'form', 'fieldset', 'details', 'table', 'thead', 'tbody', 'tfoot',
+    'tr', 'ul', 'ol', 'dl', 'blockquote',
+  ]);
+  const openingPattern = /<([a-z][\\w:-]*)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
   let output = '';
   let cursor = 0;
   let match: RegExpExecArray | null;
 
-  while ((match = tagPattern.exec(content))) {
-    if (/^<\//.test(match[0]) || /\/\s*>$/.test(match[0])) continue;
-
+  while ((match = openingPattern.exec(content))) {
+    const tag = match[1].toLowerCase();
+    if (!containerTags.has(tag) || /\\/\\s*>$/.test(match[0])) continue;
+    const tagPattern = new RegExp('<\\/?' + tag + '\\b(?:[^"\\'<>]|"[^"]*"|\\'[^\\']*\\')*>', 'gi');
+    tagPattern.lastIndex = openingPattern.lastIndex;
     let depth = 1;
     let closeEnd = -1;
     let nested: RegExpExecArray | null;
     while ((nested = tagPattern.exec(content))) {
-      if (/^<\//.test(nested[0])) depth -= 1;
-      else if (!/\/\s*>$/.test(nested[0])) depth += 1;
+      if (/^<\\//.test(nested[0])) depth -= 1;
+      else if (!/\\/\\s*>$/.test(nested[0])) depth += 1;
       if (depth === 0) {
         closeEnd = tagPattern.lastIndex;
         break;
       }
     }
-    if (closeEnd < 0) break;
+    if (closeEnd < 0) continue;
 
     const block = content.slice(match.index, closeEnd).replace(
-      /CYCYCODESEGMENT(\d+)TOKEN/g,
+      /CYCYCODESEGMENT(\\d+)TOKEN/g,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
-
-    // Protect every complete div container, not only multiline footers.
-    // Even a single-line div is stripped by the core sanitizer, which breaks
-    // its class/style attributes and makes the remaining content look plain.
-
     output += content.slice(cursor, match.index)
       + 'CYCYINLINECONTAINERX' + encodeInlinePayload(block) + 'XEND';
     cursor = closeEnd;
-    tagPattern.lastIndex = closeEnd;
+    openingPattern.lastIndex = closeEnd;
   }
 
   return output + content.slice(cursor);
@@ -238,7 +240,7 @@ function protectInlineHtml(source: string): string {
   // Preserve complete div containers as one HTML fragment. CommonMark ends a
   // raw <div> block at blank lines, which otherwise breaks long embedded footers.
 
-  content = protectCompleteDivContainers(content, protectedSegments);
+  content = protectCompleteHtmlContainers(content, protectedSegments);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
