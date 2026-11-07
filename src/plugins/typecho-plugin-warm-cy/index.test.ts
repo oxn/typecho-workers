@@ -470,7 +470,7 @@ describe('typecho-plugin-warm-cy', () => {
       '`<iframe src="https://video.example.org/embed/inline"></iframe>`',
       '<script>const sample = "<iframe src=\\"https://video.example.org/embed/script\\"></iframe>";</script>',
       '<!-- <iframe src="https://video.example.org/embed/comment"></iframe> -->',
-    ].join('\\n');
+    ].join('\n');
     const protectedContent = await hooks.get('content:markdown')!(source);
     expect(protectedContent).toBe(source);
     expect(protectedContent).not.toContain('CYIFRAMEVIDEOX');
