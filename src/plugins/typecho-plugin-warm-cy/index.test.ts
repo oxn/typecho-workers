@@ -144,10 +144,12 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
-    expect(html).toContain('视频 iframe 增强（仅处理视频地址）');
+    expect(html).toContain('iframe 内嵌框架增强开关');
     expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
+    expect(html).toContain('通过 iframe 插入的内容，不限于视频');
+    expect(html).toContain('iframe 来源域名白名单（可留空）');
     expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames"');
-    expect(html).toContain('白名单留空表示拒绝所有 iframe 视频域名');
+    expect(html).toContain('白名单留空表示拒绝所有 iframe 域名');
     expect(html).toContain('www.youtube.com');
     expect(html).toContain('www.youtube-nocookie.com');
     expect(html).toContain('player.bilibili.com');
