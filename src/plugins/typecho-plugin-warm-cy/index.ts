@@ -131,7 +131,7 @@ function normalizeIframeVideoHostnames(value: unknown): string[] {
 function protectIframeVideoFragments(source: string): string {
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
-    const marker = 'CYIFRAMECODE' + protectedSegments.length + 'XEND';
+    const marker = 'CY\u200bIFRAMECODE' + protectedSegments.length + 'XEND';
     protectedSegments.push(value);
     return marker;
   };
@@ -167,7 +167,7 @@ function protectIframeVideoFragments(source: string): string {
     /<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*(?:\/\s*>|>[\s\S]*?<\/iframe\s*>)/gi,
     iframe => 'CYIFRAMEVIDEOX' + encodeInlinePayload(iframe) + 'XEND',
   );
-  return content.replace(/CYIFRAMECODE(\d+)XEND/g,
+  return content.replace(/CY\u200bIFRAMECODE(\d+)XEND/g,
     (_marker, index: string) => protectedSegments[Number(index)] ?? _marker);
 }
 function getSafeIframeAttributeNames(source: string): string[] {
