@@ -276,6 +276,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<select name="format"><option value="a" selected>A</option><option value="b">B</option></select>',
       '<textarea name="message" rows="4" cols="20" placeholder="输入"></textarea>',
       '<output name="result">完成</output><progress value="3" max="10"></progress><meter min="0" max="10" value="7"></meter>',
+      '<form action="javascript:alert(1)"><button type="submit">危险表单</button></form>',
       '</fieldset></form>',
       '</div>',
     ].join('');
@@ -287,6 +288,7 @@ describe('typecho-plugin-warm-cy', () => {
     for (const tag of ['time', 'details', 'summary', 'mark', 'abbr', 'u', 'sub', 'sup', 'form', 'fieldset', 'legend', 'input', 'select', 'option', 'textarea', 'output', 'progress', 'meter']) {
       expect(restored).toContain('<' + tag);
     }
+    expect(restored).not.toContain('javascript:alert(1)');
     for (const attribute of ['datetime="2026-11-07"', 'open=""', 'title="说明"', 'action="/submit"', 'method="post"', 'for="choice"', 'checked=""', 'required=""', 'selected=""', 'rows="4"', 'cols="20"', 'max="10"', 'min="0"']) {
       expect(restored).toContain(attribute);
     }
