@@ -574,6 +574,7 @@ describe('typecho-plugin-warm-cy', () => {
     });
     expect(result.handled).toBe(true);
     expect(result.response.status).toBe(302);
+    expect(result.response.headers.get('cache-control')).toBe('no-store');
     expect(result.response.headers.get('location')).toBe(
       'https://oook.top/2026/10/30/shengming7.html?from=share&x=1',
     );
