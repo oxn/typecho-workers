@@ -197,7 +197,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         </label>
         <p>独立处理文章和独立页面中的视频 iframe。关闭后不接管 iframe；白名单留空表示不允许任何外部 iframe 域名。只填写主机名，不要填写协议、端口或路径。</p>
         <label for="cy-iframe-video-hostnames">允许的视频 iframe 域名（可留空）</label>
-        <textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">${escapeHtml(iframeVideoAllowedHostnames.join('\\n'))}</textarea>
+        <textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">${escapeHtml(iframeVideoAllowedHostnames.join('\n'))}</textarea>
       </section>
       <section class="cy-feature-card">
         <label class="cy-feature-toggle">
@@ -1226,7 +1226,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
           : (values.iframeVideoEnhancementEnabled ? '1' : '0'),
         iframeVideoAllowedHostnames: values.iframeVideoAllowedHostnames === undefined
           ? (typeof current.iframeVideoAllowedHostnames === 'string' ? current.iframeVideoAllowedHostnames : '')
-          : normalizeIframeVideoHostnames(values.iframeVideoAllowedHostnames).join('\\n'),
+          : normalizeIframeVideoHostnames(values.iframeVideoAllowedHostnames).join('\n'),
         canonicalDomainRedirectEnabled: values.canonicalDomainRedirectEnabled === undefined
           ? (isEnabled(current.canonicalDomainRedirectEnabled, false) ? '1' : '0')
           : (values.canonicalDomainRedirectEnabled ? '1' : '0'),
