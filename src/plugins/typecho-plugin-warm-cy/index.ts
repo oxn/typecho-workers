@@ -294,7 +294,7 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     'fegaussianblur', 'feoffset', 'fecomponenttransfer', 'fefunca', 'femerge', 'femergenode',
   ],
   allowedAttributes: {
-    '*': ['class', 'id', 'style', 'title', 'role', 'aria-label', 'aria-hidden', 'data-*', 'aria-*'],
+    '*': ['class', 'id', 'style', 'title', 'role', 'aria-label', 'aria-hidden', 'data-*', 'aria-*', 'filter', 'clip-path', 'mask'],
     a: ['href', 'target', 'rel', 'title', 'style', 'class', 'id', 'download', 'data-*', 'aria-*'],
     img: ['src', 'alt', 'title', 'width', 'height', 'loading', 'class', 'style', 'data-*', 'aria-*'],
     div: ['style', 'class', 'id', 'title', 'role', 'aria-label', 'aria-hidden', 'data-*', 'aria-*'],
@@ -363,8 +363,8 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     mask: ['id', 'maskunits', 'maskcontentunits', 'data-*', 'aria-*'],
     use: ['id', 'href', 'xlink:href', 'width', 'height', 'x', 'y', 'data-*', 'aria-*'],
     symbol: ['id', 'viewbox', 'viewBox', 'preserveAspectRatio', 'data-*', 'aria-*'],
-    text: ['x', 'y', 'dx', 'dy', 'font-size', 'font-weight', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'fill', 'stroke', 'style', 'data-*', 'aria-*'],
-    tspan: ['x', 'y', 'dx', 'dy', 'font-size', 'font-weight', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'fill', 'stroke', 'style', 'data-*', 'aria-*'],
+    text: ['x', 'y', 'dx', 'dy', 'font-size', 'font-weight', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'fill', 'stroke', 'filter', 'style', 'data-*', 'aria-*'],
+    tspan: ['x', 'y', 'dx', 'dy', 'font-size', 'font-weight', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'fill', 'stroke', 'filter', 'style', 'data-*', 'aria-*'],
     filter: ['id', 'x', 'y', 'width', 'height', 'filterunits', 'primitiveunits', 'data-*', 'aria-*'],
     fegaussianblur: ['in', 'stddeviation', 'result', 'data-*', 'aria-*'],
     feoffset: ['in', 'dx', 'dy', 'result', 'data-*', 'aria-*'],
@@ -456,7 +456,7 @@ function decodeInlinePayload(hex: string): string {
 }
 
 function sanitizeInlineSvgReferences(source: string): string {
-  return source.replace(/<(?:svg|g|path|use|symbol|mask|clippath|lineargradient|radialgradient|filter|fegaussianblur|feoffset|fecomponenttransfer|fefunca|femerge|femergenode)\b[^>]*>/gi, tag => {
+  return source.replace(/<(?:svg|g|path|use|symbol|mask|clippath|lineargradient|radialgradient|filter|fegaussianblur|feoffset|fecomponenttransfer|fefunca|femerge|femergenode|text|tspan)\b[^>]*>/gi, tag => {
     let safe = tag.replace(/\s+(href|xlink:href)\s*=\s*(["'])(.*?)\2/gi, (attribute, _name, _quote, value) =>
       /^#[\w:.-]+$/.test(String(value).trim()) ? attribute : '',
     );
@@ -590,58 +590,370 @@ function markdownAlertIconStyles(): string {
     + '</style>';
 }
 
-const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  const markerPattern = /CYCYINLINEBLOCKX([0-9a-f]+)XEND|CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/g;\n  const literalMarkerPattern = /CYCY\\u200bINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/g;\n  const svgTags = new Set(['svg','g','path','circle','rect','line','polyline','polygon','ellipse','defs','lineargradient','radialgradient','stop','clippath','mask','title','desc','use','symbol','text','tspan','filter','fegaussianblur','feoffset','fecomponenttransfer','fefunca','femerge','femergenode']);\n  const svgAttrs = new Set(['id','class','viewbox','width','height','fill','fill-rule','clip-rule','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','cx','cy','r','rx','ry','x','y','x1','x2','y1','y2','d','points','transform','preserveaspectratio','offset','stop-color','stop-opacity','gradientunits','gradienttransform','clippathunits','maskunits','maskcontentunits','clip-path','mask','filter','href','xlink:href','role','focusable','aria-hidden','aria-label','stddeviation','dx','dy','in','type','slope','amplitude','exponent','intercept','result','operator','font-size','font-weight','text-anchor','dominant-baseline','letter-spacing','filterunits','primitiveunits','tablevalues']);\n  const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };\n  const safeSvgNode = node => {\n    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || '');\n    if (node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())) return null;\n    const clean = document.createElementNS('http://www.w3.org/2000/svg', node.localName);\n    for (const attr of Array.from(node.attributes)) {\n      const key = attr.name.toLowerCase(), value = attr.value;\n      if (!svgAttrs.has(key) && key !== 'style' && !key.startsWith('aria-')) continue;\n      if (key === 'style') {\n        const allowedStyle = new Set(['fill','stroke','fill-rule','clip-rule','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','stop-color','stop-opacity']);\n        const safeStyle = value.split(';').map(part => part.trim()).filter(Boolean).map(part => {\n          const split = part.indexOf(':');\n          if (split < 1) return '';\n          const property = part.slice(0, split).trim().toLowerCase();\n          const cssValue = part.slice(split + 1).trim();\n          if (!allowedStyle.has(property) || /expression|javascript:|data:|@import|[\\u0000-\\u001f]/i.test(cssValue)) return '';\n          if (/\\burl\\s*\\(/i.test(cssValue) && !/^url\\(\\s*#[\\w:.-]+\\s*\\)$/i.test(cssValue)) return '';\n          return property + ':' + cssValue;\n        }).filter(Boolean).join(';');\n        if (safeStyle) clean.setAttribute('style', safeStyle);\n        continue;\n      }\n      if ((key === 'href' || key === 'xlink:href') && !/^#[\\w:.-]+$/.test(value)) continue;\n      if (/\\burl\\s*\\(/i.test(value) && !/^\\s*url\\(\\s*#[\\w:.-]+\\s*\\)\\s*$/i.test(value)) continue;\n      if (/javascript:|data:text\\/html|[\\u0000-\\u001f]/i.test(value)) continue;\n      if (key === 'xlink:href') clean.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', value); else clean.setAttribute(attr.name, value);\n    }\n    for (const child of Array.from(node.childNodes)) { const safe = safeSvgNode(child); if (safe) clean.appendChild(safe); }\n    return clean;\n  };\n  const addBlock = (raw, enqueueScript) => {\n    const match = raw.match(/^<(style|script|svg)\\b([^>]*)>([\\s\\S]*)<\\/\\1\\s*>$/i);\n    if (!match) return null;\n    const tag = match[1].toLowerCase(), attrs = match[2] || '', body = match[3] || '';\n    if (tag === 'svg') {\n      try { const parsed = new DOMParser().parseFromString(raw, 'image/svg+xml'); if (parsed.querySelector('parsererror') || parsed.documentElement.localName.toLowerCase() !== 'svg') return null; return safeSvgNode(parsed.documentElement); } catch { return null; }\n    }\n    if (tag === 'style') {\n      const style = document.createElement('style');\n      const media = attrs.match(/\\bmedia\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')/i);\n      const mediaValue = media ? media[1] || media[2] || '' : '';\n      const safeCss = body.replace(/\\/\\*[\\s\\S]*?\\*\\//g, '')\n        .replace(/@import\\b[^;]*(?:;|$)/gi, '')\n        .replace(/(?:expression|behavior|-moz-binding)\\s*:[^;}]+;?/gi, '')\n        .replace(/url\\(\\s*(?!['\"]?#)[^)]+\\)/gi, 'none');\n      const scopeRules = (owner, nestedStyleContext = false) => {
-        const rules = owner.cssRules;
-        if (!rules || typeof owner.deleteRule !== 'function') throw new Error('CSSOM rule mutation unavailable');
-        for (let i = rules.length - 1; i >= 0; i--) {
-          const rule = rules[i];
-          if (rule.type === 1 && typeof rule.selectorText === 'string') {
-            try {
-              if (!nestedStyleContext) {
-                const selectorText = rule.selectorText;
-                const selectors = [];
-                let start = 0, round = 0, square = 0, quote = '', escaped = false;
-                for (let j = 0; j <= selectorText.length; j++) {
-                  const ch = j === selectorText.length ? ',' : selectorText[j];
-                  if (escaped) { escaped = false; continue; }
-                  if (ch === '\\') { escaped = true; continue; }
-                  if (quote) { if (ch === quote) quote = ''; continue; }
-                  if (ch === '"' || ch === "'") { quote = ch; continue; }
-                  if (ch === '(') round++;
-                  else if (ch === ')') round--;
-                  else if (ch === '[') square++;
-                  else if (ch === ']') square--;
-                  else if (ch === ',' && round === 0 && square === 0) {
-                    const selector = selectorText.slice(start, j).trim();
-                    if (!selector) throw new Error('Empty CSS selector');
-                    selectors.push(selector);
-                    start = j + 1;
-                  }
-                }
-                rule.selectorText = selectors.map(selector => {
-                  if (selector === ':root') return '.warm-prose:not(.warm-note-prose)';
-                  if (selector.startsWith(':root ')) return '.warm-prose:not(.warm-note-prose) ' + selector.slice(6);
-                  if (selector.startsWith(':root>')) return '.warm-prose:not(.warm-note-prose)' + selector.slice(5);
-                  return '.warm-prose:not(.warm-note-prose) ' + selector;
-                }).join(', ');
-              }
-              if (rule.cssRules) {
-                if (typeof rule.deleteRule !== 'function') throw new Error('Nested CSS rule mutation unavailable');
-                scopeRules(rule, true);
-              }
-            } catch {
-              owner.deleteRule(i);
-            }
-          } else if (rule.type === 7 || rule.type === 8) {
-            // Keyframe step selectors are not document selectors.
-          } else if (rule.cssRules && typeof rule.deleteRule === 'function') {
-            scopeRules(rule, nestedStyleContext);
-          } else if (rule.constructor && rule.constructor.name === 'CSSNestedDeclarations' && nestedStyleContext) {
-            // These declarations inherit the already-scoped parent style rule.
+const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  const markerPattern = /CYCYINLINEBLOCKX([0-9a-f]+)XEND|CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/g;\n  const literalMarkerPattern = /CYCY\\u200bINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/g;\n  const svgTags = new Set(['svg','g','path','circle','rect','line','polyline','polygon','ellipse','defs','lineargradient','radialgradient','stop','clippath','mask','title','desc','use','symbol','text','tspan','filter','fegaussianblur','feoffset','fecomponenttransfer','fefunca','femerge','femergenode']);\n  const svgAttrs = new Set(['id','class','viewbox','width','height','fill','fill-rule','clip-rule','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','cx','cy','r','rx','ry','x','y','x1','x2','y1','y2','d','points','transform','preserveaspectratio','offset','stop-color','stop-opacity','gradientunits','gradienttransform','clippathunits','maskunits','maskcontentunits','clip-path','mask','filter','href','xlink:href','role','focusable','aria-hidden','aria-label','stddeviation','dx','dy','in','type','slope','amplitude','exponent','intercept','result','operator','font-size','font-weight','text-anchor','dominant-baseline','letter-spacing','filterunits','primitiveunits','tablevalues']);\n  const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };\n  const safeSvgNode = node => {\n    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || '');\n    if (node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())) return null;\n    const clean = document.createElementNS('http://www.w3.org/2000/svg', node.localName);\n    for (const attr of Array.from(node.attributes)) {\n      const key = attr.name.toLowerCase(), value = attr.value;\n      if (!svgAttrs.has(key) && key !== 'style' && !key.startsWith('aria-')) continue;\n      if (key === 'style') {\n        const allowedStyle = new Set(['fill','stroke','fill-rule','clip-rule','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','stop-color','stop-opacity']);\n        const safeStyle = value.split(';').map(part => part.trim()).filter(Boolean).map(part => {\n          const split = part.indexOf(':');\n          if (split < 1) return '';\n          const property = part.slice(0, split).trim().toLowerCase();\n          const cssValue = part.slice(split + 1).trim();\n          if (!allowedStyle.has(property) || /expression|javascript:|data:|@import|[\\u0000-\\u001f]/i.test(cssValue)) return '';\n          if (/\\burl\\s*\\(/i.test(cssValue) && !/^url\\(\\s*#[\\w:.-]+\\s*\\)$/i.test(cssValue)) return '';\n          return property + ':' + cssValue;\n        }).filter(Boolean).join(';');\n        if (safeStyle) clean.setAttribute('style', safeStyle);\n        continue;\n      }\n      if ((key === 'href' || key === 'xlink:href') && !/^#[\\w:.-]+$/.test(value)) continue;\n      if (/\\burl\\s*\\(/i.test(value) && !/^\\s*url\\(\\s*#[\\w:.-]+\\s*\\)\\s*$/i.test(value)) continue;\n      if (/javascript:|data:text\\/html|[\\u0000-\\u001f]/i.test(value)) continue;\n      if (key === 'xlink:href') clean.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', value); else clean.setAttribute(attr.name, value);\n    }\n    for (const child of Array.from(node.childNodes)) { const safe = safeSvgNode(child); if (safe) clean.appendChild(safe); }\n    return clean;\n  };\n  const addBlock = (raw, enqueueScript) => {\n    const match = raw.match(/^<(style|script|svg)\\b([^>]*)>([\\s\\S]*)<\\/\\1\\s*>$/i);\n    if (!match) return null;\n    const tag = match[1].toLowerCase(), attrs = match[2] || '', body = match[3] || '';\n    if (tag === 'svg') {\n      try { const parsed = new DOMParser().parseFromString(raw, 'image/svg+xml'); if (parsed.querySelector('parsererror') || parsed.documentElement.localName.toLowerCase() !== 'svg') return null; return safeSvgNode(parsed.documentElement); } catch { return null; }\n    }\n    if (tag === 'style') {\n      const style = document.createElement('style');\n      const media = attrs.match(/\\bmedia\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')/i);\n      const mediaValue = media ? media[1] || media[2] || '' : '';\n      const safeCss = body.replace(/\\/\\*[\\s\\S]*?\\*\\//g, '')\n        .replace(/@import\\b[^;]*(?:;|$)/gi, '')\n        .replace(/(?:expression|behavior|-moz-binding)\\s*:[^;}]+;?/gi, '')\n        .replace(/url\\(\\s*(?!['\"]?#)[^)]+\\)/gi, 'none');\n      const scopeRules = (owner, nestedStyleContext = false) => {\n        const rules = owner.cssRules;\n        if (!rules || typeof owner.deleteRule !== 'function') throw new Error('CSSOM rule mutation unavailable');\n        for (let i = rules.length - 1; i >= 0; i--) {\n          const rule = rules[i];\n          if (rule.type === 1 && typeof rule.selectorText === 'string') {\n            try {\n              if (!nestedStyleContext) {\n                const selectorText = rule.selectorText;\n                const selectors = [];\n                let start = 0, round = 0, square = 0, quote = '', escaped = false;\n                for (let j = 0; j <= selectorText.length; j++) {\n                  const ch = j === selectorText.length ? ',' : selectorText[j];\n                  if (escaped) { escaped = false; continue; }\n                  if (ch === '\\\\') { escaped = true; continue; }\n                  if (quote) { if (ch === quote) quote = ''; continue; }\n                  if (ch === '"' || ch === "'") { quote = ch; continue; }\n                  if (ch === '(') round++;\n                  else if (ch === ')') round--;\n                  else if (ch === '[') square++;\n                  else if (ch === ']') square--;\n                  else if (ch === ',' && round === 0 && square === 0) {\n                    const selector = selectorText.slice(start, j).trim();\n                    if (!selector) throw new Error('Empty CSS selector');\n                    selectors.push(selector);\n                    start = j + 1;\n                  }\n                }\n                rule.selectorText = selectors.map(selector => {\n                  if (selector === ':root') return '.warm-prose:not(.warm-note-prose)';\n                  if (selector.startsWith(':root ')) return '.warm-prose:not(.warm-note-prose) ' + selector.slice(6);\n                  if (selector.startsWith(':root>')) return '.warm-prose:not(.warm-note-prose)' + selector.slice(5);\n                  return '.warm-prose:not(.warm-note-prose) ' + selector;\n                }).join(', ');\n              }\n              if (rule.cssRules) {\n                if (typeof rule.deleteRule !== 'function') throw new Error('Nested CSS rule mutation unavailable');\n                scopeRules(rule, true);\n              }\n            } catch {\n              owner.deleteRule(i);\n            }\n          } else if (rule.type === 7 || rule.type === 8) {\n            // Keyframe step selectors are not document selectors.\n          } else if (rule.cssRules && typeof rule.deleteRule === 'function') {\n            scopeRules(rule, nestedStyleContext);\n          } else if (rule.constructor && rule.constructor.name === 'CSSNestedDeclarations' && nestedStyleContext) {\n            // These declarations inherit the already-scoped parent style rule.\n          } else {\n            owner.deleteRule(i);\n          }\n        }\n      };\n      style.media = 'not all';\n      style.textContent = safeCss;\n      document.head.appendChild(style);\n      try {\n        const sheet = style.sheet;\n        if (!sheet || !sheet.cssRules) {\n          style.remove();\n          return null;\n        }\n        scopeRules(sheet);\n        style.media = mediaValue;\n      } catch {\n        style.remove();\n      }\n      return null;\n    }\n    const script = document.createElement('script');\n    const type = attrs.match(/\\btype\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n    const scriptType = (type && (type[1] || type[2]) || '').toLowerCase();\n    if (scriptType && !['module','text/javascript','application/javascript'].includes(scriptType)) return null;\n    if (scriptType) script.type = scriptType;\n    const src = attrs.match(/\\bsrc\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)'|([^\\s>]+))/i);\n    if (src) {\n      try {\n        const url = new URL(src[1] || src[2] || src[3] || '', document.baseURI);\n        if (!['https:', 'http:'].includes(url.protocol)) return null;\n        if (url.protocol === 'http:' && url.origin !== location.origin) return null;\n        script.src = url.href;\n        script.async = false;\n        const integrity = attrs.match(/\\bintegrity\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n        if (integrity) script.integrity = integrity[1] || integrity[2] || '';\n        const crossOrigin = attrs.match(/\\bcrossorigin\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)'|([^\\s>]+))/i);\n        if (crossOrigin) { const value = (crossOrigin[1] || crossOrigin[2] || crossOrigin[3] || 'anonymous').toLowerCase(); if (['anonymous', 'use-credentials'].includes(value)) script.crossOrigin = value; }\n        const referrerPolicy = attrs.match(/\\breferrerpolicy\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n        if (referrerPolicy) { const value = (referrerPolicy[1] || referrerPolicy[2] || '').toLowerCase(); if (['no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url'].includes(value)) script.referrerPolicy = value; }\n      } catch { return null; }\n    } else {\n      script.textContent = body;\n    }\n    enqueueScript(script); return null;\n  };\n  const hydrate = () => {\n    let scriptExecutionQueue = Promise.resolve();\n    const enqueueScript = script => {\n      const appendScript = () => new Promise(resolve => {\n        const waitsForExecution = Boolean(script.src) || script.type === 'module';\n        if (waitsForExecution) {\n          let settled = false;\n          const finish = () => { if (settled) return; settled = true; resolve(); };\n          script.addEventListener('load', finish, { once: true });\n          script.addEventListener('error', finish, { once: true });\n        }\n        document.body.appendChild(script);\n        if (!waitsForExecution) resolve();\n      });\n      scriptExecutionQueue = scriptExecutionQueue.then(appendScript, appendScript);\n    };\n    // Only article and standalone-page bodies are in scope; note bodies are excluded.\n    for (const root of document.querySelectorAll('.warm-prose:not(.warm-note-prose)')) {\n    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) { const p = node.parentElement; if (!p || p.closest('pre,code,textarea,script,style')) return NodeFilter.FILTER_REJECT; markerPattern.lastIndex = 0; literalMarkerPattern.lastIndex = 0; return markerPattern.test(node.nodeValue || '') || literalMarkerPattern.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });\n    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);\n    for (const node of nodes) {\n      const value = node.nodeValue || ''; markerPattern.lastIndex = 0; literalMarkerPattern.lastIndex = 0; const hasLiteralMarkers = literalMarkerPattern.test(value); literalMarkerPattern.lastIndex = 0; let last = 0, match, changed = false; const fragment = document.createDocumentFragment();\n      while ((match = markerPattern.exec(value))) {\n        changed = true; if (match.index > last) fragment.appendChild(document.createTextNode(value.slice(last, match.index)));\n        if (enabled && match[1]) { const element = addBlock(decode(match[1]), enqueueScript); if (element) fragment.appendChild(element); }\n        else if (enabled && match[2] && match[3]) {\n          const parent = node.parentElement, previous = node.previousElementSibling;\n          const target = parent && parent.tagName.toLowerCase() === match[2] ? parent : previous && previous.tagName.toLowerCase() === match[2] ? previous : parent;\n          if (target) {\n            try {\n              const attrs = JSON.parse(decode(match[3]));\n              for (const [name, value] of Object.entries(attrs)) {\n                if (name === 'style') target.style.cssText = String(value);\n                else if (name === 'class' || name === 'id' || name === 'title' || name === 'role'\n                  || name === 'width' || name === 'height' || name === 'alt' || name === 'loading'\n                  || name === 'type' || name === 'name' || name === 'value' || name === 'placeholder'\n                  || name === 'datetime' || name === 'open' || name === 'for' || name === 'checked'\n                  || name === 'selected' || name === 'rows' || name === 'cols' || name === 'max' || name === 'min'\n                  || name === 'action' || name === 'method' || name === 'step' || name === 'disabled'\n                  || name === 'required' || name === 'multiple' || name === 'minlength' || name === 'maxlength'\n                  || name === 'autocomplete' || name === 'low' || name === 'high' || name === 'optimum' || name === 'label'\n                  || (match[2] === 'iframe' && ['src', 'frameborder', 'allow', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing'].includes(name))\n                  || name.startsWith('data-') || name.startsWith('aria-')) {\n                  target.setAttribute(name, String(value));\n                }\n              }\n            } catch {}\n          }\n        }\n        last = match.index + match[0].length;\n      }\n      if (changed || hasLiteralMarkers) { if (last < value.length) fragment.appendChild(document.createTextNode(value.slice(last))); for (const child of Array.from(fragment.childNodes)) { if (child.nodeType === Node.TEXT_NODE) child.nodeValue = (child.nodeValue || '').replace(literalMarkerPattern, 'CYCYINLINE'); } node.parentNode && node.parentNode.replaceChild(fragment, node); }\n    }\n    }\n  };\n  hydrate(); window.addEventListener('instantclick:newpage', hydrate);\n})();";
+function inlineHtmlRuntime(enabled: boolean): string {
+  const visibilityStyle = '<style data-cy-inline-html-enhancement-style>'
+    + '.cy-inline-html-pending{display:' + (enabled ? 'contents' : 'none') + '!important}'
+    // Match the theme iframe rule's specificity, but scope the correction to
+    // restored HTML. Article-authored inline styles and later style blocks win.
+    + '</style>';
+  return visibilityStyle + '<script data-cy-inline-html-enhancement>'
+    + INLINE_HTML_RUNTIME.replace('__CY_ENABLED__', enabled ? 'true' : 'false')
+    + '</script>';
+}
+
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, no-store' },
+  });
+}
+
+function parseSettings(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'string' || !value) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function parsePinnedIds(value: unknown): number[] {
+  if (typeof value !== 'string' && typeof value !== 'number') return [];
+  const result: number[] = [];
+  const seen = new Set<number>();
+  for (const part of String(value).split(/[，,\s]+/)) {
+    if (!/^\d+$/.test(part.trim())) continue;
+    const cid = Number(part.trim());
+    if (!Number.isSafeInteger(cid) || cid <= 0 || seen.has(cid)) continue;
+    seen.add(cid);
+    result.push(cid);
+  }
+  return result;
+}
+
+export default function init({ addHook, pluginId }: PluginInitContext): void {
+  registerPluginAdminPath(ADMIN_PATH);
+  registerPluginAdminPath(ADMIN_SETTINGS_API_PATH);
+
+  // The content filter contract supplies only the source string. Read the
+  // plugin's private option through the host options loader; do not depend on
+  // an extra RequestContext argument that the core does not pass.
+  addHook('content:markdown', pluginId, async (content: string) => {
+    // Plain Markdown cannot contain an enhancement fragment. Avoid a private
+    // options-table D1 read for the common case; only inspect the feature
+    // switch when the source actually contains an HTML tag.
+    if (!/<\/?[a-z][\w:-]*(?:\s[^<>]*|\/?)>/i.test(content)
+      && !/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/.test(content)) return content;
+    return await isHtmlEnhancementEnabled() ? protectInlineHtml(content) : content;
+  }, 1);
+
+  // Alert icons remain independent. Re-check the opt-in switch before restoring
+  // HTML markers: content:content is async-capable, and user-authored text must
+  // never activate fragment restoration while the feature is disabled.
+  addHook('content:content', pluginId, async (content: string) => {
+    const withAlertIcons = restoreMarkdownAlertIcons(content);
+    if (!withAlertIcons.includes('CYCYINLINE')) return withAlertIcons;
+    return await isHtmlEnhancementEnabled()
+      ? restoreInlineHtmlFragments(withAlertIcons)
+      : withAlertIcons;
+  }, 1);
+
+  // Rehydrate only after Markdown sanitization; the feature is opt-in.
+  addHook('archive:footer', pluginId, (html: string, extra?: {
+    options?: Record<string, unknown>;
+  }) => {
+    const options = extra?.options;
+    if (!options) return html;
+    const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    const htmlRuntime = options.theme === THEME_ID && isEnabled(settings.htmlEnhancementEnabled, false)
+      ? inlineHtmlRuntime(true)
+      : '';
+    const alertIconStyle = options.theme === THEME_ID ? markdownAlertIconStyles() : '';
+    if (options.theme !== THEME_ID || !isEnabled(settings.showHomeSearchButton)) {
+      return html + alertIconStyle + htmlRuntime;
+    }
+    const searchBase = JSON.stringify(
+      String(computeUrls(options as any).siteUrl || '/').replace(/\/?$/, '/'),
+    ).replace(/</g, '\\u003c');
+    return `${html}${alertIconStyle}${htmlRuntime}<script data-warm-cy-global-search>
+      (() => {
+        const searchBase = ${searchBase};
+        const ensureSearchControls = () => {
+          let trigger = document.querySelector('[data-warm-search-open]');
+          if (!trigger) {
+            trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'warm-search-trigger';
+            trigger.setAttribute('data-warm-search-open', '');
+            trigger.setAttribute('aria-label', '打开搜索');
+            trigger.title = '全局搜索';
+            trigger.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>';
+          }
+
+          let dialog = document.querySelector('[data-warm-search-dialog]');
+          if (!dialog) {
+            dialog = document.createElement('dialog');
+            dialog.className = 'warm-search-dialog';
+            dialog.setAttribute('data-warm-search-dialog', '');
+            dialog.setAttribute('aria-labelledby', 'warm-search-title');
+            dialog.innerHTML = '<div class="warm-search-dialog__panel"><button type="button" class="warm-search-dialog__close" data-warm-search-close aria-label="关闭搜索">×</button><h2 id="warm-search-title">搜索文章</h2><form class="warm-search-form" data-warm-search-form><input type="search" class="warm-search-input" data-warm-search-input placeholder="输入关键词…" autocomplete="off" aria-label="搜索关键词"><button type="submit" class="warm-search-submit" aria-label="搜索"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg><span>搜索</span></button></form><p class="warm-search-error" data-warm-search-error role="status" aria-live="polite"></p></div>';
+          }
+
+          dialog.dataset.searchBase = searchBase;
+          const nav = document.querySelector('.warm-nav') || document.querySelector('header nav');
+          if (nav) {
+            nav.append(trigger);
+            trigger.classList.remove('warm-search-trigger--floating');
           } else {
-            owner.deleteRule(i);
+            const header = document.querySelector('.warm-header__inner, header');
+            if (header) {
+              header.append(trigger);
+              trigger.classList.remove('warm-search-trigger--floating');
+            } else {
+              trigger.classList.add('warm-search-trigger--floating');
+              document.body.append(trigger);
+            }
+          }
+          if (dialog.parentElement !== document.body) document.body.append(dialog);
+        };
+
+        if (!document.documentElement.dataset.warmCyGlobalSearchBound) {
+          document.documentElement.dataset.warmCyGlobalSearchBound = '1';
+          document.addEventListener('click', event => {
+            const target = event.target instanceof Element ? event.target : null;
+            if (!target) return;
+            if (target.closest('[data-warm-search-open]')) {
+              const dialog = document.querySelector('[data-warm-search-dialog]');
+              if (!(dialog instanceof HTMLDialogElement)) return;
+              const error = dialog.querySelector('[data-warm-search-error]');
+              const input = dialog.querySelector('[data-warm-search-input]');
+              if (error) error.textContent = '';
+              if (!dialog.open) dialog.showModal();
+              input?.focus();
+              return;
+            }
+            if (target.closest('[data-warm-search-close]')) {
+              const dialog = target.closest('[data-warm-search-dialog]') || document.querySelector('[data-warm-search-dialog]');
+              if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
+              return;
+            }
+            const dialog = target.closest('[data-warm-search-dialog]');
+            if (dialog instanceof HTMLDialogElement && target === dialog) dialog.close();
+          });
+          document.addEventListener('submit', event => {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement) || !form.matches('[data-warm-search-form]')) return;
+            event.preventDefault();
+            const dialog = form.closest('[data-warm-search-dialog]');
+            const input = form.querySelector('[data-warm-search-input]');
+            const error = dialog?.querySelector('[data-warm-search-error]');
+            const keyword = String(input?.value || '').trim();
+            if (!keyword) {
+              if (error) error.textContent = '请输入搜索关键词';
+              input?.focus();
+              return;
+            }
+            const base = dialog?.dataset.searchBase || searchBase;
+            window.location.href = base + 'search/' + encodeURIComponent(keyword) + '/';
+          });
+          window.addEventListener('instantclick:newpage', ensureSearchControls);
+        }
+
+        ensureSearchControls();
+      })();
+    </script>`;
+  }, 20);
+
+  addHook('admin:header', pluginId, (html: string, extra?: {
+    title?: string;
+    options?: Record<string, unknown>;
+  }) => {
+    if (extra?.options?.theme !== THEME_ID
+      || (extra?.title !== '设置外观' && extra?.title !== 'CY 功能显示')) return html;
+    return `${html}<style data-warm-cy-admin>${adminCss}</style>`;
+  }, 20);
+
+  // Add the companion settings entry to the existing Settings menu without
+  // changing the core Admin layout. Also decorate the theme settings form.
+  addHook('admin:footer', pluginId, (html: string, extra?: {
+    options?: Record<string, unknown>;
+  }) => {
+    if (extra?.options?.theme !== THEME_ID) return html;
+    return `${html}<script data-warm-cy-admin-navigation>
+      (() => {
+        const pluginPath = '/admin/plugin/${ADMIN_PAGE_SLUG}';
+        const groups = document.querySelectorAll('.typecho-head-nav menu > li');
+        for (const group of groups) {
+          const heading = group.querySelector(':scope > a');
+          if (heading?.textContent?.trim() !== '设置') continue;
+          const submenu = group.querySelector(':scope > menu');
+          if (!submenu || submenu.querySelector('a[href="' + pluginPath + '"]')) break;
+          const item = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = pluginPath;
+          link.textContent = 'CY 功能显示';
+          if (window.location.pathname === pluginPath) item.classList.add('focus');
+          item.append(link);
+          submenu.append(item);
+          break;
+        }
+
+        if (window.location.pathname === '/admin/options-theme') {
+          const form = document.querySelector('form[action="/admin/options-theme"]');
+          form?.classList.add('warm-theme-config-form');
+
+          if (form && form.dataset.warmCyLayoutApplied !== '1') {
+            form.dataset.warmCyLayoutApplied = '1';
+            const getField = name => {
+              const input = form.querySelector('[name="' + name + '"]');
+              return input ? input.closest('.typecho-option') : null;
+            };
+
+            const firstLinkField = getField('linktxt01');
+            if (firstLinkField) {
+              const section = document.createElement('section');
+              section.className = 'warm-theme-links-group';
+              const heading = document.createElement('div');
+              heading.className = 'warm-theme-links-heading';
+              const title = document.createElement('strong');
+              title.textContent = '页面连接';
+              const description = document.createElement('span');
+              description.textContent = '支持 https://、http://、mailto:、站内链接；普通域名可直接填写。';
+              heading.append(title, description);
+              section.append(heading);
+              firstLinkField.before(section);
+
+              for (let index = 1; index <= 10; index += 1) {
+                const suffix = String(index).padStart(2, '0');
+                const textField = getField('linktxt' + suffix);
+                const urlField = getField('links' + suffix);
+                const blankField = getField('linkblank' + suffix);
+                const textInput = textField?.querySelector('input[name="linktxt' + suffix + '"]');
+                const urlInput = urlField?.querySelector('input[name="links' + suffix + '"]');
+                const blankInput = blankField?.querySelector('input[name="linkblank' + suffix + '"]');
+                if (!textInput || !urlInput || !blankInput) continue;
+
+                const row = document.createElement('div');
+                row.className = 'warm-theme-link-row';
+                const textLine = document.createElement('div');
+                textLine.className = 'warm-theme-link-text-line';
+                const textLabel = document.createElement('label');
+                textLabel.htmlFor = textInput.id;
+                textLabel.textContent = '文字' + index + '：';
+                textInput.classList.add('warm-theme-link-input');
+                textLine.append(textLabel, textInput);
+
+                const blankLabel = document.createElement('label');
+                blankLabel.className = 'warm-theme-link-new-window';
+                blankLabel.htmlFor = blankInput.id;
+                const blankText = document.createElement('span');
+                blankText.textContent = '新窗口打开';
+                blankLabel.append(blankInput, blankText);
+                textLine.append(blankLabel);
+
+                const urlLine = document.createElement('div');
+                urlLine.className = 'warm-theme-link-url-line';
+                const urlLabel = document.createElement('label');
+                urlLabel.htmlFor = urlInput.id;
+                urlLabel.textContent = '网址' + index + '：';
+                urlInput.classList.add('warm-theme-link-input');
+                urlLine.append(urlLabel, urlInput);
+
+                row.append(textLine, urlLine);
+                section.append(row);
+                textField.remove();
+                urlField.remove();
+                blankField.remove();
+              }
+            }
+
+            const wrapSettingsCard = (className, names) => {
+              const fields = names.map(getField).filter(Boolean);
+              if (!fields.length) return;
+              const card = document.createElement('section');
+              card.className = 'warm-theme-settings-card ' + className;
+              fields[0].before(card);
+              fields.forEach(field => card.append(field));
+            };
+
+            wrapSettingsCard('warm-theme-home-card', ['pinnedIds']);
+            wrapSettingsCard('warm-theme-image-card', ['imageOptimizeParams']);
+            wrapSettingsCard('warm-theme-thumb-card', ['thumbOptimizeParams']);
+            wrapSettingsCard('warm-theme-footer-card', ['footerCustomHtml']);
+            wrapSettingsCard('warm-theme-loading-card', [
+              'continuousLoadMode',
+              'commentComponentLoadMode',
+              'commentInitialLoadMode'
+            ]);
+
+            form.querySelectorAll('.typecho-option:not(.typecho-option-submit)').forEach(option => {
+              if (option.style.display === 'none') return;
+              const item = option.querySelector(':scope > li');
+              if (!item || item.querySelector(':scope > .warm-theme-field-head')) return;
+              const label = item.querySelector(':scope > .typecho-label');
+              const description = item.querySelector(':scope > .description');
+              if (label?.querySelector('input[type="checkbox"], input[type="radio"]')) return;
+
+              const head = document.createElement('div');
+              head.className = 'warm-theme-field-head';
+              if (label) head.append(label);
+              if (description) head.append(description);
+              const control = document.createElement('div');
+              control.className = 'warm-theme-field-control';
+              Array.from(item.children).forEach(child => {
+                if (child !== label && child !== description) control.append(child);
+              });
+              item.append(head, control);
+            });
+          }
+
+          const titleBar = document.querySelector('.typecho-page-title');
+          if (titleBar && !titleBar.querySelector('.warm-cy-settings-switch')) {
+            const link = document.createElement('a');
+            link.className = 'warm-cy-settings-switch';
+            link.href = pluginPath;
+            link.textContent = 'CY 功能显示';
+            titleBar.append(link);
           }
         }
+      })();
+    </script>`;
+  }, 20);
+
+
+  addHook('admin:page', pluginId, (html: string, extra?: {
+    slug?: string;
+    csrfToken?: string;
+    options?: Record<string, unknown>;
+  }) => {
+    if (extra?.slug !== ADMIN_PAGE_SLUG) return html;
+    return featureSettingsPageHtml(
+      extra.csrfToken || '',
+      extra.options?.[PLUGIN_OPTION_KEY],
+    );
+  }, 20);
+
+  addHook('route:request', pluginId, async (
+    result: PluginRouteResult,
+    extra?: { request?: Request; path?: string },
+  ) => {
+    if (result?.handled || !extra?.request) return result;
+    const path = extra.path;
+    if (path !== ADMIN_PATH && path !== ADMIN_SETTINGS_API_PATH) return result;
+    const request = extra.request;
+    if (request.method !== 'POST') {
+      return { handled: true, response: json({ error: 'Method not allowed' }, 405) };
+    }
+
+    const auth = await requireAdminAction(request, 'administrator');
+    if (isAdminActionResponse(auth)) {
+      return {
+        handled: true,
+        response: json({ error: auth.status === 401 ? 'Unauthorized' : 'Forbidden' }, auth.status),
       };
     }
     if (auth.options.theme !== THEME_ID) {
