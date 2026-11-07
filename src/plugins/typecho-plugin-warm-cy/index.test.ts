@@ -140,10 +140,14 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.07.21.00');
+    expect(html).toContain('CY 插件版本：2026.11.07.23.00');
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
+    expect(html).toContain('视频 iframe 增强（仅处理视频地址）');
+    expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
+    expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames"');
+    expect(html).toContain('白名单留空表示不允许任何外部 iframe 域名');
     expect(html).toContain('访问备用域名时自动跳转到主域名');
     expect(html).toContain('data-cy-setting="canonicalDomainRedirectEnabled"');
   });
@@ -444,6 +448,39 @@ describe('typecho-plugin-warm-cy', () => {
   });
 
 
+  it('does not intercept iframe content when the iframe enhancement switch is OFF', async () => {
+    const hooks = collectHooks();
+    const source = '<div class="native-content"><iframe src="https://www.youtube.com/embed/example?a=1&b=2"></iframe></div>';
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '0', iframeVideoAllowedHostnames: 'www.youtube.com' }));
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    expect(protectedContent).toBe(source);
+    expect(await hooks.get('content:content')!(source)).toBe(source);
+  });
+
+  it('restores only an explicitly allowed iframe and keeps query separators literal', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
+    const source = '<iframe src="https://video.example.org/embed/123?a=1&b=2" width="640" height="360" title="Video"></iframe>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    expect(protectedContent).toContain('CYIFRAMEVIDEOX');
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain('<iframe');
+    expect(restored).toContain('src="https://video.example.org/embed/123?a=1&b=2"');
+    expect(restored).toContain('width="640"');
+    expect(restored).not.toContain('CYIFRAMEVIDEOX');
+  });
+
+  it('treats an empty iframe hostname list as deny-all without built-in fallbacks', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
+    const source = '<iframe src="https://www.youtube.com/embed/example"></iframe>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).not.toContain('<iframe');
+    expect(restored).not.toContain('CYIFRAMEVIDEOX');
+  });
   it('adds the inline HTML runtime with the saved opt-in state', () => {
     const handler = collectHooks().get('archive:footer')!;
     const enabled = handler('', { options: {
@@ -492,6 +529,8 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: true,
         showHomeSearchButton: false,
         htmlEnhancementEnabled: true,
+        iframeVideoEnhancementEnabled: true,
+        iframeVideoAllowedHostnames: '',
         canonicalDomainRedirectEnabled: true,
       }),
       path: SETTINGS_API_PATH,
@@ -505,6 +544,8 @@ describe('typecho-plugin-warm-cy', () => {
       showCommentManagementButtons: '1',
       showHomeSearchButton: '0',
       htmlEnhancementEnabled: '1',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: '',
       canonicalDomainRedirectEnabled: '1',
       markdownAlertStyleSettings: {
         enabled: true,
