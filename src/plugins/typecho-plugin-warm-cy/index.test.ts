@@ -504,6 +504,16 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
 
+  it('uses the four default hosts for legacy settings without an allowlist field', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1' }));
+    const source = '<iframe src="https://www.youtube.com/embed/legacy"></iframe>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain('src="https://www.youtube.com/embed/legacy"');
+  });
+
   it('decodes query separators only in an allowed iframe src and leaves ordinary links escaped', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
