@@ -762,7 +762,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(nestedRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .badge-row::after');
     expect(rootRule.selectorText).toBe('.warm-prose:not(.warm-note-prose)');
     expect(nestedParentRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .card');
-    expect(nestedHoverRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .card:hover');
+    expect(nestedHoverRule.selectorText).toBe('&:hover');
     expect(nestedStyleRules).toContain(nestedDeclarations);
 
     expect(keyframeStep.selectorText).toBe('from');
