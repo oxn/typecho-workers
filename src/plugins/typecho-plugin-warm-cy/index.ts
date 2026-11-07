@@ -175,7 +175,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
       </section>
       <section class="cy-feature-card">
         <label for="cy-iframe-video-hostnames">允许的视频 iframe 域名</label>
-        <textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">${escapeHtml(iframeVideoAllowedHostnames.join('\\n'))}</textarea>
+        <textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">${escapeHtml(iframeVideoAllowedHostnames.join('\n'))}</textarea>
         <p>每行填写一个域名，也可用逗号分隔。默认支持 YouTube、YouTube 隐私增强模式、Bilibili 和 Vimeo。只填写主机名，不要填写协议、路径或端口；保存后立即用于 iframe 安全校验。</p>
       </section>
       <section class="cy-feature-card">
