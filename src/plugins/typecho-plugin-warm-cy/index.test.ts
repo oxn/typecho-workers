@@ -182,8 +182,11 @@ describe('typecho-plugin-warm-cy', () => {
     const protectedSource = await protect(source);
     expect(protectedSource).toMatch(/^CYIFRAMEONLYX[0-9a-f]+XEND$/);
     expect(protectedSource).not.toContain('CYCYINLINE');
-    expect(await restore(protectedSource)).toContain('src="https://video.example/embed?id=7"');
-    expect(await restore(protectedSource)).toContain('width="640"');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed);
+    const restored = await restore(coreSanitized);
+    expect(restored).toContain('src="https://video.example/embed?id=7"');
+    expect(restored).toContain('width="640"');
   });
 
   it('applies a configured iframe hostname allowlist without changing other content', async () => {
