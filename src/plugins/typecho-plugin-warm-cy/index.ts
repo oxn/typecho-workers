@@ -97,15 +97,6 @@ function isCanonicalRedirectExcludedPath(path: string): boolean {
   return /\.(?:avif|bmp|gif|ico|jpe?g|png|webp|svg|css|js|mjs|map|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov|pdf|zip|gz|br)$/i.test(path);
 }
 
-async function isHtmlEnhancementEnabled(): Promise<boolean> {
-  // Content filters receive only the content string, not RequestContext.options.
-  // Read this plugin's private option through the public plugin SDK so the
-  // feature switch works without changing the core filter-hook contract.
-  const rawSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
-  const settings = parsePluginSettings(rawSettings);
-  return isEnabled(settings.htmlEnhancementEnabled, false);
-}
-
 function parseIframeAllowedHostnames(value: unknown): string[] {
   if (typeof value !== 'string' || !value.trim()) return [];
   const hosts = new Set<string>();
