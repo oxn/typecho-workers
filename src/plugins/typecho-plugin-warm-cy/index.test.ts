@@ -585,6 +585,21 @@ describe('typecho-plugin-warm-cy', () => {
     expect(decodeFinalIframeMarkup(restored)).toBe(source);
   });
 
+  it('rejects an incomplete iframe opening tag instead of treating it as self-closing', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'video.example.org',
+    }));
+    const source = '<iframe src="https://video.example.org/embed/incomplete">';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).not.toContain('CYIFRAMEFINALX');
+    expect(restored).not.toContain('<iframe');
+  });
+
   it('preserves every safe iframe attribute and the complete iframe markup verbatim', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({
