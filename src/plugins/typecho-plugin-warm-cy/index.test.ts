@@ -481,6 +481,16 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
 
+  it('decodes query separators only in iframe src and leaves ordinary links escaped', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
+    const source = '<a href="https://example.org/watch?a=1&b=2">ordinary link</a>\n\n<iframe src="https://video.example.org/embed/1?a=1&b=2"></iframe>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain('href="https://example.org/watch?a=1&amp;b=2"');
+    expect(restored).toContain('src="https://video.example.org/embed/1?a=1&b=2"');
+  });
   it('does not apply built-in hostname restrictions when the iframe allowlist is empty', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
