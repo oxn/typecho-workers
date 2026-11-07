@@ -97,8 +97,16 @@ function isCanonicalRedirectExcludedPath(path: string): boolean {
   return /\.(?:avif|bmp|gif|ico|jpe?g|png|webp|svg|css|js|mjs|map|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov|pdf|zip|gz|br)$/i.test(path);
 }
 
+const DEFAULT_IFRAME_ALLOWED_HOSTNAMES = [
+  'www.youtube.com',
+  'www.youtube-nocookie.com',
+  'player.bilibili.com',
+  'player.vimeo.com',
+] as const;
+
 function parseIframeAllowedHostnames(value: unknown): string[] {
-  if (typeof value !== 'string' || !value.trim()) return [];
+  // An empty saved list means the administrator explicitly disabled all iframe hosts.
+  if (typeof value !== 'string' || !value.trim()) return ['\\u0000'];
   const hosts = new Set<string>();
   for (const raw of value.split(/[\s,;，；]+/)) {
     let candidate = raw.trim().toLowerCase().replace(/^\*\./, '');
@@ -237,7 +245,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
   const iframeVideoEnhancementEnabled = isEnabled(settings.iframeVideoEnhancementEnabled, false);
   const iframeVideoAllowedHostnames = typeof settings.iframeVideoAllowedHostnames === 'string'
-    ? settings.iframeVideoAllowedHostnames : '';
+    ? settings.iframeVideoAllowedHostnames
+    : DEFAULT_IFRAME_ALLOWED_HOSTNAMES.join('\\n');
   const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
@@ -272,10 +281,10 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <input type="checkbox" data-cy-setting="iframeVideoEnhancementEnabled" ${iframeVideoEnhancementEnabled ? 'checked' : ''}>
           <span>正文 iframe 视频增强</span>
         </label>
-        <p>独立处理文章和独立页面中的 iframe，不改变其他 HTML。域名白名单留空表示不限制域名；填写后仅允许填写的域名及其子域名。</p>
+        <p>独立处理文章和独立页面中的 iframe，不改变其他 HTML。默认允许 YouTube、YouTube-nocookie、Bilibili 和 Vimeo；可自行删除不需要的域名。白名单留空表示拒绝所有 iframe 域名。</p>
         <label class="cy-feature-field">
           <span>iframe 域名白名单</span>
-          <textarea data-cy-setting="iframeVideoAllowedHostnames" rows="3" placeholder="例如：youtube.com&#10;player.bilibili.com">${escapeHtml(iframeVideoAllowedHostnames)}</textarea>
+          <textarea data-cy-setting="iframeVideoAllowedHostnames" rows="3" placeholder="每行一个域名；留空时拒绝所有域名">${escapeHtml(iframeVideoAllowedHostnames)}</textarea>
         </label>
       </section>
       <section class="cy-feature-card">
