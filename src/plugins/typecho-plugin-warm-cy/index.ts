@@ -147,8 +147,11 @@ function protectIframeOnly(source: string): string {
     }
     if (fence) { fenceChar = fence[1][0]; fenceLength = fence[1].length; return protect(line); }
     if (/^(?: {4}|\t)/.test(line)) return protect(line);
-    return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
+    return line;
   }).join('\n');
+  // Inline code spans may legally contain line breaks; protect them after the
+  // fenced/indented block pass so iframe-looking examples stay untouched.
+  content = content.replace(/(\x60+)([\s\S]*?)\1/g, protect);
   content = content.replace(/<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>(?:[\s\S]*?<\/iframe\s*>)?/gi,
     block => 'CYIFRAMEONLYX' + encodeInlinePayload(block) + 'XEND');
   for (let index = protectedSegments.length - 1; index >= 0; index--) {
