@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
