@@ -879,7 +879,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // plugin's private option through the host options loader; do not depend on
   // an extra RequestContext argument that the core does not pass.
   addHook('content:markdown', pluginId, async (content: string) => {
-    if (/<iframe\b|CYIFRAMEVIDEOX/i.test(content)) {
+    if (/<iframe\\b/i.test(content)) {
       const settings = parsePluginSettings(await getOption(getDb(env.DB), PLUGIN_OPTION_KEY));
       if (isEnabled(settings.iframeVideoEnhancementEnabled, false)) {
         content = protectIframeVideoFragments(content);
