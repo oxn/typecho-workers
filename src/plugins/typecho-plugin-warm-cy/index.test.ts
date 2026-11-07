@@ -189,6 +189,28 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('width="640"');
   });
 
+  it('leaves non-iframe HTML untouched when only iframe enhancement is enabled', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: '',
+    }));
+    const source = '<div class="ordinary"><p>普通 HTML 正文</p><strong>不应编码</strong></div>';
+    expect(await protect(source)).toBe(source);
+    expect(mocks.getOption).toHaveBeenCalledWith(expect.anything(), PLUGIN_OPTION_KEY);
+  });
+
+  it('does not protect iframe markup when the independent iframe switch is disabled', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '0',
+    }));
+    const source = '<iframe src="https://video.example/embed"></iframe>';
+    expect(await protect(source)).toBe(source);
+  });
+
   it('applies a configured iframe hostname allowlist without changing other content', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
