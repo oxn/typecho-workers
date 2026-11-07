@@ -472,7 +472,16 @@ function sanitizeInlineSvgReferences(source: string): string {
 }
 
 function sanitizeInlineHtmlFragment(source: string): string {
-  return sanitizeHtml(sanitizeInlineSvgReferences(source), INLINE_FRAGMENT_SANITIZE_OPTIONS);
+  const safeFormActions = source.replace(
+    /\\saction\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))/gi,
+    (attribute, doubleQuoted: string | undefined, singleQuoted: string | undefined, bare: string | undefined) => {
+      const value = (doubleQuoted ?? singleQuoted ?? bare ?? '').trim();
+      if (!value || value.startsWith('//')) return '';
+      const scheme = value.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
+      return scheme && scheme !== 'http' && scheme !== 'https' ? '' : attribute;
+    },
+  );
+  return sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), INLINE_FRAGMENT_SANITIZE_OPTIONS);
 }
 
 function restoreInlineHtmlFragments(content: string): string {
