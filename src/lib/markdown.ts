@@ -188,7 +188,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
   // Warm CY content filters read live D1-backed settings (including the
   // iframe hostname allowlist). The source/plugin-set key cannot represent
   // those settings, so cached output could retain an old allowlist decision.
-  const warmCyFiltersActive = (ctx.activatedPlugins ?? []).includes('typecho-plugin-warm-cy');
+  const warmCyFiltersActive = ctx.activatedPlugins?.has('typecho-plugin-warm-cy') ?? false;
   const cacheKey = !warmCyFiltersActive && text.length <= RENDER_CACHE_MAX_SOURCE_LENGTH
     ? `${await sha256Hex(text)}\0${[...(ctx.activatedPlugins ?? [])].sort().join(',')}`
     : null;
