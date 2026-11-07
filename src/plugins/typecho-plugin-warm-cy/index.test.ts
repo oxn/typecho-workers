@@ -148,6 +148,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
     expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames"');
     expect(html).toContain('白名单留空表示不允许任何外部 iframe 域名');
+    expect(html).not.toContain('www.youtube.com');
+    expect(html).not.toContain('player.bilibili.com');
     expect(html).toContain('访问备用域名时自动跳转到主域名');
     expect(html).toContain('data-cy-setting="canonicalDomainRedirectEnabled"');
   });
@@ -480,6 +482,26 @@ describe('typecho-plugin-warm-cy', () => {
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
     expect(restored).not.toContain('<iframe');
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
+  });
+  it('uses the configured iframe allowlist when an iframe sits inside an enhanced HTML container', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '1', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
+    const source = '<div class="video-wrap"><iframe src="https://video.example.org/embed/1?a=1&b=2"></iframe></div>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain('<iframe');
+    expect(restored).toContain('src="https://video.example.org/embed/1?a=1&b=2"');
+  });
+
+  it('denies every iframe host when the configured allowlist is empty inside enhanced containers', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '1', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
+    const source = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/1"></iframe></div>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).not.toContain('<iframe');
   });
   it('adds the inline HTML runtime with the saved opt-in state', () => {
     const handler = collectHooks().get('archive:footer')!;
