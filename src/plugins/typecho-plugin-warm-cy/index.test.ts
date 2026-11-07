@@ -235,6 +235,28 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINE');
   });
 
+  it('reads only a real iframe src attribute and rejects duplicate src attributes', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'trusted.example',
+    }));
+    const source = [
+      '<iframe title="example src=https://trusted.example/fake" width="640"></iframe>',
+      '<iframe data-note="src=https://trusted.example/fake"></iframe>',
+      '<iframe src="https://trusted.example/real"></iframe>',
+      '<iframe src="https://trusted.example/first" src="https://evil.example/second"></iframe>',
+    ].join('\n');
+    const restored = await restore(await protect(source));
+    expect(restored).toContain('trusted.example/real');
+    expect(restored).not.toContain('trusted.example/fake');
+    expect(restored).not.toContain('trusted.example/first');
+    expect(restored).not.toContain('evil.example/second');
+  });
+
   it('fails closed for an invalid non-empty iframe allowlist and strips executable attributes', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
