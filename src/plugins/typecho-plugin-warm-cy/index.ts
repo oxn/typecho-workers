@@ -671,7 +671,7 @@ function sanitizeInlineSvgReferences(source: string): string {
   });
 }
 
-function sanitizeInlineHtmlFragment(source: string): string {
+function sanitizeInlineHtmlFragment(source: string, allowedIframeHostnames?: string[]): string {
   const safeFormActions = source.replace(
     /<form\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
     formTag => formTag.replace(
@@ -684,12 +684,18 @@ function sanitizeInlineHtmlFragment(source: string): string {
       },
     ),
   );
-  return sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), INLINE_FRAGMENT_SANITIZE_OPTIONS);
+  const options = allowedIframeHostnames === undefined
+    ? INLINE_FRAGMENT_SANITIZE_OPTIONS
+    : { ...INLINE_FRAGMENT_SANITIZE_OPTIONS, allowedIframeHostnames };
+  return sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), options);
 }
 
-function restoreInlineHtmlFragments(content: string): string {
+function restoreInlineHtmlFragments(content: string, allowedIframeHostnames?: string[]): string {
   const restoreContainer = (payload: string): string => {
     let source = decodeInlinePayload(payload);
+    if (source.includes('CYIFRAMEVIDEOX')) {
+      source = restoreIframeVideoFragments(source, allowedIframeHostnames ?? INLINE_FRAGMENT_SANITIZE_OPTIONS.allowedIframeHostnames ?? []);
+    }
 
     // Keep style/script blocks as inert text markers through fragment sanitization.
     // The opt-in frontend runtime restores them only when the enhancement is enabled.
@@ -728,7 +734,7 @@ function restoreInlineHtmlFragments(content: string): string {
       },
     );
 
-    const safe = sanitizeInlineHtmlFragment(source);
+    const safe = sanitizeInlineHtmlFragment(source, allowedIframeHostnames);
     return safe ? '<div class="cy-inline-html-pending">' + safe + '</div>' : '';
   };
 
@@ -750,7 +756,7 @@ function restoreInlineHtmlFragments(content: string): string {
       /<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi,
       svg => 'CYCYINLINEBLOCKX' + encodeInlinePayload(svg) + 'XEND',
     );
-    const safe = sanitizeInlineHtmlFragment(source);
+    const safe = sanitizeInlineHtmlFragment(source, allowedIframeHostnames);
     return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
   });
 
@@ -842,7 +848,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     }
     if (!restored.includes('CYCYINLINE')) return restored;
     return await isHtmlEnhancementEnabled()
-      ? restoreInlineHtmlFragments(restored)
+      ? restoreInlineHtmlFragments(restored, isEnabled(settings.iframeVideoEnhancementEnabled, false)
+        ? normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames)
+        : undefined)
       : restored;
   }, 1);
 
