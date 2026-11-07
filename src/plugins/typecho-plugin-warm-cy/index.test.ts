@@ -189,6 +189,25 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('width="640"');
   });
 
+  it('outputs the original Bilibili iframe payload byte-for-byte after validating only its original src host', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'player.bilibili.com',
+    }));
+    const source = '<iframe src="//player.bilibili.com/player.html?isOutside=true&aid=117041382098906&bvid=BV1GGMC6YEMc&cid=40613054036&p=1&as_wide=1&high_quality=1&danmaku=0" width="100%" height="480" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="" sandbox="allow-scripts allow-same-origin allow-top-navigation" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" title="视频播放器"></iframe>';
+
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed);
+    const restored = await restore(coreSanitized);
+
+    expect(restored).toBe(source);
+  });
+
   it('leaves non-iframe HTML untouched when only iframe enhancement is enabled', async () => {
     const protect = collectHooks().get('content:markdown')!;
     mocks.getOption.mockResolvedValue(JSON.stringify({
