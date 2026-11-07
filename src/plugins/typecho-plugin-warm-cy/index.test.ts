@@ -248,10 +248,12 @@ describe('typecho-plugin-warm-cy', () => {
       '<iframe title="example src=https://trusted.example/fake" width="640"></iframe>',
       '<iframe data-note="src=https://trusted.example/fake"></iframe>',
       '<iframe src="https://trusted.example/real"></iframe>',
+      '<IFRAME SRC="https://trusted.example/uppercase"></IFRAME>',
       '<iframe src="https://trusted.example/first" src="https://evil.example/second"></iframe>',
     ].join('\n');
     const restored = await restore(await protect(source));
     expect(restored).toContain('trusted.example/real');
+    expect(restored).toContain('trusted.example/uppercase');
     expect(restored).not.toContain('trusted.example/fake');
     expect(restored).not.toContain('trusted.example/first');
     expect(restored).not.toContain('evil.example/second');
