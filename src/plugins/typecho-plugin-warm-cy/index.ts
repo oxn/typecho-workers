@@ -129,8 +129,6 @@ function normalizeIframeVideoHostnames(value: unknown): string[] {
 }
 
 function protectIframeVideoFragments(source: string): string {
-  source = source.replace(/CYIFRAMECODE(?=\d+XEND)/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
-  source = source.replace(/CYIFRAMEFINALX(?=[0-9a-f]+XEND)/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
     const marker = 'CYIFRAMECODE' + protectedSegments.length + 'XEND';
@@ -160,6 +158,9 @@ function protectIframeVideoFragments(source: string): string {
     if (/^(?: {4}|\t)/.test(line)) return protect(line);
     return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
   }).join('\n');
+  // Escape marker-shaped user text only after code, comments and script blocks are protected.
+  content = content.replace(/CYIFRAMECODE(?=\d+XEND)/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
+  content = content.replace(/CYIFRAMEFINALX(?=[0-9a-f]+XEND)/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
 
   content = content.replace(/CYIFRAMEVIDEOX/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
   content = content.replace(
