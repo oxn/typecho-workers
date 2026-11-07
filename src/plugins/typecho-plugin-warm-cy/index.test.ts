@@ -484,6 +484,25 @@ describe('typecho-plugin-warm-cy', () => {
     expect(mocks.getOption).not.toHaveBeenCalled();
   });
 
+  it('restores literal marker-like text unchanged when the same article contains an iframe', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'video.example.org',
+    }));
+    const source = [
+      'Literal markers: CYIFRAMEVIDEOX and CYIFRAMEVIDEOXdeadbeefXEND.',
+      '<iframe src="https://video.example.org/embed/example"></iframe>',
+    ].join('\n');
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain('Literal markers: CYIFRAMEVIDEOX and CYIFRAMEVIDEOXdeadbeefXEND.');
+    expect(restored).toContain('<iframe');
+    expect(restored).not.toContain('CY\\u200bIFRAMEVIDEOX');
+  });
+
   it('does not intercept iframe-looking examples inside code blocks or inline code', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
