@@ -197,24 +197,72 @@ function preserveIframeSrcAmpersands(source: string): string {
 function isAllowedIframeFragment(source: string, allowedHostnames: string[]): boolean {
   const opening = source.match(/^<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>/i)?.[0];
   if (!opening) return false;
-  const attributes = new Map<string, string | null>();
-  const attributePattern = /\s+([^\s=/>]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
-  let match: RegExpExecArray | null;
-  while ((match = attributePattern.exec(opening.slice(7, -1)))) {
-    const name = match[1].toLowerCase();
-    if (!/^[^\s"'<>/=]+$/.test(name) || /[\u0000-\u001f]/.test(name) || name.startsWith('on') || name === 'srcdoc' || attributes.has(name)) return false;
-    const raw = match[2];
-    attributes.set(name, raw === undefined ? null : raw.replace(/^["']|["']$/g, ''));
+
+  // Only one complete iframe fragment is accepted. Fallback text is retained,
+  // but nested markup/scripts are rejected instead of bypassing HTML sanitization.
+  const closing = source.match(/<\/iframe\s*>$/i)?.[0] ?? '';
+  if (closing) {
+    if (source.slice(opening.length, -closing.length).includes('<')) return false;
+  } else if (source !== opening) {
+    return false;
   }
+
+  let attributeSource = opening.slice(7, -1);
+  // A slash after a quoted value or whitespace is a self-closing delimiter;
+  // a slash in an unquoted URL remains part of that URL value.
+  if (/(?:["']|\s)\/\s*$/.test(attributeSource)) {
+    attributeSource = attributeSource.replace(/\/\s*$/, '');
+  }
+  const attributes = new Map<string, string | null>();
+  let cursor = 0;
+  while (cursor < attributeSource.length) {
+    while (/\s/.test(attributeSource[cursor] ?? '')) cursor++;
+    if (cursor >= attributeSource.length) break;
+
+    const nameStart = cursor;
+    while (cursor < attributeSource.length && !/[\s=/>"'<>]/.test(attributeSource[cursor])) cursor++;
+    if (cursor === nameStart) return false;
+    const name = attributeSource.slice(nameStart, cursor).toLowerCase();
+    if (!/^[^\s"'<>/=]+$/.test(name) || /[\u0000-\u001f]/.test(name)
+      || name.startsWith('on') || name === 'srcdoc' || attributes.has(name)) return false;
+
+    while (/\s/.test(attributeSource[cursor] ?? '')) cursor++;
+    let value: string | null = null;
+    if (attributeSource[cursor] === '=') {
+      cursor++;
+      while (/\s/.test(attributeSource[cursor] ?? '')) cursor++;
+      const quote = attributeSource[cursor];
+      if (quote === '"' || quote === "'") {
+        cursor++;
+        const valueStart = cursor;
+        while (cursor < attributeSource.length && attributeSource[cursor] !== quote) cursor++;
+        if (cursor >= attributeSource.length) return false;
+        value = attributeSource.slice(valueStart, cursor);
+        cursor++;
+      } else {
+        const valueStart = cursor;
+        while (cursor < attributeSource.length && !/[\s>]/.test(attributeSource[cursor])) cursor++;
+        if (cursor === valueStart) return false;
+        value = attributeSource.slice(valueStart, cursor);
+      }
+    }
+    if (cursor < attributeSource.length && !/\s/.test(attributeSource[cursor])) return false;
+    attributes.set(name, value);
+  }
+
   const src = attributes.get('src');
   if (typeof src !== 'string' || !src.trim()) return false;
   const value = src.trim();
-  if (!/^https?:\/\//i.test(value) || /&(?:#|[a-z])/i.test(value.split(/[?#]/, 1)[0])) return false;
+  if (/[\u0000-\u001f\u007f]/.test(value)
+    || !/^https?:\/\//i.test(value)
+    || /&(?:#|[a-z])/i.test(value.split(/[?#]/, 1)[0])) return false;
   try {
     const url = new URL(value);
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return false;
     return allowedHostnames.includes(url.hostname.toLowerCase().replace(/\.$/, ''));
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 function preserveAllowedIframeFragment(source: string, allowedHostnames: string[]): string {
