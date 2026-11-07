@@ -605,19 +605,28 @@ describe('typecho-plugin-warm-cy', () => {
       ? footer.slice(runtimeStart + runtimeStartTag.length, runtimeEnd)
       : '';
     expect(runtime).toBeTruthy();
+    expect(runtime).toContain("'fegaussianblur'");
+    expect(runtime).toContain("'stddeviation'");
+    expect(footer).not.toContain('border-radius:0;margin:0');
 
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string; sheet?: unknown }> = [];
     const removedStyles: unknown[] = [];
     const scopedRule: any = { type: 1, selectorText: '.custom-footer, .badge-dual:is(.active, [data-kind="a,b"])::before' };
+    const rootRule: any = { type: 1, selectorText: ':root, :root .root-variable' };
     const nestedRule: any = { type: 1, selectorText: '.badge-row::after' };
     const mediaRules: any = [nestedRule];
     mediaRules.deleteRule = (index: number) => mediaRules.splice(index, 1);
     const mediaRule: any = { type: 4, cssRules: mediaRules, deleteRule(index: number) { this.cssRules.splice(index, 1); } };
+    const nestedChild: any = { type: 1, selectorText: '& .nested-child' };
+    const nestedDeclarations = new (class CSSNestedDeclarations { type = 0; style = {}; })();
+    const nestedStyleRules: any = [nestedChild, nestedDeclarations];
+    nestedStyleRules.deleteRule = (index: number) => nestedStyleRules.splice(index, 1);
+    const nestedParent: any = { type: 1, selectorText: '.nested-parent', cssRules: nestedStyleRules, deleteRule(index: number) { this.cssRules.splice(index, 1); } };
     const keyframeStep: any = { type: 1, selectorText: 'from' };
     const keyframesRule: any = { type: 7, cssRules: [keyframeStep] };
     const fontFaceRule: any = { type: 5 };
     const layerStatementRule: any = { type: 19, cssText: '@layer reset, theme;' };
-    const cssRules: any = [scopedRule, mediaRule, keyframesRule, fontFaceRule, layerStatementRule];
+    const cssRules: any = [scopedRule, rootRule, mediaRule, nestedParent, keyframesRule, fontFaceRule, layerStatementRule];
     cssRules.deleteRule = (index: number) => cssRules.splice(index, 1);
     const replacements: unknown[] = [];
     let replaceCalls = 0;
@@ -692,7 +701,11 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).not.toContain('/* adjust `font-size` here */');
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
     expect(scopedRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .custom-footer, .warm-prose:not(.warm-note-prose) .badge-dual:is(.active, [data-kind="a,b"])::before');
+    expect(rootRule.selectorText).toBe('.warm-prose:not(.warm-note-prose), .warm-prose:not(.warm-note-prose) .root-variable');
     expect(nestedRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .badge-row::after');
+    expect(nestedParent.selectorText).toBe('.warm-prose:not(.warm-note-prose) .nested-parent');
+    expect(nestedChild.selectorText).toBe('& .nested-child');
+    expect(nestedStyleRules).toContain(nestedDeclarations);
     expect(keyframeStep.selectorText).toBe('from');
     expect(cssRules).not.toContain(fontFaceRule);
     expect(cssRules).not.toContain(layerStatementRule);
