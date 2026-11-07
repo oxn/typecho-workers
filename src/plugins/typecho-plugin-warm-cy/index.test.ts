@@ -594,6 +594,17 @@ describe('typecho-plugin-warm-cy', () => {
     });
   });
 
+  it('rejects a non-empty invalid iframe hostname list but accepts an empty list', async () => {
+    const context = adminContext();
+    mocks.requireAdminAction.mockResolvedValueOnce(context);
+    const handler = collectHooks().get('route:request')!;
+    const invalid = await handler({}, {
+      request: routeRequest(SETTINGS_API_PATH, 'POST', { showCommentManagementButtons: true, showHomeSearchButton: true, htmlEnhancementEnabled: false, iframeVideoAllowedHostnames: 'https://video.example.org/embed' }),
+      path: SETTINGS_API_PATH,
+    });
+    expect(invalid.response.status).toBe(400);
+    expect(mocks.setOption).not.toHaveBeenCalled();
+  });
   it('temporarily redirects an enabled alternate host to the current siteUrl and preserves path/query', async () => {
     const handler = collectHooks().get('route:request')!;
     const request = new Request('https://blog.oook.top/2026/10/30/shengming7.html?from=share&x=1');
