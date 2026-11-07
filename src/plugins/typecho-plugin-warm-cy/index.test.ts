@@ -147,7 +147,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('视频 iframe 增强（仅处理视频地址）');
     expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
     expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames"');
-    expect(html).toContain('www.youtube.com\\nwww.youtube-nocookie.com\\nplayer.bilibili.com\\nplayer.vimeo.com');
+    expect(html).toContain('www.youtube.com\nwww.youtube-nocookie.com\nplayer.bilibili.com\nplayer.vimeo.com');
     expect(html).toContain('访问备用域名时自动跳转到主域名');
     expect(html).toContain('data-cy-setting="canonicalDomainRedirectEnabled"');
   });
@@ -498,7 +498,7 @@ describe('typecho-plugin-warm-cy', () => {
         showHomeSearchButton: false,
         htmlEnhancementEnabled: true,
         iframeVideoEnhancementEnabled: true,
-        iframeVideoAllowedHostnames: 'www.youtube.com\\nvideo.example.org',
+        iframeVideoAllowedHostnames: 'www.youtube.com\nvideo.example.org',
         canonicalDomainRedirectEnabled: true,
       }),
       path: SETTINGS_API_PATH,
@@ -513,7 +513,7 @@ describe('typecho-plugin-warm-cy', () => {
       showHomeSearchButton: '0',
       htmlEnhancementEnabled: '1',
       iframeVideoEnhancementEnabled: '1',
-      iframeVideoAllowedHostnames: 'www.youtube.com\\nvideo.example.org',
+      iframeVideoAllowedHostnames: 'www.youtube.com\nvideo.example.org',
       canonicalDomainRedirectEnabled: '1',
       markdownAlertStyleSettings: {
         enabled: true,
@@ -775,7 +775,7 @@ describe('typecho-plugin-warm-cy', () => {
       '</style>',
       '<div class="badge-row"><a class="badge-dual" href="https://example.com">YouTube</a></div>',
       '</div>',
-    ].join('\\n');
+    ].join('\n');
 
     const protectedSource = await protect(source);
     const parsed = marked.parse(protectedSource, { async: false }) as string;
