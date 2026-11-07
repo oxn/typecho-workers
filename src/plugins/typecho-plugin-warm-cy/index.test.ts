@@ -104,14 +104,25 @@ describe('typecho-plugin-warm-cy', () => {
     ]);
   });
 
-  it('shows the timestamped CY plugin version in its settings page', () => {
+  it('shows the current CY plugin version and the agreed feature switches', () => {
     const handler = collectHooks().get('admin:page')!;
     const html = handler('', {
       slug: 'cy-companion',
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toMatch(/CY 插件版本：\d{4}\.\d{2}\.\d{2}\.\d{2}\.\d{2}/);
+    expect(html).toContain('CY 插件版本：2026.11.07.21.00');
+    expect(html).toContain('评论区管理按键');
+    expect(html).toContain('首页搜索按键');
+    expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
+  });
+
+  it('provides a fallback CY feature-settings entry in the admin navigation', () => {
+    const handler = collectHooks().get('admin:footer')!;
+    const html = handler('', { options: { theme: 'typecho-theme-warm-cy' } });
+    expect(html).toContain("const mainMenu = document.querySelector('.typecho-head-nav > nav > menu')");
+    expect(html).toContain("link.textContent = 'CY 功能显示'");
+    expect(html).toContain("link.href = pluginPath");
   });
 
   it('reads the saved HTML switch from the host options store', async () => {
