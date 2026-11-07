@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
@@ -232,6 +233,32 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('<p>服务商</p>');
     expect(restored).not.toContain('CYCYINLINECONTAINERX');
     expect(restored).not.toContain('<p><div');
+  });
+
+  it('runs all three original CY compatibility fixtures through the content pipeline', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const fixtures = [
+      'cy-html-comprehensive-test.html',
+      'cy-html-comprehensive-test-1.html',
+      'cy-video-iframe-diagnostic.html',
+    ];
+
+    for (const filename of fixtures) {
+      const source = readFileSync(
+        new URL('../../../tests/fixtures/cy-html/' + filename, import.meta.url),
+        'utf8',
+      );
+      const protectedSource = await protect(source);
+      expect(protectedSource, filename).toContain('CYCYINLINECONTAINERX');
+      const parsed = marked.parse(protectedSource, { async: false }) as string;
+      const coreSanitized = sanitizeHtml(parsed);
+      const restored = await restore(coreSanitized);
+      expect(restored, filename).toContain('cy-inline-html-pending');
+      expect(restored, filename).not.toContain('onclick=');
+      expect(restored, filename).not.toContain('onerror=');
+    }
   });
 
   it('preserves semantic HTML and form attributes through the full sanitizer pipeline', async () => {
