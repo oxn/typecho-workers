@@ -112,14 +112,24 @@ describe('typecho-plugin-warm-cy', () => {
       [PLUGIN_OPTION_KEY]: JSON.stringify({
         markdownAlertStyleSettings: {
           enabled: true,
-          types: { NOTE: { background: '#123456' } },
-          icon: { visible: true, size: 18, gap: 8 },
+          types: {
+            NOTE: { background: '#123456' },
+            TIP: { background: '#234567' },
+            IMPORTANT: { background: '#345678' },
+            WARNING: { background: '#456789' },
+            CAUTION: { background: '#56789a' },
+          },
+          icon: { visible: true, size: 22, gap: 4 },
         },
       }),
     };
     const html = renderHead('<meta charset="utf-8">', { options });
     expect(html).toContain('<style data-cy-markdown-alert-icons>');
-    expect(html).toContain('background:#123456!important');
+    for (const color of ['#123456', '#234567', '#345678', '#456789', '#56789a']) {
+      expect(html).toContain('background:' + color + '!important');
+    }
+    expect(html).toContain('width:22px!important');
+    expect(html).toContain('margin-right:4px!important');
     expect(renderHead('<head>', { options: { ...options, theme: 'another-theme' } })).toBe('<head>');
     expect(hooks.get('archive:footer')!('', { options })).not.toContain('data-cy-markdown-alert-icons');
   });
