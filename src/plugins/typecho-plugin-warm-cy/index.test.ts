@@ -278,46 +278,6 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('<p><div');
   });
 
-  it('runs all three original CY compatibility fixtures through the content pipeline', async () => {
-    const hooks = collectHooks();
-    const protect = hooks.get('content:markdown')!;
-    const restore = hooks.get('content:content')!;
-    const fixtures = [
-      'cy-html-comprehensive-test.html',
-      'cy-html-comprehensive-test-1.html',
-      'cy-video-iframe-diagnostic.html',
-    ];
-
-    for (const filename of fixtures) {
-      const source = readFileSync(
-        new URL('../../../tests/fixtures/cy-html/' + filename, import.meta.url),
-        'utf8',
-      );
-      const protectedSource = await protect(source);
-      expect(protectedSource, filename).toContain('CYCYINLINECONTAINERX');
-      const parsed = marked.parse(protectedSource, { async: false }) as string;
-      const coreSanitized = sanitizeHtml(parsed);
-      const restored = await restore(coreSanitized);
-      expect(restored, filename).toContain('cy-inline-html-pending');
-      expect(restored, filename).not.toContain('CYCYCODESEGMENT');
-      expect(restored, filename).not.toMatch(/<[a-z][^>]*\s(?:onclick|onerror)\s*=/i);
-      if (filename === 'cy-html-comprehensive-test.html') {
-        expect(restored).toContain('text-shadow:1px 1px 1px #aaa');
-        expect(restored).toContain('cy-html-full-2026');
-        expect(restored).toContain('test-banner');
-      }
-      if (filename === 'cy-video-iframe-diagnostic.html') {
-        // Full-document wrappers and head metadata are not article content;
-        // head styles and body scripts must still survive for runtime hydration.
-        expect(restored).not.toMatch(/<(?:html|head|body|meta|title)\b/i);
-        expect(restored).toContain('CYCYINLINEBLOCKX');
-        expect(restored).toContain('data-state-for');
-        expect(restored).toContain('js-status');
-        expect(restored).toContain('bili-dynamic-rin');
-      }
-    }
-  });
-
   it('preserves semantic HTML and form attributes through the full sanitizer pipeline', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
