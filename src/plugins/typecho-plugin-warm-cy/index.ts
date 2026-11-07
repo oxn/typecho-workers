@@ -211,7 +211,7 @@ function protectInlineHtml(source: string): string {
 
   // Keep user-authored text from impersonating the private restoration markers.
   // Code examples were already protected above and remain byte-for-byte intact.
-  content = content.replace(/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/g, 'CYCY\\u200bINLINE');
+  content = content.replace(/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/g, 'CYCY\u200bINLINE');
 
   // Preserve styled download-card anchors as a single fragment so nested SVG markup
   // is not fragmented by Markdown tokenization or the core HTML sanitizer.
