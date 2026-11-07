@@ -171,21 +171,20 @@ function protectIframeVideoFragments(source: string): string {
 }
 function getSafeIframeAttributeNames(source: string): string[] {
   const names = new Set<string>();
-  source.replace(/<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi, opening => {
-    opening.replace(/\s([^\s=/>]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g,
-      (_attribute, rawName: string) => {
-        const name = rawName.toLowerCase();
-        // Preserve provider-specific and future iframe parameters, but never
-        if (/^[^\s"'<>/=]+$/.test(name) && !/[\u0000-\u001f]/.test(name)
-          && !name.startsWith('on') && name !== 'srcdoc') {
-          names.add(name);
-        }
-          names.add(name);
-        }
-        return _attribute;
-      });
-    return opening;
-  });
+  const openingPattern = /<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
+  let opening: RegExpExecArray | null;
+  while ((opening = openingPattern.exec(source))) {
+    const attributePattern = /\s+([^\s=/>]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g;
+    let match: RegExpExecArray | null;
+    while ((match = attributePattern.exec(opening[0]))) {
+      const name = match[1].toLowerCase();
+      // Keep legal provider-specific names, but never event handlers or srcdoc.
+      if (/^[^\s"'<>/=]+$/.test(name) && !/[\u0000-\u001f]/.test(name)
+        && !name.startsWith('on') && name !== 'srcdoc') {
+        names.add(name);
+      }
+    }
+  }
   return [...names];
 }
 
