@@ -147,7 +147,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('正文 iframe 视频增强');
     expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
     expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames"');
-    expect(html).toContain('域名白名单留空表示不限制域名');
+    expect(html).toContain('白名单留空表示拒绝所有域名');
     expect(html).toContain('访问备用域名时自动跳转到主域名');
     expect(html).toContain('data-cy-setting="canonicalDomainRedirectEnabled"');
   });
@@ -254,6 +254,41 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINE');
   });
 
+
+  it('immediately enforces a saved allowlist with a removed default provider', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    // Simulate deleting YouTube from the default list while retaining Bilibili.
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'www.youtube-nocookie.com\nplayer.bilibili.com\nplayer.vimeo.com',
+    }));
+    const source = [
+      '<iframe src="https://www.youtube.com/embed/removed"></iframe>',
+      '<iframe src="https://player.bilibili.com/player.html?id=kept"></iframe>',
+    ].join('\n');
+    const restored = await restore(await protect(source));
+    expect(restored).not.toContain('youtube.com/embed/removed');
+    expect(restored).toContain('player.bilibili.com/player.html?id=kept');
+  });
+
+  it('rejects every iframe when the saved allowlist is explicitly empty', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: '',
+    }));
+    const restored = await restore(await protect(
+      '<iframe src="https://www.youtube.com/embed/denied"></iframe>',
+    ));
+    expect(restored).not.toContain('<iframe');
+  });
+
   it('reads only a real iframe src attribute and rejects duplicate src attributes', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
@@ -308,7 +343,7 @@ describe('typecho-plugin-warm-cy', () => {
     mocks.getOption.mockResolvedValue(JSON.stringify({
       htmlEnhancementEnabled: '0',
       iframeVideoEnhancementEnabled: '1',
-      iframeVideoAllowedHostnames: '',
+      iframeVideoAllowedHostnames: 'video.example',
     }));
     const safeOutput = await restore(await protect(
       '<iframe src="https://video.example/embed" onload="alert(1)" srcdoc="<script>alert(1)</script>"></iframe>',
@@ -383,7 +418,7 @@ describe('typecho-plugin-warm-cy', () => {
     mocks.getOption.mockResolvedValue(JSON.stringify({
       htmlEnhancementEnabled: '1',
       iframeVideoEnhancementEnabled: '1',
-      iframeVideoAllowedHostnames: '',
+      iframeVideoAllowedHostnames: 'video.example',
     }));
     const source = '<div class="video-wrapper"><iframe src="https://video.example/embed/combined" width="640"></iframe></div>';
     const protectedSource = await protect(source);
