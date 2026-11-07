@@ -116,14 +116,44 @@ function normalizeIframeVideoHostnames(value: unknown): string[] {
   return [...new Set(hostnames)];
 }
 
-function protectIframeVideoFragments(content: string): string {
+function protectIframeVideoFragments(source: string): string {
+  const protectedSegments: string[] = [];
+  const protect = (value: string): string => {
+    const marker = 'CYIFRAMECODE' + protectedSegments.length + 'XEND';
+    protectedSegments.push(value);
+    return marker;
+  };
+  // Leave HTML code blocks, Markdown fences, indented code and inline code alone.
+  let content = source.replace(/<(pre|code)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
+  let fenceChar = '';
+  let fenceLength = 0;
+  content = content.split('\n').map(line => {
+    const fence = line.match(/^ {0,3}(\x60{3,}|~{3,})/);
+    if (fenceChar) {
+      const marker = protect(line);
+      if (fence && fence[1][0] === fenceChar && fence[1].length >= fenceLength) {
+        fenceChar = '';
+        fenceLength = 0;
+      }
+      return marker;
+    }
+    if (fence) {
+      fenceChar = fence[1][0];
+      fenceLength = fence[1].length;
+      return protect(line);
+    }
+    if (/^(?: {4}|\t)/.test(line)) return protect(line);
+    return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
+  }).join('\n');
+
   content = content.replace(/CYIFRAMEVIDEOX/gi, 'CY\u200bIFRAMEVIDEOX');
-  return content.replace(
+  content = content.replace(
     /<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
     iframe => 'CYIFRAMEVIDEOX' + encodeInlinePayload(iframe) + 'XEND',
   );
+  return content.replace(/CYIFRAMECODE(\d+)XEND/g,
+    (_marker, index: string) => protectedSegments[Number(index)] ?? _marker);
 }
-
 function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[]): string {
   const options: sanitizeHtml.IOptions = {
     allowedTags: ['iframe'],
