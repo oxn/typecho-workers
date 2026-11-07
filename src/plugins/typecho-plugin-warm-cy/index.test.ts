@@ -815,4 +815,23 @@ describe('typecho-plugin-warm-cy', () => {
     expect(replacedNodes.some(node => node.nodeType === 3 && node.nodeValue === forgedMarker.replace('CYCY\u200bINLINE', 'CYCYINLINE'))).toBe(true);
   });
 
+
+  it('preserves semantic HTML controls and safe attributes through the content pipeline', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = '<div class="semantic-fixture"><p><abbr title="HyperText Markup Language">HTML</abbr> <mark>marked</mark> <u>underlined</u> H<sub>2</sub>O x<sup>2</sup></p><time datetime="2026-11-07">today</time><details open><summary>More</summary><p>Details</p></details><form action="/submit" method="post"><fieldset disabled><legend>Fields</legend><label for="email">Email</label><input id="email" type="email" name="email" value="a@b.test" checked required><select name="choice"><option value="a" selected>Alpha</option></select><textarea name="message" rows="4" cols="20">Hello</textarea><progress value="3" max="10"></progress><meter min="0" max="10" low="2" high="8" optimum="7" value="6"></meter></fieldset></form></div>';
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['div', 'form', 'fieldset', 'legend', 'input', 'select', 'option', 'textarea', 'time', 'details', 'summary', 'progress', 'meter', 'output', 'mark', 'abbr', 'u', 'sub', 'sup']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, '*': ['class', 'id', 'title', 'datetime', 'open', 'for', 'type', 'name', 'value', 'checked', 'required', 'disabled', 'selected', 'rows', 'cols', 'min', 'max', 'low', 'high', 'optimum', 'action', 'method', 'step', 'minlength', 'maxlength', 'multiple', 'autocomplete'] },
+    });
+    const restored = await restore(coreSanitized);
+    for (const fragment of ['<abbr', '<mark>', '<u>', '<sub>', '<sup>', '<time datetime="2026-11-07">', '<details open', '<form action="/submit" method="post"', '<input', 'checked=""', 'required=""', '<option value="a" selected', '<textarea', 'rows="4"', 'cols="20"', '<progress', '<meter']) {
+      expect(restored).toContain(fragment);
+    }
+    expect(restored).toContain('cy-inline-html-pending');
+  });
+
 });
