@@ -159,10 +159,10 @@ function protectIframeVideoFragments(source: string): string {
     return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
   }).join('\n');
   // Escape marker-shaped user text only after code, comments and script blocks are protected.
-  content = content.replace(/CYIFRAMECODE(?=\d+XEND)/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
-  content = content.replace(/CYIFRAMEFINALX(?=[0-9a-f]+XEND)/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
+  content = content.replace(/CYIFRAMECODE(?=\d+XEND)/gi, marker => marker.slice(0, 2) + '\u2060' + marker.slice(2));
+  content = content.replace(/CYIFRAMEFINALX(?=[0-9a-f]+XEND)/gi, marker => marker.slice(0, 2) + '\u2060' + marker.slice(2));
 
-  content = content.replace(/CYIFRAMEVIDEOX/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
+  content = content.replace(/CYIFRAMEVIDEOX/gi, marker => marker.slice(0, 2) + '\u2060' + marker.slice(2));
   content = content.replace(
     /<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*(?:\/\s*>|>[\s\S]*?<\/iframe\s*>)/gi,
     iframe => 'CYIFRAMEVIDEOX' + encodeInlinePayload(iframe) + 'XEND',
@@ -288,8 +288,8 @@ function restoreIframeVideoFragments(content: string, allowedHostnames: string[]
   // Keep the validated iframe inert until the theme's native iframe normalizer
   // has completed. Literal marker-like text stays escaped until browser hydration.
   return content
-    .replace(/(CY)\u200b(IFRAMEVIDEOX)/gi, '$1$2')
-    .replace(/(CY)\u200b(IFRAMECODE)/gi, '$1$2');
+
+
 }
 
 function escapeHtml(value: unknown): string {
@@ -929,14 +929,14 @@ const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  cons
 function iframeRestorationRuntime(): string {
   return '<script data-cy-iframe-restoration>(() => {'
     + 'const pattern = /CYIFRAMEFINALX([0-9a-f]+)XEND/g;'
-    + 'const literalPattern = /CY\\u200bIFRAMEFINALX(?=[0-9a-f]+XEND)/gi;'
+    + 'const literalPattern = /CY\\u2060(?=IFRAME(?:VIDEOX|CODE\\d+XEND|FINALX[0-9a-f]+XEND))/gi;'
     + 'const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };'
     + 'const hydrate = () => {'
     + 'for (const root of document.querySelectorAll(".warm-prose:not(.warm-note-prose)")) {'
     + 'const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) { const parent = node.parentElement; if (!parent || parent.closest("pre,code,textarea,script,style")) return NodeFilter.FILTER_REJECT; pattern.lastIndex = 0; literalPattern.lastIndex = 0; return pattern.test(node.nodeValue || "") || literalPattern.test(node.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });'
     + 'const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);'
     + 'for (const node of nodes) { const value = node.nodeValue || ""; pattern.lastIndex = 0; literalPattern.lastIndex = 0; const hasLiteral = literalPattern.test(value); literalPattern.lastIndex = 0; const standaloneMarker = /^CYIFRAMEFINALX[0-9a-f]+XEND$/i.test(value.trim()); let last = 0, match, changed = false, onlyFrame = null; const fragment = document.createDocumentFragment();'
-    + 'const appendText = text => { literalPattern.lastIndex = 0; fragment.appendChild(document.createTextNode(text.replace(literalPattern, marker => marker.replace("\\u200b", "")))); };'
+    + 'const appendText = text => { literalPattern.lastIndex = 0; fragment.appendChild(document.createTextNode(text.replace(literalPattern, marker => marker.replace(String.fromCharCode(8288), "")))); };'
     + 'while ((match = pattern.exec(value))) { changed = true; if (match.index > last && !standaloneMarker) appendText(value.slice(last, match.index));'
     + 'try { const template = document.createElement("template"); template.innerHTML = decode(match[1]); const children = template.content.childNodes; const frame = template.content.firstElementChild;'
     + 'if (children.length === 1 && frame && frame.tagName === "IFRAME") { fragment.appendChild(frame); onlyFrame = frame; } else appendText(match[0]);'
