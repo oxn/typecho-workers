@@ -172,11 +172,48 @@ function protectIframeOnly(source: string): string {
   return content;
 }
 
+function getIframeSrcAttribute(source: string): string | null {
+  const openingTag = source.match(/^<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/i)?.[0];
+  if (!openingTag) return null;
+  const attributes = openingTag.slice(openingTag.indexOf('iframe') + 'iframe'.length, -1);
+  let index = 0;
+  let src: string | null = null;
+  while (index < attributes.length) {
+    while (index < attributes.length && /[\s/]/.test(attributes[index])) index++;
+    if (index >= attributes.length) break;
+    const nameStart = index;
+    while (index < attributes.length && !/[\s=/>]/.test(attributes[index])) index++;
+    if (index === nameStart) { index++; continue; }
+    const name = attributes.slice(nameStart, index).toLowerCase();
+    while (index < attributes.length && /\s/.test(attributes[index])) index++;
+    let value = '';
+    if (attributes[index] === '=') {
+      index++;
+      while (index < attributes.length && /\s/.test(attributes[index])) index++;
+      const quote = attributes[index] === '"' || attributes[index] === "'" ? attributes[index++] : '';
+      const valueStart = index;
+      if (quote) {
+        while (index < attributes.length && attributes[index] !== quote) index++;
+        value = attributes.slice(valueStart, index);
+        if (attributes[index] === quote) index++;
+      } else {
+        while (index < attributes.length && !/[\s>]/.test(attributes[index])) index++;
+        value = attributes.slice(valueStart, index);
+      }
+    }
+    if (name === 'src') {
+      // Duplicate src attributes are ambiguous across HTML parsers; reject them.
+      if (src !== null) return null;
+      src = value.trim();
+    }
+  }
+  return src;
+}
+
 function restoreIframeOnly(content: string, allowedHostnames: string[]): string {
   return content.replace(/CYIFRAMEONLYX([0-9a-f]+)XEND/gi, (_marker, payload: string) => {
     const source = decodeInlinePayload(payload);
-    const match = source.match(/(?:^|\s)src\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
-    const src = (match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim();
+    const src = getIframeSrcAttribute(source) ?? '';
     if (!src || !isIframeSourceAllowed(src, allowedHostnames)) return '';
     return sanitizeHtml(source, {
       ...INLINE_FRAGMENT_SANITIZE_OPTIONS,
