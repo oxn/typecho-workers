@@ -147,7 +147,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('正文 iframe 视频增强');
     expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
     expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames"');
-    expect(html).toContain('iframe 域名白名单留空表示不限制域名');
+    expect(html).toContain('域名白名单留空表示不限制域名');
     expect(html).toContain('访问备用域名时自动跳转到主域名');
     expect(html).toContain('data-cy-setting="canonicalDomainRedirectEnabled"');
   });
