@@ -144,6 +144,10 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
+    expect(html).toContain('正文 iframe 视频增强');
+    expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
+    expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames"');
+    expect(html).toContain('iframe 域名白名单留空表示不限制域名');
     expect(html).toContain('访问备用域名时自动跳转到主域名');
     expect(html).toContain('data-cy-setting="canonicalDomainRedirectEnabled"');
   });
@@ -163,6 +167,64 @@ describe('typecho-plugin-warm-cy', () => {
     expect(protectedSource).toContain('CYCYINLINECONTAINERX');
     expect(mocks.getDb).toHaveBeenCalled();
     expect(mocks.getOption).toHaveBeenCalledWith(expect.anything(), PLUGIN_OPTION_KEY);
+  });
+
+  it('processes only iframe markup when the independent iframe switch is enabled', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: '',
+    }));
+    const source = '<iframe src="https://video.example/embed?id=7" width="640" allowfullscreen></iframe>';
+    const protectedSource = await protect(source);
+    expect(protectedSource).toMatch(/^CYIFRAMEONLYX[0-9a-f]+XEND$/);
+    expect(protectedSource).not.toContain('CYCYINLINE');
+    expect(await restore(protectedSource)).toContain('src="https://video.example/embed?id=7"');
+    expect(await restore(protectedSource)).toContain('width="640"');
+  });
+
+  it('applies a configured iframe hostname allowlist without changing other content', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'trusted.example',
+    }));
+    const source = [
+      '<p>普通正文保留</p>',
+      '<iframe src="https://media.trusted.example/embed/1"></iframe>',
+      '<iframe src="https://evil.example/embed/2"></iframe>',
+    ].join('\\n');
+    const protectedSource = await protect(source);
+    const restored = await restore(protectedSource);
+    expect(restored).toContain('<p>普通正文保留</p>');
+    expect(restored).toContain('media.trusted.example/embed/1');
+    expect(restored).not.toContain('evil.example');
+    expect(restored).not.toContain('CYCYINLINE');
+  });
+
+  it('does not process iframe-looking text inside fenced code or HTML comments', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+    }));
+    const source = [
+      '```html',
+      '<iframe src="https://video.example/code"></iframe>',
+      '```',
+      '<!-- <iframe src="https://video.example/comment"></iframe> -->',
+      '<iframe src="https://video.example/real"></iframe>',
+    ].join('\\n');
+    const protectedSource = await protect(source);
+    expect(protectedSource).toContain('<iframe src="https://video.example/code"></iframe>');
+    expect(protectedSource).toContain('<!-- <iframe src="https://video.example/comment"></iframe> -->');
+    expect(protectedSource.match(/CYIFRAMEONLYX/g)?.length).toBe(1);
   });
 
   it('skips the private options read for plain Markdown without HTML tags', async () => {
