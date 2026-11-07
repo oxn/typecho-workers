@@ -22,7 +22,7 @@ const DEFAULT_IFRAME_VIDEO_HOSTNAMES = [
   'player.vimeo.com',
 ];
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.07.19.57';
+const PLUGIN_VERSION = '2026.11.07.20.01';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -932,7 +932,9 @@ function iframeRestorationRuntime(): string {
     + 'const literalPattern = /CY\\u2060(?=IFRAME(?:VIDEOX|CODE\\d+XEND|FINALX[0-9a-f]+XEND))/gi;'
     + 'const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };'
     + 'const hydrate = () => {'
-    + 'for (const root of document.querySelectorAll(".warm-prose:not(.warm-note-prose)")) {'
+    + 'const warmRoots = document.querySelectorAll(".warm-prose:not(.warm-note-prose)");
+    const roots = warmRoots.length ? warmRoots : [document.querySelector("main") || document.body];
+    for (const root of roots) {'
     + 'const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) { const parent = node.parentElement; if (!parent || parent.closest("pre,code,textarea,script,style")) return NodeFilter.FILTER_REJECT; pattern.lastIndex = 0; literalPattern.lastIndex = 0; return pattern.test(node.nodeValue || "") || literalPattern.test(node.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });'
     + 'const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);'
     + 'for (const node of nodes) { const value = node.nodeValue || ""; pattern.lastIndex = 0; literalPattern.lastIndex = 0; const hasLiteral = literalPattern.test(value); literalPattern.lastIndex = 0; const standaloneMarker = /^CYIFRAMEFINALX[0-9a-f]+XEND$/i.test(value.trim()); let last = 0, match, changed = false, onlyFrame = null; const fragment = document.createDocumentFragment();'
@@ -1053,7 +1055,11 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const options = extra?.options;
     if (!options) return html;
     const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
-    const iframeRuntime = options.theme === THEME_ID && isEnabled(settings.iframeVideoEnhancementEnabled, false)
+    // Content filters do not receive the active theme context. The marker-based
+    // iframe protection therefore needs a small restoration runtime on any
+    // frontend theme while the opt-in switch is enabled; otherwise switching
+    // away from Warm CY would leave inert CYIFRAMEFINAL markers in article text.
+    const iframeRuntime = isEnabled(settings.iframeVideoEnhancementEnabled, false)
       ? iframeRestorationRuntime()
       : '';
     const htmlRuntime = options.theme === THEME_ID && isEnabled(settings.htmlEnhancementEnabled, false)
