@@ -25,6 +25,7 @@ It must be carried forward in every later CY plugin/theme update. Do not remove 
 5. Support trusted administrator-authored inline JavaScript and explicitly supported external scripts, with deterministic execution order and safe URL/type validation. Scripts within one hydration pass execute serially in source order; a failed external script releases the queue so later scripts can still run.
 6. Preserve iframe markup and safe iframe attributes such as src, width, height, title, allow, allowfullscreen, loading, referrerpolicy, and sandbox only when allowed by the content policy. The enhancement must not rewrite provider URLs or player attributes.
 7. Keep code fences, inline code, pre/code blocks, and examples inert; never execute scripts contained in code examples.
+9. Treat user-authored text that resembles private `CYCYINLINE...` restoration markers as literal text; it must never be decoded as a fragment or execute as a script.
 8. Handle nested block HTML across Markdown blank lines without introducing invalid paragraph nesting.
 
 ## Security requirements
