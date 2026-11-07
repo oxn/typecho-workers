@@ -449,6 +449,25 @@ describe('typecho-plugin-warm-cy', () => {
   });
 
 
+  it('uses the administrator-configured iframe hostname allowlist during fragment sanitization', async () => {
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '1',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'video.example.org\\nmedia.example.net',
+    }));
+    const restore = collectHooks().get('content:content')!;
+    const source = '<iframe src="https://video.example.org/embed/123?a=1&b=2" width="640" height="360"></iframe>';
+    const protectedSource = await collectHooks().get('content:markdown')!(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['iframe']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, iframe: ['src', 'width', 'height'] },
+      allowedIframeHostnames: ['video.example.org'],
+    });
+    const restored = await restore(coreSanitized);
+    expect(restored).toContain('src="https://video.example.org/embed/123?a=1&b=2"');
+  });
+
   it('adds the inline HTML runtime with the saved opt-in state', () => {
     const handler = collectHooks().get('archive:footer')!;
     const enabled = handler('', { options: {
