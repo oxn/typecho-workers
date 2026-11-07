@@ -1295,7 +1295,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
           ? (isEnabled(current.iframeVideoEnhancementEnabled, false) ? '1' : '0')
           : (values.iframeVideoEnhancementEnabled ? '1' : '0'),
         iframeVideoAllowedHostnames: values.iframeVideoAllowedHostnames === undefined
-          ? (typeof current.iframeVideoAllowedHostnames === 'string' ? current.iframeVideoAllowedHostnames : '')
+          ? getIframeVideoAllowedHostnames(current).join('\n')
           : normalizeIframeVideoHostnames(values.iframeVideoAllowedHostnames).join('\n'),
         canonicalDomainRedirectEnabled: values.canonicalDomainRedirectEnabled === undefined
           ? (isEnabled(current.canonicalDomainRedirectEnabled, false) ? '1' : '0')
