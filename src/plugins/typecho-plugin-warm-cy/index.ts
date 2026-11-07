@@ -709,6 +709,18 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       : withAlertIcons;
   }, 1);
 
+  // Emit Note presentation CSS in the document head so the five alert styles
+  // are available before the article body is painted, avoiding a late footer
+  // style update after the native theme styles have already rendered.
+  addHook('archive:header', pluginId, (html: string, extra?: {
+    options?: Record<string, unknown>;
+  }) => {
+    const options = extra?.options;
+    if (options?.theme !== THEME_ID) return html;
+    const settings = parsePluginSettings(options[PLUGIN_OPTION_KEY]);
+    return html + markdownAlertIconStyles(settings.markdownAlertStyleSettings);
+  }, 20);
+
   // Rehydrate only after Markdown sanitization; the feature is opt-in.
   addHook('archive:footer', pluginId, (html: string, extra?: {
     options?: Record<string, unknown>;
@@ -719,14 +731,13 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const htmlRuntime = options.theme === THEME_ID && isEnabled(settings.htmlEnhancementEnabled, false)
       ? inlineHtmlRuntime(true)
       : '';
-    const alertIconStyle = options.theme === THEME_ID ? markdownAlertIconStyles(settings.markdownAlertStyleSettings) : '';
     if (options.theme !== THEME_ID || !isEnabled(settings.showHomeSearchButton)) {
-      return html + alertIconStyle + htmlRuntime;
+      return html + htmlRuntime;
     }
     const searchBase = JSON.stringify(
       String(computeUrls(options as any).siteUrl || '/').replace(/\/?$/, '/'),
     ).replace(/</g, '\\u003c');
-    return `${html}${alertIconStyle}${htmlRuntime}<script data-warm-cy-global-search>
+    return `${html}${htmlRuntime}<script data-warm-cy-global-search>
       (() => {
         const searchBase = ${searchBase};
         const ensureSearchControls = () => {
