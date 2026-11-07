@@ -511,7 +511,7 @@ describe('typecho-plugin-warm-cy', () => {
       [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0', showHomeSearchButton: '0' }),
     } });
     expect(disabled).not.toContain('data-cy-inline-html-enhancement');
-    expect(disabled).toContain('data-cy-markdown-alert-icons');
+    expect(disabled).not.toContain('data-cy-markdown-alert-icons');
 
     const otherTheme = handler('', { options: {
       theme: 'another-theme',
