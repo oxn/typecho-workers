@@ -199,7 +199,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<p>普通正文保留</p>',
       '<iframe src="https://media.trusted.example/embed/1"></iframe>',
       '<iframe src="https://evil.example/embed/2"></iframe>',
-    ].join('\\n');
+    ].join('\n');
     const protectedSource = await protect(source);
     const restored = await restore(protectedSource);
     expect(restored).toContain('<p>普通正文保留</p>');
@@ -220,7 +220,7 @@ describe('typecho-plugin-warm-cy', () => {
       '```',
       '<!-- <iframe src="https://video.example/comment"></iframe> -->',
       '<iframe src="https://video.example/real"></iframe>',
-    ].join('\\n');
+    ].join('\n');
     const protectedSource = await protect(source);
     expect(protectedSource).toContain('<iframe src="https://video.example/code"></iframe>');
     expect(protectedSource).toContain('<!-- <iframe src="https://video.example/comment"></iframe> -->');
@@ -828,7 +828,7 @@ describe('typecho-plugin-warm-cy', () => {
       '</style>',
       '<div class="badge-row"><a class="badge-dual" href="https://example.com">YouTube</a></div>',
       '</div>',
-    ].join('\\n');
+    ].join('\n');
 
     const protectedSource = await protect(source);
     const parsed = marked.parse(protectedSource, { async: false }) as string;
