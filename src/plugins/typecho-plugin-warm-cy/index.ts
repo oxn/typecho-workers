@@ -199,19 +199,16 @@ function isAllowedIframeFragment(source: string, allowedHostnames: string[]): bo
   const opening = source.match(/^<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>/i)?.[0];
   if (!opening) return false;
 
-  // Only one complete iframe fragment is accepted. Fallback text is retained,
-  // but nested markup/scripts are rejected instead of bypassing HTML sanitization.
   const closing = source.match(/<\/iframe\s*>$/i)?.[0] ?? '';
   if (closing) {
     if (source.slice(opening.length, -closing.length).includes('<')) return false;
-  } else if (source !== opening) {
+  } else if (source !== opening || !/\/\s*>$/.test(opening)) {
+    // An opening tag without a matching close is accepted only when self-closing.
     return false;
   }
 
   let attributeSource = opening.slice(7, -1);
-  // A slash after a quoted value or whitespace is a self-closing delimiter;
-  // a slash in an unquoted URL remains part of that URL value.
-  if (/(?:["']|\s)\/\s*$/.test(attributeSource)) {
+  if (/\/\s*$/.test(attributeSource)) {
     attributeSource = attributeSource.replace(/\/\s*$/, '');
   }
   const attributes = new Map<string, string | null>();
@@ -221,12 +218,13 @@ function isAllowedIframeFragment(source: string, allowedHostnames: string[]): bo
     if (cursor >= attributeSource.length) break;
 
     const nameStart = cursor;
-    while (cursor < attributeSource.length && !/[\s=/>"'<>]/.test(attributeSource[cursor])) cursor++;
+    while (cursor < attributeSource.length && !/[\s=/>"'<]/.test(attributeSource[cursor])) cursor++;
     if (cursor === nameStart) return false;
     const name = attributeSource.slice(nameStart, cursor).toLowerCase();
     if (!/^[^\s"'<>/=]+$/.test(name) || /[\u0000-\u001f]/.test(name)
       || name.startsWith('on') || name === 'srcdoc' || attributes.has(name)) return false;
 
+    const afterName = cursor;
     while (/\s/.test(attributeSource[cursor] ?? '')) cursor++;
     let value: string | null = null;
     if (attributeSource[cursor] === '=') {
@@ -246,6 +244,10 @@ function isAllowedIframeFragment(source: string, allowedHostnames: string[]): bo
         if (cursor === valueStart) return false;
         value = attributeSource.slice(valueStart, cursor);
       }
+    } else {
+      // Boolean attributes are valid. Keep the separating whitespace for
+      // the next loop iteration instead of consuming the next attribute name.
+      cursor = afterName;
     }
     if (cursor < attributeSource.length && !/\s/.test(attributeSource[cursor])) return false;
     attributes.set(name, value);
