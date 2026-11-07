@@ -15,7 +15,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.05.06.22';
+const PLUGIN_VERSION = '2026.11.07.21.00';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -72,7 +72,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
       <section class="cy-feature-card">
         <label class="cy-feature-toggle">
           <input type="checkbox" data-cy-setting="showHomeSearchButton" ${searchEnabled ? 'checked' : ''}>
-          <span>全局搜索按键</span>
+          <span>首页搜索按键</span>
         </label>
         <p>控制 Warm CY 所有页面的主导航是否显示搜索图标。关闭后全站不显示搜索入口。</p>
       </section>
@@ -815,20 +815,41 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     return `${html}<script data-warm-cy-admin-navigation>
       (() => {
         const pluginPath = '/admin/plugin/${ADMIN_PAGE_SLUG}';
-        const groups = document.querySelectorAll('.typecho-head-nav menu > li');
+        const groups = document.querySelectorAll('.typecho-head-nav > nav > menu > li');
+        let settingsLinkAdded = false;
         for (const group of groups) {
           const heading = group.querySelector(':scope > a');
           if (heading?.textContent?.trim() !== '设置') continue;
           const submenu = group.querySelector(':scope > menu');
-          if (!submenu || submenu.querySelector('a[href="' + pluginPath + '"]')) break;
-          const item = document.createElement('li');
-          const link = document.createElement('a');
-          link.href = pluginPath;
-          link.textContent = 'CY 功能显示';
+          if (!submenu) break;
+          let item = submenu.querySelector('a[href="' + pluginPath + '"]')?.closest('li');
+          if (!item) {
+            item = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = pluginPath;
+            link.textContent = 'CY 功能显示';
+            item.append(link);
+            submenu.append(item);
+          }
           if (window.location.pathname === pluginPath) item.classList.add('focus');
-          item.append(link);
-          submenu.append(item);
+          settingsLinkAdded = true;
           break;
+        }
+
+        // Keep the settings entry reachable even if another admin layout
+        // changes or omits the nested Settings submenu.
+        if (!settingsLinkAdded) {
+          const mainMenu = document.querySelector('.typecho-head-nav > nav > menu');
+          if (mainMenu && !mainMenu.querySelector('a[href="' + pluginPath + '"]')) {
+            const item = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = pluginPath;
+            link.textContent = 'CY 功能显示';
+            item.append(link);
+            const operate = mainMenu.querySelector(':scope > li.operate');
+            if (operate) mainMenu.insertBefore(item, operate);
+            else mainMenu.append(item);
+          }
         }
 
         if (window.location.pathname === '/admin/options-theme') {
