@@ -36,6 +36,54 @@ function isEnabled(value: unknown, fallback = true): boolean {
 }
 
 
+/**
+ * Build a temporary redirect to the current database-configured siteUrl.
+ * Only public document requests reach this helper; disabled/malformed settings
+ * return null without changing request handling.
+ */
+function getCanonicalDomainRedirect(request: Request, siteUrl: unknown): Response | null {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return null;
+  if (typeof siteUrl !== 'string' || !siteUrl.trim()) return null;
+
+  let canonical: URL;
+  let current: URL;
+  try {
+    canonical = new URL(siteUrl);
+    current = new URL(request.url);
+  } catch {
+    return null;
+  }
+  if ((canonical.protocol !== 'http:' && canonical.protocol !== 'https:')
+    || !canonical.hostname
+    || canonical.username
+    || canonical.password) return null;
+
+  // Compare host and scheme, not a hard-coded alias. Changing siteUrl in D1
+  // automatically changes the destination without editing plugin settings.
+  if (current.host.toLowerCase() === canonical.host.toLowerCase()
+    && current.protocol === canonical.protocol) return null;
+
+  const destination = new URL(current.pathname + current.search, canonical.origin);
+  return Response.redirect(destination.toString(), 302);
+}
+
+function isCanonicalRedirectExcludedPath(path: string): boolean {
+  if (
+    path === '/admin' || path.startsWith('/admin/') ||
+    path === '/api' || path.startsWith('/api/') ||
+    path === '/install' || path.startsWith('/install/') ||
+    path.startsWith('/themes/') || path.startsWith('/plugins/') ||
+    path.startsWith('/usr/') || path.startsWith('/css/') ||
+    path.startsWith('/js/') || path.startsWith('/img/') ||
+    path.startsWith('/vendor/') || path.startsWith('/plugin-assets/') ||
+    path.startsWith('/.well-known/')
+  ) return true;
+
+  // Skip actual static-file requests while keeping HTML permalinks, feeds,
+  // sitemap.xml and robots.txt eligible for canonical-host redirects.
+  return /\\.(?:avif|bmp|gif|ico|jpe?g|png|webp|svg|css|js|mjs|map|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov|pdf|zip|gz|br)$/i.test(path);
+}
+
 async function isHtmlEnhancementEnabled(): Promise<boolean> {
   // Content filters receive only the content string, not RequestContext.options.
   // Read this plugin's private option through the public plugin SDK so the
@@ -85,6 +133,13 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         </label>
         <p>允许文章和独立页面正文使用内嵌 &lt;style&gt;、&lt;script&gt;、SVG，以及 HTML 的 class、id、data、aria 和 style 属性。开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布内容；笔记由独立笔记插件处理，评论区不受影响。</p>
       </section>
+      <section class="cy-feature-card">
+        <label class="cy-feature-toggle">
+          <input type="checkbox" data-cy-setting="canonicalDomainRedirectEnabled" ${isEnabled(settings.canonicalDomainRedirectEnabled, false) ? 'checked' : ''}>
+          <span>访问备用域名时自动跳转到主域名</span>
+        </label>
+        <p>开启后自动读取数据库中的站点地址（siteUrl），将备用域名的公开页面临时跳转到当前主域名，并保留文章路径和查询参数。关闭后立即停止插件跳转；后台、API 和静态资源不受影响。请先确保主域名与备用域名的 DNS、HTTPS 证书均正常。</p>
+      </section>
       ${markdownAlertStyleEditorHtml(markdownAlertStyleSettings)}
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
@@ -124,6 +179,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
+          var canonicalDomainRedirect = root.querySelector('[data-cy-setting="canonicalDomainRedirectEnabled"]');
           var noteStyleSettings = { enabled: !!noteStyleEnabled.checked, types: {}, icon: {
             visible: !!root.querySelector('[data-cy-alert-icon-visible]').checked,
             size: Number(root.querySelector('[data-cy-alert-icon-size]').value || 18),
@@ -148,6 +204,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
                 htmlEnhancementEnabled: !!htmlEnhancement.checked,
+                canonicalDomainRedirectEnabled: !!canonicalDomainRedirect.checked,
                 markdownAlertStyleSettings: noteStyleSettings
               })
             });
@@ -1018,12 +1075,24 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   addHook('route:request', pluginId, async (
     result: PluginRouteResult,
-    extra?: { request?: Request; path?: string },
+    extra?: { request?: Request; path?: string; options?: Record<string, unknown> },
   ) => {
     if (result?.handled || !extra?.request) return result;
-    const path = extra.path;
-    if (path !== ADMIN_PATH && path !== ADMIN_SETTINGS_API_PATH) return result;
     const request = extra.request;
+    const path = extra.path || new URL(request.url).pathname;
+
+    // This hook runs after the core has loaded fresh private plugin options
+    // from D1 and before public routes are rendered. No core-file change needed.
+    const featureSettings = parsePluginSettings(extra.options?.[PLUGIN_OPTION_KEY]);
+    if (
+      isEnabled(featureSettings.canonicalDomainRedirectEnabled, false) &&
+      !isCanonicalRedirectExcludedPath(path)
+    ) {
+      const redirect = getCanonicalDomainRedirect(request, extra.options?.siteUrl);
+      if (redirect) return { handled: true, response: redirect };
+    }
+
+    if (path !== ADMIN_PATH && path !== ADMIN_SETTINGS_API_PATH) return result;
     if (request.method !== 'POST') {
       return { handled: true, response: json({ error: 'Method not allowed' }, 405) };
     }
@@ -1052,11 +1121,13 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
+        canonicalDomainRedirectEnabled?: unknown;
         markdownAlertStyleSettings?: unknown;
       };
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
-        || typeof values.htmlEnhancementEnabled !== 'boolean') {
+        || typeof values.htmlEnhancementEnabled !== 'boolean'
+        || typeof values.canonicalDomainRedirectEnabled !== 'boolean') {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
       }
       const current = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
@@ -1065,6 +1136,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
+        canonicalDomainRedirectEnabled: values.canonicalDomainRedirectEnabled ? '1' : '0',
         markdownAlertStyleSettings: values.markdownAlertStyleSettings !== undefined
           ? normalizeMarkdownAlertStyleSettings(values.markdownAlertStyleSettings)
           : normalizeMarkdownAlertStyleSettings(current.markdownAlertStyleSettings),
