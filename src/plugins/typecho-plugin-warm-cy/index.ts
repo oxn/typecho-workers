@@ -136,7 +136,7 @@ function isIframeSourceAllowed(source: string, allowedHostnames: string[]): bool
   try { url = new URL(source.trim(), 'https://iframe-base.invalid'); } catch { return false; }
   if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname || url.username || url.password) return false;
   if (!source.trim().startsWith('//') && !/^https?:\/\//i.test(source.trim())) return false;
-  if (!allowedHostnames.length) return true;
+  if (!allowedHostnames.length) return false;
   const hostname = url.hostname.toLowerCase().replace(/\.$/, '');
   return allowedHostnames.some(host => hostname === host || hostname.endsWith('.' + host));
 }
