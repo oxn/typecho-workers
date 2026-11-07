@@ -474,6 +474,14 @@ describe('typecho-plugin-warm-cy', () => {
     expect(await hooks.get('content:content')!(source)).toBe(source);
   });
 
+  it('leaves marker-like plain text untouched when there is no iframe', async () => {
+    const hooks = collectHooks();
+    const source = 'Example text: CYIFRAMEVIDEOX and CYIFRAMECODE12XEND';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    expect(protectedContent).toBe(source);
+    expect(mocks.getOption).not.toHaveBeenCalled();
+  });
+
   it('does not intercept iframe-looking examples inside code blocks or inline code', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
