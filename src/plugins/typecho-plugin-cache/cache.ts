@@ -123,6 +123,7 @@ export interface CacheControlDocument {
     categoryPattern: string;
     /** Warm-CY canonical-host redirect is checked before any cached page is served. */
     canonicalDomainRedirectEnabled?: boolean;
+    warmCyPluginActive?: boolean;
   };
 }
 
@@ -278,6 +279,15 @@ function warmCyCanonicalRedirectEnabled(value: unknown): boolean {
 function optionsForControl(options: Record<string, unknown> = {}): CacheControlDocument['options'] {
   const pluginSetting = options[`plugin:${WARM_CY_PLUGIN_ID}`];
   const explicitSetting = options.canonicalDomainRedirectEnabled;
+  let warmCyPluginActive = options.warmCyPluginActive === true;
+  if (typeof options.activatedPlugins === 'string') {
+    try {
+      const activated = JSON.parse(options.activatedPlugins);
+      warmCyPluginActive = Array.isArray(activated) && activated.includes(WARM_CY_PLUGIN_ID);
+    } catch {
+      warmCyPluginActive = false;
+    }
+  }
   return {
     siteUrl: String(options.siteUrl || ''),
     permalinkPattern: String(options.permalinkPattern || '/archives/{cid}/'),
@@ -286,6 +296,7 @@ function optionsForControl(options: Record<string, unknown> = {}): CacheControlD
     canonicalDomainRedirectEnabled: pluginSetting !== undefined
       ? warmCyCanonicalRedirectEnabled(pluginSetting)
       : explicitSetting === true,
+    warmCyPluginActive,
   };
 }
 
@@ -305,9 +316,9 @@ function isCanonicalRedirectEligiblePath(path: string): boolean {
 async function checkWarmCyCanonicalRedirect(
   context: EarlyRequestContext,
   d1: D1Database,
-): Promise<{ enabled: boolean; response: Response | null }> {
+): Promise<{ enabled: boolean; active: boolean; response: Response | null }> {
   if (context.request.method !== 'GET' || !isCanonicalRedirectEligiblePath(context.url.pathname)) {
-    return { enabled: true, response: null };
+    return { enabled: true, active: true, response: null };
   }
 
   const rows = await d1.prepare(
@@ -321,27 +332,27 @@ async function checkWarmCyCanonicalRedirect(
   let activated: unknown;
   try { activated = JSON.parse(values.get('activatedPlugins') || '[]'); } catch { activated = []; }
   if (!Array.isArray(activated) || !activated.includes(WARM_CY_PLUGIN_ID)) {
-    return { enabled: false, response: null };
+    return { enabled: true, active: false, response: null };
   }
   if (!warmCyCanonicalRedirectEnabled(values.get(`plugin:${WARM_CY_PLUGIN_ID}`))) {
-    return { enabled: false, response: null };
+    return { enabled: false, active: true, response: null };
   }
 
   let canonical: URL;
   try {
     const siteUrl = values.get('siteUrl');
-    if (!siteUrl) return { enabled: true, response: null };
+    if (!siteUrl) return { enabled: true, active: true, response: null };
     canonical = new URL(siteUrl);
   } catch {
-    return { enabled: true, response: null };
+    return { enabled: true, active: true, response: null };
   }
   if ((canonical.protocol !== 'http:' && canonical.protocol !== 'https:')
     || !canonical.hostname || canonical.username || canonical.password) {
-    return { enabled: true, response: null };
+    return { enabled: true, active: true, response: null };
   }
   if (context.url.host.toLowerCase() === canonical.host.toLowerCase()
     && context.url.protocol === canonical.protocol) {
-    return { enabled: true, response: null };
+    return { enabled: true, active: true, response: null };
   }
 
   // Set path/search on a URL pinned to the D1 siteUrl origin; never let a
@@ -351,6 +362,7 @@ async function checkWarmCyCanonicalRedirect(
   destination.search = context.url.search;
   return {
     enabled: true,
+    active: true,
     response: new Response(null, {
       status: 302,
       headers: {
@@ -1178,14 +1190,18 @@ async function handleRequest(context: EarlyRequestContext, next: EarlyRequestNex
   // siteUrl here before looking up any cached HTML. This extra D1 read only
   // occurs while the feature is enabled; it also makes a D1-console emergency
   // OFF switch and direct siteUrl edits effective even on cache hits.
-  if (control.options.canonicalDomainRedirectEnabled && d1) {
+  if (control.options.canonicalDomainRedirectEnabled && control.options.warmCyPluginActive && d1) {
     try {
       const canonical = await checkWarmCyCanonicalRedirect(context, d1);
       if (canonical.response) return canonical.response;
-      if (!canonical.enabled) {
+      if (!canonical.enabled || !canonical.active) {
         control = {
           ...control,
-          options: { ...control.options, canonicalDomainRedirectEnabled: false },
+          options: {
+            ...control.options,
+            canonicalDomainRedirectEnabled: canonical.enabled,
+            warmCyPluginActive: canonical.active,
+          },
         };
         await writeControl(kv, control).catch(error => {
           console.error('[edge-cache] Canonical redirect control update failed:', error);
