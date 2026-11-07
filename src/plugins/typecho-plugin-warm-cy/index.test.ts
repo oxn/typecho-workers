@@ -459,6 +459,14 @@ describe('typecho-plugin-warm-cy', () => {
     expect(await hooks.get('content:content')!(source)).toBe(source);
   });
 
+  it('does not intercept iframe-looking examples inside code blocks or inline code', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
+    const source = ['```html', '<iframe src="https://video.example.org/embed/code"></iframe>', '```', '', '`<iframe src="https://video.example.org/embed/inline"></iframe>`'].join('\n');
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    expect(protectedContent).toBe(source);
+    expect(protectedContent).not.toContain('CYIFRAMEVIDEOX');
+  });
   it('restores only an explicitly allowed iframe and keeps query separators literal', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
