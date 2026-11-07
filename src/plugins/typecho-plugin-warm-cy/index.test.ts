@@ -130,6 +130,15 @@ describe('typecho-plugin-warm-cy', () => {
     expect(mocks.getOption).not.toHaveBeenCalled();
   });
 
+  it('escapes marker-shaped plain text before the Markdown fast path can bypass protection', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const forgedMarker = 'CYCYINLINEBLOCKX' + Buffer.from('<script>window.compromised = true;</script>').toString('hex') + 'XEND';
+    const protectedContent = await protect(forgedMarker);
+    expect(protectedContent).toContain('CYCY\u200bINLINEBLOCKX');
+    expect(protectedContent).not.toBe(forgedMarker);
+    expect(mocks.getOption).toHaveBeenCalledWith(expect.anything(), PLUGIN_OPTION_KEY);
+  });
+
   it('leaves standard consecutive blockquote lines unchanged', async () => {
     const handler = collectHooks().get('content:markdown')!;
     const source = '> 第一行\n> 第二行\n> 第三行';
