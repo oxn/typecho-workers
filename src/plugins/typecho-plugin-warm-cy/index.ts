@@ -1279,7 +1279,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       if (typeof values.iframeVideoAllowedHostnames === 'string'
         && values.iframeVideoAllowedHostnames.trim()
         && !normalizeIframeVideoHostnames(values.iframeVideoAllowedHostnames).length) {
-        return { handled: true, response: json({ error: '域名格式无效，请只填写主机名；留空则不启用域名限制' }, 400) };
+        return { handled: true, response: json({ error: '域名格式无效，请只填写主机名；留空将拒绝所有 iframe 视频域名' }, 400) };
       }
       const current = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
       const next = {
