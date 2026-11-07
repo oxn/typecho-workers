@@ -2,13 +2,7 @@
   "name": "typecho-plugin-cache",
   "version": "1.0.1",
   "description": "Cloudflare Cache API + KV + D1 edge page cache and CDN URL rewriting for Typecho-Workers.",
-  "keywords": [
-    "typecho",
-    "plugin",
-    "cache",
-    "kv",
-    "cdn"
-  ],
+  "keywords": ["typecho", "plugin", "cache", "kv", "cdn"],
   "author": "Tokinx",
   "license": "MIT",
   "type": "module",
@@ -25,23 +19,12 @@
       "version": "1.0.1",
       "homepage": "https://github.com/Tokinx/typecho-workers/tree/master/src/plugins/typecho-plugin-cache",
       "license": "MIT",
-      "tags": [
-        "cache",
-        "kv",
-        "cdn"
-      ],
+      "tags": ["cache", "kv", "cdn"],
       "config": {
         "cacheScopes": {
           "type": "checkbox",
           "label": "缓存范围",
-          "default": [
-            "home",
-            "post",
-            "page",
-            "note",
-            "archive",
-            "other"
-          ],
+          "default": ["home", "post", "page", "note", "archive", "other"],
           "options": {
             "home": "首页与分页",
             "post": "文章",
@@ -56,61 +39,33 @@
           "type": "select",
           "label": "L1 边缘节点缓存",
           "default": "604800",
-          "options": {
-            "0": "不缓存",
-            "3600": "1 小时",
-            "43200": "12 小时",
-            "86400": "1 天",
-            "259200": "3 天",
-            "604800": "7 天",
-            "2592000": "30 天"
-          }
+          "options": { "0": "不缓存", "3600": "1 小时", "43200": "12 小时", "86400": "1 天", "259200": "3 天", "604800": "7 天", "2592000": "30 天" }
         },
         "l2Ttl": {
           "type": "select",
           "label": "L2 Workers KV 缓存",
           "default": "259200",
-          "options": {
-            "0": "不缓存",
-            "86400": "1 天",
-            "259200": "3 天",
-            "604800": "7 天"
-          }
+          "options": { "0": "不缓存", "86400": "1 天", "259200": "3 天", "604800": "7 天" }
         },
         "l3Ttl": {
           "type": "select",
           "label": "L3 D1 KV 缓存",
           "default": "21600",
-          "options": {
-            "0": "不缓存",
-            "300": "5 分钟",
-            "3600": "1 小时",
-            "21600": "6 小时",
-            "43200": "12 小时",
-            "86400": "1 天"
-          }
+          "options": { "0": "不缓存", "300": "5 分钟", "3600": "1 小时", "21600": "6 小时", "43200": "12 小时", "86400": "1 天" }
         },
         "frontendDataCacheBackend": {
           "type": "select",
           "label": "前台数据缓存",
           "description": "站点选项、导航、侧栏、元数据、评论、笔记、公开归档和内容。",
           "default": "kv",
-          "options": {
-            "kv": "Workers KV",
-            "d1": "D1 KV",
-            "none": "不缓存"
-          }
+          "options": { "kv": "Workers KV", "d1": "D1 KV", "none": "不缓存" }
         },
         "adminDataCacheBackend": {
           "type": "select",
           "label": "后台数据缓存",
           "description": "仪表盘及后台的内容、评论、分类标签、媒体、用户和只读选项列表。",
           "default": "kv",
-          "options": {
-            "kv": "Workers KV",
-            "d1": "D1 KV",
-            "none": "不缓存"
-          }
+          "options": { "kv": "Workers KV", "d1": "D1 KV", "none": "不缓存" }
         },
         "staticCdnUrl": {
           "type": "text",
