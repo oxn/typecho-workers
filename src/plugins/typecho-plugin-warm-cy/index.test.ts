@@ -145,7 +145,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.07.19.50');
+    expect(html).toContain('CY 插件版本：2026.11.07.19.57');
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
@@ -703,6 +703,19 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('src="https://video.example.org/embed/example?a=1&b=2"');
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
+  it('restores an allowlisted iframe inside a plain HTML container when HTML enhancement is OFF', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
+    const iframeMarkup = '<iframe src="https://video.example.org/embed/plain-container" data-layout="wide" credentialless></iframe>';
+    const source = '<div class="native-embed">' + iframeMarkup + '</div>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain('<div class="native-embed">');
+    expect(decodeFinalIframeMarkup(restored)).toBe(iframeMarkup);
+    expect(restored).not.toContain('CYIFRAMEVIDEOX');
+  });
+
   it('uses the configured iframe allowlist when an iframe sits inside an enhanced HTML container', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '1', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
