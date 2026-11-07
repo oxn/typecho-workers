@@ -619,12 +619,13 @@ describe('typecho-plugin-warm-cy', () => {
   it('uses the configured iframe allowlist when an iframe sits inside an enhanced HTML container', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '1', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
-    const source = '<div class="video-wrap"><iframe src="https://video.example.org/embed/1?a=1&b=2"></iframe></div>';
+    const iframeMarkup = "<IFRAME  src='https://video.example.org/embed/1?a=1&amp;b=2' data-layout='wide' vendor-mode=compact credentialless allowpaymentrequest title='Exact nested' ></IFRAME>";
+    const source = '<div class="video-wrap" data-shell="preserve">' + iframeMarkup + '</div>';
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain('<iframe');
-    expect(restored).toContain('src="https://video.example.org/embed/1?a=1&b=2"');
+    expect(restored).toContain('<div class="video-wrap"');
+    expect(restored).toContain(iframeMarkup);
   });
 
   it('rejects iframe embeds inside enhanced containers when the allowlist is empty', async () => {
