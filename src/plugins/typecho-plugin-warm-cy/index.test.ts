@@ -462,7 +462,15 @@ describe('typecho-plugin-warm-cy', () => {
   it('does not intercept iframe-looking examples inside code blocks or inline code', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
-    const source = ['```html', '<iframe src="https://video.example.org/embed/code"></iframe>', '```', '', '`<iframe src="https://video.example.org/embed/inline"></iframe>`'].join('\n');
+    const source = [
+      "```html",
+      '<iframe src="https://video.example.org/embed/code"></iframe>',
+      "```",
+      '',
+      '`<iframe src="https://video.example.org/embed/inline"></iframe>`',
+      '<script>const sample = "<iframe src=\\"https://video.example.org/embed/script\\"></iframe>";</script>',
+      '<!-- <iframe src="https://video.example.org/embed/comment"></iframe> -->',
+    ].join('\\n');
     const protectedContent = await hooks.get('content:markdown')!(source);
     expect(protectedContent).toBe(source);
     expect(protectedContent).not.toContain('CYIFRAMEVIDEOX');
