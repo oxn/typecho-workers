@@ -500,7 +500,8 @@ describe('typecho-plugin-warm-cy', () => {
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
     expect(restored).toContain('Literal markers: CYIFRAMEVIDEOX, CYIFRAMEVIDEOXdeadbeefXEND, and CYIFRAMECODE12XEND.');
     expect(restored).toContain('<iframe');
-    expect(restored).not.toContain('CY\\u200bIFRAMEVIDEOX');
+    expect(restored).not.toContain('CY\u200bIFRAMEVIDEOX');
+    expect(restored).not.toContain('CY\u200bIFRAMECODE');
   });
 
   it('does not intercept iframe-looking examples inside code blocks or inline code', async () => {
