@@ -614,6 +614,15 @@ function sanitizeInlineSvgReferences(source: string): string {
   });
 }
 
+// Keep query-string separators readable in iframe src output. This runs only
+// after sanitize-html has validated the iframe URL and serialized the safe fragment.
+function preserveIframeSrcAmpersands(html: string): string {
+  return html.replace(/(<iframe\\b[^>]*\\bsrc\\s*=\\s*)(["'])([\\s\\S]*?)\\2/gi,
+    (_match, prefix: string, quote: string, value: string) =>
+      prefix + quote + value.replace(/&amp;/gi, '&') + quote,
+  );
+}
+
 function sanitizeInlineHtmlFragment(source: string): string {
   const safeFormActions = source.replace(
     /<form\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
@@ -627,7 +636,9 @@ function sanitizeInlineHtmlFragment(source: string): string {
       },
     ),
   );
-  return sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), INLINE_FRAGMENT_SANITIZE_OPTIONS);
+  const sanitized = sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), INLINE_FRAGMENT_SANITIZE_OPTIONS);
+  // Restrict raw ampersand output to already-sanitized iframe src attributes.
+  return preserveIframeSrcAmpersands(sanitized);
 }
 
 function restoreInlineHtmlFragments(content: string): string {
