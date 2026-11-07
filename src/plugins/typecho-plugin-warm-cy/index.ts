@@ -15,8 +15,14 @@ const OPTION_KEY = `theme:${THEME_ID}`;
 const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
+const DEFAULT_IFRAME_VIDEO_HOSTNAMES = [
+  'www.youtube.com',
+  'www.youtube-nocookie.com',
+  'player.bilibili.com',
+  'player.vimeo.com',
+];
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.07.23.00';
+const PLUGIN_VERSION = '2026.11.07.23.01';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -171,7 +177,9 @@ function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[])
         'class', 'id', 'style', 'role', 'data-*', 'aria-*'],
     },
   };
-  if (allowedHostnames.length) options.allowedIframeHostnames = allowedHostnames;
+  // Always pass the configured list. An empty array deliberately denies every iframe hostname;
+  // omitting this option would silently restore sanitize-html's built-in defaults.
+  options.allowedIframeHostnames = allowedHostnames;
   const safe = sanitizeHtml(source, options);
   return preserveIframeSrcAmpersands(safe);
 }
@@ -197,7 +205,11 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
   const iframeVideoEnhancementEnabled = isEnabled(settings.iframeVideoEnhancementEnabled, false);
-  const iframeVideoAllowedHostnames = normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames);
+  // New/legacy installations start with the four supported hosts. A saved empty
+  // string is intentional and must remain empty (deny all iframe hosts).
+  const iframeVideoAllowedHostnames = settings.iframeVideoAllowedHostnames === undefined
+    ? [...DEFAULT_IFRAME_VIDEO_HOSTNAMES]
+    : normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames);
   const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
@@ -232,7 +244,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <input type="checkbox" data-cy-setting="iframeVideoEnhancementEnabled" ${iframeVideoEnhancementEnabled ? 'checked' : ''}>
           <span>视频 iframe 增强（仅处理视频地址）</span>
         </label>
-        <p>独立处理文章和独立页面中的视频 iframe。关闭后不执行本项视频增强；上方正文 HTML 增强仍按其独立开关工作。白名单留空表示不设置域名限制；填写后只允许列表中的域名。只填写主机名，不要填写协议、端口或路径。</p>
+        <p>独立处理文章和独立页面中的视频 iframe。关闭后不执行本项视频增强；上方正文 HTML 增强仍按其独立开关工作。默认提供四个常用视频域名，可自行增删。启用本功能时，白名单留空表示拒绝所有 iframe 视频域名；填写后只允许列表中的域名。只填写主机名，不要填写协议、端口或路径。</p>
         <label for="cy-iframe-video-hostnames">允许的视频 iframe 域名（可留空）</label>
         <textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">${escapeHtml(iframeVideoAllowedHostnames.join('\n'))}</textarea>
       </section>
@@ -722,14 +734,10 @@ function sanitizeInlineHtmlFragment(source: string, allowedIframeHostnames?: str
     ),
   );
   const options: sanitizeHtml.IOptions = { ...INLINE_FRAGMENT_SANITIZE_OPTIONS };
-  if (allowedIframeHostnames === undefined) {
-    // Keep the stable HTML-enhancement allowlist unchanged when this feature is off.
-  } else if (allowedIframeHostnames.length) {
+  if (allowedIframeHostnames !== undefined) {
+    // An explicitly configured empty list means deny all iframe hostnames.
+    // Keep the original sanitizer defaults only when iframe enhancement is off.
     options.allowedIframeHostnames = allowedIframeHostnames;
-  } else {
-    // An empty user list means no hostname filter at all; do not inherit the
-    // built-in stable defaults and do not pass an empty (deny-all) array.
-    delete options.allowedIframeHostnames;
   }
   const sanitized = sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), options);
   return allowedIframeHostnames === undefined ? sanitized : preserveIframeSrcAmpersands(sanitized);
