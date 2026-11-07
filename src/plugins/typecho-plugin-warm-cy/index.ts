@@ -112,6 +112,12 @@ async function isHtmlEnhancementEnabled(): Promise<boolean> {
   return isEnabled(settings.htmlEnhancementEnabled, false);
 }
 
+function getIframeVideoAllowedHostnames(settings: Record<string, unknown>): string[] {
+  return settings.iframeVideoAllowedHostnames === undefined
+    ? [...DEFAULT_IFRAME_VIDEO_HOSTNAMES]
+    : normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames);
+}
+
 function normalizeIframeVideoHostnames(value: unknown): string[] {
   const candidates = Array.isArray(value) ? value : typeof value === 'string' ? value.split(/[\s,;，；]+/) : [];
   const hostnames = candidates.map(item => {
@@ -207,9 +213,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const iframeVideoEnhancementEnabled = isEnabled(settings.iframeVideoEnhancementEnabled, false);
   // New/legacy installations start with the four supported hosts. A saved empty
   // string is intentional and must remain empty (deny all iframe hosts).
-  const iframeVideoAllowedHostnames = settings.iframeVideoAllowedHostnames === undefined
-    ? [...DEFAULT_IFRAME_VIDEO_HOSTNAMES]
-    : normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames);
+  const iframeVideoAllowedHostnames = getIframeVideoAllowedHostnames(settings);
   const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
@@ -897,12 +901,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const settings = parsePluginSettings(storedSettings);
     let restored = restoreMarkdownAlertIcons(content, settings.markdownAlertStyleSettings);
     if (isEnabled(settings.iframeVideoEnhancementEnabled, false) && restored.includes('CYIFRAMEVIDEOX')) {
-      restored = restoreIframeVideoFragments(restored, normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames));
+      restored = restoreIframeVideoFragments(restored, getIframeVideoAllowedHostnames(settings));
     }
     if (!restored.includes('CYCYINLINE')) return restored;
     return await isHtmlEnhancementEnabled()
       ? restoreInlineHtmlFragments(restored, isEnabled(settings.iframeVideoEnhancementEnabled, false)
-        ? normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames)
+        ? getIframeVideoAllowedHostnames(settings)
         : undefined)
       : restored;
   }, 1);
