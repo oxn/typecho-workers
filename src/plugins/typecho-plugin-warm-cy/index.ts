@@ -22,7 +22,7 @@ const DEFAULT_IFRAME_VIDEO_HOSTNAMES = [
   'player.vimeo.com',
 ];
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.07.20.01';
+const PLUGIN_VERSION = '2026.11.07.20.02';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -932,9 +932,9 @@ function iframeRestorationRuntime(): string {
     + 'const literalPattern = /CY\\u2060(?=IFRAME(?:VIDEOX|CODE\\d+XEND|FINALX[0-9a-f]+XEND))/gi;'
     + 'const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };'
     + 'const hydrate = () => {'
-    + 'const warmRoots = document.querySelectorAll(".warm-prose:not(.warm-note-prose)");
-    const roots = warmRoots.length ? warmRoots : [document.querySelector("main") || document.body];
-    for (const root of roots) {'
+    + 'const warmRoots = document.querySelectorAll(".warm-prose:not(.warm-note-prose)");'
+    + 'const roots = warmRoots.length ? warmRoots : [document.querySelector("main") || document.body];'
+    + 'for (const root of roots) {'
     + 'const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) { const parent = node.parentElement; if (!parent || parent.closest("pre,code,textarea,script,style")) return NodeFilter.FILTER_REJECT; pattern.lastIndex = 0; literalPattern.lastIndex = 0; return pattern.test(node.nodeValue || "") || literalPattern.test(node.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });'
     + 'const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);'
     + 'for (const node of nodes) { const value = node.nodeValue || ""; pattern.lastIndex = 0; literalPattern.lastIndex = 0; const hasLiteral = literalPattern.test(value); literalPattern.lastIndex = 0; const standaloneMarker = /^CYIFRAMEFINALX[0-9a-f]+XEND$/i.test(value.trim()); let last = 0, match, changed = false, onlyFrame = null; const fragment = document.createDocumentFragment();'
