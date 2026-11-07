@@ -105,7 +105,8 @@ const DEFAULT_IFRAME_ALLOWED_HOSTNAMES = [
 ] as const;
 
 function parseIframeAllowedHostnames(value: unknown): string[] {
-  // An empty saved list means the administrator explicitly disabled all iframe hosts.
+  // Missing setting: use the four built-in defaults. Explicitly saved empty text: deny all.
+  if (value === undefined || value === null) return [...DEFAULT_IFRAME_ALLOWED_HOSTNAMES];
   if (typeof value !== 'string' || !value.trim()) return ['\u0000'];
   const hosts = new Set<string>();
   for (const raw of value.split(/[\s,;，；]+/)) {
