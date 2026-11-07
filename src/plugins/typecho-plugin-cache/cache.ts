@@ -299,7 +299,7 @@ function isCanonicalRedirectEligiblePath(path: string): boolean {
     path.startsWith('/themes/') || path.startsWith('/vendor/') ||
     path.startsWith('/plugin-assets/') || path.startsWith('/.well-known/')
   ) return false;
-  return !/\\.(?:avif|bmp|gif|ico|jpe?g|png|webp|svg|css|js|mjs|map|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov|pdf|zip|gz|br)$/i.test(path);
+  return !/\.(?:avif|bmp|gif|ico|jpe?g|png|webp|svg|css|js|mjs|map|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov|pdf|zip|gz|br)$/i.test(path);
 }
 
 async function checkWarmCyCanonicalRedirect(
