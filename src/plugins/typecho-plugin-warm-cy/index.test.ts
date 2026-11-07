@@ -259,6 +259,17 @@ describe('typecho-plugin-warm-cy', () => {
       expect(restored, filename).not.toMatch(/<[a-z][^>]*\s(?:onclick|onerror)\s*=/i);
       if (filename === 'cy-html-comprehensive-test.html') {
         expect(restored).toContain('text-shadow:1px 1px 1px #aaa');
+        expect(restored).toContain('cy-html-full-2026');
+        expect(restored).toContain('test-banner');
+      }
+      if (filename === 'cy-video-iframe-diagnostic.html') {
+        // Full-document wrappers and head metadata are not article content;
+        // head styles and body scripts must still survive for runtime hydration.
+        expect(restored).not.toMatch(/<(?:html|head|body|meta|title)\\b/i);
+        expect(restored).toContain('CYCYINLINEBLOCKX');
+        expect(restored).toContain('data-state-for');
+        expect(restored).toContain('js-status');
+        expect(restored).toContain('bili-dynamic-rin');
       }
     }
   });
