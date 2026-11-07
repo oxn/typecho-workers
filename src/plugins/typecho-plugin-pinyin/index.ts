@@ -28,14 +28,27 @@ export function titleToPinyinSlug(title: string): string {
   const source = title.trim();
   if (!source) return '';
 
-  return pinyin(source, { toneType: 'none', nonZh: 'consecutive' })
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 180)
-    .replace(/-+$/g, '');
+  // Keep separators only where the original title contains whitespace,
+  // punctuation, or symbols. Pinyin syllables inside a continuous Han run
+  // are concatenated instead of being separated with hyphens.
+  const slug = source
+    .split(/([\s\p{P}\p{S}]+)/u)
+    .map((part) => {
+      if (!part) return '';
+      if (/^[\s\p{P}\p{S}]+$/u.test(part)) return '-';
+
+      return pinyin(part, { toneType: 'none', nonZh: 'consecutive' })
+        .replace(/\s+/g, '')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-');
+    })
+    .join('')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return slug.slice(0, 180).replace(/-+$/g, '');
 }
 
 function editorHtml(formName: 'write_post' | 'write_page', isEdit: boolean): string {
