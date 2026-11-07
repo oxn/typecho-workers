@@ -145,6 +145,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
+    expect(html).toContain('访问备用域名时自动跳转到主域名');
+    expect(html).toContain('data-cy-setting="canonicalDomainRedirectEnabled"');
   });
 
   it('provides a fallback CY feature-settings entry in the admin navigation', () => {
@@ -531,6 +533,7 @@ describe('typecho-plugin-warm-cy', () => {
         showCommentManagementButtons: true,
         showHomeSearchButton: false,
         htmlEnhancementEnabled: true,
+        canonicalDomainRedirectEnabled: true,
       }),
       path: SETTINGS_API_PATH,
     });
@@ -543,6 +546,7 @@ describe('typecho-plugin-warm-cy', () => {
       showCommentManagementButtons: '1',
       showHomeSearchButton: '0',
       htmlEnhancementEnabled: '1',
+      canonicalDomainRedirectEnabled: '1',
       markdownAlertStyleSettings: {
         enabled: true,
         types: expect.objectContaining({
@@ -555,6 +559,94 @@ describe('typecho-plugin-warm-cy', () => {
         icon: expect.objectContaining({ visible: true }),
       },
     });
+  });
+
+  it('temporarily redirects an enabled alternate host to the current siteUrl and preserves path/query', async () => {
+    const handler = collectHooks().get('route:request')!;
+    const request = new Request('https://blog.oook.top/2026/10/30/shengming7.html?from=share&x=1');
+    const result = await handler({}, {
+      request,
+      path: '/2026/10/30/shengming7.html',
+      options: {
+        siteUrl: 'https://oook.top',
+        [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
+      },
+    });
+    expect(result.handled).toBe(true);
+    expect(result.response.status).toBe(302);
+    expect(result.response.headers.get('location')).toBe(
+      'https://oook.top/2026/10/30/shengming7.html?from=share&x=1',
+    );
+  });
+
+  it('does not redirect when disabled, already canonical, or siteUrl is invalid', async () => {
+    const handler = collectHooks().get('route:request')!;
+    const request = new Request('https://oook.top/article.html');
+    const disabled = await handler({}, {
+      request,
+      path: '/article.html',
+      options: {
+        siteUrl: 'https://oook.top',
+        [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: '0' }),
+      },
+    });
+    expect(disabled).toEqual({});
+
+    const canonical = await handler({}, {
+      request,
+      path: '/article.html',
+      options: {
+        siteUrl: 'https://oook.top',
+        [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
+      },
+    });
+    expect(canonical).toEqual({});
+
+    const invalid = await handler({}, {
+      request: new Request('https://blog.oook.top/article.html'),
+      path: '/article.html',
+      options: {
+        siteUrl: 'not a valid URL',
+        [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
+      },
+    });
+    expect(invalid).toEqual({});
+  });
+
+  it('does not redirect admin, API, static assets, or non-GET/HEAD requests', async () => {
+    const handler = collectHooks().get('route:request')!;
+    const options = {
+      siteUrl: 'https://oook.top',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
+    };
+    for (const path of ['/admin/login', '/api/users/login', '/themes/theme/style.css', '/usr/uploads/a.png', '/assets/app.js']) {
+      const result = await handler({}, {
+        request: new Request('https://blog.oook.top' + path),
+        path,
+        options,
+      });
+      expect(result).toEqual({});
+    }
+    const post = await handler({}, {
+      request: new Request('https://blog.oook.top/article.html', { method: 'POST' }),
+      path: '/article.html',
+      options,
+    });
+    expect(post).toEqual({});
+  });
+
+  it('uses the canonical siteUrl scheme when redirecting the same host', async () => {
+    const handler = collectHooks().get('route:request')!;
+    const result = await handler({}, {
+      request: new Request('http://oook.top/article.html'),
+      path: '/article.html',
+      options: {
+        siteUrl: 'https://oook.top',
+        [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
+      },
+    });
+    expect(result.response.status).toBe(302);
+    expect(result.response.headers.get('location')).toBe('https://oook.top/article.html');
   });
 
   it('rejects non-POST requests to the pin endpoint', async () => {
