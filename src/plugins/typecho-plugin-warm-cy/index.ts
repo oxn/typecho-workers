@@ -1208,7 +1208,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
-        iframeVideoAllowedHostnames: submittedHostnames.join('\\n'),
+        iframeVideoAllowedHostnames: submittedHostnames.join('\n'),
         iframeVideoEnhancementEnabled: values.iframeVideoEnhancementEnabled === undefined
           ? (isEnabled(current.iframeVideoEnhancementEnabled, true) ? '1' : '0')
           : (values.iframeVideoEnhancementEnabled ? '1' : '0'),
