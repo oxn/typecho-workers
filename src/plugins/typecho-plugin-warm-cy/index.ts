@@ -155,6 +155,12 @@ function protectIframeVideoFragments(source: string): string {
   return content.replace(/CYIFRAMECODE(\d+)XEND/g,
     (_marker, index: string) => protectedSegments[Number(index)] ?? _marker);
 }
+function preserveIframeSrcAmpersands(source: string): string {
+  return source.replace(/(<iframe\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi,
+    (_match, prefix: string, quote: string, value: string) =>
+      prefix + quote + value.replace(/&amp;/g, '&') + quote);
+}
+
 function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[]): string {
   const options: sanitizeHtml.IOptions = {
     allowedTags: ['iframe'],
@@ -166,9 +172,7 @@ function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[])
   };
   if (allowedHostnames.length) options.allowedIframeHostnames = allowedHostnames;
   const safe = sanitizeHtml(source, options);
-  return safe.replace(/(<iframe\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi,
-    (_match, prefix: string, quote: string, value: string) =>
-      prefix + quote + value.replace(/&amp;/g, '&') + quote);
+  return preserveIframeSrcAmpersands(safe);
 }
 
 function restoreIframeVideoFragments(content: string, allowedHostnames: string[]): string {
@@ -726,7 +730,8 @@ function sanitizeInlineHtmlFragment(source: string, allowedIframeHostnames?: str
     // built-in stable defaults and do not pass an empty (deny-all) array.
     delete options.allowedIframeHostnames;
   }
-  return sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), options);
+  const sanitized = sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), options);
+  return allowedIframeHostnames === undefined ? sanitized : preserveIframeSrcAmpersands(sanitized);
 }
 
 function restoreInlineHtmlFragments(content: string, allowedIframeHostnames?: string[]): string {
