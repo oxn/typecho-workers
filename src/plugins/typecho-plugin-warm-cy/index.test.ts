@@ -140,7 +140,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.07.19.01');
+    expect(html).toContain('CY 插件版本：2026.11.07.19.18');
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
@@ -492,13 +492,13 @@ describe('typecho-plugin-warm-cy', () => {
       iframeVideoAllowedHostnames: 'video.example.org',
     }));
     const source = [
-      'Literal markers: CYIFRAMEVIDEOX, CYIFRAMEVIDEOXdeadbeefXEND, and CYIFRAMECODE12XEND.',
+      'Literal markers: CYIFRAMEVIDEOX, cYifRameVideoX, CYIFRAMEVIDEOXdeadbeefXEND, and CYIFRAMECODE12XEND.',
       '<iframe src="https://video.example.org/embed/example"></iframe>',
     ].join('\n');
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain('Literal markers: CYIFRAMEVIDEOX, CYIFRAMEVIDEOXdeadbeefXEND, and CYIFRAMECODE12XEND.');
+    expect(restored).toContain('Literal markers: CYIFRAMEVIDEOX, cYifRameVideoX, CYIFRAMEVIDEOXdeadbeefXEND, and CYIFRAMECODE12XEND.');
     expect(restored).toContain('<iframe');
     expect(restored).not.toContain('CY\u200bIFRAMEVIDEOX');
     expect(restored).not.toContain('CY\u200bIFRAMECODE');
