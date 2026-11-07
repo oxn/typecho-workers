@@ -119,13 +119,14 @@ function parseIframeAllowedHostnames(value: unknown): string[] {
         && /^[a-z0-9.-]+$/.test(hostname) && !hostname.includes('..')) hosts.add(hostname);
     } catch { /* Ignore malformed entries. */ }
   }
-  return [...hosts];
+  // A non-empty but wholly invalid list must not silently become unrestricted.
+  return hosts.size ? [...hosts] : ['\\u0000'];
 }
 
 function isIframeSourceAllowed(source: string, allowedHostnames: string[]): boolean {
   let url: URL;
   try { url = new URL(source.trim(), 'https://iframe-base.invalid'); } catch { return false; }
-  if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname) return false;
+  if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname || url.username || url.password) return false;
   if (!source.trim().startsWith('//') && !/^https?:\/\//i.test(source.trim())) return false;
   if (!allowedHostnames.length) return true;
   const hostname = url.hostname.toLowerCase().replace(/\.$/, '');
