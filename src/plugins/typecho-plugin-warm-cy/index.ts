@@ -22,7 +22,7 @@ const DEFAULT_IFRAME_VIDEO_HOSTNAMES = [
   'player.vimeo.com',
 ];
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.07.20.02';
+const PLUGIN_VERSION = '2026.11.07.20.21';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -933,7 +933,8 @@ function iframeRestorationRuntime(): string {
     + 'const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };'
     + 'const hydrate = () => {'
     + 'const warmRoots = document.querySelectorAll(".warm-prose:not(.warm-note-prose)");'
-    + 'const roots = warmRoots.length ? warmRoots : [document.querySelector("main") || document.body];'
+    + 'let roots = Array.from(warmRoots);'
+    + 'if (!roots.length) { const articleBodies = document.querySelectorAll("main article [itemprop=\'articleBody\'], main article .post-content, main article .entry-content, article [itemprop=\'articleBody\'], article .post-content, article .entry-content"); roots = Array.from(articleBodies); if (!roots.length) roots = Array.from(document.querySelectorAll("main article, article")); }'
     + 'for (const root of roots) {'
     + 'const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) { const parent = node.parentElement; if (!parent || parent.closest("pre,code,textarea,script,style")) return NodeFilter.FILTER_REJECT; pattern.lastIndex = 0; literalPattern.lastIndex = 0; return pattern.test(node.nodeValue || "") || literalPattern.test(node.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });'
     + 'const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);'
