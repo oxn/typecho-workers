@@ -140,22 +140,22 @@ function protectCompleteHtmlContainers(content: string, protectedSegments: strin
     'figure', 'form', 'fieldset', 'details', 'table', 'thead', 'tbody', 'tfoot',
     'tr', 'ul', 'ol', 'dl', 'blockquote',
   ]);
-  const openingPattern = /<([a-z][\\w:-]*)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
+  const openingPattern = /<([a-z][\w:-]*)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
   let output = '';
   let cursor = 0;
   let match: RegExpExecArray | null;
 
   while ((match = openingPattern.exec(content))) {
     const tag = match[1].toLowerCase();
-    if (!containerTags.has(tag) || /\\/\\s*>$/.test(match[0])) continue;
+    if (!containerTags.has(tag) || /\/\s*>$/.test(match[0])) continue;
     const tagPattern = new RegExp('<\\/?' + tag + '\\b(?:[^"\\'<>]|"[^"]*"|\\'[^\\']*\\')*>', 'gi');
     tagPattern.lastIndex = openingPattern.lastIndex;
     let depth = 1;
     let closeEnd = -1;
     let nested: RegExpExecArray | null;
     while ((nested = tagPattern.exec(content))) {
-      if (/^<\\//.test(nested[0])) depth -= 1;
-      else if (!/\\/\\s*>$/.test(nested[0])) depth += 1;
+      if (/^<\//.test(nested[0])) depth -= 1;
+      else if (!/\/\s*>$/.test(nested[0])) depth += 1;
       if (depth === 0) {
         closeEnd = tagPattern.lastIndex;
         break;
@@ -164,7 +164,7 @@ function protectCompleteHtmlContainers(content: string, protectedSegments: strin
     if (closeEnd < 0) continue;
 
     const block = content.slice(match.index, closeEnd).replace(
-      /CYCYCODESEGMENT(\\d+)TOKEN/g,
+      /CYCYCODESEGMENT(\d+)TOKEN/g,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
     output += content.slice(cursor, match.index)
