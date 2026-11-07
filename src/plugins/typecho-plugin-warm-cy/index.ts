@@ -175,8 +175,10 @@ function getSafeIframeAttributeNames(source: string): string[] {
       (_attribute, rawName: string) => {
         const name = rawName.toLowerCase();
         // Preserve provider-specific and future iframe parameters, but never
-        // carry executable event handlers or nested srcdoc documents through.
-    if (!/^[^\s"'<>/=]+$/.test(name) || /[\u0000-\u001f]/.test(name) || name.startsWith('on') || name === 'srcdoc' || attributes.has(name)) return false;
+        if (/^[^\s"'<>/=]+$/.test(name) && !/[\u0000-\u001f]/.test(name)
+          && !name.startsWith('on') && name !== 'srcdoc') {
+          names.add(name);
+        }
           names.add(name);
         }
         return _attribute;
