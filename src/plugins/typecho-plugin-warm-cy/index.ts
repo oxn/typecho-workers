@@ -162,7 +162,7 @@ function protectIframeVideoFragments(source: string): string {
 
   content = content.replace(/CYIFRAMEVIDEOX/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
   content = content.replace(
-    /<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
+    /<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
     iframe => 'CYIFRAMEVIDEOX' + encodeInlinePayload(iframe) + 'XEND',
   );
   return content.replace(/CYIFRAMECODE(\d+)XEND/g,
@@ -170,7 +170,7 @@ function protectIframeVideoFragments(source: string): string {
 }
 function getSafeIframeAttributeNames(source: string): string[] {
   const names = new Set<string>();
-  source.replace(/<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi, opening => {
+  source.replace(/<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi, opening => {
     opening.replace(/\s([^\s=/>]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g,
       (_attribute, rawName: string) => {
         const name = rawName.toLowerCase();
@@ -187,13 +187,13 @@ function getSafeIframeAttributeNames(source: string): string[] {
 }
 
 function preserveIframeSrcAmpersands(source: string): string {
-  return source.replace(/(<iframe\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi,
+  return source.replace(/(<iframe(?=[\s/>])[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi,
     (_match, prefix: string, quote: string, value: string) =>
       prefix + quote + value.replace(/&amp;/g, '&') + quote);
 }
 
 function isAllowedIframeFragment(source: string, allowedHostnames: string[]): boolean {
-  const opening = source.match(/^<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/i)?.[0];
+  const opening = source.match(/^<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>/i)?.[0];
   if (!opening) return false;
   const attributes = new Map<string, string | null>();
   const attributePattern = /\s+([^\s=/>]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
@@ -503,7 +503,7 @@ function protectInlineHtml(source: string): string {
   // in the content:content hook, then the theme's native iframe normalizer runs.
   // This also covers standalone iframes that are not inside a protected div.
   content = content.replace(
-    /<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
+    /<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
     block => 'CYCYINLINECONTAINERX' + encodeInlinePayload(restoreProtectedSegments(block)) + 'XEND',
   );
 
@@ -922,7 +922,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // plugin's private option through the host options loader; do not depend on
   // an extra RequestContext argument that the core does not pass.
   addHook('content:markdown', pluginId, async (content: string) => {
-    if (/<iframe\b/i.test(content)) {
+    if (/<iframe(?=[\s/>])/i.test(content)) {
       const settings = parsePluginSettings(await getOption(getDb(env.DB), PLUGIN_OPTION_KEY));
       if (isEnabled(settings.iframeVideoEnhancementEnabled, false)) {
         content = protectIframeVideoFragments(content);
