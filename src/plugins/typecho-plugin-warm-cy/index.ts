@@ -109,12 +109,12 @@ async function isHtmlEnhancementEnabled(): Promise<boolean> {
 function parseIframeAllowedHostnames(value: unknown): string[] {
   if (typeof value !== 'string' || !value.trim()) return [];
   const hosts = new Set<string>();
-  for (const raw of value.split(/[\\s,;，；]+/)) {
-    let candidate = raw.trim().toLowerCase().replace(/^\\*\\./, '');
+  for (const raw of value.split(/[\s,;，；]+/)) {
+    let candidate = raw.trim().toLowerCase().replace(/^\*\./, '');
     if (!candidate) continue;
     try {
-      const url = new URL(/^[a-z][a-z0-9+.-]*:\\/\\//i.test(candidate) ? candidate : 'https://' + candidate);
-      const hostname = url.hostname.toLowerCase().replace(/\\.$/, '');
+      const url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(candidate) ? candidate : 'https://' + candidate);
+      const hostname = url.hostname.toLowerCase().replace(/\.$/, '');
       if ((url.protocol === 'https:' || url.protocol === 'http:') && hostname
         && /^[a-z0-9.-]+$/.test(hostname) && !hostname.includes('..')) hosts.add(hostname);
     } catch { /* Ignore malformed entries. */ }
@@ -126,9 +126,9 @@ function isIframeSourceAllowed(source: string, allowedHostnames: string[]): bool
   let url: URL;
   try { url = new URL(source.trim(), 'https://iframe-base.invalid'); } catch { return false; }
   if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname) return false;
-  if (!source.trim().startsWith('//') && !/^https?:\\/\\//i.test(source.trim())) return false;
+  if (!source.trim().startsWith('//') && !/^https?:\/\//i.test(source.trim())) return false;
   if (!allowedHostnames.length) return true;
-  const hostname = url.hostname.toLowerCase().replace(/\\.$/, '');
+  const hostname = url.hostname.toLowerCase().replace(/\.$/, '');
   return allowedHostnames.some(host => hostname === host || hostname.endsWith('.' + host));
 }
 
@@ -141,23 +141,23 @@ function protectIframeOnly(source: string): string {
     return marker;
   };
   let content = source
-    .replace(/<!--([\\s\\S]*?)-->/g, protect)
-    .replace(/<(pre|code|textarea|script|style)\\b[^>]*>[\\s\\S]*?<\\/\\1\\s*>/gi, protect)
-    .replace(/CYIFRAMEONLYX(?=[0-9a-f]+XEND)/gi, 'CYIFRAME\\u200bONLYX');
+    .replace(/<!--([\s\S]*?)-->/g, protect)
+    .replace(/<(pre|code|textarea|script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect)
+    .replace(/CYIFRAMEONLYX(?=[0-9a-f]+XEND)/gi, 'CYIFRAME\u200bONLYX');
   let fenceChar = '';
   let fenceLength = 0;
-  content = content.split('\\n').map(line => {
-    const fence = line.match(/^ {0,3}(\\x60{3,}|~{3,})/);
+  content = content.split('\n').map(line => {
+    const fence = line.match(/^ {0,3}(\x60{3,}|~{3,})/);
     if (fenceChar) {
       const marker = protect(line);
       if (fence && fence[1][0] === fenceChar && fence[1].length >= fenceLength) { fenceChar = ''; fenceLength = 0; }
       return marker;
     }
     if (fence) { fenceChar = fence[1][0]; fenceLength = fence[1].length; return protect(line); }
-    if (/^(?: {4}|\\t)/.test(line)) return protect(line);
-    return line.replace(/(\\x60+)([\\s\\S]*?)\\1/g, protect);
-  }).join('\\n');
-  content = content.replace(/<iframe\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>(?:[\\s\\S]*?<\\/iframe\\s*>)?/gi,
+    if (/^(?: {4}|\t)/.test(line)) return protect(line);
+    return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
+  }).join('\n');
+  content = content.replace(/<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>(?:[\s\S]*?<\/iframe\s*>)?/gi,
     block => 'CYIFRAMEONLYX' + encodeInlinePayload(block) + 'XEND');
   for (let index = protectedSegments.length - 1; index >= 0; index--) {
     content = content.replace('CYIFRAMECODE' + index + 'TOKEN', protectedSegments[index]);
@@ -168,7 +168,7 @@ function protectIframeOnly(source: string): string {
 function restoreIframeOnly(content: string, allowedHostnames: string[]): string {
   return content.replace(/CYIFRAMEONLYX([0-9a-f]+)XEND/gi, (_marker, payload: string) => {
     const source = decodeInlinePayload(payload);
-    const match = source.match(/\\bsrc\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))/i);
+    const match = source.match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
     const src = (match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim();
     if (!src || !isIframeSourceAllowed(src, allowedHostnames)) return '';
     return sanitizeHtml(source, {
@@ -857,7 +857,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // an extra RequestContext argument that the core does not pass.
   addHook('content:markdown', pluginId, async (content: string) => {
     // iframe processing is opt-in and independent from general HTML enhancement.
-    if (!/<\\/?[a-z][\\w:-]*(?:\\s[^<>]*|\\/?)>/i.test(content)
+    if (!/<\/?[a-z][\w:-]*(?:\s[^<>]*|\/?)>/i.test(content)
       && !/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)|CYIFRAMEONLYX/i.test(content)) return content;
     const rawSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
     const settings = parsePluginSettings(rawSettings);
