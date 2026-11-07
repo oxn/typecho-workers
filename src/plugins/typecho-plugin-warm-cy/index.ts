@@ -106,6 +106,85 @@ async function isHtmlEnhancementEnabled(): Promise<boolean> {
   return isEnabled(settings.htmlEnhancementEnabled, false);
 }
 
+function parseIframeAllowedHostnames(value: unknown): string[] {
+  if (typeof value !== 'string' || !value.trim()) return [];
+  const hosts = new Set<string>();
+  for (const raw of value.split(/[\\s,;，；]+/)) {
+    let candidate = raw.trim().toLowerCase().replace(/^\\*\\./, '');
+    if (!candidate) continue;
+    try {
+      const url = new URL(/^[a-z][a-z0-9+.-]*:\\/\\//i.test(candidate) ? candidate : 'https://' + candidate);
+      const hostname = url.hostname.toLowerCase().replace(/\\.$/, '');
+      if ((url.protocol === 'https:' || url.protocol === 'http:') && hostname
+        && /^[a-z0-9.-]+$/.test(hostname) && !hostname.includes('..')) hosts.add(hostname);
+    } catch { /* Ignore malformed entries. */ }
+  }
+  return [...hosts];
+}
+
+function isIframeSourceAllowed(source: string, allowedHostnames: string[]): boolean {
+  let url: URL;
+  try { url = new URL(source.trim(), 'https://iframe-base.invalid'); } catch { return false; }
+  if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname) return false;
+  if (!source.trim().startsWith('//') && !/^https?:\\/\\//i.test(source.trim())) return false;
+  if (!allowedHostnames.length) return true;
+  const hostname = url.hostname.toLowerCase().replace(/\\.$/, '');
+  return allowedHostnames.some(host => hostname === host || hostname.endsWith('.' + host));
+}
+
+// 独立 iframe 通道：只保护 iframe 节点，不调用通用 HTML 保护逻辑。
+function protectIframeOnly(source: string): string {
+  const protectedSegments: string[] = [];
+  const protect = (value: string): string => {
+    const marker = 'CYIFRAMECODE' + protectedSegments.length + 'TOKEN';
+    protectedSegments.push(value);
+    return marker;
+  };
+  let content = source
+    .replace(/<!--([\\s\\S]*?)-->/g, protect)
+    .replace(/<(pre|code|textarea|script|style)\\b[^>]*>[\\s\\S]*?<\\/\\1\\s*>/gi, protect)
+    .replace(/CYIFRAMEONLYX(?=[0-9a-f]+XEND)/gi, 'CYIFRAME\\u200bONLYX');
+  let fenceChar = '';
+  let fenceLength = 0;
+  content = content.split('\\n').map(line => {
+    const fence = line.match(/^ {0,3}(\\x60{3,}|~{3,})/);
+    if (fenceChar) {
+      const marker = protect(line);
+      if (fence && fence[1][0] === fenceChar && fence[1].length >= fenceLength) { fenceChar = ''; fenceLength = 0; }
+      return marker;
+    }
+    if (fence) { fenceChar = fence[1][0]; fenceLength = fence[1].length; return protect(line); }
+    if (/^(?: {4}|\\t)/.test(line)) return protect(line);
+    return line.replace(/(\\x60+)([\\s\\S]*?)\\1/g, protect);
+  }).join('\\n');
+  content = content.replace(/<iframe\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>(?:[\\s\\S]*?<\\/iframe\\s*>)?/gi,
+    block => 'CYIFRAMEONLYX' + encodeInlinePayload(block) + 'XEND');
+  for (let index = protectedSegments.length - 1; index >= 0; index--) {
+    content = content.replace('CYIFRAMECODE' + index + 'TOKEN', protectedSegments[index]);
+  }
+  return content;
+}
+
+function restoreIframeOnly(content: string, allowedHostnames: string[]): string {
+  return content.replace(/CYIFRAMEONLYX([0-9a-f]+)XEND/gi, (_marker, payload: string) => {
+    const source = decodeInlinePayload(payload);
+    const match = source.match(/\\bsrc\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))/i);
+    const src = (match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim();
+    if (!src || !isIframeSourceAllowed(src, allowedHostnames)) return '';
+    return sanitizeHtml(source, {
+      allowedTags: ['iframe'],
+      allowedAttributes: { iframe: [
+        'src', 'width', 'height', 'title', 'frameborder', 'allowfullscreen', 'allow',
+        'loading', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing',
+        'class', 'id', 'style', 'role', 'data-*', 'aria-*',
+      ] },
+      allowedSchemes: ['http', 'https'],
+      allowedSchemesAppliedToAttributes: ['src'],
+      allowProtocolRelative: true,
+    });
+  });
+}
+
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -117,6 +196,9 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
+  const iframeVideoEnhancementEnabled = isEnabled(settings.iframeVideoEnhancementEnabled, false);
+  const iframeVideoAllowedHostnames = typeof settings.iframeVideoAllowedHostnames === 'string'
+    ? settings.iframeVideoAllowedHostnames : '';
   const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
@@ -145,6 +227,17 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <span>正文 HTML / CSS / JavaScript 增强</span>
         </label>
         <p>允许文章和独立页面正文使用内嵌 &lt;style&gt;、&lt;script&gt;、SVG，以及 HTML 的 class、id、data、aria 和 style 属性。开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布内容；笔记由独立笔记插件处理，评论区不受影响。</p>
+      </section>
+      <section class="cy-feature-card">
+        <label class="cy-feature-toggle">
+          <input type="checkbox" data-cy-setting="iframeVideoEnhancementEnabled" ${iframeVideoEnhancementEnabled ? 'checked' : ''}>
+          <span>正文 iframe 视频增强</span>
+        </label>
+        <p>独立处理文章和独立页面中的 iframe，不改变其他 HTML。域名白名单留空表示不限制域名；填写后仅允许填写的域名及其子域名。</p>
+        <label class="cy-feature-field">
+          <span>iframe 域名白名单</span>
+          <textarea data-cy-setting="iframeVideoAllowedHostnames" rows="3" placeholder="例如：youtube.com&#10;player.bilibili.com">${escapeHtml(iframeVideoAllowedHostnames)}</textarea>
+        </label>
       </section>
       <section class="cy-feature-card">
         <label class="cy-feature-toggle">
@@ -192,6 +285,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
+          var iframeVideoEnhancement = root.querySelector('[data-cy-setting="iframeVideoEnhancementEnabled"]');
+          var iframeVideoAllowedHostnames = root.querySelector('[data-cy-setting="iframeVideoAllowedHostnames"]');
           var canonicalDomainRedirect = root.querySelector('[data-cy-setting="canonicalDomainRedirectEnabled"]');
           var noteStyleSettings = { enabled: !!noteStyleEnabled.checked, types: {}, icon: {
             visible: !!root.querySelector('[data-cy-alert-icon-visible]').checked,
@@ -217,6 +312,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
                 htmlEnhancementEnabled: !!htmlEnhancement.checked,
+                iframeVideoEnhancementEnabled: !!iframeVideoEnhancement.checked,
+                iframeVideoAllowedHostnames: iframeVideoAllowedHostnames.value || '',
                 canonicalDomainRedirectEnabled: !!canonicalDomainRedirect.checked,
                 markdownAlertStyleSettings: noteStyleSettings
               })
@@ -759,12 +856,15 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // plugin's private option through the host options loader; do not depend on
   // an extra RequestContext argument that the core does not pass.
   addHook('content:markdown', pluginId, async (content: string) => {
-    // Plain Markdown cannot contain an enhancement fragment. Avoid a private
-    // options-table D1 read for the common case; only inspect the feature
-    // switch when the source actually contains an HTML tag.
-    if (!/<\/?[a-z][\w:-]*(?:\s[^<>]*|\/?)>/i.test(content)
-      && !/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/.test(content)) return content;
-    return await isHtmlEnhancementEnabled() ? protectInlineHtml(content) : content;
+    // iframe processing is opt-in and independent from general HTML enhancement.
+    if (!/<\\/?[a-z][\\w:-]*(?:\\s[^<>]*|\\/?)>/i.test(content)
+      && !/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)|CYIFRAMEONLYX/i.test(content)) return content;
+    const rawSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
+    const settings = parsePluginSettings(rawSettings);
+    const iframeProtected = isEnabled(settings.iframeVideoEnhancementEnabled, false)
+      ? protectIframeOnly(content) : content;
+    return isEnabled(settings.htmlEnhancementEnabled, false)
+      ? protectInlineHtml(iframeProtected) : iframeProtected;
   }, 1);
 
   // Alert icons remain independent. Re-check the opt-in switch before restoring
@@ -773,10 +873,13 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('content:content', pluginId, async (content: string) => {
     const storedSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
     const withAlertIcons = restoreMarkdownAlertIcons(content, parsePluginSettings(storedSettings).markdownAlertStyleSettings);
-    if (!withAlertIcons.includes('CYCYINLINE')) return withAlertIcons;
-    return await isHtmlEnhancementEnabled()
-      ? restoreInlineHtmlFragments(withAlertIcons)
-      : withAlertIcons;
+    if (!withAlertIcons.includes('CYCYINLINE') && !withAlertIcons.includes('CYIFRAMEONLY')) return withAlertIcons;
+    const settings = parsePluginSettings(storedSettings);
+    const withHtml = isEnabled(settings.htmlEnhancementEnabled, false)
+      ? restoreInlineHtmlFragments(withAlertIcons) : withAlertIcons;
+    return isEnabled(settings.iframeVideoEnhancementEnabled, false)
+      ? restoreIframeOnly(withHtml, parseIframeAllowedHostnames(settings.iframeVideoAllowedHostnames))
+      : withHtml;
   }, 1);
 
   // Emit Note presentation CSS in the document head so the five alert styles
@@ -1134,12 +1237,16 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
+        iframeVideoEnhancementEnabled?: unknown;
+        iframeVideoAllowedHostnames?: unknown;
         canonicalDomainRedirectEnabled?: unknown;
         markdownAlertStyleSettings?: unknown;
       };
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
         || typeof values.htmlEnhancementEnabled !== 'boolean'
+        || (values.iframeVideoEnhancementEnabled !== undefined && typeof values.iframeVideoEnhancementEnabled !== 'boolean')
+        || (values.iframeVideoAllowedHostnames !== undefined && typeof values.iframeVideoAllowedHostnames !== 'string')
         || (values.canonicalDomainRedirectEnabled !== undefined
           && typeof values.canonicalDomainRedirectEnabled !== 'boolean')) {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
@@ -1150,6 +1257,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
+        iframeVideoEnhancementEnabled: values.iframeVideoEnhancementEnabled === undefined
+          ? (isEnabled(current.iframeVideoEnhancementEnabled, false) ? '1' : '0')
+          : (values.iframeVideoEnhancementEnabled ? '1' : '0'),
+        iframeVideoAllowedHostnames: values.iframeVideoAllowedHostnames === undefined
+          ? (typeof current.iframeVideoAllowedHostnames === 'string' ? current.iframeVideoAllowedHostnames : '')
+          : values.iframeVideoAllowedHostnames.trim(),
         canonicalDomainRedirectEnabled: values.canonicalDomainRedirectEnabled === undefined
           ? (isEnabled(current.canonicalDomainRedirectEnabled, false) ? '1' : '0')
           : (values.canonicalDomainRedirectEnabled ? '1' : '0'),
