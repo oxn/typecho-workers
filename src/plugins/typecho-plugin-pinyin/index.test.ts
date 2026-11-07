@@ -155,6 +155,6 @@ describe('typecho-plugin-pinyin', () => {
     expect(mocks.requireAdminAction).toHaveBeenCalledWith(request, 'editor');
     expect(result.handled).toBe(true);
     expect(result.response.status).toBe(200);
-    expect(payload).toEqual({ success: true, slug: 'ni-hao-typecho' });
+    expect(payload).toEqual({ success: true, slug: 'nihao-typecho' });
   });
 });
