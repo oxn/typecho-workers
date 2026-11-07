@@ -140,10 +140,12 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.07.21.00');
+    expect(html).toContain('CY 插件版本：2026.11.07.21.30');
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
+    expect(html).toContain('视频 iframe 增强（仅处理视频地址）');
+    expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
     expect(html).toContain('访问备用域名时自动跳转到主域名');
     expect(html).toContain('data-cy-setting="canonicalDomainRedirectEnabled"');
   });
