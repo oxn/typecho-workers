@@ -215,7 +215,7 @@ describe('typecho-plugin-warm-cy', () => {
     mocks.getOption.mockResolvedValue(JSON.stringify({
       htmlEnhancementEnabled: '0',
       iframeVideoEnhancementEnabled: '1',
-      iframeVideoAllowedHostnames: 'not a valid domain !!!',
+      iframeVideoAllowedHostnames: '!!!',
     }));
     const invalidList = await restore(await protect('<iframe src="https://video.example/embed"></iframe>'));
     expect(invalidList).not.toContain('<iframe');
