@@ -200,7 +200,7 @@ function isAllowedIframeFragment(source: string, allowedHostnames: string[]): bo
   let match: RegExpExecArray | null;
   while ((match = attributePattern.exec(opening.slice(7, -1)))) {
     const name = match[1].toLowerCase();
-    if (!/^[a-z_:][a-z0-9:._-]*$/.test(name) || name.startsWith('on') || name === 'srcdoc' || attributes.has(name)) return false;
+    if (!/^[^\\s\"'<>/=]+$/.test(name) || /[\\u0000-\\u001f]/.test(name) || name.startsWith('on') || name === 'srcdoc' || attributes.has(name)) return false;
     const raw = match[2];
     attributes.set(name, raw === undefined ? null : raw.replace(/^["']|["']$/g, ''));
   }
@@ -211,7 +211,7 @@ function isAllowedIframeFragment(source: string, allowedHostnames: string[]): bo
   try {
     const url = new URL(value);
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return false;
-    return allowedHostnames.includes(url.hostname.toLowerCase());
+    return allowedHostnames.includes(url.hostname.toLowerCase().replace(/\\.$/, ''));
   } catch { return false; }
 }
 
