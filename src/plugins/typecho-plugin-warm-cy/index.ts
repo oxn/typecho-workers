@@ -63,7 +63,12 @@ function getCanonicalDomainRedirect(request: Request, siteUrl: unknown): Respons
   if (current.host.toLowerCase() === canonical.host.toLowerCase()
     && current.protocol === canonical.protocol) return null;
 
-  const destination = new URL(current.pathname + current.search, canonical.origin);
+  // Assign pathname/search on a URL already pinned to the database host.
+  // Do not pass a request path as a relative URL: a path beginning with `//`
+  // would otherwise be interpreted as a new authority by the URL constructor.
+  const destination = new URL(canonical.origin);
+  destination.pathname = current.pathname;
+  destination.search = current.search;
   return Response.redirect(destination.toString(), 302);
 }
 
@@ -1127,7 +1132,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
         || typeof values.htmlEnhancementEnabled !== 'boolean'
-        || typeof values.canonicalDomainRedirectEnabled !== 'boolean') {
+        || (values.canonicalDomainRedirectEnabled !== undefined
+          && typeof values.canonicalDomainRedirectEnabled !== 'boolean')) {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
       }
       const current = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
@@ -1136,7 +1142,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
-        canonicalDomainRedirectEnabled: values.canonicalDomainRedirectEnabled ? '1' : '0',
+        canonicalDomainRedirectEnabled: values.canonicalDomainRedirectEnabled === undefined
+          ? (isEnabled(current.canonicalDomainRedirectEnabled, false) ? '1' : '0')
+          : (values.canonicalDomainRedirectEnabled ? '1' : '0'),
         markdownAlertStyleSettings: values.markdownAlertStyleSettings !== undefined
           ? normalizeMarkdownAlertStyleSettings(values.markdownAlertStyleSettings)
           : normalizeMarkdownAlertStyleSettings(current.markdownAlertStyleSettings),
