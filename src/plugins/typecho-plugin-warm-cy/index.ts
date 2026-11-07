@@ -22,7 +22,7 @@ const DEFAULT_IFRAME_VIDEO_HOSTNAMES = [
   'player.vimeo.com',
 ];
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.07.19.01';
+const PLUGIN_VERSION = '2026.11.07.19.18';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -215,7 +215,7 @@ function isAllowedIframeFragment(source: string, allowedHostnames: string[]): bo
   } catch { return false; }
 }
 
-function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[]): string {
+function preserveAllowedIframeFragment(source: string, allowedHostnames: string[]): string {
   // Preserve the exact original iframe markup. Unsafe or non-allowlisted input
   // is rejected as a whole instead of silently rewriting individual attributes.
   return isAllowedIframeFragment(source, allowedHostnames) ? source : '';
@@ -223,7 +223,7 @@ function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[])
 
 function restoreIframeVideoFragments(content: string, allowedHostnames: string[]): string {
   const restore = (_marker: string, payload: string): string => {
-    try { return sanitizeIframeVideoFragment(decodeInlinePayload(payload), allowedHostnames); }
+    try { return preserveAllowedIframeFragment(decodeInlinePayload(payload), allowedHostnames); }
     catch { return ''; }
   };
   content = content.replace(/<p>\s*CYIFRAMEVIDEOX([0-9a-f]+)XEND\s*<\/p>/gi, restore);
