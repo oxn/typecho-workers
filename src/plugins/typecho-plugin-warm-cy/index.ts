@@ -8,6 +8,7 @@ import { generateSecurityToken } from '@/lib/auth';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { computeUrls } from '@/lib/options';
 import adminCss from './admin.css?raw';
+import { markdownAlertIconStyles, normalizeMarkdownAlertStyleSettings, markdownAlertStyleEditorHtml, restoreMarkdownAlertIcons } from './markdown-alerts';
 
 const THEME_ID = 'typecho-theme-warm-cy';
 const OPTION_KEY = `theme:${THEME_ID}`;
@@ -55,6 +56,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
+  const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
       data-cy-feature-settings data-csrf-token="${escapeHtml(csrfToken)}">
@@ -83,6 +85,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         </label>
         <p>允许文章和独立页面正文使用内嵌 &lt;style&gt;、&lt;script&gt;、SVG，以及 HTML 的 class、id、data、aria 和 style 属性。开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布内容；笔记由独立笔记插件处理，评论区不受影响。</p>
       </section>
+      ${markdownAlertStyleEditorHtml(markdownAlertStyleSettings)}
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
         <span data-cy-save-status role="status" aria-live="polite"></span>
@@ -95,10 +98,43 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
         root.dataset.initialized = '1';
         var save = root.querySelector('[data-cy-save]');
         var status = root.querySelector('[data-cy-save-status]');
+        var noteStyleEnabled = root.querySelector('[data-cy-alert-style-enabled]');
+        var noteStyleReset = root.querySelector('[data-cy-alert-reset]');
+        var noteStyleFields = root.querySelectorAll('[data-cy-alert-style-field], [data-cy-alert-icon-visible], [data-cy-alert-icon-size], [data-cy-alert-icon-gap]');
+        function syncNoteStyleControls() {
+          noteStyleFields.forEach(function (field) { field.disabled = !noteStyleEnabled.checked; });
+        }
+        noteStyleEnabled.addEventListener('change', syncNoteStyleControls);
+        syncNoteStyleControls();
+        noteStyleReset.addEventListener('click', function () {
+          root.querySelectorAll('[data-cy-alert-style-field]').forEach(function (field) {
+            field.value = field.dataset.cyDefaultValue || '';
+          });
+          var visible = root.querySelector('[data-cy-alert-icon-visible]');
+          var size = root.querySelector('[data-cy-alert-icon-size]');
+          var gap = root.querySelector('[data-cy-alert-icon-gap]');
+          visible.checked = visible.dataset.cyDefaultChecked === 'true';
+          size.value = size.dataset.cyDefaultValue || '18';
+          gap.value = gap.dataset.cyDefaultValue || '8';
+          noteStyleEnabled.checked = true;
+          syncNoteStyleControls();
+          status.textContent = '已恢复默认样式，请点击保存设置生效';
+        });
         save.addEventListener('click', async function () {
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
+          var noteStyleSettings = { enabled: !!noteStyleEnabled.checked, types: {}, icon: {
+            visible: !!root.querySelector('[data-cy-alert-icon-visible]').checked,
+            size: Number(root.querySelector('[data-cy-alert-icon-size]').value || 18),
+            gap: Number(root.querySelector('[data-cy-alert-icon-gap]').value || 0)
+          } };
+          root.querySelectorAll('[data-cy-alert-style-field]').forEach(function (field) {
+            var parts = (field.dataset.cyAlertStyleField || '').split('.');
+            if (parts.length !== 2) return;
+            noteStyleSettings.types[parts[0]] = noteStyleSettings.types[parts[0]] || {};
+            noteStyleSettings.types[parts[0]][parts[1]] = field.type === 'number' ? Number(field.value) : field.value;
+          });
           save.disabled = true;
           status.textContent = '正在保存…';
           try {
@@ -111,7 +147,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
               body: JSON.stringify({
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
-                htmlEnhancementEnabled: !!htmlEnhancement.checked
+                htmlEnhancementEnabled: !!htmlEnhancement.checked,
+                markdownAlertStyleSettings: noteStyleSettings
               })
             });
             var result = await response.json();
@@ -587,35 +624,11 @@ const MARKDOWN_ALERT_ICONS: Record<string, string> = {
   CAUTION: '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>',
 };;
 
-function restoreMarkdownAlertIcons(content: string): string {
-  return content.replace(
-    /<blockquote\b([^>]*\bdata-alert=(["'])(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\2[^>]*)>([\s\S]*?)<\/blockquote>/gi,
-    (_full, attributes: string, _quote: string, rawLabel: string, inner: string) => {
-      const icon = MARKDOWN_ALERT_ICONS[rawLabel.toUpperCase()];
-      if (!icon) return _full;
-      const titlePattern = /(<p\b[^>]*class=(["'])markdown-alert-title\2[^>]*>)([\s\S]*?)(<\/p>)/i;
-      const updatedInner = inner.replace(
-        titlePattern,
-        (title, opening: string, _titleQuote: string, text: string, closing: string) => {
-          if (opening.includes('cy-markdown-alert-has-icon')) return title;
-          const markedOpening = opening.replace(
-            /class=(["'])markdown-alert-title\1/i,
-            (_match, quote: string) => 'class=' + quote + 'markdown-alert-title cy-markdown-alert-has-icon' + quote,
-          );
-          return markedOpening + icon + text + closing;
-        },
+,
       );
       return '<blockquote' + attributes + '>' + updatedInner + '</blockquote>';
     },
   );
-}
-
-function markdownAlertIconStyles(): string {
-  return '<style data-cy-markdown-alert-icons>'
-    + '.warm-prose .markdown-alert-title.cy-markdown-alert-has-icon::before,'
-    + '.warm-note__content .markdown-alert-title.cy-markdown-alert-has-icon::before'
-    + '{content:none!important;display:none!important}'
-    + '</style>';
 }
 
 const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  const markerPattern = /CYCYINLINEBLOCKX([0-9a-f]+)XEND|CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/g;\n  const literalMarkerPattern = /CYCY\\u200bINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/g;\n  const svgTags = new Set(['svg','g','path','circle','rect','line','polyline','polygon','ellipse','text','tspan','filter','fegaussianblur','feoffset','fecomponenttransfer','fefunca','femerge','femergenode','defs','lineargradient','radialgradient','stop','clippath','mask','title','desc','use','symbol']);\n  const svgAttrs = new Set(['id','class','viewbox','width','height','fill','fill-rule','clip-rule','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','cx','cy','r','rx','ry','x','y','x1','x2','y1','y2','d','points','transform','preserveaspectratio','offset','stop-color','stop-opacity','gradientunits','gradienttransform','clippathunits','maskunits','maskcontentunits','clip-path','mask','filter','href','xlink:href','role','focusable','aria-hidden','aria-label','stddeviation','dx','dy','in','type','slope','amplitude','exponent','intercept','tablevalues','font-size','font-weight','text-anchor','result','operator','values','mode','color-interpolation-filters']);\n  const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };\n  const safeSvgNode = node => {\n    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || '');\n    if (node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())) return null;\n    const clean = document.createElementNS('http://www.w3.org/2000/svg', node.localName);\n    for (const attr of Array.from(node.attributes)) {\n      const key = attr.name.toLowerCase(), value = attr.value;\n      if (!svgAttrs.has(key) && key !== 'style' && !key.startsWith('aria-')) continue;\n      if (key === 'style') {\n        const allowedStyle = new Set(['fill','stroke','fill-rule','clip-rule','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','stop-color','stop-opacity']);\n        const safeStyle = value.split(';').map(part => part.trim()).filter(Boolean).map(part => {\n          const split = part.indexOf(':');\n          if (split < 1) return '';\n          const property = part.slice(0, split).trim().toLowerCase();\n          const cssValue = part.slice(split + 1).trim();\n          if (!allowedStyle.has(property) || /expression|javascript:|data:|@import|[\\u0000-\\u001f]/i.test(cssValue)) return '';\n          if (/\\burl\\s*\\(/i.test(cssValue) && !/^url\\(\\s*#[\\w:.-]+\\s*\\)$/i.test(cssValue)) return '';\n          return property + ':' + cssValue;\n        }).filter(Boolean).join(';');\n        if (safeStyle) clean.setAttribute('style', safeStyle);\n        continue;\n      }\n      if ((key === 'href' || key === 'xlink:href') && !/^#[\\w:.-]+$/.test(value)) continue;\n      if (/\\burl\\s*\\(/i.test(value) && !/^\\s*url\\(\\s*#[\\w:.-]+\\s*\\)\\s*$/i.test(value)) continue;\n      if (/javascript:|data:text\\/html|[\\u0000-\\u001f]/i.test(value)) continue;\n      if (key === 'xlink:href') clean.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', value); else clean.setAttribute(attr.name, value);\n    }\n    for (const child of Array.from(node.childNodes)) { const safe = safeSvgNode(child); if (safe) clean.appendChild(safe); }\n    return clean;\n  };\n  const addBlock = (raw, enqueueScript) => {\n    const match = raw.match(/^<(style|script|svg)\\b([^>]*)>([\\s\\S]*)<\\/\\1\\s*>$/i);\n    if (!match) return null;\n    const tag = match[1].toLowerCase(), attrs = match[2] || '', body = match[3] || '';\n    if (tag === 'svg') {\n      try { const parsed = new DOMParser().parseFromString(raw, 'image/svg+xml'); if (parsed.querySelector('parsererror') || parsed.documentElement.localName.toLowerCase() !== 'svg') return null; return safeSvgNode(parsed.documentElement); } catch { return null; }\n    }\n    if (tag === 'style') {\n      const style = document.createElement('style');\n      const media = attrs.match(/\\bmedia\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')/i);\n      const mediaValue = media ? media[1] || media[2] || '' : '';\n      const safeCss = body.replace(/\\/\\*[\\s\\S]*?\\*\\//g, '')\n        .replace(/@import\\b[^;]*(?:;|$)/gi, '')\n        .replace(/(?:expression|behavior|-moz-binding)\\s*:[^;}]+;?/gi, '')\n        .replace(/url\\(\\s*(?!['\"]?#)[^)]+\\)/gi, 'none');\n      const scopeRules = (owner, nestedContext = false) => {\n        const rules = owner.cssRules;\n        if (!rules || typeof owner.deleteRule !== 'function') throw new Error('CSSOM rule mutation unavailable');\n        for (let i = rules.length - 1; i >= 0; i--) {\n          const rule = rules[i];\n          if (rule.type === 1 && typeof rule.selectorText === 'string') {\n            try {\n              // A top-level selector receives the article scope. A nested CSS\n              // selector already inherits its scoped parent; prefixing it again\n              // would change CSS Nesting semantics (especially selectors using &).\n              if (!nestedContext) {\n                const selectorText = rule.selectorText;\n                const selectors = [];\n                let start = 0, round = 0, square = 0, quote = '', escaped = false;\n                for (let j = 0; j <= selectorText.length; j++) {\n                  const ch = j === selectorText.length ? ',' : selectorText[j];\n                  if (escaped) { escaped = false; continue; }\n                  if (ch === '\\\\') { escaped = true; continue; }\n                  if (quote) { if (ch === quote) quote = ''; continue; }\n                  if (ch === '\"' || ch === \"'\") { quote = ch; continue; }\n                  if (ch === '(') round++;\n                  else if (ch === ')') round--;\n                  else if (ch === '[') square++;\n                  else if (ch === ']') square--;\n                  else if (ch === ',' && round === 0 && square === 0) {\n                    const selector = selectorText.slice(start, j).trim();\n                    if (!selector || round < 0 || square < 0) throw new Error('Invalid CSS selector');\n                    selectors.push(selector);\n                    start = j + 1;\n                  }\n                }\n                if (round !== 0 || square !== 0 || quote || escaped) throw new Error('Unbalanced CSS selector');\n                rule.selectorText = selectors.map(selector => {\n                  const scope = '.warm-prose:not(.warm-note-prose)';\n                  if (selector === ':root' || selector === 'html' || selector === 'body') return scope;\n                  if (selector.startsWith(':root ')) return scope + ' ' + selector.slice(6);\n                  if (selector.includes(':root')) throw new Error('Unsupported :root selector');\n                  // Document-level html/body selectors now target the article root.\n                  const documentRootSelector = selector.replace(\n                    /^(?:html\s+)?body(?=$|[\s>+~.#:[])/i,\n                    scope,\n                  ).replace(/^html(?=$|[\s>+~.#:[])/i, scope);\n                  if (documentRootSelector !== selector) return documentRootSelector;\n                  return scope + ' ' + selector;\n                }).join(', ');\n              }\n              if (rule.cssRules) {\n                if (typeof rule.deleteRule !== 'function') throw new Error('Nested CSS rule mutation unavailable');\n                scopeRules(rule, true);\n              }\n            } catch {\n              owner.deleteRule(i);\n            }\n          } else if (rule.type === 7 || rule.type === 8) {\n            // Keyframe step selectors are not document selectors.\n          } else if (rule.cssRules && typeof rule.deleteRule === 'function') {\n            // Grouping rules retain their current nesting context.\n            scopeRules(rule, nestedContext);\n          } else if (rule.style && nestedContext) {\n            // CSSNestedDeclarations belong to their enclosing scoped style rule.\n          } else {\n            owner.deleteRule(i);\n          }\n        }\n      };\n      style.media = 'not all';\n      style.textContent = safeCss;\n      document.head.appendChild(style);\n      try {\n        const sheet = style.sheet;\n        if (!sheet || !sheet.cssRules) {\n          style.remove();\n          return null;\n        }\n        scopeRules(sheet);\n        style.media = mediaValue;\n      } catch {\n        style.remove();\n      }\n      return null;\n    }\n    const script = document.createElement('script');\n    const type = attrs.match(/\\btype\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n    const scriptType = (type && (type[1] || type[2]) || '').toLowerCase();\n    if (scriptType && !['module','text/javascript','application/javascript'].includes(scriptType)) return null;\n    if (scriptType) script.type = scriptType;\n    const src = attrs.match(/\\bsrc\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)'|([^\\s>]+))/i);\n    if (src) {\n      try {\n        const url = new URL(src[1] || src[2] || src[3] || '', document.baseURI);\n        if (!['https:', 'http:'].includes(url.protocol)) return null;\n        if (url.protocol === 'http:' && url.origin !== location.origin) return null;\n        script.src = url.href;\n        script.async = false;\n        const integrity = attrs.match(/\\bintegrity\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n        if (integrity) script.integrity = integrity[1] || integrity[2] || '';\n        const crossOrigin = attrs.match(/\\bcrossorigin\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)'|([^\\s>]+))/i);\n        if (crossOrigin) { const value = (crossOrigin[1] || crossOrigin[2] || crossOrigin[3] || 'anonymous').toLowerCase(); if (['anonymous', 'use-credentials'].includes(value)) script.crossOrigin = value; }\n        const referrerPolicy = attrs.match(/\\breferrerpolicy\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n        if (referrerPolicy) { const value = (referrerPolicy[1] || referrerPolicy[2] || '').toLowerCase(); if (['no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url'].includes(value)) script.referrerPolicy = value; }\n      } catch { return null; }\n    } else {\n      script.textContent = body;\n    }\n    enqueueScript(script); return null;\n  };\n  const hydrate = () => {\n    let scriptExecutionQueue = Promise.resolve();\n    const enqueueScript = script => {\n      const appendScript = () => new Promise(resolve => {\n        const waitsForExecution = Boolean(script.src) || script.type === 'module';\n        if (waitsForExecution) {\n          let settled = false;\n          const finish = () => { if (settled) return; settled = true; resolve(); };\n          script.addEventListener('load', finish, { once: true });\n          script.addEventListener('error', finish, { once: true });\n        }\n        document.body.appendChild(script);\n        if (!waitsForExecution) resolve();\n      });\n      scriptExecutionQueue = scriptExecutionQueue.then(appendScript, appendScript);\n    };\n    // Only article and standalone-page bodies are in scope; note bodies are excluded.\n    for (const root of document.querySelectorAll('.warm-prose:not(.warm-note-prose)')) {\n    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) { const p = node.parentElement; if (!p || p.closest('pre,code,textarea,script,style')) return NodeFilter.FILTER_REJECT; markerPattern.lastIndex = 0; literalMarkerPattern.lastIndex = 0; return markerPattern.test(node.nodeValue || '') || literalMarkerPattern.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });\n    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);\n    for (const node of nodes) {\n      const value = node.nodeValue || ''; markerPattern.lastIndex = 0; literalMarkerPattern.lastIndex = 0; const hasLiteralMarkers = literalMarkerPattern.test(value); literalMarkerPattern.lastIndex = 0; let last = 0, match, changed = false; const fragment = document.createDocumentFragment();\n      while ((match = markerPattern.exec(value))) {\n        changed = true; if (match.index > last) fragment.appendChild(document.createTextNode(value.slice(last, match.index)));\n        if (enabled && match[1]) { const element = addBlock(decode(match[1]), enqueueScript); if (element) fragment.appendChild(element); }\n        else if (enabled && match[2] && match[3]) {\n          const parent = node.parentElement, previous = node.previousElementSibling;\n          const target = parent && parent.tagName.toLowerCase() === match[2] ? parent : previous && previous.tagName.toLowerCase() === match[2] ? previous : parent;\n          if (target) {\n            try {\n              const attrs = JSON.parse(decode(match[3]));\n              for (const [name, value] of Object.entries(attrs)) {\n                if (name === 'style') target.style.cssText = String(value);\n                else if (name === 'class' || name === 'id' || name === 'title' || name === 'role'\n                  || name === 'width' || name === 'height' || name === 'alt' || name === 'loading'\n                  || name === 'type' || name === 'name' || name === 'value' || name === 'placeholder'\n                  || name === 'datetime' || name === 'open' || name === 'for' || name === 'checked'\n                  || name === 'selected' || name === 'rows' || name === 'cols' || name === 'max' || name === 'min'\n                  || name === 'action' || name === 'method' || name === 'disabled' || name === 'multiple'\n                  || name === 'required' || name === 'step'\n                  || (match[2] === 'iframe' && ['src', 'frameborder', 'allow', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing'].includes(name))\n                  || name.startsWith('data-') || name.startsWith('aria-')) {\n                  target.setAttribute(name, String(value));\n                }\n              }\n            } catch {}\n          }\n        }\n        last = match.index + match[0].length;\n      }\n      if (changed || hasLiteralMarkers) { if (last < value.length) fragment.appendChild(document.createTextNode(value.slice(last))); for (const child of Array.from(fragment.childNodes)) { if (child.nodeType === Node.TEXT_NODE) child.nodeValue = (child.nodeValue || '').replace(literalMarkerPattern, 'CYCYINLINE'); } node.parentNode && node.parentNode.replaceChild(fragment, node); }\n    }\n    }\n  };\n  hydrate(); window.addEventListener('instantclick:newpage', hydrate);\n})();";
@@ -684,7 +697,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // HTML markers: content:content is async-capable, and user-authored text must
   // never activate fragment restoration while the feature is disabled.
   addHook('content:content', pluginId, async (content: string) => {
-    const withAlertIcons = restoreMarkdownAlertIcons(content);
+    const storedSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
+    const withAlertIcons = restoreMarkdownAlertIcons(content, parsePluginSettings(storedSettings).markdownAlertStyleSettings);
     if (!withAlertIcons.includes('CYCYINLINE')) return withAlertIcons;
     return await isHtmlEnhancementEnabled()
       ? restoreInlineHtmlFragments(withAlertIcons)
@@ -701,7 +715,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const htmlRuntime = options.theme === THEME_ID && isEnabled(settings.htmlEnhancementEnabled, false)
       ? inlineHtmlRuntime(true)
       : '';
-    const alertIconStyle = options.theme === THEME_ID ? markdownAlertIconStyles() : '';
+    const alertIconStyle = options.theme === THEME_ID ? markdownAlertIconStyles(settings.markdownAlertStyleSettings) : '';
     if (options.theme !== THEME_ID || !isEnabled(settings.showHomeSearchButton)) {
       return html + alertIconStyle + htmlRuntime;
     }
@@ -1023,6 +1037,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
+        markdownAlertStyleSettings?: unknown;
       };
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
@@ -1035,6 +1050,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
+        markdownAlertStyleSettings: values.markdownAlertStyleSettings !== undefined
+          ? normalizeMarkdownAlertStyleSettings(values.markdownAlertStyleSettings)
+          : normalizeMarkdownAlertStyleSettings(current.markdownAlertStyleSettings),
       };
       await setOption(auth.db, PLUGIN_OPTION_KEY, JSON.stringify(next));
       return { handled: true, response: json({ success: true }) };
