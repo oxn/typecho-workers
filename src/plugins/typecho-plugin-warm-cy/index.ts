@@ -125,15 +125,16 @@ function protectIframeVideoFragments(content: string): string {
 }
 
 function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[]): string {
-  const safe = sanitizeHtml(source, {
+  const options: sanitizeHtml.IOptions = {
     allowedTags: ['iframe'],
     allowedAttributes: {
       iframe: ['src', 'width', 'height', 'title', 'frameborder', 'allowfullscreen', 'allow',
         'loading', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing',
         'class', 'id', 'style', 'role', 'data-*', 'aria-*'],
     },
-    allowedIframeHostnames: allowedHostnames,
-  });
+  };
+  if (allowedHostnames.length) options.allowedIframeHostnames = allowedHostnames;
+  const safe = sanitizeHtml(source, options);
   return safe.replace(/(<iframe\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi,
     (_match, prefix: string, quote: string, value: string) =>
       prefix + quote + value.replace(/&amp;/g, '&') + quote);
@@ -195,7 +196,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <input type="checkbox" data-cy-setting="iframeVideoEnhancementEnabled" ${iframeVideoEnhancementEnabled ? 'checked' : ''}>
           <span>视频 iframe 增强（仅处理视频地址）</span>
         </label>
-        <p>独立处理文章和独立页面中的视频 iframe。关闭后不接管 iframe；白名单留空表示不设置域名限制；填写后只允许列表中的域名。只填写主机名，不要填写协议、端口或路径。</p>
+        <p>独立处理文章和独立页面中的视频 iframe。关闭后不执行本项视频增强；上方正文 HTML 增强仍按其独立开关工作。白名单留空表示不设置域名限制；填写后只允许列表中的域名。只填写主机名，不要填写协议、端口或路径。</p>
         <label for="cy-iframe-video-hostnames">允许的视频 iframe 域名（可留空）</label>
         <textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">${escapeHtml(iframeVideoAllowedHostnames.join('\n'))}</textarea>
       </section>
@@ -684,9 +685,16 @@ function sanitizeInlineHtmlFragment(source: string, allowedIframeHostnames?: str
       },
     ),
   );
-  const options = allowedIframeHostnames === undefined
-    ? INLINE_FRAGMENT_SANITIZE_OPTIONS
-    : { ...INLINE_FRAGMENT_SANITIZE_OPTIONS, allowedIframeHostnames };
+  const options: sanitizeHtml.IOptions = { ...INLINE_FRAGMENT_SANITIZE_OPTIONS };
+  if (allowedIframeHostnames === undefined) {
+    // Keep the stable HTML-enhancement allowlist unchanged when this feature is off.
+  } else if (allowedIframeHostnames.length) {
+    options.allowedIframeHostnames = allowedIframeHostnames;
+  } else {
+    // An empty user list means no hostname filter at all; do not inherit the
+    // built-in stable defaults and do not pass an empty (deny-all) array.
+    delete options.allowedIframeHostnames;
+  }
   return sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), options);
 }
 
