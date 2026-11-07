@@ -217,19 +217,10 @@ function restoreIframeOnly(content: string, allowedHostnames: string[]): string 
     const source = decodeInlinePayload(payload);
     const src = getIframeSrcAttribute(source) ?? '';
     if (!src || !isIframeSourceAllowed(src, allowedHostnames)) return '';
-    return sanitizeHtml(source, {
-      ...INLINE_FRAGMENT_SANITIZE_OPTIONS,
-      allowedTags: ['iframe'],
-      allowedAttributes: { iframe: [
-        'src', 'width', 'height', 'title', 'frameborder', 'allowfullscreen', 'allow',
-        'loading', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing',
-        'class', 'id', 'style', 'role', 'data-*', 'aria-*',
-      ] },
-      allowedIframeHostnames: undefined,
-      allowedSchemes: ['http', 'https'],
-      allowedSchemesAppliedToAttributes: ['src'],
-      allowProtocolRelative: true,
-    });
+    // The iframe payload is an opaque user-authored fragment. Validate only its
+    // original src host; never parse, sanitize, or serialize the iframe itself.
+    // This also leaves provider-controlled mobile redirects untouched.
+    return source;
   });
 }
 
