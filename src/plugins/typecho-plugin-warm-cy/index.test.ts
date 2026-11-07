@@ -541,7 +541,7 @@ describe('typecho-plugin-warm-cy', () => {
       iframeVideoEnhancementEnabled: '1',
       iframeVideoAllowedHostnames: 'embed.example.org',
     }));
-    const source = "<IFRAME  src='https://embed.example.org/frame?id=7&amp;mode=wide' data-provider='custom' credentialless allowpaymentrequest vendor-mode='compact' width=640 height='360' title='Exact case' loading=lazy sandbox='allow-scripts allow-same-origin' referrerpolicy='strict-origin' ></IFRAME>";
+    const source = "<IFRAME  src='https://embed.example.org/frame?id=7&amp;mode=wide' data-provider='custom' credentialless allowpaymentrequest vendor-mode='compact' 9vendor='opaque' width=640 height='360' title='Exact case' loading=lazy sandbox='allow-scripts allow-same-origin' referrerpolicy='strict-origin' ></IFRAME>";
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
