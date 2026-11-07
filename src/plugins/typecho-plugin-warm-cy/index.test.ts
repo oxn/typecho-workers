@@ -609,6 +609,17 @@ describe('typecho-plugin-warm-cy', () => {
     const appendedStyles: Array<{ tagName: string; textContent: string; media?: string; sheet?: unknown }> = [];
     const removedStyles: unknown[] = [];
     const scopedRule: any = { type: 1, selectorText: '.custom-footer, .badge-dual:is(.active, [data-kind="a,b"])::before' };
+    const rootRule: any = { type: 1, selectorText: ':root' };
+    const nestedHoverRule: any = { type: 1, selectorText: '&:hover' };
+    const nestedDeclarations: any = { type: 0, style: { color: 'red' } };
+    const nestedStyleRules: any = [nestedHoverRule, nestedDeclarations];
+    nestedStyleRules.deleteRule = (index: number) => nestedStyleRules.splice(index, 1);
+    const nestedParentRule: any = {
+      type: 1,
+      selectorText: '.card',
+      cssRules: nestedStyleRules,
+      deleteRule(index: number) { this.cssRules.splice(index, 1); },
+    };
     const nestedRule: any = { type: 1, selectorText: '.badge-row::after' };
     const mediaRules: any = [nestedRule];
     mediaRules.deleteRule = (index: number) => mediaRules.splice(index, 1);
@@ -617,7 +628,7 @@ describe('typecho-plugin-warm-cy', () => {
     const keyframesRule: any = { type: 7, cssRules: [keyframeStep] };
     const fontFaceRule: any = { type: 5 };
     const layerStatementRule: any = { type: 19, cssText: '@layer reset, theme;' };
-    const cssRules: any = [scopedRule, mediaRule, keyframesRule, fontFaceRule, layerStatementRule];
+    const cssRules: any = [scopedRule, rootRule, nestedParentRule, mediaRule, keyframesRule, fontFaceRule, layerStatementRule];
     cssRules.deleteRule = (index: number) => cssRules.splice(index, 1);
     const replacements: unknown[] = [];
     let replaceCalls = 0;
@@ -693,6 +704,11 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedStyles[0].textContent).not.toContain('CYCYCODESEGMENT');
     expect(scopedRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .custom-footer, .warm-prose:not(.warm-note-prose) .badge-dual:is(.active, [data-kind="a,b"])::before');
     expect(nestedRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .badge-row::after');
+    expect(rootRule.selectorText).toBe('.warm-prose:not(.warm-note-prose)');
+    expect(nestedParentRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .card');
+    expect(nestedHoverRule.selectorText).toBe('.warm-prose:not(.warm-note-prose) .card:hover');
+    expect(nestedStyleRules).toContain(nestedDeclarations);
+
     expect(keyframeStep.selectorText).toBe('from');
     expect(cssRules).not.toContain(fontFaceRule);
     expect(cssRules).not.toContain(layerStatementRule);
