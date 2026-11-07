@@ -212,7 +212,11 @@ function restoreIframeVideoFragments(content: string, allowedHostnames: string[]
     catch { return ''; }
   };
   content = content.replace(/<p>\s*CYIFRAMEVIDEOX([0-9a-f]+)XEND\s*<\/p>/gi, restore);
-  return content.replace(/CYIFRAMEVIDEOX([0-9a-f]+)XEND/g, restore);
+  content = content.replace(/CYIFRAMEVIDEOX([0-9a-f]+)XEND/g, restore);
+  // The zero-width character prevents user-authored marker-like text from
+  // being mistaken for a generated iframe placeholder. Restore it only after
+  // generated placeholders have been consumed, preserving the original text.
+  return content.replace(/CY\u200bIFRAMEVIDEOX/gi, 'CYIFRAMEVIDEOX');
 }
 
 function escapeHtml(value: unknown): string {
