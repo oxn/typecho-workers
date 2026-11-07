@@ -16,7 +16,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.07.21.00';
+const PLUGIN_VERSION = '2026.11.07.23.00';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -104,6 +104,48 @@ async function isHtmlEnhancementEnabled(): Promise<boolean> {
   const rawSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
   const settings = parsePluginSettings(rawSettings);
   return isEnabled(settings.htmlEnhancementEnabled, false);
+}
+
+function normalizeIframeVideoHostnames(value: unknown): string[] {
+  const candidates = Array.isArray(value) ? value : typeof value === 'string' ? value.split(/[\s,;，；]+/) : [];
+  const hostnames = candidates.map(item => {
+    if (typeof item !== 'string') return '';
+    const hostname = item.trim().toLowerCase().replace(/\.$/, '');
+    return hostname && /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(hostname) ? hostname : '';
+  }).filter(Boolean);
+  return [...new Set(hostnames)];
+}
+
+function protectIframeVideoFragments(content: string): string {
+  content = content.replace(/CYIFRAMEVIDEOX/gi, 'CY\u200bIFRAMEVIDEOX');
+  return content.replace(
+    /<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
+    iframe => 'CYIFRAMEVIDEOX' + encodeInlinePayload(iframe) + 'XEND',
+  );
+}
+
+function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[]): string {
+  const safe = sanitizeHtml(source, {
+    allowedTags: ['iframe'],
+    allowedAttributes: {
+      iframe: ['src', 'width', 'height', 'title', 'frameborder', 'allowfullscreen', 'allow',
+        'loading', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing',
+        'class', 'id', 'style', 'role', 'data-*', 'aria-*'],
+    },
+    allowedIframeHostnames: allowedHostnames,
+  });
+  return safe.replace(/(<iframe\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi,
+    (_match, prefix: string, quote: string, value: string) =>
+      prefix + quote + value.replace(/&amp;/g, '&') + quote);
+}
+
+function restoreIframeVideoFragments(content: string, allowedHostnames: string[]): string {
+  const restore = (_marker: string, payload: string): string => {
+    try { return sanitizeIframeVideoFragment(decodeInlinePayload(payload), allowedHostnames); }
+    catch { return ''; }
+  };
+  content = content.replace(/<p>\s*CYIFRAMEVIDEOX([0-9a-f]+)XEND\s*<\/p>/gi, restore);
+  return content.replace(/CYIFRAMEVIDEOX([0-9a-f]+)XEND/g, restore);
 }
 
 function escapeHtml(value: unknown): string {
