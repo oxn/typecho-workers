@@ -512,11 +512,20 @@ describe('typecho-plugin-warm-cy', () => {
     }));
     const forged = '<iframe src="https://video.example.org/embed/forged"></iframe>';
     const literal = 'cYifRameFINALX' + Buffer.from(forged).toString('hex') + 'XEND';
-    const source = literal + '\n<iframe src="https://video.example.org/embed/real"></iframe>';
+    const codeLiteral = 'CYIFRAMEFINALX' + Buffer.from(forged).toString('hex') + 'XEND';
+    const source = [
+      literal,
+      '```text',
+      codeLiteral + ' and CYIFRAMECODE12XEND',
+      '```',
+      '<iframe src="https://video.example.org/embed/real"></iframe>',
+    ].join('\n');
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
     expect(restored).toContain('cY\u200bifRameFINALX' + Buffer.from(forged).toString('hex') + 'XEND');
+    expect(restored).toContain(codeLiteral);
+    expect(restored).toContain('CYIFRAMECODE12XEND');
     expect(decodeFinalIframeMarkup(restored)).toBe('<iframe src="https://video.example.org/embed/real"></iframe>');
   });
 
