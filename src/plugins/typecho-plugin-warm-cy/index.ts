@@ -117,6 +117,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
+  const iframeVideoEnhancementEnabled = isEnabled(settings.iframeVideoEnhancementEnabled, true);
   const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
@@ -145,6 +146,13 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <span>正文 HTML / CSS / JavaScript 增强</span>
         </label>
         <p>允许文章和独立页面正文使用内嵌 &lt;style&gt;、&lt;script&gt;、SVG，以及 HTML 的 class、id、data、aria 和 style 属性。开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布内容；笔记由独立笔记插件处理，评论区不受影响。</p>
+      </section>
+      <section class="cy-feature-card">
+        <label class="cy-feature-toggle">
+          <input type="checkbox" data-cy-setting="iframeVideoEnhancementEnabled" ${iframeVideoEnhancementEnabled ? 'checked' : ''}>
+          <span>视频 iframe 增强（仅处理视频地址）</span>
+        </label>
+        <p>仅将文章和独立页面中通过安全校验的视频 iframe src 参数分隔符输出为 &amp;，不改写参数和值；关闭后恢复标准 HTML 转义。依赖上方正文 HTML 增强开关。</p>
       </section>
       <section class="cy-feature-card">
         <label class="cy-feature-toggle">
@@ -192,6 +200,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
+          var iframeVideoEnhancement = root.querySelector('[data-cy-setting="iframeVideoEnhancementEnabled"]');
           var canonicalDomainRedirect = root.querySelector('[data-cy-setting="canonicalDomainRedirectEnabled"]');
           var noteStyleSettings = { enabled: !!noteStyleEnabled.checked, types: {}, icon: {
             visible: !!root.querySelector('[data-cy-alert-icon-visible]').checked,
@@ -217,6 +226,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
                 htmlEnhancementEnabled: !!htmlEnhancement.checked,
+                iframeVideoEnhancementEnabled: !!iframeVideoEnhancement.checked,
                 canonicalDomainRedirectEnabled: !!canonicalDomainRedirect.checked,
                 markdownAlertStyleSettings: noteStyleSettings
               })
@@ -617,13 +627,13 @@ function sanitizeInlineSvgReferences(source: string): string {
 // Keep query-string separators readable in iframe src output. This runs only
 // after sanitize-html has validated the iframe URL and serialized the safe fragment.
 function preserveIframeSrcAmpersands(html: string): string {
-  return html.replace(/(<iframe\\b[^>]*\\bsrc\\s*=\\s*)(["'])([\\s\\S]*?)\\2/gi,
+  return html.replace(/(<iframe\b[^>]*\bsrc\s*=\s*)(["'])([\s\S]*?)\2/gi,
     (_match, prefix: string, quote: string, value: string) =>
       prefix + quote + value.replace(/&amp;/gi, '&') + quote,
   );
 }
 
-function sanitizeInlineHtmlFragment(source: string): string {
+function sanitizeInlineHtmlFragment(source: string, iframeVideoEnhancementEnabled = true): string {
   const safeFormActions = source.replace(
     /<form\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
     formTag => formTag.replace(
@@ -638,10 +648,10 @@ function sanitizeInlineHtmlFragment(source: string): string {
   );
   const sanitized = sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), INLINE_FRAGMENT_SANITIZE_OPTIONS);
   // Restrict raw ampersand output to already-sanitized iframe src attributes.
-  return preserveIframeSrcAmpersands(sanitized);
+  return iframeVideoEnhancementEnabled ? preserveIframeSrcAmpersands(sanitized) : sanitized;
 }
 
-function restoreInlineHtmlFragments(content: string): string {
+function restoreInlineHtmlFragments(content: string, iframeVideoEnhancementEnabled = true): string {
   const restoreContainer = (payload: string): string => {
     let source = decodeInlinePayload(payload);
 
@@ -682,7 +692,7 @@ function restoreInlineHtmlFragments(content: string): string {
       },
     );
 
-    const safe = sanitizeInlineHtmlFragment(source);
+    const safe = sanitizeInlineHtmlFragment(source, iframeVideoEnhancementEnabled);
     return safe ? '<div class="cy-inline-html-pending">' + safe + '</div>' : '';
   };
 
@@ -786,7 +796,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const withAlertIcons = restoreMarkdownAlertIcons(content, parsePluginSettings(storedSettings).markdownAlertStyleSettings);
     if (!withAlertIcons.includes('CYCYINLINE')) return withAlertIcons;
     return await isHtmlEnhancementEnabled()
-      ? restoreInlineHtmlFragments(withAlertIcons)
+      ? restoreInlineHtmlFragments(withAlertIcons, isEnabled(parsePluginSettings(storedSettings).iframeVideoEnhancementEnabled, true))
       : withAlertIcons;
   }, 1);
 
@@ -1145,12 +1155,14 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
+        iframeVideoEnhancementEnabled?: unknown;
         canonicalDomainRedirectEnabled?: unknown;
         markdownAlertStyleSettings?: unknown;
       };
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
         || typeof values.htmlEnhancementEnabled !== 'boolean'
+        || (values.iframeVideoEnhancementEnabled !== undefined && typeof values.iframeVideoEnhancementEnabled !== 'boolean')
         || (values.canonicalDomainRedirectEnabled !== undefined
           && typeof values.canonicalDomainRedirectEnabled !== 'boolean')) {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
@@ -1161,6 +1173,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
+        iframeVideoEnhancementEnabled: values.iframeVideoEnhancementEnabled === undefined
+          ? (isEnabled(current.iframeVideoEnhancementEnabled, true) ? '1' : '0')
+          : (values.iframeVideoEnhancementEnabled ? '1' : '0'),
         canonicalDomainRedirectEnabled: values.canonicalDomainRedirectEnabled === undefined
           ? (isEnabled(current.canonicalDomainRedirectEnabled, false) ? '1' : '0')
           : (values.canonicalDomainRedirectEnabled ? '1' : '0'),
