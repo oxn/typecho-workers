@@ -129,7 +129,7 @@ function normalizeIframeVideoHostnames(value: unknown): string[] {
 }
 
 function protectIframeVideoFragments(source: string): string {
-  source = source.replace(/CYIFRAMECODE(?=\d+XEND)/gi, 'CY\u200bIFRAMECODE');
+  source = source.replace(/CYIFRAMECODE(?=\d+XEND)/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
     const marker = 'CYIFRAMECODE' + protectedSegments.length + 'XEND';
@@ -160,7 +160,7 @@ function protectIframeVideoFragments(source: string): string {
     return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
   }).join('\n');
 
-  content = content.replace(/CYIFRAMEVIDEOX/gi, 'CY\u200bIFRAMEVIDEOX');
+    .replace(/(CY)\u200b(IFRAMEVIDEOX)/gi, '$1$2')
   content = content.replace(
     /<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
     iframe => 'CYIFRAMEVIDEOX' + encodeInlinePayload(iframe) + 'XEND',
@@ -193,10 +193,10 @@ function preserveIframeSrcAmpersands(source: string): string {
 }
 
 function isAllowedIframeFragment(source: string, allowedHostnames: string[]): boolean {
-  const opening = source.match(/^<iframe\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/i)?.[0];
+  const opening = source.match(/^<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/i)?.[0];
   if (!opening) return false;
   const attributes = new Map<string, string | null>();
-  const attributePattern = /\\s+([^\\s=/>]+)(?:\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]+))?/g;
+  const attributePattern = /\s+([^\s=/>]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
   let match: RegExpExecArray | null;
   while ((match = attributePattern.exec(opening.slice(7, -1)))) {
     const name = match[1].toLowerCase();
@@ -207,7 +207,7 @@ function isAllowedIframeFragment(source: string, allowedHostnames: string[]): bo
   const src = attributes.get('src');
   if (typeof src !== 'string' || !src.trim()) return false;
   const value = src.trim();
-  if (!/^https?:\\/\\//i.test(value) || /&(?:#|[a-z])/i.test(value.split(/[?#]/, 1)[0])) return false;
+  if (!/^https?:\/\//i.test(value) || /&(?:#|[a-z])/i.test(value.split(/[?#]/, 1)[0])) return false;
   try {
     const url = new URL(value);
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return false;
@@ -227,13 +227,13 @@ function restoreIframeVideoFragments(content: string, allowedHostnames: string[]
     catch { return ''; }
   };
   content = content.replace(/<p>\s*CYIFRAMEVIDEOX([0-9a-f]+)XEND\s*<\/p>/gi, restore);
-  content = content.replace(/CYIFRAMEVIDEOX([0-9a-f]+)XEND/g, restore);
+    .replace(/(CY)\u200b(IFRAMEVIDEOX)/gi, '$1$2')
   // The zero-width character prevents user-authored marker-like text from
   // being mistaken for a generated iframe placeholder. Restore it only after
   // generated placeholders have been consumed, preserving the original text.
   return content
-    .replace(/CY\u200bIFRAMEVIDEOX/gi, 'CYIFRAMEVIDEOX')
-    .replace(/CY\u200bIFRAMECODE/gi, 'CYIFRAMECODE');
+    .replace(/(CY)\u200b(IFRAMEVIDEOX)/gi, '$1$2')
+    .replace(/(CY)\u200b(IFRAMECODE)/gi, '$1$2');
 }
 
 function escapeHtml(value: unknown): string {
@@ -517,7 +517,7 @@ function protectInlineHtml(source: string): string {
   content = restoreProtectedSegmentsInEncodedPayloads(content, protectedSegments);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
-    const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
+  const attributePattern = /\s+([^\s=/>]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
     let match: RegExpExecArray | null;
     while ((match = attributePattern.exec(attrs))) {
       const name = match[1].toLowerCase();
