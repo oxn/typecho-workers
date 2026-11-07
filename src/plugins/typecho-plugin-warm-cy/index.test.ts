@@ -266,7 +266,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<iframe src="https://video.example/code"></iframe>',
       '最后一行`，后面是真正的视频：',
       '<iframe src="https://video.example/real"></iframe>',
-    ].join('\\n');
+    ].join('\n');
     const protectedSource = await protect(source);
     expect(protectedSource).toContain('<iframe src="https://video.example/code"></iframe>');
     expect(protectedSource.match(/CYIFRAMEONLYX/g)?.length).toBe(1);
