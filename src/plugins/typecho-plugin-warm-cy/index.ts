@@ -319,6 +319,8 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     th: ['style', 'class', 'id', 'colspan', 'rowspan', 'scope', 'data-*', 'aria-*'],
     td: ['style', 'class', 'id', 'colspan', 'rowspan', 'data-*', 'aria-*'],
     time: ['datetime', 'style', 'class', 'id', 'data-*', 'aria-*'],
+    details: ['open', 'class', 'id', 'style', 'data-*', 'aria-*'],
+    summary: ['class', 'id', 'style', 'data-*', 'aria-*'],
     abbr: ['title', 'style', 'class', 'id', 'data-*', 'aria-*'],
     form: ['action', 'method', 'name', 'class', 'id', 'style', 'data-*', 'aria-*'],
     fieldset: ['disabled', 'form', 'name', 'class', 'id', 'style', 'data-*', 'aria-*'],
