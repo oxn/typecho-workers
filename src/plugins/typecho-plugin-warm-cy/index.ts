@@ -152,8 +152,12 @@ function protectIframeOnly(source: string): string {
   // Inline code spans may legally contain line breaks; protect them after the
   // fenced/indented block pass so iframe-looking examples stay untouched.
   content = content.replace(/(\x60+)([\s\S]*?)\1/g, protect);
-  content = content.replace(/<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>(?:[\s\S]*?<\/iframe\s*>)?/gi,
-    block => 'CYIFRAMEONLYX' + encodeInlinePayload(block) + 'XEND');
+  // Stop an unmatched iframe at the next iframe opening tag. Otherwise a
+  // missing closing tag could absorb a later, valid embed and unrelated text.
+  content = content.replace(
+    /<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>(?:(?!<iframe\b)[\s\S])*?<\/iframe\s*>|<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
+    block => 'CYIFRAMEONLYX' + encodeInlinePayload(block) + 'XEND',
+  );
   for (let index = protectedSegments.length - 1; index >= 0; index--) {
     content = content.replace('CYIFRAMECODE' + index + 'TOKEN', protectedSegments[index]);
   }
@@ -163,7 +167,7 @@ function protectIframeOnly(source: string): string {
 function restoreIframeOnly(content: string, allowedHostnames: string[]): string {
   return content.replace(/CYIFRAMEONLYX([0-9a-f]+)XEND/gi, (_marker, payload: string) => {
     const source = decodeInlinePayload(payload);
-    const match = source.match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    const match = source.match(/(?:^|\s)src\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
     const src = (match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim();
     if (!src || !isIframeSourceAllowed(src, allowedHostnames)) return '';
     return sanitizeHtml(source, {
