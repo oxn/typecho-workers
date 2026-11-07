@@ -148,7 +148,7 @@ function protectCompleteHtmlContainers(content: string, protectedSegments: strin
   while ((match = openingPattern.exec(content))) {
     const tag = match[1].toLowerCase();
     if (!containerTags.has(tag) || /\/\s*>$/.test(match[0])) continue;
-    const tagPattern = new RegExp('<\\/?' + tag + '\\b(?:[^"\\'<>]|"[^"]*"|\\'[^\\']*\\')*>', 'gi');
+    const tagPattern = new RegExp("<\\/?"+tag+"\\b(?:[^\"'<>]|\"[^\"]*\"|'[^']*')*>", 'gi');
     tagPattern.lastIndex = openingPattern.lastIndex;
     let depth = 1;
     let closeEnd = -1;
