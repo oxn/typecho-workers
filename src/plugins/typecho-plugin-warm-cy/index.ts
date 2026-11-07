@@ -175,7 +175,9 @@ function protectIframeOnly(source: string): string {
 function getIframeSrcAttribute(source: string): string | null {
   const openingTag = source.match(/^<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/i)?.[0];
   if (!openingTag) return null;
-  const attributes = openingTag.slice(openingTag.indexOf('iframe') + 'iframe'.length, -1);
+  const tagName = openingTag.match(/^<iframe\\b/i)?.[0];
+  if (!tagName) return null;
+  const attributes = openingTag.slice(tagName.length, -1);
   let index = 0;
   let src: string | null = null;
   while (index < attributes.length) {
