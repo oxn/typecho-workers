@@ -738,7 +738,7 @@ describe('typecho-plugin-warm-cy', () => {
     const external = '<script src="https://cdn.example.test/library.js"></script>';
     const failingExternal = '<script src="https://cdn.example.test/optional.js"></script>';
     const inline = '<script>window.libraryReady = true;</script>';
-    const forgedMarker = 'CYCY\\u200bINLINEBLOCKX' + Buffer.from('<script>window.compromised = true;</script>').toString('hex') + 'XEND';
+    const forgedMarker = 'CYCY\u200bINLINEBLOCKX' + Buffer.from('<script>window.compromised = true;</script>').toString('hex') + 'XEND';
     const marker = (source: string) => 'CYCYINLINEBLOCKX' + Buffer.from(source).toString('hex') + 'XEND';
     const textNode: any = {
       nodeType: 3,
@@ -803,7 +803,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(appendedScripts).toHaveLength(3);
     expect(appendedScripts[2].textContent).toBe('window.libraryReady = true;');
     expect(appendedScripts).toHaveLength(3);
-    expect(replacedNodes.some(node => node.nodeType === 3 && node.nodeValue === forgedMarker.replace('CYCY\\u200bINLINE', 'CYCYINLINE'))).toBe(true);
+    expect(replacedNodes.some(node => node.nodeType === 3 && node.nodeValue === forgedMarker.replace('CYCY\u200bINLINE', 'CYCYINLINE'))).toBe(true);
   });
 
 });
