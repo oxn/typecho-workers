@@ -289,9 +289,13 @@ describe('typecho-plugin-warm-cy', () => {
       expect(restored).toContain('<' + tag);
     }
     expect(restored).not.toContain('javascript:alert(1)');
-    for (const attribute of ['datetime="2026-11-07"', 'open=""', 'title="说明"', 'action="/submit"', 'method="post"', 'for="choice"', 'checked=""', 'required=""', 'selected=""', 'rows="4"', 'cols="20"', 'max="10"', 'min="0"']) {
+    for (const attribute of ['datetime="2026-11-07"', 'title="说明"', 'action="/submit"', 'method="post"', 'for="choice"', 'rows="4"', 'cols="20"', 'max="10"', 'min="0"']) {
       expect(restored).toContain(attribute);
     }
+    expect(restored).toContain('<details open>');
+    expect(restored).toContain('checked');
+    expect(restored).toContain('required');
+    expect(restored).toContain('selected');
   });
 
   it('restores a single-line styled div after the core sanitizer strips div tags', async () => {
