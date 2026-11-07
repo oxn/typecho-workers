@@ -192,18 +192,33 @@ function preserveIframeSrcAmpersands(source: string): string {
       prefix + quote + value.replace(/&amp;/g, '&') + quote);
 }
 
+function isAllowedIframeFragment(source: string, allowedHostnames: string[]): boolean {
+  const opening = source.match(/^<iframe\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/i)?.[0];
+  if (!opening) return false;
+  const attributes = new Map<string, string | null>();
+  const attributePattern = /\\s+([^\\s=/>]+)(?:\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]+))?/g;
+  let match: RegExpExecArray | null;
+  while ((match = attributePattern.exec(opening.slice(7, -1)))) {
+    const name = match[1].toLowerCase();
+    if (!/^[a-z_:][a-z0-9:._-]*$/.test(name) || name.startsWith('on') || name === 'srcdoc' || attributes.has(name)) return false;
+    const raw = match[2];
+    attributes.set(name, raw === undefined ? null : raw.replace(/^["']|["']$/g, ''));
+  }
+  const src = attributes.get('src');
+  if (typeof src !== 'string' || !src.trim()) return false;
+  const value = src.trim();
+  if (!/^https?:\\/\\//i.test(value) || /&(?:#|[a-z])/i.test(value.split(/[?#]/, 1)[0])) return false;
+  try {
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return false;
+    return allowedHostnames.includes(url.hostname.toLowerCase());
+  } catch { return false; }
+}
+
 function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[]): string {
-  const options: sanitizeHtml.IOptions = {
-    allowedTags: ['iframe'],
-    allowedAttributes: {
-      iframe: getSafeIframeAttributeNames(source),
-    },
-  };
-  // Always pass the configured list. An empty array deliberately denies every iframe hostname;
-  // omitting this option would silently restore sanitize-html's built-in defaults.
-  options.allowedIframeHostnames = allowedHostnames;
-  const safe = sanitizeHtml(source, options);
-  return preserveIframeSrcAmpersands(safe);
+  // Preserve the exact original iframe markup. Unsafe or non-allowlisted input
+  // is rejected as a whole instead of silently rewriting individual attributes.
+  return isAllowedIframeFragment(source, allowedHostnames) ? source : '';
 }
 
 function restoreIframeVideoFragments(content: string, allowedHostnames: string[]): string {
