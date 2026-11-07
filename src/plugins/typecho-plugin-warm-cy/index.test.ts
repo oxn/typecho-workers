@@ -514,6 +514,25 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
 
+  it('preserves provider-specific iframe parameters while stripping executable attributes', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'embed.example.org',
+    }));
+    const source = '<iframe src="https://embed.example.org/frame?id=7" data-provider="custom" credentialless allowpaymentrequest="true" vendor-mode="compact" onload="alert(1)" srcdoc="<script>bad()</script>"></iframe>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain('data-provider="custom"');
+    expect(restored).toContain('credentialless');
+    expect(restored).toContain('allowpaymentrequest="true"');
+    expect(restored).toContain('vendor-mode="compact"');
+    expect(restored).not.toContain('onload=');
+    expect(restored).not.toContain('srcdoc=');
+  });
+
   it('uses the four default hosts for legacy settings without an allowlist field', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1' }));
