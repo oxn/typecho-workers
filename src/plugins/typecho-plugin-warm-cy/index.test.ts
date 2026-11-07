@@ -176,7 +176,7 @@ describe('typecho-plugin-warm-cy', () => {
     mocks.getOption.mockResolvedValue(JSON.stringify({
       htmlEnhancementEnabled: '0',
       iframeVideoEnhancementEnabled: '1',
-      iframeVideoAllowedHostnames: '',
+      iframeVideoAllowedHostnames: 'video.example',
     }));
     const source = '<iframe src="https://video.example/embed?id=7" width="640" allowfullscreen></iframe>';
     const protectedSource = await protect(source);
@@ -396,7 +396,7 @@ describe('typecho-plugin-warm-cy', () => {
     mocks.getOption.mockResolvedValue(JSON.stringify({
       htmlEnhancementEnabled: '0',
       iframeVideoEnhancementEnabled: '1',
-      iframeVideoAllowedHostnames: '',
+      iframeVideoAllowedHostnames: 'video.example',
     }));
     const source = [
       '<iframe src="https://video.example/unclosed">',
