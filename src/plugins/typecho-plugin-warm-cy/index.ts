@@ -125,7 +125,8 @@ function protectIframeVideoFragments(source: string): string {
     return marker;
   };
   // Leave HTML code blocks, Markdown fences, indented code and inline code alone.
-  let content = source.replace(/<(pre|code)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
+  let content = source.replace(/<!--[\s\S]*?-->/g, protect)
+    .replace(/<(pre|code|script|style|textarea|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
   let fenceChar = '';
   let fenceLength = 0;
   content = content.split('\n').map(line => {
