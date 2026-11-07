@@ -660,7 +660,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(result.response.status).toBe(200);
     const savedSettings = JSON.parse(mocks.setOption.mock.calls[0][2] as string);
     expect(savedSettings.iframeVideoAllowedHostnames).toBe(
-      'www.youtube.com\\nwww.youtube-nocookie.com\\nplayer.bilibili.com\\nplayer.vimeo.com',
+      'www.youtube.com\nwww.youtube-nocookie.com\nplayer.bilibili.com\nplayer.vimeo.com',
     );
   });
 
