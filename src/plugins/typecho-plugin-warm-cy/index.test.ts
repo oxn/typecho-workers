@@ -145,7 +145,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.07.19.47');
+    expect(html).toContain('CY 插件版本：2026.11.07.19.50');
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
@@ -171,7 +171,7 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ iframeVideoAllowedHostnames: '' }) },
     });
-    expect(html).toContain('白名单留空表示拒绝所有 iframe 视频域名');
+    expect(html).toContain('白名单留空表示拒绝所有 iframe 域名');
     expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames" rows="4"></textarea>');
     expect(html).not.toContain('<textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">www.youtube.com');
   });
