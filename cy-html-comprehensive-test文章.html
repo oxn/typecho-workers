@@ -83,7 +83,7 @@
   <header class="test-banner" data-section="intro">
     <h1>CY HTML 通用还原综合测试</h1>
     <p>用途：将本文作为文章正文发布，再对比<strong>原始 HTML</strong>与<strong>文章输出后的源代码</strong>。本页包含多种常见 HTML 结构和属性。</p>
-    <p class="muted">测试标识：CYCYCODESEGMENT0TOKEN　版本：1.0</p>
+    <p class="muted">测试标识：<code>CY-HTML-2026-01</code>　版本：1.0</p>
   </header>
 
   <section id="test-basic" data-test="basic" aria-labelledby="basic-title">
@@ -146,9 +146,9 @@
     <table class="sample-table" data-table-id="table-01">
       <thead><tr><th scope="col">项目</th><th scope="col">预期</th><th scope="col">标记</th></tr></thead>
       <tbody>
-        <tr><td>class</td><td>保留</td><td>CYCYCODESEGMENT1TOKEN</td></tr>
-        <tr><td>data 属性</td><td>保留</td><td>CYCYCODESEGMENT2TOKEN</td></tr>
-        <tr><td>ARIA</td><td>保留</td><td>CYCYCODESEGMENT3TOKEN</td></tr>
+        <tr><td>class</td><td>保留</td><td><code>class="sample-table"</code></td></tr>
+        <tr><td>data 属性</td><td>保留</td><td><code>data-table-id</code></td></tr>
+        <tr><td>ARIA</td><td>保留</td><td><code>aria-label</code></td></tr>
       </tbody>
     </table>
   </section>
@@ -198,7 +198,12 @@
 
   <section id="test-code" data-test="code">
     <h2 id="八代码块与特殊字符">八、代码块与特殊字符</h2>
-    CYCYCODESEGMENT4TOKEN
+    <pre><code class="language-js">const test = {
+  dataStateFor: "cy-html-full-2026",
+  html: "&lt;div data-demo='yes'&gt;HTML&lt;/div&gt;",
+  safe: true
+};
+console.log(test);</code></pre>
     <p>字符转义：&amp; &lt; &gt; " ' 中文字符。</p>
     <p>链接查询参数：<a href="https://example.com/?a=1&amp;b=2">带 &amp;amp; 的 URL</a></p>
   </section>
