@@ -786,10 +786,12 @@ describe('typecho-plugin-warm-cy', () => {
 
     const otherTheme = handler('', { options: {
       theme: 'another-theme',
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '1' }),
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', iframeVideoEnhancementEnabled: '1', showHomeSearchButton: '1' }),
     } });
     expect(otherTheme).not.toContain('data-cy-inline-html-enhancement');
     expect(otherTheme).not.toContain('data-cy-inline-html-enhancement-style');
+    expect(otherTheme).toContain('data-cy-iframe-restoration');
+    expect(otherTheme).toContain('document.querySelector("main") || document.body');
     expect(otherTheme).not.toContain('data-cy-markdown-alert-icons');
   });
 
