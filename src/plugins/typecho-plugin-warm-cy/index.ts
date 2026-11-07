@@ -168,6 +168,24 @@ function protectIframeVideoFragments(source: string): string {
   return content.replace(/CYIFRAMECODE(\d+)XEND/g,
     (_marker, index: string) => protectedSegments[Number(index)] ?? _marker);
 }
+function getSafeIframeAttributeNames(source: string): string[] {
+  const names = new Set<string>();
+  source.replace(/<iframe\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi, opening => {
+    opening.replace(/\\s([^\\s=/>]+)(?:\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+))?/g,
+      (_attribute, rawName: string) => {
+        const name = rawName.toLowerCase();
+        // Preserve provider-specific and future iframe parameters, but never
+        // carry executable event handlers or nested srcdoc documents through.
+        if (/^[a-z_:][a-z0-9:._-]*$/.test(name) && !name.startsWith('on') && name !== 'srcdoc') {
+          names.add(name);
+        }
+        return _attribute;
+      });
+    return opening;
+  });
+  return [...names];
+}
+
 function preserveIframeSrcAmpersands(source: string): string {
   return source.replace(/(<iframe\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi,
     (_match, prefix: string, quote: string, value: string) =>
@@ -178,10 +196,7 @@ function sanitizeIframeVideoFragment(source: string, allowedHostnames: string[])
   const options: sanitizeHtml.IOptions = {
     allowedTags: ['iframe'],
     allowedAttributes: {
-      iframe: ['src', 'width', 'height', 'title', 'name', 'tabindex', 'align', 'frameborder',
-        'marginwidth', 'marginheight', 'allowfullscreen', 'allowpaymentrequest', 'allow',
-        'loading', 'fetchpriority', 'credentialless', 'csp', 'referrerpolicy', 'sandbox',
-        'scrolling', 'border', 'framespacing', 'class', 'id', 'style', 'role', 'data-*', 'aria-*'],
+      iframe: getSafeIframeAttributeNames(source),
     },
   };
   // Always pass the configured list. An empty array deliberately denies every iframe hostname;
@@ -738,7 +753,13 @@ function sanitizeInlineHtmlFragment(source: string, allowedIframeHostnames?: str
       },
     ),
   );
-  const options: sanitizeHtml.IOptions = { ...INLINE_FRAGMENT_SANITIZE_OPTIONS };
+  const options: sanitizeHtml.IOptions = {
+    ...INLINE_FRAGMENT_SANITIZE_OPTIONS,
+    allowedAttributes: {
+      ...INLINE_FRAGMENT_SANITIZE_OPTIONS.allowedAttributes,
+      iframe: getSafeIframeAttributeNames(source),
+    },
+  };
   if (allowedIframeHostnames !== undefined) {
     // An explicitly configured empty list means deny all iframe hostnames.
     // Keep the original sanitizer defaults only when iframe enhancement is off.
@@ -778,8 +799,7 @@ function restoreInlineHtmlFragments(content: string, allowedIframeHostnames?: st
               || key === 'checked' || key === 'selected' || key === 'rows' || key === 'cols'
               || key === 'max' || key === 'min' || key === 'action' || key === 'method'
               || key === 'disabled' || key === 'multiple' || key === 'required' || key === 'step'
-              || (tag.toLowerCase() === 'iframe'
-                && ['src', 'name', 'tabindex', 'align', 'frameborder', 'marginwidth', 'marginheight', 'allow', 'allowfullscreen', 'allowpaymentrequest', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'loading', 'fetchpriority', 'credentialless', 'csp'].includes(key))
+              || (tag.toLowerCase() === 'iframe' && !/^on/i.test(key) && key !== 'srcdoc')
               || key.startsWith('data-') || key.startsWith('aria-'))) return '';
             const text = String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
               .replace(/</g, '&lt;').replace(/>/g, '&gt;');
