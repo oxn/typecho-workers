@@ -234,6 +234,35 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('<p><div');
   });
 
+  it('preserves semantic HTML and form attributes through the full sanitizer pipeline', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = [
+      '<div class="semantic-fixture">',
+      '<time datetime="2026-11-07">日期</time>',
+      '<details open><summary>展开内容</summary><mark>重点</mark><abbr title="说明">缩写</abbr><u>下划线</u><sub>下标</sub><sup>上标</sup></details>',
+      '<form action="/submit" method="post"><fieldset><legend>选项</legend>',
+      '<label for="choice">同意</label><input id="choice" name="choice" type="checkbox" checked required>',
+      '<select name="format"><option value="a" selected>A</option><option value="b">B</option></select>',
+      '<textarea name="message" rows="4" cols="20" placeholder="输入"></textarea>',
+      '<output name="result">完成</output><progress value="3" max="10"></progress><meter min="0" max="10" value="7"></meter>',
+      '</fieldset></form>',
+      '</div>',
+    ].join('');
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed);
+    const restored = await restore(coreSanitized);
+
+    for (const tag of ['time', 'details', 'summary', 'mark', 'abbr', 'u', 'sub', 'sup', 'form', 'fieldset', 'legend', 'input', 'select', 'option', 'textarea', 'output', 'progress', 'meter']) {
+      expect(restored).toContain('<' + tag);
+    }
+    for (const attribute of ['datetime="2026-11-07"', 'open=""', 'title="说明"', 'action="/submit"', 'method="post"', 'for="choice"', 'checked=""', 'required=""', 'selected=""', 'rows="4"', 'cols="20"', 'max="10"', 'min="0"']) {
+      expect(restored).toContain(attribute);
+    }
+  });
+
   it('restores a single-line styled div after the core sanitizer strips div tags', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
