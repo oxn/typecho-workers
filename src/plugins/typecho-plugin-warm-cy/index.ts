@@ -514,7 +514,7 @@ function restoreProtectedSegmentsInEncodedPayloads(content: string, protectedSeg
         'CYCYINLINE' + kind + 'X' + encodeInlinePayload(restore(decodeInlinePayload(payload), depth + 1)) + 'XEND',
     );
     return withNestedPayloads.replace(
-      /CYCYCODESEGMENT(\\d+)TOKEN/g,
+      /CYCYCODESEGMENT(\d+)TOKEN/g,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
   };
