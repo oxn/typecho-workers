@@ -160,7 +160,7 @@ function protectIframeVideoFragments(source: string): string {
     return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
   }).join('\n');
 
-    .replace(/(CY)\u200b(IFRAMEVIDEOX)/gi, '$1$2')
+  content = content.replace(/CYIFRAMEVIDEOX/gi, marker => marker.slice(0, 2) + '\u200b' + marker.slice(2));
   content = content.replace(
     /<iframe\b(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
     iframe => 'CYIFRAMEVIDEOX' + encodeInlinePayload(iframe) + 'XEND',
@@ -227,10 +227,10 @@ function restoreIframeVideoFragments(content: string, allowedHostnames: string[]
     catch { return ''; }
   };
   content = content.replace(/<p>\s*CYIFRAMEVIDEOX([0-9a-f]+)XEND\s*<\/p>/gi, restore);
-    .replace(/(CY)\u200b(IFRAMEVIDEOX)/gi, '$1$2')
-  // The zero-width character prevents user-authored marker-like text from
-  // being mistaken for a generated iframe placeholder. Restore it only after
-  // generated placeholders have been consumed, preserving the original text.
+  content = content.replace(/CYIFRAMEVIDEOX([0-9a-f]+)XEND/g, restore);
+  // Restore escaped user-authored marker-like text only after generated
+  // placeholders have been consumed. Capture casing so the original text
+  // remains byte-for-byte unchanged.
   return content
     .replace(/(CY)\u200b(IFRAMEVIDEOX)/gi, '$1$2')
     .replace(/(CY)\u200b(IFRAMECODE)/gi, '$1$2');
