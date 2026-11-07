@@ -645,6 +645,25 @@ describe('typecho-plugin-warm-cy', () => {
     });
   });
 
+  it('keeps the four default iframe hosts when a legacy settings client omits the allowlist field', async () => {
+    const context = adminContext();
+    mocks.requireAdminAction.mockResolvedValueOnce(context);
+    const handler = collectHooks().get('route:request')!;
+    const result = await handler({}, {
+      request: routeRequest(SETTINGS_API_PATH, 'POST', {
+        showCommentManagementButtons: true,
+        showHomeSearchButton: true,
+        htmlEnhancementEnabled: false,
+      }),
+      path: SETTINGS_API_PATH,
+    });
+    expect(result.response.status).toBe(200);
+    const savedSettings = JSON.parse(mocks.setOption.mock.calls[0][2] as string);
+    expect(savedSettings.iframeVideoAllowedHostnames).toBe(
+      'www.youtube.com\\nwww.youtube-nocookie.com\\nplayer.bilibili.com\\nplayer.vimeo.com',
+    );
+  });
+
   it('rejects a non-empty invalid iframe hostname list but accepts an empty list', async () => {
     const context = adminContext();
     mocks.requireAdminAction.mockResolvedValueOnce(context);
