@@ -792,10 +792,6 @@ function sanitizeInlineHtmlFragment(source: string, allowedIframeHostnames?: str
 function restoreInlineHtmlFragments(content: string, allowedIframeHostnames?: string[]): string {
   const restoreContainer = (payload: string): string => {
     let source = decodeInlinePayload(payload);
-    if (source.includes('CYIFRAMEVIDEOX') && allowedIframeHostnames !== undefined) {
-      source = restoreIframeVideoFragments(source, allowedIframeHostnames);
-    }
-
     // Keep style/script blocks as inert text markers through fragment sanitization.
     // The opt-in frontend runtime restores them only when the enhancement is enabled.
     source = source.replace(/<(style|script|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, block =>
@@ -833,7 +829,10 @@ function restoreInlineHtmlFragments(content: string, allowedIframeHostnames?: st
     );
 
     const safe = sanitizeInlineHtmlFragment(source, allowedIframeHostnames);
-    return safe ? '<div class="cy-inline-html-pending">' + safe + '</div>' : '';
+    const restoredSafe = safe && allowedIframeHostnames !== undefined
+      ? restoreIframeVideoFragments(safe, allowedIframeHostnames)
+      : safe;
+    return restoredSafe ? '<div class="cy-inline-html-pending">' + restoredSafe + '</div>' : '';
   };
 
   // The Markdown parser wraps a standalone placeholder in <p>; replace the
@@ -855,7 +854,10 @@ function restoreInlineHtmlFragments(content: string, allowedIframeHostnames?: st
       svg => 'CYCYINLINEBLOCKX' + encodeInlinePayload(svg) + 'XEND',
     );
     const safe = sanitizeInlineHtmlFragment(source, allowedIframeHostnames);
-    return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
+    const restoredSafe = safe && allowedIframeHostnames !== undefined
+      ? restoreIframeVideoFragments(safe, allowedIframeHostnames)
+      : safe;
+    return restoredSafe ? '<span class="cy-inline-html-pending">' + restoredSafe + '</span>' : '';
   });
 
   // Keep protected blocks inert until the opt-in browser runtime handles them.
