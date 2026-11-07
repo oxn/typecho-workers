@@ -507,8 +507,7 @@ function protectInlineHtml(source: string): string {
         || name === 'checked' || name === 'selected' || name === 'rows' || name === 'cols'
         || name === 'max' || name === 'min' || name === 'action' || name === 'method'
         || name === 'disabled' || name === 'multiple' || name === 'required' || name === 'step'
-        || (tag.toLowerCase() === 'iframe'
-          && ['src', 'name', 'tabindex', 'align', 'frameborder', 'marginwidth', 'marginheight', 'allow', 'allowfullscreen', 'allowpaymentrequest', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing', 'loading', 'fetchpriority', 'credentialless', 'csp'].includes(name))
+        || (tag.toLowerCase() === 'iframe' && !/^on/i.test(name) && name !== 'srcdoc')
         || name.startsWith('data-') || name.startsWith('aria-')) {
         preserved[name] = match[2] ?? match[3] ?? match[4] ?? '';
       }
