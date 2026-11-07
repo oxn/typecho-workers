@@ -13,7 +13,7 @@
     "plugin": {
       "id": "typecho-plugin-warm-cy",
       "name": "Warm CY Companion",
-      "description": "为 Warm CY 主题提供置顶管理、评论区操作、首页搜索、正文 HTML 增强、Markdown Alert 样式及主域名跳转。",
+      "description": "为 Warm CY 主题提供置顶管理、评论区操作、首页搜索、正文 HTML 增强、可配置的视频 iframe 增强、Markdown Alert 样式及主域名跳转。",
       "version": "1.1.0",
       "license": "MIT",
       "tags": [
@@ -23,8 +23,8 @@
       "adminPage": "cy-companion",
       "adminPageTitle": "CY 功能显示",
       "adminPageIsSettings": true,
-      "buildVersion": "2026.11.07.21.00"
+      "buildVersion": "2026.11.07.23.00"
     }
   },
-  "cyVersion": "2026.11.07.21.00"
+  "cyVersion": "2026.11.07.23.00"
 }
