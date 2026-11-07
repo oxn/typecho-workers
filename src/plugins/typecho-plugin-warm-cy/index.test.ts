@@ -208,6 +208,31 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINE');
   });
 
+  it('fails closed for an invalid non-empty iframe allowlist and strips executable attributes', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'not a valid domain !!!',
+    }));
+    const invalidList = await restore(await protect('<iframe src="https://video.example/embed"></iframe>'));
+    expect(invalidList).not.toContain('<iframe');
+
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: '',
+    }));
+    const safeOutput = await restore(await protect(
+      '<iframe src="https://video.example/embed" onload="alert(1)" srcdoc="<script>alert(1)</script>"></iframe>',
+    ));
+    expect(safeOutput).toContain('<iframe');
+    expect(safeOutput).not.toContain('onload=');
+    expect(safeOutput).not.toContain('srcdoc=');
+  });
+
   it('does not process iframe-looking text inside fenced code or HTML comments', async () => {
     const protect = collectHooks().get('content:markdown')!;
     mocks.getOption.mockResolvedValue(JSON.stringify({
