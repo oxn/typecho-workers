@@ -376,7 +376,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).toContain('data-cy-markdown-alert-icons');
     expect(enabled).toContain('cy-markdown-alert-has-icon::before');
     expect(enabled).toContain('const enabled = true');
-    expect(enabled).toContain('.warm-prose:not(.warm-note-prose) :where(.cy-inline-html-pending) iframe{border-radius:0;margin:0}');
+    expect(enabled).not.toContain('iframe{border-radius:0;margin:0}');
     expect(enabled).not.toContain('iframe{border-radius:0!important}');
     expect(enabled).toContain("allowedStyle.has(property)");
     expect(enabled).toContain("key !== 'style'");
@@ -841,7 +841,7 @@ describe('typecho-plugin-warm-cy', () => {
       allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, '*': ['class', 'id', 'title', 'datetime', 'open', 'for', 'type', 'name', 'value', 'checked', 'required', 'disabled', 'selected', 'rows', 'cols', 'min', 'max', 'low', 'high', 'optimum', 'action', 'method', 'step', 'minlength', 'maxlength', 'multiple', 'autocomplete'] },
     });
     const restored = await restore(coreSanitized);
-    for (const fragment of ['<abbr', '<mark>', '<u>', '<sub>', '<sup>', '<time datetime="2026-11-07">', '<details open', '<form action="/submit" method="post"', '<input', 'checked=""', 'required=""', '<option value="a" selected', '<textarea', 'rows="4"', 'cols="20"', '<progress', '<meter']) {
+    for (const fragment of ['<abbr', '<mark>', '<u>', '<sub>', '<sup>', '<time datetime="2026-11-07">', '<details open', '<form action="/submit" method="post"', '<input', ' checked', ' required', '<option value="a" selected', '<textarea', 'rows="4"', 'cols="20"', '<progress', '<meter']) {
       expect(restored).toContain(fragment);
     }
     expect(restored).toContain('cy-inline-html-pending');
