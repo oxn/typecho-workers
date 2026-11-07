@@ -140,18 +140,33 @@ describe('typecho-plugin-warm-cy', () => {
       csrfToken: 'test-token',
       options: { [PLUGIN_OPTION_KEY]: '{}' },
     });
-    expect(html).toContain('CY 插件版本：2026.11.07.23.00');
+    expect(html).toContain('CY 插件版本：2026.11.07.23.01');
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
     expect(html).toContain('正文 HTML / CSS / JavaScript 增强');
     expect(html).toContain('视频 iframe 增强（仅处理视频地址）');
     expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
     expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames"');
-    expect(html).toContain('白名单留空表示不设置域名限制');
-    expect(html).not.toContain('www.youtube.com');
-    expect(html).not.toContain('player.bilibili.com');
+    expect(html).toContain('白名单留空表示拒绝所有 iframe 视频域名');
+    expect(html).toContain('www.youtube.com');
+    expect(html).toContain('www.youtube-nocookie.com');
+    expect(html).toContain('player.bilibili.com');
+    expect(html).toContain('player.vimeo.com');
     expect(html).toContain('访问备用域名时自动跳转到主域名');
     expect(html).toContain('data-cy-setting="canonicalDomainRedirectEnabled"');
+  });
+
+
+  it('keeps a deliberately empty iframe allowlist empty in the admin UI', () => {
+    const handler = collectHooks().get('admin:page')!;
+    const html = handler('', {
+      slug: 'cy-companion',
+      csrfToken: 'test-token',
+      options: { [PLUGIN_OPTION_KEY]: JSON.stringify({ iframeVideoAllowedHostnames: '' }) },
+    });
+    expect(html).toContain('白名单留空表示拒绝所有 iframe 视频域名');
+    expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames" rows="4"></textarea>');
+    expect(html).not.toContain('<textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">www.youtube.com');
   });
 
   it('provides a fallback CY feature-settings entry in the admin navigation', () => {
@@ -489,9 +504,9 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
 
-  it('decodes query separators only in iframe src and leaves ordinary links escaped', async () => {
+  it('decodes query separators only in an allowed iframe src and leaves ordinary links escaped', async () => {
     const hooks = collectHooks();
-    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
     const source = '<a href="https://example.org/watch?a=1&b=2">ordinary link</a>\n\n<iframe src="https://video.example.org/embed/1?a=1&b=2"></iframe>';
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
@@ -499,15 +514,15 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('href="https://example.org/watch?a=1&amp;b=2"');
     expect(restored).toContain('src="https://video.example.org/embed/1?a=1&b=2"');
   });
-  it('does not apply built-in hostname restrictions when the iframe allowlist is empty', async () => {
+  it('rejects every iframe hostname when the iframe allowlist is empty', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
     const source = '<iframe src="https://video.example.org/embed/example?a=1&b=2"></iframe>';
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain('<iframe');
-    expect(restored).toContain('src="https://video.example.org/embed/example?a=1&b=2"');
+    expect(restored).not.toContain('<iframe');
+    expect(restored).not.toContain('src="https://video.example.org/embed/example?a=1&b=2"');
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
   it('uses the configured iframe allowlist when an iframe sits inside an enhanced HTML container', async () => {
@@ -521,15 +536,15 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('src="https://video.example.org/embed/1?a=1&b=2"');
   });
 
-  it('does not apply built-in hostname restrictions to iframe embeds inside enhanced containers when the allowlist is empty', async () => {
+  it('rejects iframe embeds inside enhanced containers when the allowlist is empty', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '1', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
     const source = '<div class="video-wrap"><iframe src="https://video.example.org/embed/1?a=1&b=2"></iframe></div>';
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain('<iframe');
-    expect(restored).toContain('src="https://video.example.org/embed/1?a=1&b=2"');
+    expect(restored).not.toContain('<iframe');
+    expect(restored).not.toContain('src="https://video.example.org/embed/1?a=1&b=2"');
   });
   it('rejects an iframe hostname that is not in a non-empty configured allowlist', async () => {
     const hooks = collectHooks();
