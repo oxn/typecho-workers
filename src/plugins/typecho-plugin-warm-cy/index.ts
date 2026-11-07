@@ -159,6 +159,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
+  const iframeVideoEnhancementEnabled = isEnabled(settings.iframeVideoEnhancementEnabled, false);
+  const iframeVideoAllowedHostnames = normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames);
   const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
@@ -187,6 +189,15 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <span>正文 HTML / CSS / JavaScript 增强</span>
         </label>
         <p>允许文章和独立页面正文使用内嵌 &lt;style&gt;、&lt;script&gt;、SVG，以及 HTML 的 class、id、data、aria 和 style 属性。开启后正文脚本会在访客浏览器中执行，请确保只有可信人员能够发布内容；笔记由独立笔记插件处理，评论区不受影响。</p>
+      </section>
+      <section class="cy-feature-card">
+        <label class="cy-feature-toggle">
+          <input type="checkbox" data-cy-setting="iframeVideoEnhancementEnabled" ${iframeVideoEnhancementEnabled ? 'checked' : ''}>
+          <span>视频 iframe 增强（仅处理视频地址）</span>
+        </label>
+        <p>独立处理文章和独立页面中的视频 iframe。关闭后不接管 iframe；白名单留空表示不允许任何外部 iframe 域名。只填写主机名，不要填写协议、端口或路径。</p>
+        <label for="cy-iframe-video-hostnames">允许的视频 iframe 域名（可留空）</label>
+        <textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">${escapeHtml(iframeVideoAllowedHostnames.join('\\n'))}</textarea>
       </section>
       <section class="cy-feature-card">
         <label class="cy-feature-toggle">
@@ -234,6 +245,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           var comments = root.querySelector('[data-cy-setting="showCommentManagementButtons"]');
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
+          var iframeVideoEnhancement = root.querySelector('[data-cy-setting="iframeVideoEnhancementEnabled"]');
+          var iframeVideoAllowedHostnames = root.querySelector('[data-cy-setting="iframeVideoAllowedHostnames"]');
           var canonicalDomainRedirect = root.querySelector('[data-cy-setting="canonicalDomainRedirectEnabled"]');
           var noteStyleSettings = { enabled: !!noteStyleEnabled.checked, types: {}, icon: {
             visible: !!root.querySelector('[data-cy-alert-icon-visible]').checked,
@@ -259,6 +272,8 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
                 showCommentManagementButtons: !!comments.checked,
                 showHomeSearchButton: !!search.checked,
                 htmlEnhancementEnabled: !!htmlEnhancement.checked,
+                iframeVideoEnhancementEnabled: !!iframeVideoEnhancement.checked,
+                iframeVideoAllowedHostnames: iframeVideoAllowedHostnames.value,
                 canonicalDomainRedirectEnabled: !!canonicalDomainRedirect.checked,
                 markdownAlertStyleSettings: noteStyleSettings
               })
@@ -801,6 +816,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // plugin's private option through the host options loader; do not depend on
   // an extra RequestContext argument that the core does not pass.
   addHook('content:markdown', pluginId, async (content: string) => {
+    if (/<iframe\\b/i.test(content)) {
+      const settings = parsePluginSettings(await getOption(getDb(env.DB), PLUGIN_OPTION_KEY));
+      if (isEnabled(settings.iframeVideoEnhancementEnabled, false)) {
+        content = protectIframeVideoFragments(content);
+      }
+    }
     // Plain Markdown cannot contain an enhancement fragment. Avoid a private
     // options-table D1 read for the common case; only inspect the feature
     // switch when the source actually contains an HTML tag.
@@ -814,11 +835,15 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // never activate fragment restoration while the feature is disabled.
   addHook('content:content', pluginId, async (content: string) => {
     const storedSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
-    const withAlertIcons = restoreMarkdownAlertIcons(content, parsePluginSettings(storedSettings).markdownAlertStyleSettings);
-    if (!withAlertIcons.includes('CYCYINLINE')) return withAlertIcons;
+    const settings = parsePluginSettings(storedSettings);
+    let restored = restoreMarkdownAlertIcons(content, settings.markdownAlertStyleSettings);
+    if (restored.includes('CYIFRAMEVIDEOX')) {
+      restored = restoreIframeVideoFragments(restored, normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames));
+    }
+    if (!restored.includes('CYCYINLINE')) return restored;
     return await isHtmlEnhancementEnabled()
-      ? restoreInlineHtmlFragments(withAlertIcons)
-      : withAlertIcons;
+      ? restoreInlineHtmlFragments(restored)
+      : restored;
   }, 1);
 
   // Emit Note presentation CSS in the document head so the five alert styles
@@ -1176,12 +1201,16 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
+        iframeVideoEnhancementEnabled?: unknown;
+        iframeVideoAllowedHostnames?: unknown;
         canonicalDomainRedirectEnabled?: unknown;
         markdownAlertStyleSettings?: unknown;
       };
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
         || typeof values.htmlEnhancementEnabled !== 'boolean'
+        || (values.iframeVideoEnhancementEnabled !== undefined && typeof values.iframeVideoEnhancementEnabled !== 'boolean')
+        || (values.iframeVideoAllowedHostnames !== undefined && typeof values.iframeVideoAllowedHostnames !== 'string')
         || (values.canonicalDomainRedirectEnabled !== undefined
           && typeof values.canonicalDomainRedirectEnabled !== 'boolean')) {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
@@ -1192,6 +1221,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
+        iframeVideoEnhancementEnabled: values.iframeVideoEnhancementEnabled === undefined
+          ? (isEnabled(current.iframeVideoEnhancementEnabled, false) ? '1' : '0')
+          : (values.iframeVideoEnhancementEnabled ? '1' : '0'),
+        iframeVideoAllowedHostnames: values.iframeVideoAllowedHostnames === undefined
+          ? (typeof current.iframeVideoAllowedHostnames === 'string' ? current.iframeVideoAllowedHostnames : '')
+          : normalizeIframeVideoHostnames(values.iframeVideoAllowedHostnames).join('\\n'),
         canonicalDomainRedirectEnabled: values.canonicalDomainRedirectEnabled === undefined
           ? (isEnabled(current.canonicalDomainRedirectEnabled, false) ? '1' : '0')
           : (values.canonicalDomainRedirectEnabled ? '1' : '0'),
