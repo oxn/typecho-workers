@@ -265,7 +265,7 @@ describe('typecho-plugin-warm-cy', () => {
       if (filename === 'cy-video-iframe-diagnostic.html') {
         // Full-document wrappers and head metadata are not article content;
         // head styles and body scripts must still survive for runtime hydration.
-        expect(restored).not.toMatch(/<(?:html|head|body|meta|title)\\b/i);
+        expect(restored).not.toMatch(/<(?:html|head|body|meta|title)\b/i);
         expect(restored).toContain('CYCYINLINEBLOCKX');
         expect(restored).toContain('data-state-for');
         expect(restored).toContain('js-status');
