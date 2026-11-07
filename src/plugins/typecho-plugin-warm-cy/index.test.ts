@@ -450,6 +450,7 @@ describe('typecho-plugin-warm-cy', () => {
   });
 
   it('retains iframe elements and safe playback attributes in enhanced HTML fragments', async () => {
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '1', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'www.youtube.com' }));
     const restore = collectHooks().get('content:content')!;
     const source = '<div class="video-wrap"><iframe class="article-player" id="article-video" style="border-radius:14px;max-width:100%" src="https://www.youtube.com/embed/example" width="560" height="315" title="YouTube" allow="autoplay; encrypted-media" allowfullscreen loading="eager" referrerpolicy="strict-origin-when-cross-origin" data-player="article"></iframe></div>';
     const protectedSource = await collectHooks().get('content:markdown')!(source);
@@ -502,6 +503,23 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CY\u200bIFRAMECODE');
   });
 
+  it('does not let a user-authored final marker impersonate a validated iframe', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'video.example.org',
+    }));
+    const forged = '<iframe src="https://video.example.org/embed/forged"></iframe>';
+    const literal = 'CYIFRAMEFINALX' + Buffer.from(forged).toString('hex') + 'XEND';
+    const source = literal + '\n<iframe src="https://video.example.org/embed/real"></iframe>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain('CY\\u200bIFRAMEFINALX' + Buffer.from(forged).toString('hex') + 'XEND');
+    expect(decodeFinalIframeMarkup(restored)).toBe('<iframe src="https://video.example.org/embed/real"></iframe>');
+  });
+
   it('does not treat iframe-like custom elements as iframe embeds', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({
@@ -542,6 +560,20 @@ describe('typecho-plugin-warm-cy', () => {
     expect(decodeFinalIframeMarkup(restored)).toBe(source);
     expect(restored).not.toContain('<iframe');
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
+  });
+
+  it('preserves an allowed self-closing iframe until post-theme hydration', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'embed.example.org',
+    }));
+    const source = "<iframe src='https://embed.example.org/frame?id=9&amp;view=compact' credentialless vendor-mode='strict'/>";
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(decodeFinalIframeMarkup(restored)).toBe(source);
   });
 
   it('preserves every safe iframe attribute and the complete iframe markup verbatim', async () => {
@@ -665,6 +697,8 @@ describe('typecho-plugin-warm-cy', () => {
     } });
     expect(enabled).toContain('data-cy-inline-html-enhancement');
     expect(enabled).toContain('data-cy-iframe-restoration');
+    expect(enabled).toContain('template.innerHTML = decode(match[1])');
+    expect(enabled).toContain('instantclick:newpage');
     // Note presentation CSS is emitted by archive:header, not duplicated in the footer.
     expect(enabled).not.toContain('data-cy-markdown-alert-icons');
     expect(enabled).not.toContain('cy-markdown-alert-has-icon::before');
