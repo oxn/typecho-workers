@@ -117,6 +117,7 @@ function normalizeIframeVideoHostnames(value: unknown): string[] {
 }
 
 function protectIframeVideoFragments(source: string): string {
+  source = source.replace(/CYIFRAMECODE(?=\d+XEND)/gi, 'CY\u200bIFRAMECODE');
   const protectedSegments: string[] = [];
   const protect = (value: string): string => {
     const marker = 'CYIFRAMECODE' + protectedSegments.length + 'XEND';
