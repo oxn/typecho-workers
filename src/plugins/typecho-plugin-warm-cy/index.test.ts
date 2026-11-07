@@ -707,6 +707,9 @@ describe('typecho-plugin-warm-cy', () => {
     expect(enabled).toContain('data-cy-inline-html-enhancement');
     expect(enabled).toContain('data-cy-iframe-restoration');
     expect(enabled).toContain('template.innerHTML = decode(match[1])');
+    const iframeRuntime = enabled.match(/<script data-cy-iframe-restoration>([\\s\\S]*?)<\\/script>/)?.[1];
+    expect(iframeRuntime).toBeTruthy();
+    expect(() => new Function(iframeRuntime!)).not.toThrow();
     expect(enabled).toContain('instantclick:newpage');
     // Note presentation CSS is emitted by archive:header, not duplicated in the footer.
     expect(enabled).not.toContain('data-cy-markdown-alert-icons');
