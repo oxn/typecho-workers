@@ -255,6 +255,23 @@ describe('typecho-plugin-warm-cy', () => {
     expect(protectedSource.match(/CYIFRAMEONLYX/g)?.length).toBe(1);
   });
 
+  it('does not process iframe-looking text inside a multiline inline code span', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+    }));
+    const source = [
+      '这是行内代码：`第一行',
+      '<iframe src="https://video.example/code"></iframe>',
+      '最后一行`，后面是真正的视频：',
+      '<iframe src="https://video.example/real"></iframe>',
+    ].join('\\n');
+    const protectedSource = await protect(source);
+    expect(protectedSource).toContain('<iframe src="https://video.example/code"></iframe>');
+    expect(protectedSource.match(/CYIFRAMEONLYX/g)?.length).toBe(1);
+  });
+
   it('skips the private options read for plain Markdown without HTML tags', async () => {
     const handler = collectHooks().get('content:markdown')!;
     const source = 'Plain Markdown **text** with a [link](https://example.com).';
