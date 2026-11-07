@@ -693,8 +693,8 @@ function sanitizeInlineHtmlFragment(source: string, allowedIframeHostnames?: str
 function restoreInlineHtmlFragments(content: string, allowedIframeHostnames?: string[]): string {
   const restoreContainer = (payload: string): string => {
     let source = decodeInlinePayload(payload);
-    if (source.includes('CYIFRAMEVIDEOX')) {
-      source = restoreIframeVideoFragments(source, allowedIframeHostnames ?? INLINE_FRAGMENT_SANITIZE_OPTIONS.allowedIframeHostnames ?? []);
+    if (source.includes('CYIFRAMEVIDEOX') && allowedIframeHostnames !== undefined) {
+      source = restoreIframeVideoFragments(source, allowedIframeHostnames);
     }
 
     // Keep style/script blocks as inert text markers through fragment sanitization.
@@ -822,7 +822,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // plugin's private option through the host options loader; do not depend on
   // an extra RequestContext argument that the core does not pass.
   addHook('content:markdown', pluginId, async (content: string) => {
-    if (/<iframe\b/i.test(content)) {
+    if (/<iframe\b|CYIFRAMEVIDEOX/i.test(content)) {
       const settings = parsePluginSettings(await getOption(getDb(env.DB), PLUGIN_OPTION_KEY));
       if (isEnabled(settings.iframeVideoEnhancementEnabled, false)) {
         content = protectIframeVideoFragments(content);
@@ -843,7 +843,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const storedSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
     const settings = parsePluginSettings(storedSettings);
     let restored = restoreMarkdownAlertIcons(content, settings.markdownAlertStyleSettings);
-    if (restored.includes('CYIFRAMEVIDEOX')) {
+    if (isEnabled(settings.iframeVideoEnhancementEnabled, false) && restored.includes('CYIFRAMEVIDEOX')) {
       restored = restoreIframeVideoFragments(restored, normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames));
     }
     if (!restored.includes('CYCYINLINE')) return restored;
