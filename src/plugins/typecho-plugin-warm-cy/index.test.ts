@@ -147,7 +147,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('视频 iframe 增强（仅处理视频地址）');
     expect(html).toContain('data-cy-setting="iframeVideoEnhancementEnabled"');
     expect(html).toContain('data-cy-setting="iframeVideoAllowedHostnames"');
-    expect(html).toContain('白名单留空表示不允许任何外部 iframe 域名');
+    expect(html).toContain('白名单留空表示不设置域名限制');
     expect(html).not.toContain('www.youtube.com');
     expect(html).not.toContain('player.bilibili.com');
     expect(html).toContain('访问备用域名时自动跳转到主域名');
@@ -473,14 +473,15 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
 
-  it('treats an empty iframe hostname list as deny-all without built-in fallbacks', async () => {
+  it('does not apply built-in hostname restrictions when the iframe allowlist is empty', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
-    const source = '<iframe src="https://www.youtube.com/embed/example"></iframe>';
+    const source = '<iframe src="https://video.example.org/embed/example?a=1&b=2"></iframe>';
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).not.toContain('<iframe');
+    expect(restored).toContain('<iframe');
+    expect(restored).toContain('src="https://video.example.org/embed/example?a=1&b=2"');
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
   it('uses the configured iframe allowlist when an iframe sits inside an enhanced HTML container', async () => {
@@ -494,14 +495,24 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('src="https://video.example.org/embed/1?a=1&b=2"');
   });
 
-  it('denies every iframe host when the configured allowlist is empty inside enhanced containers', async () => {
+  it('does not apply built-in hostname restrictions to iframe embeds inside enhanced containers when the allowlist is empty', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '1', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: '' }));
-    const source = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/1"></iframe></div>';
+    const source = '<div class="video-wrap"><iframe src="https://video.example.org/embed/1?a=1&b=2"></iframe></div>';
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).not.toContain('<iframe');
+    expect(restored).toContain('<iframe');
+    expect(restored).toContain('src="https://video.example.org/embed/1?a=1&b=2"');
+  });
+  it('rejects an iframe hostname that is not in a non-empty configured allowlist', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
+    const source = '<iframe src="https://unlisted.example.net/embed/1"></iframe>';
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).not.toContain('src="https://unlisted.example.net/embed/1"');
   });
   it('adds the inline HTML runtime with the saved opt-in state', () => {
     const handler = collectHooks().get('archive:footer')!;
