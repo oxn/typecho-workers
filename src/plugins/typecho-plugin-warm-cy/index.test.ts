@@ -100,8 +100,28 @@ describe('typecho-plugin-warm-cy', () => {
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith(SETTINGS_API_PATH);
     expect([...hooks.keys()].sort()).toEqual([
       'admin:footer', 'admin:header', 'admin:page',
-      'archive:footer', 'comment:list', 'content:content', 'content:markdown', 'route:request',
+      'archive:footer', 'archive:header', 'comment:list', 'content:content', 'content:markdown', 'route:request',
     ]);
+  });
+
+  it('emits five-Note presentation CSS in the document head before the body is painted', () => {
+    const hooks = collectHooks();
+    const renderHead = hooks.get('archive:header')!;
+    const options = {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({
+        markdownAlertStyleSettings: {
+          enabled: true,
+          types: { NOTE: { background: '#123456' } },
+          icon: { visible: true, size: 18, gap: 8 },
+        },
+      }),
+    };
+    const html = renderHead('<meta charset="utf-8">', { options });
+    expect(html).toContain('<style data-cy-markdown-alert-icons>');
+    expect(html).toContain('background:#123456!important');
+    expect(renderHead('<head>', { options: { ...options, theme: 'another-theme' } })).toBe('<head>');
+    expect(hooks.get('archive:footer')!('', { options })).not.toContain('data-cy-markdown-alert-icons');
   });
 
   it('shows the current CY plugin version and the agreed feature switches', () => {
