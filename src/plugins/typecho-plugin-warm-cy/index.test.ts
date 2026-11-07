@@ -478,7 +478,7 @@ describe('typecho-plugin-warm-cy', () => {
 
   it('leaves marker-like plain text untouched when there is no iframe', async () => {
     const hooks = collectHooks();
-    const source = 'Example text: CYIFRAMEVIDEOX and CYIFRAMECODE12XEND';
+    const source = 'Example text: CYIFRAMEVIDEOX and CYIFRAMECODE12XEND\n<iframe-player src="https://video.example.org/embed/not-an-iframe"></iframe-player>';
     const protectedContent = await hooks.get('content:markdown')!(source);
     expect(protectedContent).toBe(source);
     expect(mocks.getOption).not.toHaveBeenCalled();
