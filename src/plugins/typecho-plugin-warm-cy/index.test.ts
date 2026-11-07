@@ -490,8 +490,9 @@ describe('typecho-plugin-warm-cy', () => {
       [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '0' }),
     } });
     expect(enabled).toContain('data-cy-inline-html-enhancement');
-    expect(enabled).toContain('data-cy-markdown-alert-icons');
-    expect(enabled).toContain('cy-markdown-alert-has-icon::before');
+    // Note presentation CSS is emitted by archive:header, not duplicated in the footer.
+    expect(enabled).not.toContain('data-cy-markdown-alert-icons');
+    expect(enabled).not.toContain('cy-markdown-alert-has-icon::before');
     expect(enabled).toContain('const enabled = true');
     expect(enabled).toContain('.warm-prose:not(.warm-note-prose) :where(.cy-inline-html-pending) iframe{border-radius:0;margin:0}');
     expect(enabled).not.toContain('iframe{border-radius:0!important}');
