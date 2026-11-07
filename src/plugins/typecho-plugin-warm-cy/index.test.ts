@@ -272,6 +272,52 @@ describe('typecho-plugin-warm-cy', () => {
     expect(protectedSource.match(/CYIFRAMEONLYX/g)?.length).toBe(1);
   });
 
+  it('does not let an unclosed iframe consume a later valid iframe or surrounding text', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: '',
+    }));
+    const source = [
+      '<iframe src="https://video.example/unclosed">',
+      '<p>中间正文必须保留</p>',
+      '<iframe src="https://video.example/valid"></iframe>',
+    ].join('\\n');
+    const protectedSource = await protect(source);
+    expect(protectedSource.match(/CYIFRAMEONLYX/g)?.length).toBe(2);
+    const restored = await restore(protectedSource);
+    expect(restored).toContain('中间正文必须保留');
+    expect(restored).toContain('video.example/unclosed');
+    expect(restored).toContain('video.example/valid');
+  });
+
+  it('keeps iframe-only restoration compatible when both HTML switches are enabled', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '1',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: '',
+    }));
+    const source = '<div class="video-wrapper"><iframe src="https://video.example/embed/combined" width="640"></iframe></div>';
+    const protectedSource = await protect(source);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    expect(protectedSource).toContain('CYIFRAMEONLYX');
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['iframe']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, iframe: ['src', 'width'] },
+    });
+    const restored = await restore(coreSanitized);
+    expect(restored).toContain('video-wrapper');
+    expect(restored).toContain('src="https://video.example/embed/combined"');
+    expect(restored).not.toContain('CYIFRAMEONLYX');
+  });
+
   it('skips the private options read for plain Markdown without HTML tags', async () => {
     const handler = collectHooks().get('content:markdown')!;
     const source = 'Plain Markdown **text** with a [link](https://example.com).';
