@@ -16,7 +16,7 @@ const ADMIN_PATH = '/api/admin/theme-pin';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
-const PLUGIN_VERSION = '2026.11.07.21.30';
+const PLUGIN_VERSION = '2026.11.07.22.00';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
   if (typeof value !== 'string' || !value) return {};
@@ -28,6 +28,24 @@ function parsePluginSettings(value: unknown): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+const DEFAULT_IFRAME_VIDEO_HOSTNAMES = ['www.youtube.com', 'www.youtube-nocookie.com', 'player.bilibili.com', 'player.vimeo.com'];
+
+function normalizeIframeVideoHostnames(value: unknown): string[] {
+  const candidates = Array.isArray(value) ? value : typeof value === 'string' ? value.split(/[\\s,;，；]+/) : [];
+  const hostnames = candidates.map(item => {
+    if (typeof item !== 'string') return '';
+    const hostname = item.trim().toLowerCase().replace(/\\.$/, '');
+    if (!hostname || hostname.length > 253 || !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(hostname)) return '';
+    return hostname;
+  }).filter(Boolean);
+  return [...new Set(hostnames)];
+}
+
+function getIframeVideoHostnames(settings: Record<string, unknown>): string[] {
+  const configured = normalizeIframeVideoHostnames(settings.iframeVideoAllowedHostnames);
+  return configured.length ? configured : DEFAULT_IFRAME_VIDEO_HOSTNAMES;
 }
 
 function isEnabled(value: unknown, fallback = true): boolean {
@@ -118,6 +136,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
   const htmlEnhancementEnabled = isEnabled(settings.htmlEnhancementEnabled, false);
   const iframeVideoEnhancementEnabled = isEnabled(settings.iframeVideoEnhancementEnabled, true);
+  const iframeVideoAllowedHostnames = getIframeVideoHostnames(settings);
   const markdownAlertStyleSettings = normalizeMarkdownAlertStyleSettings(settings.markdownAlertStyleSettings);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
@@ -153,6 +172,11 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <span>视频 iframe 增强（仅处理视频地址）</span>
         </label>
         <p>仅将文章和独立页面中通过安全校验的视频 iframe src 参数分隔符输出为 &amp;，不改写参数和值；关闭后恢复标准 HTML 转义。依赖上方正文 HTML 增强开关。</p>
+      </section>
+      <section class="cy-feature-card">
+        <label for="cy-iframe-video-hostnames">允许的视频 iframe 域名</label>
+        <textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">${escapeHtml(iframeVideoAllowedHostnames.join('\\n'))}</textarea>
+        <p>每行填写一个域名，也可用逗号分隔。默认支持 YouTube、YouTube 隐私增强模式、Bilibili 和 Vimeo。只填写主机名，不要填写协议、路径或端口；保存后立即用于 iframe 安全校验。</p>
       </section>
       <section class="cy-feature-card">
         <label class="cy-feature-toggle">
@@ -201,6 +225,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           var search = root.querySelector('[data-cy-setting="showHomeSearchButton"]');
           var htmlEnhancement = root.querySelector('[data-cy-setting="htmlEnhancementEnabled"]');
           var iframeVideoEnhancement = root.querySelector('[data-cy-setting="iframeVideoEnhancementEnabled"]');
+          var iframeVideoAllowedHostnames = root.querySelector('[data-cy-setting="iframeVideoAllowedHostnames"]');
           var canonicalDomainRedirect = root.querySelector('[data-cy-setting="canonicalDomainRedirectEnabled"]');
           var noteStyleSettings = { enabled: !!noteStyleEnabled.checked, types: {}, icon: {
             visible: !!root.querySelector('[data-cy-alert-icon-visible]').checked,
@@ -227,6 +252,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
                 showHomeSearchButton: !!search.checked,
                 htmlEnhancementEnabled: !!htmlEnhancement.checked,
                 iframeVideoEnhancementEnabled: !!iframeVideoEnhancement.checked,
+                iframeVideoAllowedHostnames: iframeVideoAllowedHostnames.value,
                 canonicalDomainRedirectEnabled: !!canonicalDomainRedirect.checked,
                 markdownAlertStyleSettings: noteStyleSettings
               })
@@ -633,7 +659,7 @@ function preserveIframeSrcAmpersands(html: string): string {
   );
 }
 
-function sanitizeInlineHtmlFragment(source: string, iframeVideoEnhancementEnabled = true): string {
+function sanitizeInlineHtmlFragment(source: string, iframeVideoEnhancementEnabled = true, iframeVideoAllowedHostnames: string[] = DEFAULT_IFRAME_VIDEO_HOSTNAMES): string {
   const safeFormActions = source.replace(
     /<form\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
     formTag => formTag.replace(
@@ -646,12 +672,12 @@ function sanitizeInlineHtmlFragment(source: string, iframeVideoEnhancementEnable
       },
     ),
   );
-  const sanitized = sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), INLINE_FRAGMENT_SANITIZE_OPTIONS);
+  const sanitized = sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), { ...INLINE_FRAGMENT_SANITIZE_OPTIONS, allowedIframeHostnames: iframeVideoAllowedHostnames });
   // Restrict raw ampersand output to already-sanitized iframe src attributes.
   return iframeVideoEnhancementEnabled ? preserveIframeSrcAmpersands(sanitized) : sanitized;
 }
 
-function restoreInlineHtmlFragments(content: string, iframeVideoEnhancementEnabled = true): string {
+function restoreInlineHtmlFragments(content: string, iframeVideoEnhancementEnabled = true, iframeVideoAllowedHostnames: string[] = DEFAULT_IFRAME_VIDEO_HOSTNAMES): string {
   const restoreContainer = (payload: string): string => {
     let source = decodeInlinePayload(payload);
 
@@ -692,7 +718,7 @@ function restoreInlineHtmlFragments(content: string, iframeVideoEnhancementEnabl
       },
     );
 
-    const safe = sanitizeInlineHtmlFragment(source, iframeVideoEnhancementEnabled);
+    const safe = sanitizeInlineHtmlFragment(source, iframeVideoEnhancementEnabled, iframeVideoAllowedHostnames);
     return safe ? '<div class="cy-inline-html-pending">' + safe + '</div>' : '';
   };
 
@@ -714,7 +740,7 @@ function restoreInlineHtmlFragments(content: string, iframeVideoEnhancementEnabl
       /<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi,
       svg => 'CYCYINLINEBLOCKX' + encodeInlinePayload(svg) + 'XEND',
     );
-    const safe = sanitizeInlineHtmlFragment(source);
+    const safe = sanitizeInlineHtmlFragment(source, iframeVideoEnhancementEnabled, iframeVideoAllowedHostnames);
     return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
   });
 
@@ -795,8 +821,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const storedSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
     const withAlertIcons = restoreMarkdownAlertIcons(content, parsePluginSettings(storedSettings).markdownAlertStyleSettings);
     if (!withAlertIcons.includes('CYCYINLINE')) return withAlertIcons;
+    const pluginSettings = parsePluginSettings(storedSettings);
     return await isHtmlEnhancementEnabled()
-      ? restoreInlineHtmlFragments(withAlertIcons, isEnabled(parsePluginSettings(storedSettings).iframeVideoEnhancementEnabled, true))
+      ? restoreInlineHtmlFragments(withAlertIcons, isEnabled(pluginSettings.iframeVideoEnhancementEnabled, true), getIframeVideoHostnames(pluginSettings))
       : withAlertIcons;
   }, 1);
 
@@ -1156,6 +1183,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         showHomeSearchButton?: unknown;
         htmlEnhancementEnabled?: unknown;
         iframeVideoEnhancementEnabled?: unknown;
+        iframeVideoAllowedHostnames?: unknown;
         canonicalDomainRedirectEnabled?: unknown;
         markdownAlertStyleSettings?: unknown;
       };
@@ -1163,16 +1191,24 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         || typeof values.showHomeSearchButton !== 'boolean'
         || typeof values.htmlEnhancementEnabled !== 'boolean'
         || (values.iframeVideoEnhancementEnabled !== undefined && typeof values.iframeVideoEnhancementEnabled !== 'boolean')
+        || (values.iframeVideoAllowedHostnames !== undefined && typeof values.iframeVideoAllowedHostnames !== 'string')
         || (values.canonicalDomainRedirectEnabled !== undefined
           && typeof values.canonicalDomainRedirectEnabled !== 'boolean')) {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
       }
       const current = parsePluginSettings(auth.options[PLUGIN_OPTION_KEY]);
+      const submittedHostnames = values.iframeVideoAllowedHostnames === undefined
+        ? getIframeVideoHostnames(current)
+        : normalizeIframeVideoHostnames(values.iframeVideoAllowedHostnames);
+      if (values.iframeVideoAllowedHostnames !== undefined && !submittedHostnames.length) {
+        return { handled: true, response: json({ error: '至少填写一个有效的视频 iframe 域名' }, 400) };
+      }
       const next = {
         ...current,
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
         htmlEnhancementEnabled: values.htmlEnhancementEnabled ? '1' : '0',
+        iframeVideoAllowedHostnames: submittedHostnames.join('\\n'),
         iframeVideoEnhancementEnabled: values.iframeVideoEnhancementEnabled === undefined
           ? (isEnabled(current.iframeVideoEnhancementEnabled, true) ? '1' : '0')
           : (values.iframeVideoEnhancementEnabled ? '1' : '0'),
