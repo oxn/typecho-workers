@@ -864,8 +864,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       && !/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)|CYIFRAMEONLYX/i.test(content)) return content;
     const rawSettings = await getOption(getDb(env.DB), PLUGIN_OPTION_KEY);
     const settings = parsePluginSettings(rawSettings);
-    const iframeProtected = isEnabled(settings.iframeVideoEnhancementEnabled, false)
-      ? protectIframeOnly(content) : content;
+    const iframeEnabled = isEnabled(settings.iframeVideoEnhancementEnabled, false);
+    const hasIframeCandidate = /<iframe\\b/i.test(content) || /CYIFRAMEONLYX(?=[0-9a-f]+XEND)/i.test(content);
+    const iframeProtected = iframeEnabled && hasIframeCandidate ? protectIframeOnly(content) : content;
     return isEnabled(settings.htmlEnhancementEnabled, false)
       ? protectInlineHtml(iframeProtected) : iframeProtected;
   }, 1);
