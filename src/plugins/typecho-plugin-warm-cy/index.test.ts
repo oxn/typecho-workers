@@ -42,6 +42,11 @@ const SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
 const OPTION_KEY = 'theme:typecho-theme-warm-cy';
 
+function decodeFinalIframeMarkup(value: string): string {
+  const payload = value.match(/CYIFRAMEFINALX([0-9a-f]+)XEND/)?.[1];
+  return payload ? Buffer.from(payload, 'hex').toString('utf8') : '';
+}
+
 function collectHooks() {
   const hooks = new Map<string, Function>();
   init({
@@ -455,15 +460,7 @@ describe('typecho-plugin-warm-cy', () => {
       allowedIframeHostnames: ['www.youtube.com'],
     });
     const restored = await restore(coreSanitized);
-    expect(restored).toContain('<iframe');
-    expect(restored).toContain('src="https://www.youtube.com/embed/example"');
-    expect(restored).toContain('allow="autoplay; encrypted-media"');
-    expect(restored).toContain('allowfullscreen');
-    expect(restored).toContain('referrerpolicy="strict-origin-when-cross-origin"');
-    expect(restored).toContain('class="article-player"');
-    expect(restored).toContain('id="article-video"');
-    expect(restored).toContain('style="border-radius:14px;max-width:100%"');
-    expect(restored).toContain('data-player="article"');
+    expect(decodeFinalIframeMarkup(restored)).toBe(source.match(/<iframe[\s\S]*<\/iframe>/i)?.[0]);
   });
 
 
@@ -499,7 +496,8 @@ describe('typecho-plugin-warm-cy', () => {
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
     expect(restored).toContain('Literal markers: CYIFRAMEVIDEOX, cYifRameVideoX, CYIFRAMEVIDEOXdeadbeefXEND, and CYIFRAMECODE12XEND.');
-    expect(restored).toContain('<iframe');
+    expect(decodeFinalIframeMarkup(restored)).toBe('<iframe src="https://video.example.org/embed/example"></iframe>');
+    expect(restored).not.toContain('<iframe');
     expect(restored).not.toContain('CY\u200bIFRAMEVIDEOX');
     expect(restored).not.toContain('CY\u200bIFRAMECODE');
   });
@@ -541,9 +539,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(protectedContent).toContain('CYIFRAMEVIDEOX');
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain('<iframe');
-    expect(restored).toContain('src="https://video.example.org/embed/123?a=1&b=2"');
-    expect(restored).toContain('width="640"');
+    expect(decodeFinalIframeMarkup(restored)).toBe(source);
+    expect(restored).not.toContain('<iframe');
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
 
@@ -558,7 +555,7 @@ describe('typecho-plugin-warm-cy', () => {
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain(source);
+    expect(decodeFinalIframeMarkup(restored)).toBe(source);
   });
 
   it('rejects an entire iframe containing executable or document-injection attributes', async () => {
@@ -605,7 +602,7 @@ describe('typecho-plugin-warm-cy', () => {
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain('src="https://www.youtube.com/embed/legacy"');
+    expect(decodeFinalIframeMarkup(restored)).toBe(source);
   });
 
   it('decodes query separators only in an allowed iframe src and leaves ordinary links escaped', async () => {
@@ -616,7 +613,7 @@ describe('typecho-plugin-warm-cy', () => {
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
     expect(restored).toContain('href="https://example.org/watch?a=1&amp;b=2"');
-    expect(restored).toContain('src="https://video.example.org/embed/1?a=1&b=2"');
+    expect(decodeFinalIframeMarkup(restored)).toBe('<iframe src="https://video.example.org/embed/1?a=1&b=2"></iframe>');
   });
   it('rejects every iframe hostname when the iframe allowlist is empty', async () => {
     const hooks = collectHooks();
@@ -638,7 +635,7 @@ describe('typecho-plugin-warm-cy', () => {
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
     expect(restored).toContain('<div class="video-wrap"');
-    expect(restored).toContain(iframeMarkup);
+    expect(decodeFinalIframeMarkup(restored)).toBe(iframeMarkup);
   });
 
   it('rejects iframe embeds inside enhanced containers when the allowlist is empty', async () => {
@@ -664,9 +661,10 @@ describe('typecho-plugin-warm-cy', () => {
     const handler = collectHooks().get('archive:footer')!;
     const enabled = handler('', { options: {
       theme: 'typecho-theme-warm-cy',
-      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', showHomeSearchButton: '0' }),
+      [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '1', iframeVideoEnhancementEnabled: '1', showHomeSearchButton: '0' }),
     } });
     expect(enabled).toContain('data-cy-inline-html-enhancement');
+    expect(enabled).toContain('data-cy-iframe-restoration');
     // Note presentation CSS is emitted by archive:header, not duplicated in the footer.
     expect(enabled).not.toContain('data-cy-markdown-alert-icons');
     expect(enabled).not.toContain('cy-markdown-alert-has-icon::before');
@@ -688,6 +686,7 @@ describe('typecho-plugin-warm-cy', () => {
       [PLUGIN_OPTION_KEY]: JSON.stringify({ htmlEnhancementEnabled: '0', showHomeSearchButton: '0' }),
     } });
     expect(disabled).not.toContain('data-cy-inline-html-enhancement');
+    expect(disabled).not.toContain('data-cy-iframe-restoration');
     expect(disabled).not.toContain('data-cy-markdown-alert-icons');
 
     const otherTheme = handler('', { options: {
