@@ -202,6 +202,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<p>普通正文保留</p>',
       '<iframe src="https://media.trusted.example/embed/1"></iframe>',
       '<iframe src="https://evil.example/embed/2"></iframe>',
+      '<iframe src="https://trusted.example.evil.test/embed/3"></iframe>',
     ].join('\n');
     const protectedSource = await protect(source);
     const restored = await restore(protectedSource);
@@ -222,6 +223,21 @@ describe('typecho-plugin-warm-cy', () => {
     }));
     const invalidList = await restore(await protect('<iframe src="https://video.example/embed"></iframe>'));
     expect(invalidList).not.toContain('<iframe');
+
+    for (const invalidHostname of [
+      'https://trusted.example/path',
+      'trusted.example:8443',
+      'user@trusted.example',
+      'trusted.example?query=1',
+    ]) {
+      mocks.getOption.mockResolvedValue(JSON.stringify({
+        htmlEnhancementEnabled: '0',
+        iframeVideoEnhancementEnabled: '1',
+        iframeVideoAllowedHostnames: invalidHostname,
+      }));
+      const rejected = await restore(await protect('<iframe src="https://trusted.example/embed"></iframe>'));
+      expect(rejected).not.toContain('<iframe');
+    }
 
     mocks.getOption.mockResolvedValue(JSON.stringify({
       htmlEnhancementEnabled: '0',
