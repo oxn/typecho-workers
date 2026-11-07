@@ -219,8 +219,8 @@ function isAllowedIframeFragment(source: string, allowedHostnames: string[]): bo
 }
 
 function preserveAllowedIframeFragment(source: string, allowedHostnames: string[]): string {
-  // Preserve the exact original iframe markup. Unsafe or non-allowlisted input
-  // is rejected as a whole instead of silently rewriting individual attributes.
+  // Preserve the exact source payload for safe, allowlisted iframes. Unsafe or
+  // non-allowlisted input is rejected as a whole instead of rewriting attributes.
   return isAllowedIframeFragment(source, allowedHostnames) ? source : '';
 }
 
@@ -505,8 +505,8 @@ function protectInlineHtml(source: string): string {
 
   // Preserve each complete iframe as a block fragment before Markdown and the
   // core sanitizer can discard it for lacking a temporary src attribute. The
-  // playback attributes are restored and validated by the fragment sanitizer
-  // in the content:content hook, then the theme's native iframe normalizer runs.
+  // playback attributes are validated in content:content and kept as inert
+  // markers until the footer runtime restores them after the theme normalizer.
   // This also covers standalone iframes that are not inside a protected div.
   content = content.replace(
     /<iframe(?=[\s/>])(?:[^"'<>]|"[^"]*"|'[^']*')*>[\s\S]*?<\/iframe\s*>/gi,
