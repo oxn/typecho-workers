@@ -103,17 +103,25 @@ function parseIframeAllowedHostnames(value: unknown): string[] {
   for (const raw of value.split(/[\s,;，；]+/)) {
     let candidate = raw.trim().toLowerCase().replace(/^\*\./, '');
     if (!candidate) continue;
+    // This field accepts hostnames, not URLs. Reject paths, ports, credentials,
+    // schemes and query fragments instead of silently extracting a hostname.
+    if (/[\/:?#@\\%]/.test(candidate)) continue;
     try {
-      const url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(candidate) ? candidate : 'https://' + candidate);
+      const url = new URL('https://' + candidate);
       const hostname = url.hostname.toLowerCase().replace(/\.$/, '');
-      if ((url.protocol === 'https:' || url.protocol === 'http:') && hostname
-        && /^[a-z0-9.-]+$/.test(hostname) && !hostname.includes('..')) hosts.add(hostname);
+      const labels = hostname.split('.');
+      const validHostname = hostname.length <= 253
+        && labels.every(label => label.length > 0 && label.length <= 63
+          && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label));
+      if (url.protocol === 'https:' && !url.username && !url.password && !url.port
+        && url.pathname === '/' && !url.search && !url.hash && validHostname) {
+        hosts.add(hostname);
+      }
     } catch { /* Ignore malformed entries. */ }
   }
   // A non-empty but wholly invalid list must not silently become unrestricted.
-  return hosts.size ? [...hosts] : ['\\u0000'];
+  return hosts.size ? [...hosts] : ['\u0000'];
 }
-
 function isIframeSourceAllowed(source: string, allowedHostnames: string[]): boolean {
   let url: URL;
   try { url = new URL(source.trim(), 'https://iframe-base.invalid'); } catch { return false; }
