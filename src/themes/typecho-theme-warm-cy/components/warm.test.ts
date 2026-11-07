@@ -114,16 +114,17 @@ describe('Warm CY theme helpers', () => {
     expect(warmArticleSummary({ hasPassword: false, passwordVerified: false }, null)).toBe('');
   });
 
-  it('adds safe loading attributes only to supported video iframe providers', () => {
-    const youtube = '<iframe src="https://www.youtube.com/embed/demo"></iframe>';
-    const result = renderWarmIframes(youtube);
-    expect(result).toContain('loading="lazy"');
-    expect(result).toContain('allowfullscreen=""');
-    expect(result).toContain('title="视频播放器"');
+  it('preserves iframe markup byte-for-byte without theme-side attribute rewriting', () => {
+    const original = '<iframe src="https://www.youtube.com/embed/demo?a=1&amp;b=2" allow="autoplay; fullscreen" loading="eager" title="原始标题" custom-attr="x"></iframe>';
+    expect(renderWarmIframes(original)).toBe(original);
 
-    const external = '<iframe src="https://video.example/embed/demo"></iframe>';
+    const bilibili = '<iframe src="https://player.bilibili.com/player.html?bvid=BVdemo&amp;page=1" scrolling="no" frameborder="0"></iframe>';
+    expect(renderWarmIframes(bilibili)).toBe(bilibili);
+
+    const external = '<iframe src="https://video.example/embed/demo" data-x="1"></iframe>';
     expect(renderWarmIframes(external)).toBe(external);
-    expect(renderWarmIframes('<p>plain content</p>')).toBe('<p>plain content</p>');
+    const ordinaryHtml = '<p>plain content</p><div data-test="keep">unchanged</div>';
+    expect(renderWarmIframes(ordinaryHtml)).toBe(ordinaryHtml);
   });
 
 });
