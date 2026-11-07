@@ -185,7 +185,11 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
   // set — the only state the content:markdown / content:content filters can
   // observe. Option or plugin changes clear this through
   // resetMarkdownRenderCache() via the invalidation funnel.
-  const cacheKey = text.length <= RENDER_CACHE_MAX_SOURCE_LENGTH
+  // Warm CY content filters read live D1-backed settings (including the
+  // iframe hostname allowlist). The source/plugin-set key cannot represent
+  // those settings, so cached output could retain an old allowlist decision.
+  const warmCyFiltersActive = (ctx.activatedPlugins ?? []).includes('typecho-plugin-warm-cy');
+  const cacheKey = !warmCyFiltersActive && text.length <= RENDER_CACHE_MAX_SOURCE_LENGTH
     ? `${await sha256Hex(text)}\0${[...(ctx.activatedPlugins ?? [])].sort().join(',')}`
     : null;
   const cached = cacheKey ? renderedFullContentCache.get(cacheKey) : undefined;
