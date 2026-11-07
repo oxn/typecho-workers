@@ -534,7 +534,21 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
   });
 
-  it('preserves provider-specific iframe parameters while stripping executable attributes', async () => {
+  it('preserves every safe iframe attribute and the complete iframe markup verbatim', async () => {
+    const hooks = collectHooks();
+    mocks.getOption.mockResolvedValue(JSON.stringify({
+      htmlEnhancementEnabled: '0',
+      iframeVideoEnhancementEnabled: '1',
+      iframeVideoAllowedHostnames: 'embed.example.org',
+    }));
+    const source = "<IFRAME  src='https://embed.example.org/frame?id=7&amp;mode=wide' data-provider='custom' credentialless allowpaymentrequest vendor-mode='compact' width=640 height='360' title='Exact case' loading=lazy sandbox='allow-scripts allow-same-origin' referrerpolicy='strict-origin' ></IFRAME>";
+    const protectedContent = await hooks.get('content:markdown')!(source);
+    const parsed = marked.parse(protectedContent, { async: false }) as string;
+    const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
+    expect(restored).toContain(source);
+  });
+
+  it('rejects an entire iframe containing executable or document-injection attributes', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({
       htmlEnhancementEnabled: '0',
@@ -545,15 +559,13 @@ describe('typecho-plugin-warm-cy', () => {
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain('data-provider="custom"');
-    expect(restored).toContain('credentialless');
-    expect(restored).toContain('allowpaymentrequest="true"');
-    expect(restored).toContain('vendor-mode="compact"');
+    expect(restored).not.toContain('<iframe');
+    expect(restored).not.toContain('data-provider="custom"');
     expect(restored).not.toContain('onload=');
     expect(restored).not.toContain('srcdoc=');
   });
 
-  it('preserves custom iframe parameters inside an enhanced HTML container', async () => {
+  it('rejects an unsafe iframe as a whole inside an enhanced HTML container', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({
       htmlEnhancementEnabled: '1',
@@ -566,9 +578,8 @@ describe('typecho-plugin-warm-cy', () => {
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
     expect(restored).toContain('<div class="embed-shell"');
     expect(restored).toContain('data-layout="wide"');
-    expect(restored).toContain('data-provider="custom"');
-    expect(restored).toContain('vendor-mode="compact"');
-    expect(restored).toContain('credentialless');
+    expect(restored).not.toContain('<iframe');
+    expect(restored).not.toContain('data-provider="custom"');
     expect(restored).not.toContain('onload=');
     expect(restored).not.toContain('CYIFRAMEVIDEOX');
     expect(restored).not.toContain('CYCYINLINE');
