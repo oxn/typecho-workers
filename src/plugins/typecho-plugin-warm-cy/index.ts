@@ -81,7 +81,7 @@ function isCanonicalRedirectExcludedPath(path: string): boolean {
 
   // Skip actual static-file requests while keeping HTML permalinks, feeds,
   // sitemap.xml and robots.txt eligible for canonical-host redirects.
-  return /\\.(?:avif|bmp|gif|ico|jpe?g|png|webp|svg|css|js|mjs|map|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov|pdf|zip|gz|br)$/i.test(path);
+  return /\.(?:avif|bmp|gif|ico|jpe?g|png|webp|svg|css|js|mjs|map|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov|pdf|zip|gz|br)$/i.test(path);
 }
 
 async function isHtmlEnhancementEnabled(): Promise<boolean> {
