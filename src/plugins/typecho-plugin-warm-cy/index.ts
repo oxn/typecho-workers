@@ -294,6 +294,10 @@ function protectInlineHtml(source: string): string {
   // raw <div> block at blank lines, which otherwise breaks long embedded footers.
 
   content = protectCompleteHtmlContainers(content, protectedSegments);
+  // Complete HTML fragments are hex-encoded before Markdown sees them. Restore
+  // protected code segments inside those payloads as well as in plain text;
+  // otherwise full-document inputs can leak CYCYCODESEGMENT tokens to readers.
+  content = restoreProtectedSegmentsInEncodedPayloads(content, protectedSegments);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
@@ -501,6 +505,22 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     },
   },
 };
+function restoreProtectedSegmentsInEncodedPayloads(content: string, protectedSegments: string[]): string {
+  const restore = (source: string, depth = 0): string => {
+    if (depth > 8) return source;
+    const withNestedPayloads = source.replace(
+      /CYCYINLINE(BLOCK|CONTAINER|HTML)X([0-9a-f]+)XEND/g,
+      (_marker, kind: string, payload: string) =>
+        'CYCYINLINE' + kind + 'X' + encodeInlinePayload(restore(decodeInlinePayload(payload), depth + 1)) + 'XEND',
+    );
+    return withNestedPayloads.replace(
+      /CYCYCODESEGMENT(\\d+)TOKEN/g,
+      (_token, index: string) => protectedSegments[Number(index)] ?? _token,
+    );
+  };
+  return restore(content);
+}
+
 function decodeInlinePayload(hex: string): string {
   const bytes = new Uint8Array(hex.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
