@@ -195,7 +195,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown): strin
           <input type="checkbox" data-cy-setting="iframeVideoEnhancementEnabled" ${iframeVideoEnhancementEnabled ? 'checked' : ''}>
           <span>视频 iframe 增强（仅处理视频地址）</span>
         </label>
-        <p>独立处理文章和独立页面中的视频 iframe。关闭后不接管 iframe；白名单留空表示不允许任何外部 iframe 域名。只填写主机名，不要填写协议、端口或路径。</p>
+        <p>独立处理文章和独立页面中的视频 iframe。关闭后不接管 iframe；白名单留空表示不设置域名限制；填写后只允许列表中的域名。只填写主机名，不要填写协议、端口或路径。</p>
         <label for="cy-iframe-video-hostnames">允许的视频 iframe 域名（可留空）</label>
         <textarea id="cy-iframe-video-hostnames" data-cy-setting="iframeVideoAllowedHostnames" rows="4">${escapeHtml(iframeVideoAllowedHostnames.join('\n'))}</textarea>
       </section>
