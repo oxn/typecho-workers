@@ -542,11 +542,11 @@ describe('typecho-plugin-warm-cy', () => {
       'ordinary code example',
       '```',
       '<iframe src="https://video.example.org/embed/real"></iframe>',
-    ].join('\\n');
+    ].join('\n');
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).toContain('CY\\u2060IFRAMECODE0XEND');
+    expect(restored).toContain('CY\u2060IFRAMECODE0XEND');
     expect(decodeFinalIframeMarkup(restored)).toBe('<iframe src="https://video.example.org/embed/real"></iframe>');
   });
 
