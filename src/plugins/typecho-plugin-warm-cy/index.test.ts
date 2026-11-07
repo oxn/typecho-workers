@@ -732,6 +732,20 @@ describe('typecho-plugin-warm-cy', () => {
     expect(otherTheme).not.toContain('data-cy-markdown-alert-icons');
   });
 
+  it('injects iframe restoration independently of HTML enhancement', () => {
+    const handler = collectHooks().get('archive:footer')!;
+    const footer = handler('', { options: {
+      theme: 'typecho-theme-warm-cy',
+      [PLUGIN_OPTION_KEY]: JSON.stringify({
+        htmlEnhancementEnabled: '0',
+        iframeVideoEnhancementEnabled: '1',
+        showHomeSearchButton: '0',
+      }),
+    } });
+    expect(footer).toContain('data-cy-iframe-restoration');
+    expect(footer).not.toContain('data-cy-inline-html-enhancement');
+  });
+
   it('saves the HTML enhancement toggle without dropping existing plugin settings', async () => {
     const context = adminContext();
     mocks.requireAdminAction.mockResolvedValueOnce(context);
