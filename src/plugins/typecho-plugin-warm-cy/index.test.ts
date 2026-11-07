@@ -534,11 +534,11 @@ describe('typecho-plugin-warm-cy', () => {
   it('rejects an iframe hostname that is not in a non-empty configured allowlist', async () => {
     const hooks = collectHooks();
     mocks.getOption.mockResolvedValue(JSON.stringify({ htmlEnhancementEnabled: '0', iframeVideoEnhancementEnabled: '1', iframeVideoAllowedHostnames: 'video.example.org' }));
-    const source = '<iframe src="https://unlisted.example.net/embed/1"></iframe>';
+    const source = '<iframe src="https://www.youtube.com/embed/1"></iframe>';
     const protectedContent = await hooks.get('content:markdown')!(source);
     const parsed = marked.parse(protectedContent, { async: false }) as string;
     const restored = await hooks.get('content:content')!(sanitizeHtml(parsed));
-    expect(restored).not.toContain('src="https://unlisted.example.net/embed/1"');
+    expect(restored).not.toContain('src="https://www.youtube.com/embed/1"');
   });
   it('adds the inline HTML runtime with the saved opt-in state', () => {
     const handler = collectHooks().get('archive:footer')!;
