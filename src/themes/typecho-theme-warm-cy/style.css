@@ -1685,6 +1685,11 @@ body.warm-theme {
   margin-bottom: 12px;
 }
 
+/* Keep the article declaration independent while reusing the footer HTML block styling. */
+.warm-article__declaration {
+  margin-top: 28px;
+}
+
 .warm-footer__meta {
   display: flex;
   align-items: center;
