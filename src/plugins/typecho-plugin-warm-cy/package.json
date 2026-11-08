@@ -24,8 +24,8 @@
       "adminPageTitle": "CY 功能显示",
       "adminPageIsSettings": true,
       "earlyRequest": true,
-      "buildVersion": "2026.11.07.21.00"
+      "buildVersion": "2026.11.08.21.50"
     }
   },
-  "cyVersion": "2026.11.07.21.00"
+  "cyVersion": "2026.11.08.21.50"
 }
