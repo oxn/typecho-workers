@@ -1685,11 +1685,9 @@ body.warm-theme {
   margin-bottom: 12px;
 }
 
-/* Keep the article declaration independent while reusing the footer HTML block styling. */
+/* Keep a natural gap before the article declaration; its visual style is user-defined. */
 .warm-article__declaration {
-  margin-top: 28px;
-  padding: 18px 22px;
-  border: 1px solid var(--warm-border);
+  margin-top: 24px;
 }
 
 .warm-footer__meta {
