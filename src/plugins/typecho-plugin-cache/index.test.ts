@@ -59,7 +59,6 @@ class MemoryKv implements KVNamespace {
 
 class MemoryD1 implements D1Database {
   rows = new Map<string, { value: string; expiresAt: number }>();
-  options = new Map<string, string>();
 
   prepare = vi.fn((sql: string) => {
     const statement = {
@@ -75,17 +74,7 @@ class MemoryD1 implements D1Database {
         const now = Number(statement.values[1]);
         return row && row.expiresAt > now ? { ...row } as T : null;
       }),
-      all: vi.fn(async <T>() => {
-        if (sql.includes('FROM typecho_options')) {
-          const names = statement.values.map(String);
-          return {
-            results: names
-              .filter(name => this.options.has(name))
-              .map(name => ({ name, value: this.options.get(name) ?? null })) as T[],
-          };
-        }
-        return { results: [] as T[] };
-      }),
+      all: vi.fn(async <T>() => ({ results: [] as T[] })),
       run: vi.fn(async () => {
         if (sql.startsWith('DELETE FROM typecho_db_cache')) {
           const now = Number(statement.values[0]);
@@ -133,11 +122,7 @@ const defaultSettings = {
   avatarCdnUrl: '',
 };
 
-async function activate(
-  kv: MemoryKv,
-  settings: Record<string, unknown> = defaultSettings,
-  siteOptions: Record<string, unknown> = {},
-): Promise<void> {
+async function activate(kv: MemoryKv, settings: Record<string, unknown> = defaultSettings): Promise<void> {
   env.TYPECHO_CACHE = kv as any;
   await earlyRequestProvider.lifecycle!({
     type: 'activate',
@@ -147,7 +132,6 @@ async function activate(
       permalinkPattern: '/archives/{cid}/',
       pagePattern: '/{slug}.html',
       categoryPattern: '/category/{slug}/',
-      ...siteOptions,
     },
   });
 }
@@ -175,55 +159,6 @@ describe('typecho-plugin-cache provider', () => {
     expect(shouldBypassPageCacheInDevelopment('development')).toBe(true);
     expect(shouldBypassPageCacheInDevelopment('test')).toBe(false);
     expect(shouldBypassPageCacheInDevelopment('production')).toBe(false);
-  });
-
-  it('redirects alternate hosts before a warm page-cache hit can bypass route hooks', async () => {
-    const kv = new MemoryKv();
-    await activate(kv, defaultSettings, {
-      activatedPlugins: JSON.stringify(['typecho-plugin-cache', 'typecho-plugin-warm-cy']),
-      'plugin:typecho-plugin-warm-cy': JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
-    });
-    const d1 = new MemoryD1();
-    d1.options.set('activatedPlugins', JSON.stringify(['typecho-plugin-cache', 'typecho-plugin-warm-cy']));
-    d1.options.set('siteUrl', 'https://oook.top');
-    d1.options.set('plugin:typecho-plugin-warm-cy', JSON.stringify({ canonicalDomainRedirectEnabled: '1' }));
-    const next = vi.fn(async () => new Response('<html>should not render</html>', {
-      headers: { 'Content-Type': 'text/html; charset=utf-8', [PUBLIC_HTML_HEADER]: '1' },
-    }));
-
-    const response = await earlyRequestProvider.handle(
-      requestContext('https://blog.oook.top/2026/10/30/shengming7.html?from=share', d1),
-      next,
-    );
-    expect(response.status).toBe(302);
-    expect(response.headers.get('location')).toBe('https://oook.top/2026/10/30/shengming7.html?from=share');
-    expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it('honors a D1-console emergency OFF even while the cache control still says enabled', async () => {
-    const kv = new MemoryKv();
-    await activate(kv, defaultSettings, {
-      activatedPlugins: JSON.stringify(['typecho-plugin-cache', 'typecho-plugin-warm-cy']),
-      'plugin:typecho-plugin-warm-cy': JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
-    });
-    const d1 = new MemoryD1();
-    d1.options.set('activatedPlugins', JSON.stringify(['typecho-plugin-cache', 'typecho-plugin-warm-cy']));
-    d1.options.set('siteUrl', 'https://oook.top');
-    d1.options.set('plugin:typecho-plugin-warm-cy', JSON.stringify({ canonicalDomainRedirectEnabled: '0' }));
-    const next = vi.fn(async () => new Response('<html>normal page</html>', {
-      headers: { 'Content-Type': 'text/html; charset=utf-8', [PUBLIC_HTML_HEADER]: '1' },
-    }));
-
-    const response = await earlyRequestProvider.handle(
-      requestContext('https://blog.oook.top/article.html', d1),
-      next,
-    );
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
-    expect(next).toHaveBeenCalledTimes(1);
-    const control = JSON.parse(kv.store.get(CACHE_CONTROL_KEY) || '{}');
-    expect(control.options.canonicalDomainRedirectEnabled).toBe(false);
   });
 
   it('serves a warm L1 response without running the D1 renderer again', async () => {
