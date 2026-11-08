@@ -232,8 +232,8 @@ function splitCssSelectorList(selector: string): string[] {
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\\]\\]/g, '\\  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');');
-}
+  const special = '.^$*+?()[]{}|\\';
+  return [...value].map(char => special.includes(char) ? '\\' + char : char).join('');
 
 /**
  * Normalize and constrain an administrator-authored HTML fragment.
