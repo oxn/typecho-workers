@@ -133,7 +133,7 @@ function scopeArticleDeclarationCss(css: string): string {
     });
 
     const scopeRules = (container: postcss.Container) => {
-      for (const node of [...container.nodes || []]) {
+      for (const node of [...(container.nodes || [])]) {
         if (node.type === 'atrule') {
           const name = node.name.toLowerCase();
           if (name === 'media' || name === 'supports' || name === 'container') {
@@ -236,6 +236,7 @@ function splitCssSelectorList(selector: string): string[] {
 function escapeRegExp(value: string): string {
   const special = '.^$*+?()[]{}|\\';
   return [...value].map(char => special.includes(char) ? '\\' + char : char).join('');
+}
 
 /**
  * Normalize and constrain an administrator-authored HTML fragment.
