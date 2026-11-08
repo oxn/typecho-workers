@@ -209,7 +209,7 @@
     "articleDeclarationHtml": {
       "type": "textarea",
       "label": "文章内容声明",
-      "description": "设置显示于文章正文之后的内容（HTML）。仅文章页有效；支持 {site.name}、{site.url}、{site.description}、{post.title}、{post.url} 变量。",
+      "description": "设置显示于文章正文之后的内容（HTML）。仅文章页有效；支持 {site.name}、{site.url}、{site.description}、{post.title}、{post.url} 变量。声明内 CSS 仅作用于声明区块；与主题样式冲突时优先主题样式。",
       "default": ""
     },
     "footerCustomHtml": {
