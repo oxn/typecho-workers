@@ -126,9 +126,30 @@ describe('Warm CY theme helpers', () => {
       { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
     );
     expect(html).toContain('<style>');
-    expect(html).toContain('.custom-declaration{position:absolute;top:0;right:0;z-index:9;transform:translateX(2px)}');
+    expect(html).toContain('@layer warm-article-declaration-custom');
+    expect(html).toContain('.warm-article__declaration .custom-declaration');
+    expect(html).toContain('position:absolute');
+    expect(html).toContain('top:0');
+    expect(html).toContain('right:0');
     expect(html).toContain('@media (max-width:600px)');
+    expect(html).toContain('.warm-article__declaration .custom-declaration');
+    expect(html).toContain('var(--txt)');
     expect(html).toContain('style="position:relative;overflow:hidden;box-shadow:0 2px 8px #000;border:1px solid #e5e7eb"');
+  });
+
+  it('scopes declaration CSS, keeps theme rules higher priority, and drops global CSS constructs', () => {
+    const html = renderArticleDeclaration(
+      '<style>body{display:none}.outside,.notice:hover{color:var(--txt)}@font-face{font-family:bad;src:url(https://example.com/a)}@media(max-width:600px){.notice{padding:8px}}@keyframes fade{from{opacity:0}to{opacity:1}}.notice{animation:fade 1s}</style><div class="notice">notice</div>',
+      { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
+    );
+    expect(html).toContain('.warm-article__declaration body');
+    expect(html).toContain('.warm-article__declaration .outside');
+    expect(html).toContain('.warm-article__declaration .notice:hover');
+    expect(html).toContain('var(--txt)');
+    expect(html).toContain('.warm-article__declaration .notice{padding:8px}');
+    expect(html).toContain('@keyframes warm-declaration-fade');
+    expect(html).toContain('animation:warm-declaration-fade 1s');
+    expect(html).not.toContain('@font-face');
   });
 
   it('keeps safe inline styles and common media/table markup', () => {
