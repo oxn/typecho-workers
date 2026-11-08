@@ -1,6 +1,6 @@
 {
   "name": "typecho-plugin-warm-cy",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Warm CY theme companion APIs and comment management metadata.",
   "keywords": [
     "typecho",
@@ -13,8 +13,8 @@
     "plugin": {
       "id": "typecho-plugin-warm-cy",
       "name": "Warm CY Companion",
-      "description": "为 Warm CY 主题提供置顶管理、评论区操作及首页搜索显示设置。",
-      "version": "1.0.0",
+      "description": "为 Warm CY 主题提供置顶管理、评论区操作、首页搜索、正文 HTML 增强、Markdown Alert 样式及主域名跳转。",
+      "version": "1.1.0",
       "license": "MIT",
       "tags": [
         "warm-cy",
@@ -23,8 +23,9 @@
       "adminPage": "cy-companion",
       "adminPageTitle": "CY 功能显示",
       "adminPageIsSettings": true,
-      "buildVersion": "2026.11.04.23.27"
+      "earlyRequest": true,
+      "buildVersion": "2026.11.07.21.00"
     }
   },
-  "cyVersion": "2026.11.04.23.27"
+  "cyVersion": "2026.11.07.21.00"
 }
