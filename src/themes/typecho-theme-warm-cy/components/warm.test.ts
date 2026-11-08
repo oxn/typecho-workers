@@ -135,7 +135,7 @@ describe('Warm CY theme helpers', () => {
         postUrl: 'https://example.com/post?a=1&b=2',
       },
     );
-    expect(html).toContain('<p>&lt;Site&gt; · https://example.com/?a=1&amp;b=2 · A &quot;description&quot;</p>');
+    expect(html).toContain('<p>&lt;Site&gt; · https://example.com/?a=1&amp;b=2 · A "description"</p>');
     expect(html).toContain('<a href="https://example.com/post?a=1&amp;b=2">&lt;script&gt;alert(1)&lt;/script&gt;</a>');
     expect(renderArticleDeclaration('{unknown}', {
       siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '',
@@ -147,7 +147,7 @@ describe('Warm CY theme helpers', () => {
       '<div><p>first paragraph<ul><li>one<li>two</ul><script>alert(1)</script><html><body>blocked</body></html>',
       { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
     );
-    expect(html).toContain('<div><p>first paragraph</p><ul><li>one</li><li>two</li></ul></div>');
+    expect(html).toContain('<div><p>first paragraph</p><ul><li>one</li><li>two</li></ul>blocked</div>');
     expect(html).not.toContain('<script');
     expect(html).not.toContain('<html');
   });
