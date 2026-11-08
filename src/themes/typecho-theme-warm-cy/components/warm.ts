@@ -167,6 +167,8 @@ function scopeArticleDeclarationCss(css: string): string {
     scopeRules(root);
 
     root.walkDecls(decl => {
+      // Custom CSS remains below unlayered Warm CY declarations, including former inline styles.
+      decl.important = false;
       if (/^(?:animation|animation-name|-webkit-animation|-webkit-animation-name)$/i.test(decl.prop)) {
         for (const [original, scoped] of keyframes) {
           decl.value = decl.value.replace(
@@ -265,10 +267,53 @@ export function sanitizeArticleDeclarationHtml(html: string): string {
     allowProtocolRelative: false,
   });
 
-  return sanitized.replace(/<style\\b[^>]*>([\\s\\S]*?)<\\/style>/gi, (_match, css: string) => {
-    const scoped = scopeArticleDeclarationCss(css);
-    return scoped ? `<style>${scoped}</style>` : '';
+  const cssBlocks: string[] = [];
+  let htmlWithPlaceholders = sanitized.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (_match, css: string) => {
+    const token = 'WARM_DECLARATION_STYLE_BLOCK_' + cssBlocks.length + '_TOKEN';
+    cssBlocks.push(css);
+    return token;
   });
+
+  let inlineIndex = 0;
+  htmlWithPlaceholders = htmlWithPlaceholders.replace(/<([a-z][\w:-]*)([^>]*)>/gi, (tag, name: string, rawAttributes: string) => {
+    const styleMatch = /\sstyle="([^"]*)"/i.exec(rawAttributes);
+    if (!styleMatch) return tag;
+
+    const styleValue = styleMatch[1];
+    const className = 'warm-declaration-inline-' + (++inlineIndex);
+    try {
+      const parsed = postcss.parse('.inline { ' + styleValue + ' }');
+      const declarations: string[] = [];
+      parsed.walkDecls(decl => {
+        decl.important = false;
+        if (!/expression\s*\(|javascript\s*:|vbscript\s*:|behavior\s*:|-moz-binding/i.test(decl.value)) {
+          declarations.push(decl.toString());
+        }
+      });
+      if (declarations.length) cssBlocks.push('.' + className + ' { ' + declarations.join('; ') + ' }');
+    } catch {
+      // Malformed inline CSS is discarded rather than emitted unprocessed.
+    }
+
+    let attributes = rawAttributes.replace(styleMatch[0], '');
+    const classMatch = /\sclass="([^"]*)"/i.exec(attributes);
+    if (classMatch) {
+      attributes = attributes.replace(classMatch[0], ' class="' + classMatch[1] + ' ' + className + '"');
+    } else {
+      attributes += ' class="' + className + '"';
+    }
+    return '<' + name + attributes + '>';
+  });
+
+  const scopedCss = cssBlocks
+    .map(css => scopeArticleDeclarationCss(css))
+    .filter(Boolean)
+    .join('\n');
+  const restoredHtml = htmlWithPlaceholders.replace(/WARM_DECLARATION_STYLE_BLOCK_(\d+)_TOKEN/g, '');
+
+  return scopedCss
+    ? '<style>' + scopedCss + '</style>' + restoredHtml
+    : restoredHtml;
 }
 
 /**
