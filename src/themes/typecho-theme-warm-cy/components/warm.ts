@@ -131,7 +131,7 @@ export function renderArticleDeclaration(
     'post.title': values.postTitle,
     'post.url': values.postUrl,
   };
-  return template.replace(/\\{(site\\.name|site\\.url|site\\.description|post\\.title|post\\.url)\\}/g, (_match, key: string) =>
+  return template.replace(/\{(site\.name|site\.url|site\.description|post\.title|post\.url)\}/g, (_match, key: string) =>
     escapeHtml(replacements[key] ?? ''),
   );
 }
