@@ -1688,6 +1688,8 @@ body.warm-theme {
 /* Keep the article declaration independent while reusing the footer HTML block styling. */
 .warm-article__declaration {
   margin-top: 28px;
+  padding: 18px 22px;
+  border: 1px solid var(--warm-border);
 }
 
 .warm-footer__meta {
