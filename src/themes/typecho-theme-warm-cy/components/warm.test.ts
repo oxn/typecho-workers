@@ -110,16 +110,25 @@ describe('Warm CY theme helpers', () => {
     })).toBe('{unknown}');
   });
 
-  it('repairs malformed declaration fragments and blocks document-level or active markup', () => {
+  it('repairs malformed declaration fragments and blocks executable or document-level markup', () => {
     const html = renderArticleDeclaration(
-      '<div><p>first paragraph<ul><li>one<li>two</ul><script>alert(1)</script><style>body{display:none}</style>',
+      '<div><p>first paragraph<ul><li>one<li>two</ul><script>alert(1)</script><html><body>blocked</body></html>',
       { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
     );
     expect(html).toContain('<div><p>first paragraph</p><ul><li>one</li><li>two</li></ul></div>');
     expect(html).not.toContain('<script');
-    expect(html).not.toContain('<style');
-    expect(html).not.toContain('body{display:none}');
     expect(html).not.toContain('<html');
+  });
+
+  it('preserves administrator-authored style blocks and unrestricted CSS declarations', () => {
+    const html = renderArticleDeclaration(
+      '<style>.custom-declaration{position:absolute;top:0;right:0;z-index:9;transform:translateX(2px)} @media (max-width:600px){.custom-declaration{display:none}}</style><div class="custom-declaration" style="position:relative;overflow:hidden;box-shadow:0 2px 8px #000;border:1px solid #e5e7eb">custom</div>',
+      { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
+    );
+    expect(html).toContain('<style>');
+    expect(html).toContain('.custom-declaration{position:absolute;top:0;right:0;z-index:9;transform:translateX(2px)}');
+    expect(html).toContain('@media (max-width:600px)');
+    expect(html).toContain('style="position:relative;overflow:hidden;box-shadow:0 2px 8px #000;border:1px solid #e5e7eb"');
   });
 
   it('keeps safe inline styles and common media/table markup', () => {
