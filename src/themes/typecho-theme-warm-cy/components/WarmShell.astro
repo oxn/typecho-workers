@@ -4,7 +4,7 @@ import Base from '@/layouts/Base.astro';
 import type { ThemeBaseProps } from '@/lib/theme-props';
 import type { PageContext } from '@/lib/plugin';
 import { PUBLIC_HTML_HEADER } from '@/lib/cache';
-import { isCurrentPageLink, warmSettings, warmCyFeatureSettings, type WarmSection } from './warm';
+import { isCurrentPageLink, warmSettings, warmCyFeatureSettings, renderFooterCustomHtml, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
 
@@ -33,6 +33,7 @@ const {
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
+const footerCustomHtml = renderFooterCustomHtml(settings.footerCustomHtml);
 const searchEnabled = warmCyFeatureSettings(options).showHomeSearchButton;
 const categories = sidebarData.categories.slice(0, 8);
 const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
@@ -94,8 +95,8 @@ const footerLinks = [
   </main>
 
   <footer class="warm-footer">
-    {settings.footerCustomHtml.trim() && (
-      <div class="warm-footer__custom" set:html={settings.footerCustomHtml}></div>
+    {footerCustomHtml.trim() && (
+      <div class="warm-footer__custom" set:html={footerCustomHtml}></div>
     )}
     <div class="warm-footer__meta">
       <div class="warm-footer__copyright">
