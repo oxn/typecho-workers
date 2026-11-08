@@ -122,7 +122,7 @@ describe('Warm CY theme helpers', () => {
 
   it('preserves administrator-authored style blocks and unrestricted CSS declarations', () => {
     const html = renderArticleDeclaration(
-      '<style>.custom-declaration{position:absolute;top:0;right:0;z-index:9;transform:translateX(2px)} @media (max-width:600px){.custom-declaration{display:none}}</style><div class="custom-declaration" style="position:relative;overflow:hidden;box-shadow:0 2px 8px #000;border:1px solid #e5e7eb">custom</div>',
+      '<style>.custom-declaration{position:absolute;top:0;right:0;z-index:9;transform:translateX(2px);color:var(--txt)} @media (max-width:600px){.custom-declaration{display:none}}</style><div class="custom-declaration" style="position:relative;overflow:hidden;box-shadow:0 2px 8px #000;border:1px solid #e5e7eb">custom</div>',
       { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
     );
     expect(html).toContain('<style>');
@@ -138,6 +138,19 @@ describe('Warm CY theme helpers', () => {
     expect(html).toContain('overflow:hidden');
     expect(html).toContain('box-shadow:0 2px 8px #000');
     expect(html).toContain('border:1px solid #e5e7eb');
+    expect(html).toContain('warm-declaration-inline-1');
+  });
+
+  it('moves inline important styles into the theme-lower-priority layer', () => {
+    const html = renderArticleDeclaration(
+      '<div style="color:red!important;padding:12px">declaration</div>',
+      { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
+    );
+    expect(html).toContain('@layer warm-article-declaration-custom');
+    expect(html).toContain('color:red');
+    expect(html).toContain('padding:12px');
+    expect(html).not.toContain('!important');
+    expect(html).not.toContain('style="');
     expect(html).toContain('warm-declaration-inline-1');
   });
 
