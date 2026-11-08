@@ -114,9 +114,8 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
  * Normalize and constrain an administrator-authored HTML fragment.
  *
  * sanitize-html parses and serializes fragments, repairing incomplete/misnested
- * tags so they cannot consume following page markup. Active content and document
- * level tags are discarded; style elements are not allowed, while safe inline
- * formatting styles remain available.
+ * tags so they cannot consume following page markup. Active executable content and
+ * document-level tags are discarded. Administrator-authored CSS is retained.
  */
 export function sanitizeArticleDeclarationHtml(html: string): string {
   return sanitizeHtml(html, {
@@ -124,7 +123,7 @@ export function sanitizeArticleDeclarationHtml(html: string): string {
       'a', 'abbr', 'b', 'blockquote', 'br', 'caption', 'cite', 'code', 'dd', 'del',
       'div', 'dl', 'dt', 'em', 'figcaption', 'figure', 'h1', 'h2', 'h3', 'h4',
       'h5', 'h6', 'hr', 'i', 'img', 'ins', 'kbd', 'li', 'mark', 'ol', 'p',
-      'pre', 'q', 's', 'samp', 'small', 'span', 'strong', 'sub', 'summary',
+      'pre', 'q', 's', 'samp', 'small', 'span', 'strong', 'style', 'sub', 'summary',
       'sup', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'u', 'ul',
     ],
     allowedAttributes: {
@@ -139,37 +138,7 @@ export function sanitizeArticleDeclarationHtml(html: string): string {
       img: ['http', 'https', 'data'],
     },
     allowProtocolRelative: false,
-    allowedStyles: {
-      '*': {
-        color: [/^[#(),.%\w\s-]+$/i],
-        'background-color': [/^[#(),.%\w\s-]+$/i],
-        'font-size': [/^[#(),.%\w\s-]+$/i],
-        'font-style': [/^(normal|italic|oblique)$/i],
-        'font-weight': [/^(normal|bold|bolder|lighter|[1-9]00)$/i],
-        'text-align': [/^(left|right|center|justify|start|end)$/i],
-        'text-decoration': [/^(none|underline|overline|line-through)(\s+(none|underline|overline|line-through))*$/i],
-        'white-space': [/^(normal|nowrap|pre|pre-wrap|pre-line|break-spaces)$/i],
-        display: [/^(block|inline|inline-block|flex|grid|none)$/i],
-        width: [/^[#(),.%\w\s-]+$/i],
-        'max-width': [/^[#(),.%\w\s-]+$/i],
-        height: [/^[#(),.%\w\s-]+$/i],
-        margin: [/^[#(),.%\w\s-]+$/i],
-        'margin-top': [/^[#(),.%\w\s-]+$/i],
-        'margin-right': [/^[#(),.%\w\s-]+$/i],
-        'margin-bottom': [/^[#(),.%\w\s-]+$/i],
-        'margin-left': [/^[#(),.%\w\s-]+$/i],
-        padding: [/^[#(),.%\w\s-]+$/i],
-        'padding-top': [/^[#(),.%\w\s-]+$/i],
-        'padding-right': [/^[#(),.%\w\s-]+$/i],
-        'padding-bottom': [/^[#(),.%\w\s-]+$/i],
-        'padding-left': [/^[#(),.%\w\s-]+$/i],
-        border: [/^[#(),.%\w\s-]+$/i],
-        'border-color': [/^[#(),.%\w\s-]+$/i],
-        'border-width': [/^[#(),.%\w\s-]+$/i],
-        'border-style': [/^(none|solid|dashed|dotted|double)$/i],
-        'border-radius': [/^[#(),.%\w\s-]+$/i],
-      },
-    },
+
   });
 }
 
