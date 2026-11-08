@@ -112,9 +112,9 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
 }
 
 /**
- * Scope administrator CSS to the declaration block and put it in a low-priority
- * cascade layer. Unlayered Warm CY rules therefore win conflicts, while custom
- * rules still fill properties the theme does not define.
+ * Scope administrator CSS to the declaration block. Emit scoped rules after the
+ * theme stylesheet so explicit author styles (including inline link colors) win
+ * over Warm CY defaults without affecting links elsewhere.
  */
 function scopeArticleDeclarationCss(css: string): string {
   try {
@@ -167,7 +167,7 @@ function scopeArticleDeclarationCss(css: string): string {
     scopeRules(root);
 
     root.walkDecls(decl => {
-      // Custom CSS remains below unlayered Warm CY declarations, including former inline styles.
+      // Keep author styles scoped and let source order resolve conflicts with theme defaults.
       decl.important = false;
       if (/^(?:animation|animation-name|-webkit-animation|-webkit-animation-name)$/i.test(decl.prop)) {
         for (const [original, scoped] of keyframes) {
@@ -182,9 +182,7 @@ function scopeArticleDeclarationCss(css: string): string {
       }
     });
 
-    return root.nodes?.length
-      ? `@layer warm-article-declaration-custom { ${root.toString()} }`
-      : '';
+    return root.nodes?.length ? root.toString() : '';
   } catch {
     // Invalid CSS is discarded as a whole rather than emitted unscoped.
     return '';
