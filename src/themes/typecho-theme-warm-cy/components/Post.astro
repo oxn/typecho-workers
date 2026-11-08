@@ -110,7 +110,7 @@ const articleDeclarationHtml = !isNote
   </article>
 
   {articleDeclarationHtml.trim() && (
-    <div class="warm-footer__custom warm-article__declaration" set:html={articleDeclarationHtml}></div>
+    <div class="warm-article__declaration" set:html={articleDeclarationHtml}></div>
   )}
 
   {(post.allowComment || commentPagination.totalComments > 0) && (
