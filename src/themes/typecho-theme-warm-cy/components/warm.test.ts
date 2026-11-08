@@ -150,7 +150,7 @@ describe('Warm CY theme helpers', () => {
       { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
     );
     expect(html).toContain('<style>');
-    expect(html).toContain('@layer warm-article-declaration-custom');
+    expect(html).not.toContain('@layer warm-article-declaration-custom');
     expect(html).toContain('.warm-article__declaration .custom-declaration');
     expect(html).toContain('position:absolute');
     expect(html).toContain('top:0');
@@ -165,12 +165,12 @@ describe('Warm CY theme helpers', () => {
     expect(html).toContain('warm-declaration-inline-1');
   });
 
-  it('moves inline important styles into the theme-lower-priority layer', () => {
+  it('moves inline important styles into scoped rules that override theme defaults', () => {
     const html = renderArticleDeclaration(
       '<div style="color:red!important;padding:12px">declaration</div>',
       { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
     );
-    expect(html).toContain('@layer warm-article-declaration-custom');
+    expect(html).not.toContain('@layer warm-article-declaration-custom');
     expect(html).toContain('color:red');
     expect(html).toContain('padding:12px');
     expect(html).not.toContain('!important');
