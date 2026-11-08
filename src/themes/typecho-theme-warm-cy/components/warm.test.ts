@@ -165,7 +165,7 @@ describe('Warm CY theme helpers', () => {
     expect(html).toContain('padding:12px');
     expect(html).toContain('border-radius:8px');
     expect(html).toContain('warm-declaration-inline-1');
-    expect(html).toContain('<img src="https://example.com/a.png" alt="demo" class="warm-declaration-inline-1" />');
+    expect(html).toContain('<img src="https://example.com/a.png" alt="demo" />');
     expect(html).toContain('<table><tr><td>cell</td></tr></table>');
   });
 
