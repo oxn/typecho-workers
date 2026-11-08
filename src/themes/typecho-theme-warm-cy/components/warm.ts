@@ -123,7 +123,7 @@ function scopeArticleDeclarationCss(css: string): string {
 
     root.walkAtRules(/^(?:-webkit-)?keyframes$/i, atRule => {
       const original = atRule.params.trim();
-      if (!original || !/^[\\w-]+$/.test(original)) {
+      if (!original || !/^[\w-]+$/.test(original)) {
         atRule.remove();
         return;
       }
@@ -177,7 +177,7 @@ function scopeArticleDeclarationCss(css: string): string {
           );
         }
       }
-      if (/expression\\s*\\(|javascript\\s*:|vbscript\\s*:|behavior\\s*:|-moz-binding/i.test(decl.value)) {
+      if (/expression\s*\(|javascript\s*:|vbscript\s*:|behavior\s*:|-moz-binding/i.test(decl.value)) {
         decl.remove();
       }
     });
@@ -205,7 +205,7 @@ function splitCssSelectorList(selector: string): string[] {
       escaped = false;
       continue;
     }
-    if (char === '\\\\') {
+    if (char === '\\') {
       escaped = true;
       continue;
     }
