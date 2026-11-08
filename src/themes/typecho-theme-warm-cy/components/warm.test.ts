@@ -134,7 +134,11 @@ describe('Warm CY theme helpers', () => {
     expect(html).toContain('@media (max-width:600px)');
     expect(html).toContain('.warm-article__declaration .custom-declaration');
     expect(html).toContain('var(--txt)');
-    expect(html).toContain('style="position:relative;overflow:hidden;box-shadow:0 2px 8px #000;border:1px solid #e5e7eb"');
+    expect(html).toContain('position:relative');
+    expect(html).toContain('overflow:hidden');
+    expect(html).toContain('box-shadow:0 2px 8px #000');
+    expect(html).toContain('border:1px solid #e5e7eb');
+    expect(html).toContain('warm-declaration-inline-1');
   });
 
   it('scopes declaration CSS, keeps theme rules higher priority, and drops global CSS constructs', () => {
@@ -157,8 +161,11 @@ describe('Warm CY theme helpers', () => {
       '<div style="border:2px solid #e67e22;padding:12px;border-radius:8px"><img src="https://example.com/a.png" alt="demo"><table><tr><td>cell</td></tr></table></div>',
       { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
     );
-    expect(html).toContain('style="border:2px solid #e67e22;padding:12px;border-radius:8px"');
-    expect(html).toContain('<img src="https://example.com/a.png" alt="demo" />');
+    expect(html).toContain('border:2px solid #e67e22');
+    expect(html).toContain('padding:12px');
+    expect(html).toContain('border-radius:8px');
+    expect(html).toContain('warm-declaration-inline-1');
+    expect(html).toContain('<img src="https://example.com/a.png" alt="demo" class="warm-declaration-inline-1" />');
     expect(html).toContain('<table><tr><td>cell</td></tr></table>');
   });
 
