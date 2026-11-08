@@ -158,9 +158,7 @@ function scopeArticleDeclarationCss(css: string, scopeSelector = '.warm-article_
           node.remove();
           continue;
         }
-        node.selector = selectors.map(selector =>
-          `${scopeSelector} ${selector}`,
-        ).join(', ');
+        node.selector = selectors.map(selector => scopeArticleDeclarationSelector(selector, scopeSelector)).join(', ');
       }
     };
 
@@ -187,6 +185,34 @@ function scopeArticleDeclarationCss(css: string, scopeSelector = '.warm-article_
     // Invalid CSS is discarded as a whole rather than emitted unscoped.
     return '';
   }
+}
+
+/**
+ * Map document-root selectors onto the declaration container instead of
+ * producing impossible descendants such as ".scope body". This keeps root
+ * styling useful while ensuring it cannot target the actual page root.
+ */
+function scopeArticleDeclarationSelector(selector: string, scopeSelector: string): string {
+  let scoped = selector.trim();
+  let replacedRoot = false;
+
+  // Rewrite root elements only at the beginning of a selector. Preserve
+  // combinators and classes attached to the root ("body.dark > .notice").
+  const rootPrefix = /^(?:(?:html|body)(?=$|[.#:[\s>+~])|:root)/i;
+  while (rootPrefix.test(scoped)) {
+    scoped = scoped.replace(rootPrefix, '');
+    replacedRoot = true;
+    scoped = scoped.replace(/^\s+/, '');
+  }
+
+  if (replacedRoot) {
+    if (!scoped) return scopeSelector;
+    if (/^[>+~]/.test(scoped)) return scopeSelector + ' ' + scoped;
+    if (/^[.#:[\]]/.test(scoped)) return scopeSelector + scoped;
+    return scopeSelector + ' ' + scoped;
+  }
+
+  return \${scopeSelector} \${scoped};
 }
 
 function splitCssSelectorList(selector: string): string[] {
@@ -240,8 +266,8 @@ function escapeRegExp(value: string): string {
  * Normalize and constrain an administrator-authored HTML fragment.
  *
  * HTML is parsed and repaired by sanitize-html. Style blocks are parsed as CSS,
- * scoped to this declaration, and placed in a lower-priority cascade layer so
- * unlayered Warm CY theme rules take precedence when both define a property.
+ * scoped to this declaration and emitted after the theme stylesheet so author
+ * declarations can override theme defaults without escaping the container.
  */
 export function sanitizeArticleDeclarationHtml(html: string): string {
   const sanitized = sanitizeHtml(html, {
