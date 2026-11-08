@@ -232,7 +232,7 @@ function splitCssSelectorList(selector: string): string[] {
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+  return value.replace(/[.*+?^${}()|[\\]\\]/g, '\\  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');');
 }
 
 /**
