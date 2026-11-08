@@ -8,6 +8,7 @@ export const WARM_THEME_ID = 'typecho-theme-warm-cy';
 const DEFAULT_WARM_SETTINGS: Record<string, unknown> = {
   pinnedIds: '',
   footerCustomHtml: '',
+  articleDeclarationHtml: '',
   continuousLoadMode: 'manual',
   commentComponentLoadMode: 'manual',
   commentInitialLoadMode: 'manual',
@@ -34,6 +35,7 @@ export interface WarmSettings {
   pinnedIds: number[];
   footerLinks: Array<{ text: string; url: string; newWindow: boolean }>;
   footerCustomHtml: string;
+  articleDeclarationHtml: string;
   continuousLoadMode: WarmContinuousLoadMode;
   commentComponentLoadMode: WarmCommentComponentLoadMode;
   commentInitialLoadMode: WarmCommentInitialLoadMode;
@@ -84,6 +86,9 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
   const footerCustomHtml = typeof settings.footerCustomHtml === 'string'
     ? settings.footerCustomHtml
     : '';
+  const articleDeclarationHtml = typeof settings.articleDeclarationHtml === 'string'
+    ? settings.articleDeclarationHtml
+    : '';
   const footerLinks = Array.from({ length: 10 }, (_, index) => {
     const suffix = String(index + 1).padStart(2, '0');
     const text = typeof settings[`linktxt${suffix}`] === 'string' ? String(settings[`linktxt${suffix}`]).trim() : '';
@@ -95,12 +100,40 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     pinnedIds,
     footerLinks,
     footerCustomHtml,
+    articleDeclarationHtml,
     continuousLoadMode: normalizeContinuousLoadMode(settings.continuousLoadMode),
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
     commentInitialLoadMode: normalizeCommentInitialLoadMode(settings.commentInitialLoadMode),
     imageOptimizeParams,
     thumbOptimizeParams: normalizeOptimizeParams(settings.thumbOptimizeParams) || imageOptimizeParams,
   };
+}
+
+/**
+ * Expand the article declaration placeholders with HTML-escaped site/post values.
+ * The declaration itself remains trusted administrator-authored HTML, matching
+ * the existing footerCustomHtml setting.
+ */
+export function renderArticleDeclaration(
+  template: string,
+  values: {
+    siteName: string;
+    siteUrl: string;
+    siteDescription: string;
+    postTitle: string;
+    postUrl: string;
+  },
+): string {
+  const replacements: Record<string, string> = {
+    'site.name': values.siteName,
+    'site.url': values.siteUrl,
+    'site.description': values.siteDescription,
+    'post.title': values.postTitle,
+    'post.url': values.postUrl,
+  };
+  return template.replace(/\\{(site\\.name|site\\.url|site\\.description|post\\.title|post\\.url)\\}/g, (_match, key: string) =>
+    escapeHtml(replacements[key] ?? ''),
+  );
 }
 
 export function parsePinnedIds(value: unknown): number[] {
