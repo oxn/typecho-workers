@@ -92,6 +92,30 @@ describe('Warm CY theme helpers', () => {
     expect(settings.thumbOptimizeParams).toBe('');
   });
 
+  it('keeps the existing footer custom HTML independent from article declaration processing', () => {
+    const footerCustomHtml = `<style>.footer-widget { color: var(--txt); }</style>
+<div class="footer-widget" style="padding: 16px">
+  <a href="https://example.com" target="_blank" rel="noopener">footer link</a>
+</div>
+<script>window.footerWidgetReady = true;</script>`;
+    const options = {
+      'theme:typecho-theme-warm-cy': JSON.stringify({
+        footerCustomHtml,
+        articleDeclarationHtml: '<style>.notice { color: red; }</style><p>{post.title}</p>',
+      }),
+    };
+
+    const settings = warmSettings(options as never);
+    expect(settings.footerCustomHtml).toBe(footerCustomHtml);
+
+    const renderedDeclaration = renderArticleDeclaration(
+      settings.articleDeclarationHtml,
+      { siteName: '', siteUrl: '', siteDescription: '', postTitle: 'Article', postUrl: '' },
+    );
+    expect(renderedDeclaration).toContain('.warm-article__declaration .notice');
+    expect(settings.footerCustomHtml).toBe(footerCustomHtml);
+  });
+
   it('expands article declaration placeholders and escapes inserted values', () => {
     const html = renderArticleDeclaration(
       '<p>{site.name} · {site.url} · {site.description}</p><a href="{post.url}">{post.title}</a>',
