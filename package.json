@@ -46,7 +46,7 @@
     "tslib": "^2.8.1",
     "typecho-plugin-antispam": "workspace:*",
     "typecho-plugin-warm-cy": "workspace:*",
-    "typecho-plugin-cache": "workspace:*"
+    "typecho-plugin-cache": "workspace:*",
     "typecho-plugin-notes": "workspace:*",
     "typecho-plugin-notifier": "workspace:*",
     "typecho-plugin-intelligence": "workspace:*",
