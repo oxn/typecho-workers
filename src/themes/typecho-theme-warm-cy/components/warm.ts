@@ -200,11 +200,11 @@ function scopeArticleDeclarationSelector(selector: string, scopeSelector: string
   // Rewrite root elements only at the beginning of a selector. Preserve
   // descendant whitespace after the complete root chain, while keeping
   // classes attached to a root (for example, "body.dark > .notice").
-  const rootPrefix = /^(?:(?:html|body)(?=$|[.#:[\\s>+~])|:root)/i;
+  const rootPrefix = /^(?:(?:html|body)(?=$|[.#:[\s>+~])|:root)/i;
   while (rootPrefix.test(scoped)) {
     scoped = scoped.replace(rootPrefix, '');
     replacedRoot = true;
-    const hadWhitespace = /^\\s+/.test(scoped);
+    const hadWhitespace = /^\s+/.test(scoped);
     scoped = scoped.trimStart();
 
     // Whitespace between root tokens is part of the root chain; whitespace
@@ -215,11 +215,11 @@ function scopeArticleDeclarationSelector(selector: string, scopeSelector: string
   if (replacedRoot) {
     if (!scoped) return scopeSelector;
     if (/^[>+~]/.test(scoped)) return scopeSelector + ' ' + scoped;
-    if (/^[.#:[\\]]/.test(scoped)) return scopeSelector + descendantSeparator + scoped;
+    if (/^[.#:[\]]/.test(scoped)) return scopeSelector + descendantSeparator + scoped;
     return scopeSelector + ' ' + scoped;
   }
 
-  return `${scopeSelector} ${scoped}`;
+  return \`\${scopeSelector} \${scoped}\`;
 }
 
 function splitCssSelectorList(selector: string): string[] {
