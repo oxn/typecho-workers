@@ -14,8 +14,7 @@ import { marked } from 'marked';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const HyperDownModule = require('../../public/vendor/hyperdown.js') as { default?: unknown };
-const HyperDown = (HyperDownModule.default ?? HyperDownModule) as new () => {
+const HyperDown = require('../../public/vendor/hyperdown.js') as new () => {
   enableHtml: (v: boolean) => void;
   enableLine: (v: boolean) => void;
   makeHtml: (src: string) => string;
