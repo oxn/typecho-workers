@@ -206,6 +206,12 @@
       "description": "缩略图优化参数，例如：?quality=80&width=500。留空表示不追加参数。",
       "default": ""
     },
+    "articleDeclarationHtml": {
+      "type": "textarea",
+      "label": "文章内容声明",
+      "description": "设置显示于文章正文之后的内容（HTML）。仅文章页有效；支持 {site.name}、{site.url}、{site.description}、{post.title}、{post.url} 变量。",
+      "default": ""
+    },
     "footerCustomHtml": {
       "type": "textarea",
       "label": "站点底部内容",
