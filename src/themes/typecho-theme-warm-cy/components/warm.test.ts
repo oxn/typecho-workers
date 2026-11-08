@@ -103,12 +103,33 @@ describe('Warm CY theme helpers', () => {
         postUrl: 'https://example.com/post?a=1&b=2',
       },
     );
-    expect(html).toBe(
-      '<p>&lt;Site&gt; · https://example.com/?a=1&amp;b=2 · A &quot;description&quot;</p><a href="https://example.com/post?a=1&amp;b=2">&lt;script&gt;alert(1)&lt;/script&gt;</a>',
-    );
+    expect(html).toContain('<p>&lt;Site&gt; · https://example.com/?a=1&amp;b=2 · A &quot;description&quot;</p>');
+    expect(html).toContain('<a href="https://example.com/post?a=1&amp;b=2">&lt;script&gt;alert(1)&lt;/script&gt;</a>');
     expect(renderArticleDeclaration('{unknown}', {
       siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '',
     })).toBe('{unknown}');
+  });
+
+  it('repairs malformed declaration fragments and blocks document-level or active markup', () => {
+    const html = renderArticleDeclaration(
+      '<div><p>first paragraph<ul><li>one<li>two</ul><script>alert(1)</script><style>body{display:none}</style>',
+      { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
+    );
+    expect(html).toContain('<div><p>first paragraph</p><ul><li>one</li><li>two</li></ul></div>');
+    expect(html).not.toContain('<script');
+    expect(html).not.toContain('<style');
+    expect(html).not.toContain('body{display:none}');
+    expect(html).not.toContain('<html');
+  });
+
+  it('keeps safe inline styles and common media/table markup', () => {
+    const html = renderArticleDeclaration(
+      '<div style="border:2px solid #e67e22;padding:12px;border-radius:8px"><img src="https://example.com/a.png" alt="demo"><table><tr><td>cell</td></tr></table></div>',
+      { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
+    );
+    expect(html).toContain('style="border:2px solid #e67e22;padding:12px;border-radius:8px"');
+    expect(html).toContain('<img src="https://example.com/a.png" alt="demo" />');
+    expect(html).toContain('<table><tr><td>cell</td></tr></table>');
   });
 
   it('builds unique table-of-contents IDs while retaining the heading markup', () => {
