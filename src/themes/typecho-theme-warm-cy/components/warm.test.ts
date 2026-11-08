@@ -188,10 +188,13 @@ describe('Warm CY theme helpers', () => {
 
   it('scopes declaration CSS, keeps theme rules higher priority, and drops global CSS constructs', () => {
     const html = renderArticleDeclaration(
-      '<style>body{display:none}.outside,.notice:hover{color:var(--txt)}@font-face{font-family:bad;src:url(https://example.com/a)}@media(max-width:600px){.notice{padding:8px}}@keyframes fade{from{opacity:0}to{opacity:1}}.notice{animation:fade 1s}</style><div class="notice">notice</div>',
+      '<style>body{display:none}html body .root-test{color:red}:root{--local:1}.outside,.notice:hover{color:var(--txt)}@font-face{font-family:bad;src:url(https://example.com/a)}@media(max-width:600px){.notice{padding:8px}}@keyframes fade{from{opacity:0}to{opacity:1}}.notice{animation:fade 1s}</style><div class="notice">notice</div>',
       { siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '' },
     );
-    expect(html).toContain('.warm-article__declaration body');
+    expect(html).toContain('.warm-article__declaration{display:none}');
+    expect(html).toContain('.warm-article__declaration .root-test{color:red}');
+    expect(html).toContain('.warm-article__declaration{--local:1}');
+    expect(html).not.toContain('.warm-article__declaration body');
     expect(html).toContain('.warm-article__declaration .outside');
     expect(html).toContain('.warm-article__declaration .notice:hover');
     expect(html).toContain('var(--txt)');
