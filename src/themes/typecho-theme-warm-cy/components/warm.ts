@@ -195,20 +195,27 @@ function scopeArticleDeclarationCss(css: string, scopeSelector = '.warm-article_
 function scopeArticleDeclarationSelector(selector: string, scopeSelector: string): string {
   let scoped = selector.trim();
   let replacedRoot = false;
+  let descendantSeparator = '';
 
   // Rewrite root elements only at the beginning of a selector. Preserve
-  // combinators and classes attached to the root ("body.dark > .notice").
-  const rootPrefix = /^(?:(?:html|body)(?=$|[.#:[\s>+~])|:root)/i;
+  // descendant whitespace after the complete root chain, while keeping
+  // classes attached to a root (for example, "body.dark > .notice").
+  const rootPrefix = /^(?:(?:html|body)(?=$|[.#:[\\s>+~])|:root)/i;
   while (rootPrefix.test(scoped)) {
     scoped = scoped.replace(rootPrefix, '');
     replacedRoot = true;
-    scoped = scoped.replace(/^\s+/, '');
+    const hadWhitespace = /^\\s+/.test(scoped);
+    scoped = scoped.trimStart();
+
+    // Whitespace between root tokens is part of the root chain; whitespace
+    // before the first non-root selector is a real descendant combinator.
+    descendantSeparator = hadWhitespace && !rootPrefix.test(scoped) ? ' ' : '';
   }
 
   if (replacedRoot) {
     if (!scoped) return scopeSelector;
     if (/^[>+~]/.test(scoped)) return scopeSelector + ' ' + scoped;
-    if (/^[.#:[\]]/.test(scoped)) return scopeSelector + scoped;
+    if (/^[.#:[\\]]/.test(scoped)) return scopeSelector + descendantSeparator + scoped;
     return scopeSelector + ' ' + scoped;
   }
 
