@@ -116,7 +116,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
  * theme stylesheet so explicit author styles (including inline link colors) win
  * over Warm CY defaults without affecting links elsewhere.
  */
-function scopeArticleDeclarationCss(css: string): string {
+function scopeArticleDeclarationCss(css: string, scopeSelector = '.warm-article__declaration', keyframePrefix = 'warm-declaration'): string {
   try {
     const root = postcss.parse(css);
     const keyframes = new Map<string, string>();
@@ -127,7 +127,7 @@ function scopeArticleDeclarationCss(css: string): string {
         atRule.remove();
         return;
       }
-      const scoped = `warm-declaration-${original}`;
+      const scoped = `${keyframePrefix}-${original}`;
       keyframes.set(original, scoped);
       atRule.params = scoped;
     });
@@ -159,7 +159,7 @@ function scopeArticleDeclarationCss(css: string): string {
           continue;
         }
         node.selector = selectors.map(selector =>
-          `.warm-article__declaration ${selector}`,
+          `${scopeSelector} ${selector}`,
         ).join(', ');
       }
     };
@@ -313,6 +313,19 @@ export function sanitizeArticleDeclarationHtml(html: string): string {
   return scopedCss
     ? '<style>' + scopedCss + '</style>' + restoredHtml
     : restoredHtml;
+}
+
+/**
+ * Process CSS embedded in the site-wide footer HTML without changing its HTML,
+ * scripts, or inline styles. Footer stylesheet selectors stay inside the custom
+ * footer container and are emitted after the theme stylesheet.
+ */
+export function renderFooterCustomHtml(html: string): string {
+  if (!html) return '';
+  return html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (_match, attributes: string, css: string) => {
+    const scoped = scopeArticleDeclarationCss(css, '.warm-footer__custom', 'warm-footer-custom');
+    return scoped ? '<style' + attributes + '>' + scoped + '</style>' : '';
+  });
 }
 
 /**
