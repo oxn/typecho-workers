@@ -7,6 +7,7 @@ import {
   parsePinnedIds,
   renderWarmIframes,
   renderArticleDeclaration,
+  renderFooterCustomHtml,
   warmArticleSummary,
   plainExcerpt,
   prepareArticleToc,
@@ -113,6 +114,13 @@ describe('Warm CY theme helpers', () => {
       { siteName: '', siteUrl: '', siteDescription: '', postTitle: 'Article', postUrl: '' },
     );
     expect(renderedDeclaration).toContain('.warm-article__declaration .notice');
+    const renderedFooter = renderFooterCustomHtml(settings.footerCustomHtml);
+    expect(renderedFooter).toContain('.warm-footer__custom .footer-widget');
+    expect(renderedFooter).toContain('color: var(--txt)');
+    expect(renderedFooter).toContain('style="padding: 16px"');
+    expect(renderedFooter).toContain('<script>window.footerWidgetReady = true;</script>');
+    expect(renderedFooter).not.toContain('@layer');
+    expect(renderedFooter).not.toContain('.warm-theme a');
     expect(settings.footerCustomHtml).toBe(footerCustomHtml);
   });
 
