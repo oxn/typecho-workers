@@ -212,7 +212,7 @@ function scopeArticleDeclarationSelector(selector: string, scopeSelector: string
     return scopeSelector + ' ' + scoped;
   }
 
-  return \${scopeSelector} \${scoped};
+  return `${scopeSelector} ${scoped}`;
 }
 
 function splitCssSelectorList(selector: string): string[] {
