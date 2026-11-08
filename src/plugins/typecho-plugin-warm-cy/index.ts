@@ -3,7 +3,7 @@ import sanitizeHtml from 'sanitize-html';
 import { getDb, schema } from 'typecho/db';
 import { env } from 'cloudflare:workers';
 import { getOption, registerPluginAdminPath, setOption } from 'typecho/plugin-sdk';
-import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
+import type { EarlyRequestContext, EarlyRequestProvider, EarlyRequestSyncContext, PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { generateSecurityToken } from '@/lib/auth';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { computeUrls } from '@/lib/options';
@@ -96,6 +96,40 @@ function isCanonicalRedirectExcludedPath(path: string): boolean {
   // sitemap.xml and robots.txt eligible for canonical-host redirects.
   return /\.(?:avif|bmp|gif|ico|jpe?g|png|webp|svg|css|js|mjs|map|woff2?|ttf|otf|eot|mp3|m4a|wav|ogg|mp4|webm|mov|pdf|zip|gz|br)$/i.test(path);
 }
+
+// The early provider runs before the page-cache provider. Its request-local
+// state is populated from the middleware's already-loaded options and active
+// plugin IDs, so no extra D1 read or core-runtime change is required.
+type CanonicalRedirectRuntime = {
+  enabled: boolean;
+  siteUrl: unknown;
+};
+
+const canonicalRedirectRuntime = new WeakMap<Request, CanonicalRedirectRuntime>();
+
+function syncCanonicalRedirectRuntime(context: EarlyRequestSyncContext): void {
+  const settings = context.active
+    ? parsePluginSettings(context.options[PLUGIN_OPTION_KEY])
+    : {};
+  canonicalRedirectRuntime.set(context.request, {
+    enabled: context.active && isEnabled(settings.canonicalDomainRedirectEnabled, false),
+    siteUrl: context.active ? context.options.siteUrl : null,
+  });
+}
+
+async function handleCanonicalDomainEarlyRequest(
+  context: EarlyRequestContext,
+  next: () => Promise<Response>,
+): Promise<Response> {
+  const runtime = canonicalRedirectRuntime.get(context.request);
+  if (!runtime?.enabled || isCanonicalRedirectExcludedPath(context.url.pathname)) return next();
+  return getCanonicalDomainRedirect(context.request, runtime.siteUrl) || next();
+}
+
+export const earlyRequestProvider: EarlyRequestProvider = {
+  handle: handleCanonicalDomainEarlyRequest,
+  sync: syncCanonicalRedirectRuntime,
+};
 
 async function isHtmlEnhancementEnabled(): Promise<boolean> {
   // Content filters receive only the content string, not RequestContext.options.

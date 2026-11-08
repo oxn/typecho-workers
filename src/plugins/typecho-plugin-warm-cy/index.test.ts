@@ -34,7 +34,7 @@ vi.mock('typecho/plugin-sdk', () => ({
   setOption: mocks.setOption,
 }));
 
-import init from './index';
+import init, { earlyRequestProvider } from './index';
 
 const PLUGIN_ID = 'typecho-plugin-warm-cy';
 const ADMIN_PATH = '/api/admin/theme-pin';
@@ -518,6 +518,71 @@ describe('typecho-plugin-warm-cy', () => {
         icon: expect.objectContaining({ visible: true }),
       },
     });
+  });
+
+  it('redirects alternate-host cache requests before the next provider runs', async () => {
+    const request = new Request('https://blog.oook.top/2026/10/30/post.html?from=share&x=1');
+    const next = vi.fn(async () => new Response('cached page'));
+    earlyRequestProvider.sync!({
+      request,
+      active: true,
+      options: {
+        siteUrl: 'https://oook.top',
+        [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
+      },
+    });
+
+    const response = await earlyRequestProvider.handle(
+      { request, url: new URL(request.url), env: {} },
+      next,
+    );
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('https://oook.top/2026/10/30/post.html?from=share&x=1');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('does not redirect when CY is inactive or the feature switch is disabled', async () => {
+    for (const active of [false, true]) {
+      const request = new Request('https://blog.oook.top/article.html');
+      const next = vi.fn(async () => new Response('rendered'));
+      earlyRequestProvider.sync!({
+        request,
+        active,
+        options: {
+          siteUrl: 'https://oook.top',
+          [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: active ? '0' : '1' }),
+        },
+      });
+      const response = await earlyRequestProvider.handle(
+        { request, url: new URL(request.url), env: {} },
+        next,
+      );
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe('rendered');
+      expect(next).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('leaves admin and static asset paths to the normal request pipeline', async () => {
+    for (const path of ['/admin/login', '/api/users/login', '/themes/theme/style.css', '/usr/uploads/a.png']) {
+      const request = new Request('https://blog.oook.top' + path);
+      const next = vi.fn(async () => new Response('normal pipeline'));
+      earlyRequestProvider.sync!({
+        request,
+        active: true,
+        options: {
+          siteUrl: 'https://oook.top',
+          [PLUGIN_OPTION_KEY]: JSON.stringify({ canonicalDomainRedirectEnabled: '1' }),
+        },
+      });
+      const response = await earlyRequestProvider.handle(
+        { request, url: new URL(request.url), env: {} },
+        next,
+      );
+      expect(response.status).toBe(200);
+      expect(next).toHaveBeenCalledTimes(1);
+    }
   });
 
   it('temporarily redirects an enabled alternate host to the current siteUrl and preserves path/query', async () => {
