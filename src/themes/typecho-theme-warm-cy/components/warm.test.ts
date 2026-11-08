@@ -6,6 +6,7 @@ import {
   normalizeContinuousLoadMode,
   parsePinnedIds,
   renderWarmIframes,
+  renderArticleDeclaration,
   warmArticleSummary,
   plainExcerpt,
   prepareArticleToc,
@@ -58,6 +59,7 @@ describe('Warm CY theme helpers', () => {
       'theme:typecho-theme-warm-cy': JSON.stringify({
         pinnedIds: '12, 8, 12',
         footerCustomHtml: '<strong>footer</strong>',
+        articleDeclarationHtml: '<p>{post.title}</p>',
         linktxt01: 'Docs',
         links01: 'example.com/docs',
         linkblank01: '1',
@@ -68,6 +70,7 @@ describe('Warm CY theme helpers', () => {
     const settings = warmSettings(options as never);
     expect(settings.pinnedIds).toEqual([12, 8]);
     expect(settings.footerCustomHtml).toBe('<strong>footer</strong>');
+    expect(settings.articleDeclarationHtml).toBe('<p>{post.title}</p>');
     expect(settings.footerLinks).toEqual([
       { text: 'Docs', url: 'https://example.com/docs', newWindow: true },
     ]);
@@ -81,11 +84,31 @@ describe('Warm CY theme helpers', () => {
     expect(settings.pinnedIds).toEqual([]);
     expect(settings.footerLinks).toEqual([]);
     expect(settings.footerCustomHtml).toBe('');
+    expect(settings.articleDeclarationHtml).toBe('');
     expect(settings.continuousLoadMode).toBe('manual');
     expect(settings.commentComponentLoadMode).toBe('manual');
     expect(settings.commentInitialLoadMode).toBe('manual');
     expect(settings.imageOptimizeParams).toBe('');
     expect(settings.thumbOptimizeParams).toBe('');
+  });
+
+  it('expands article declaration placeholders and escapes inserted values', () => {
+    const html = renderArticleDeclaration(
+      '<p>{site.name} · {site.url} · {site.description}</p><a href="{post.url}">{post.title}</a>',
+      {
+        siteName: '<Site>',
+        siteUrl: 'https://example.com/?a=1&b=2',
+        siteDescription: 'A "description"',
+        postTitle: '<script>alert(1)</script>',
+        postUrl: 'https://example.com/post?a=1&b=2',
+      },
+    );
+    expect(html).toBe(
+      '<p>&lt;Site&gt; · https://example.com/?a=1&amp;b=2 · A &quot;description&quot;</p><a href="https://example.com/post?a=1&amp;b=2">&lt;script&gt;alert(1)&lt;/script&gt;</a>',
+    );
+    expect(renderArticleDeclaration('{unknown}', {
+      siteName: '', siteUrl: '', siteDescription: '', postTitle: '', postUrl: '',
+    })).toBe('{unknown}');
   });
 
   it('builds unique table-of-contents IDs while retaining the heading markup', () => {
