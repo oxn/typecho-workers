@@ -3,6 +3,7 @@ import type { ThemeBaseProps, ThemePostProps } from '@/lib/theme-props';
 import { normalizeOptimizeParams } from './warm-image';
 import { escapeHtml, formatDate } from 'typecho/plugin-sdk';
 import sanitizeHtml from 'sanitize-html';
+import postcss from 'postcss';
 
 export const WARM_THEME_ID = 'typecho-theme-warm-cy';
 
@@ -111,19 +112,143 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
 }
 
 /**
+ * Scope administrator CSS to the declaration block and put it in a low-priority
+ * cascade layer. Unlayered Warm CY rules therefore win conflicts, while custom
+ * rules still fill properties the theme does not define.
+ */
+function scopeArticleDeclarationCss(css: string): string {
+  try {
+    const root = postcss.parse(css);
+    const keyframes = new Map<string, string>();
+
+    root.walkAtRules(/^(?:-webkit-)?keyframes$/i, atRule => {
+      const original = atRule.params.trim();
+      if (!original || !/^[\\w-]+$/.test(original)) {
+        atRule.remove();
+        return;
+      }
+      const scoped = `warm-declaration-${original}`;
+      keyframes.set(original, scoped);
+      atRule.params = scoped;
+    });
+
+    const scopeRules = (container: postcss.Container) => {
+      for (const node of [...container.nodes || []]) {
+        if (node.type === 'atrule') {
+          const name = node.name.toLowerCase();
+          if (name === 'media' || name === 'supports' || name === 'container') {
+            scopeRules(node);
+          } else if (name !== 'keyframes' && name !== '-webkit-keyframes') {
+            // Global CSS constructs (imports, font-face, property, page, etc.)
+            // must not escape the declaration's visual boundary.
+            node.remove();
+          }
+          continue;
+        }
+        if (node.type !== 'rule') continue;
+
+        // Nested CSS rules are not part of the supported authoring format.
+        if (node.parent?.type === 'rule') {
+          node.remove();
+          continue;
+        }
+
+        const selectors = splitCssSelectorList(node.selector);
+        if (!selectors.length) {
+          node.remove();
+          continue;
+        }
+        node.selector = selectors.map(selector =>
+          `.warm-article__declaration ${selector}`,
+        ).join(', ');
+      }
+    };
+
+    scopeRules(root);
+
+    root.walkDecls(decl => {
+      if (/^(?:animation|animation-name|-webkit-animation|-webkit-animation-name)$/i.test(decl.prop)) {
+        for (const [original, scoped] of keyframes) {
+          decl.value = decl.value.replace(
+            new RegExp(`(^|[^\\w-])${escapeRegExp(original)}(?=$|[^\\w-])`, 'g'),
+            (_match, before: string) => `${before}${scoped}`,
+          );
+        }
+      }
+      if (/expression\\s*\\(|javascript\\s*:|vbscript\\s*:|behavior\\s*:|-moz-binding/i.test(decl.value)) {
+        decl.remove();
+      }
+    });
+
+    return root.nodes?.length
+      ? `@layer warm-article-declaration-custom { ${root.toString()} }`
+      : '';
+  } catch {
+    // Invalid CSS is discarded as a whole rather than emitted unscoped.
+    return '';
+  }
+}
+
+function splitCssSelectorList(selector: string): string[] {
+  const result: string[] = [];
+  let start = 0;
+  let quote = '';
+  let round = 0;
+  let square = 0;
+  let escaped = false;
+
+  for (let index = 0; index < selector.length; index++) {
+    const char = selector[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === '\\\\') {
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      if (char === quote) quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === '(') round++;
+    else if (char === ')') round = Math.max(0, round - 1);
+    else if (char === '[') square++;
+    else if (char === ']') square = Math.max(0, square - 1);
+    else if (char === ',' && round === 0 && square === 0) {
+      const item = selector.slice(start, index).trim();
+      if (item) result.push(item);
+      start = index + 1;
+    }
+  }
+
+  const last = selector.slice(start).trim();
+  if (last) result.push(last);
+  return result;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+}
+
+/**
  * Normalize and constrain an administrator-authored HTML fragment.
  *
- * sanitize-html parses and serializes fragments, repairing incomplete/misnested
- * tags so they cannot consume following page markup. Active executable content and
- * document-level tags are discarded. Administrator-authored CSS is retained.
+ * HTML is parsed and repaired by sanitize-html. Style blocks are parsed as CSS,
+ * scoped to this declaration, and placed in a lower-priority cascade layer so
+ * unlayered Warm CY theme rules take precedence when both define a property.
  */
 export function sanitizeArticleDeclarationHtml(html: string): string {
-  return sanitizeHtml(html, {
+  const sanitized = sanitizeHtml(html, {
     allowedTags: [
       'a', 'abbr', 'b', 'blockquote', 'br', 'caption', 'cite', 'code', 'dd', 'del',
       'div', 'dl', 'dt', 'em', 'figcaption', 'figure', 'h1', 'h2', 'h3', 'h4',
       'h5', 'h6', 'hr', 'i', 'img', 'ins', 'kbd', 'li', 'mark', 'ol', 'p',
-      'pre', 'q', 's', 'samp', 'small', 'span', 'strong', 'style', 'sub', 'summary',
+      'pre', 'q', 's', 'samp', 'small', 'span', 'style', 'sub', 'summary',
       'sup', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'u', 'ul',
     ],
     allowedAttributes: {
@@ -138,7 +263,11 @@ export function sanitizeArticleDeclarationHtml(html: string): string {
       img: ['http', 'https', 'data'],
     },
     allowProtocolRelative: false,
+  });
 
+  return sanitized.replace(/<style\\b[^>]*>([\\s\\S]*?)<\\/style>/gi, (_match, css: string) => {
+    const scoped = scopeArticleDeclarationCss(css);
+    return scoped ? `<style>${scoped}</style>` : '';
   });
 }
 
