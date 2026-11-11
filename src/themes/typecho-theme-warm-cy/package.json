@@ -1,0 +1,32 @@
+{
+  "name": "typecho-theme-warm-cy",
+  "version": "1.0.0",
+  "description": "Independent custom fork of Typecho Warm theme",
+  "author": "怸歪",
+  "homepage": "https://oook.top",
+  "license": "MIT",
+  "keywords": [
+    "typecho",
+    "theme",
+    "warm",
+    "notes"
+  ],
+  "files": [
+    "theme.json",
+    "style.css",
+    "components/",
+    "screenshot.png",
+    "favicon.ico",
+    "assets/"
+  ],
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  },
+  "dependencies": {
+    "typecho-plugin-markdown-rehype": "workspace:*",
+    "katex": "^0.16.22",
+    "mermaid": "^11.12.2",
+    "mathjax-full": "^3.2.2",
+    "postcss": "^8.5.26"
+  }
+}

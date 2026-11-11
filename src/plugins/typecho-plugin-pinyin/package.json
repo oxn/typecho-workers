@@ -1,0 +1,27 @@
+{
+  "name": "typecho-plugin-pinyin",
+  "version": "1.0.1",
+  "description": "Automatic pinyin slug suggestions for Typecho post and page editors.",
+  "author": "怸歪",
+  "homepage": "https://347777.xyz",
+  "keywords": ["typecho", "plugin", "pinyin", "slug"],
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "pinyin-pro": "^3.29.5"
+  },
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-pinyin",
+      "name": "拼音别名",
+      "description": "在文章和独立页面编辑器中，根据标题自动建议拼音网址缩略名。",
+      "author": "怸歪",
+      "authorUrl": "https://347777.xyz",
+      "homepage": "https://347777.xyz",
+      "version": "1.0.1",
+      "license": "MIT",
+      "tags": ["pinyin", "slug", "editor"]
+    }
+  }
+}
