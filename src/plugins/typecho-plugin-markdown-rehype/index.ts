@@ -880,42 +880,40 @@ function createAdminPreviewScript(): string {
   frame.title = 'Markdown Rehype 同步预览';
   frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
   frame.setAttribute('referrerpolicy', 'same-origin');
-  frame.style.cssText = 'display:block;width:100%;height:70vh;min-height:480px;border:0;background:#fff;';
+  frame.style.cssText = 'display:block;width:100%;height:100%;min-height:0;border:0;background:#fff;';
   preview.replaceChildren(frame);
-  // Typecho's editor tab handler assigns the preview container the editor
-  // textarea's height. That fixed height clips longer iframe content; let the
-  // iframe's measured content height determine the container height instead.
+  // Match the preview viewport to the actual editor textarea height.
+  // The iframe document keeps its own native scrollbar for long articles.
   function enforcePreviewLayout() {
-    // Typecho's tab handler writes a fixed inline height to #wmd-preview.
-    // Keep the outer container unconstrained so only the iframe content
-    // determines the preview height and there is no nested scrollbar.
-    if (preview.style.getPropertyValue('height') !== 'auto' ||
-        preview.style.getPropertyPriority('height') !== 'important') {
-      preview.style.setProperty('height', 'auto', 'important');
+    const editorHeight = Math.round(textarea.getBoundingClientRect().height);
+    if (editorHeight > 0) {
+      const height = editorHeight + 'px';
+      if (preview.style.getPropertyValue('height') !== height ||
+          preview.style.getPropertyPriority('height') !== 'important') {
+        preview.style.setProperty('height', height, 'important');
+      }
     }
-    if (preview.style.getPropertyValue('min-height') !== '0px' &&
-        preview.style.getPropertyValue('min-height') !== '0') {
-      preview.style.setProperty('min-height', '0', 'important');
-    } else if (preview.style.getPropertyPriority('min-height') !== 'important') {
+    if (preview.style.getPropertyValue('min-height') !== '0px' ||
+        preview.style.getPropertyPriority('min-height') !== 'important') {
       preview.style.setProperty('min-height', '0', 'important');
     }
     if (preview.style.getPropertyValue('max-height') !== 'none' ||
         preview.style.getPropertyPriority('max-height') !== 'important') {
       preview.style.setProperty('max-height', 'none', 'important');
     }
-    if (preview.style.getPropertyValue('overflow') !== 'visible' ||
+    if (preview.style.getPropertyValue('overflow') !== 'hidden' ||
         preview.style.getPropertyPriority('overflow') !== 'important') {
-      preview.style.setProperty('overflow', 'visible', 'important');
+      preview.style.setProperty('overflow', 'hidden', 'important');
     }
+    frame.style.height = '100%';
+    frame.style.minHeight = '0';
   }
   enforcePreviewLayout();
-
-  window.addEventListener('message', event => {
-    if (event.source !== frame.contentWindow) return;
-    const data = event.data;
-    if (!data || data.type !== 'markdown-rehype-preview-height' || !Number.isFinite(data.height)) return;
-    frame.style.height = Math.max(120, Math.min(12000, Math.ceil(data.height))) + 'px';
-  });
+  window.addEventListener('resize', enforcePreviewLayout);
+  if (window.ResizeObserver) {
+    const editorSizeObserver = new ResizeObserver(enforcePreviewLayout);
+    editorSizeObserver.observe(textarea);
+  }
 
   let sequence = 0;
   let timer = null;
