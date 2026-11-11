@@ -155,15 +155,20 @@ function editorHtml(
   var currentCid = ${cidValue};
   var allowsSlugEdit = ${allowsSlugEdit ? 'true' : 'false'};
 
-  if (!slug) {
-    var control = document.createElement('div');
-    control.className = 'pinyin-slug-control';
-    control.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-width:100%;margin:8px 0;';
+  // Keep the permalink and its slug controls on one responsive row. For ID
+  // permalinks the generated slug follows the complete URL; for slug-based
+  // permalinks the native input remains between the prefix and suffix.
+  permalinkRow.style.display = 'flex';
+  permalinkRow.style.flexWrap = 'wrap';
+  permalinkRow.style.alignItems = 'center';
+  permalinkRow.style.gap = '8px';
+  permalinkRow.style.maxWidth = '100%';
 
+  if (!slug) {
     var label = document.createElement('label');
     label.htmlFor = 'pinyin-slug-input';
     label.textContent = '缩略名';
-    label.style.cssText = 'flex:0 0 auto;';
+    label.style.cssText = 'flex:0 0 auto;margin-left:2px;';
 
     slug = document.createElement('input');
     slug.type = 'text';
@@ -175,15 +180,9 @@ function editorHtml(
     slug.setAttribute('aria-label', '缩略名');
     slug.style.cssText = 'box-sizing:border-box;flex:1 1 220px;width:min(100%,420px);max-width:420px;min-width:0;';
 
-    control.appendChild(label);
-    control.appendChild(slug);
-    permalinkRow.parentNode.insertBefore(control, permalinkRow.nextSibling);
+    permalinkRow.appendChild(label);
+    permalinkRow.appendChild(slug);
   } else {
-    permalinkRow.style.display = 'flex';
-    permalinkRow.style.flexWrap = 'wrap';
-    permalinkRow.style.alignItems = 'center';
-    permalinkRow.style.gap = '8px';
-    permalinkRow.style.maxWidth = '100%';
     slug.style.boxSizing = 'border-box';
     slug.style.flex = '1 1 220px';
     slug.style.width = 'min(100%,420px)';
@@ -252,12 +251,17 @@ function editorHtml(
     manual = false;
     generate(true);
   });
-  slug.parentNode.insertBefore(regenerate, slug.nextSibling);
+  regenerate.style.cssText = 'flex:0 0 auto;white-space:nowrap;';
+  permalinkRow.appendChild(regenerate);
 
-  var cid = document.createElement('span');
-  cid.textContent = 'CID=' + (currentCid > 0 ? String(currentCid) : '保存后生成');
-  cid.style.cssText = 'color:#999;font-size:12px;white-space:nowrap;';
-  regenerate.parentNode.insertBefore(cid, regenerate.nextSibling);
+  // CID is useful only when the permalink already exposes an editable slug.
+  // ID-style permalinks show the complete URL first and omit this redundant ID.
+  if (allowsSlugEdit) {
+    var cid = document.createElement('span');
+    cid.textContent = 'CID=' + (currentCid > 0 ? String(currentCid) : '保存后生成');
+    cid.style.cssText = 'color:#999;font-size:12px;white-space:nowrap;margin-left:2px;';
+    permalinkRow.appendChild(cid);
+  }
 
   form.addEventListener('submit', function (event) {
     var currentTitle = String(title.value || '').trim();
