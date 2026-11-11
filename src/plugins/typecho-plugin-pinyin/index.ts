@@ -159,10 +159,12 @@ function editorHtml(
   // permalinks the generated slug follows the complete URL; for slug-based
   // permalinks the native input remains between the prefix and suffix.
   permalinkRow.style.display = 'flex';
-  permalinkRow.style.flexWrap = 'wrap';
+  permalinkRow.style.flexWrap = window.matchMedia('(max-width: 767px)').matches ? 'wrap' : 'nowrap';
   permalinkRow.style.alignItems = 'center';
   permalinkRow.style.gap = '8px';
   permalinkRow.style.maxWidth = '100%';
+  permalinkRow.style.minWidth = '0';
+  permalinkRow.style.overflowX = 'hidden';
 
   if (!slug) {
     var label = document.createElement('label');
@@ -178,16 +180,49 @@ function editorHtml(
     slug.value = initialSlug;
     slug.placeholder = '输入缩略名';
     slug.setAttribute('aria-label', '缩略名');
-    slug.style.cssText = 'box-sizing:border-box;flex:1 1 220px;width:min(100%,420px);max-width:420px;min-width:0;';
-
+    slug.style.cssText = 'box-sizing:border-box;flex:0 1 auto;width:120px;max-width:min(420px,100%);min-width:48px;white-space:nowrap;overflow:hidden;';
+ 
     permalinkRow.appendChild(label);
     permalinkRow.appendChild(slug);
   } else {
     slug.style.boxSizing = 'border-box';
-    slug.style.flex = '1 1 220px';
-    slug.style.width = 'min(100%,420px)';
-    slug.style.maxWidth = '420px';
-    slug.style.minWidth = '0';
+    slug.style.flex = '0 1 auto';
+    slug.style.width = '120px';
+    slug.style.maxWidth = 'min(420px,100%)';
+    slug.style.minWidth = '48px';
+    slug.style.overflow = 'hidden';
+  }
+
+  function updateSlugInputWidth() {
+    var mobile = window.matchMedia('(max-width: 767px)').matches;
+    permalinkRow.style.flexWrap = mobile ? 'wrap' : 'nowrap';
+    var style = window.getComputedStyle(slug);
+    var canvas = updateSlugInputWidth.canvas || (updateSlugInputWidth.canvas = document.createElement('canvas'));
+    var context = canvas.getContext && canvas.getContext('2d');
+    var text = String(slug.value || slug.placeholder || '');
+    var measured = 120;
+    if (context) {
+      context.font = style.font;
+      measured = Math.ceil(context.measureText(text).width) +
+        (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0) +
+        (parseFloat(style.borderLeftWidth) || 0) + (parseFloat(style.borderRightWidth) || 0) + 14;
+    }
+
+    var available = Math.max(48, permalinkRow.clientWidth);
+    if (!mobile) {
+      var siblingsWidth = 0;
+      Array.prototype.forEach.call(permalinkRow.children, function (child) {
+        if (child !== slug) siblingsWidth += child.getBoundingClientRect().width;
+      });
+      var gap = parseFloat(window.getComputedStyle(permalinkRow).columnGap) || 0;
+      available = Math.max(48, permalinkRow.clientWidth - siblingsWidth -
+        gap * Math.max(0, permalinkRow.children.length - 1) - 2);
+    }
+
+    var width = Math.max(48, Math.min(measured, available, 420));
+    slug.style.width = width + 'px';
+    slug.style.maxWidth = mobile ? '100%' : width + 'px';
+    slug.style.flex = mobile ? '0 1 auto' : '0 1 auto';
   }
 
   var csrf = form.querySelector('input[name="_"]');
@@ -223,6 +258,7 @@ function editorHtml(
       lastGenerated = data.slug;
       lastGeneratedTitle = value;
       slug.value = data.slug;
+      updateSlugInputWidth();
       slug.dispatchEvent(new Event('change', { bubbles: true }));
     }).catch(function () {
       // Pinyin generation is an optional editor enhancement; never block saving.
@@ -241,6 +277,7 @@ function editorHtml(
 
   slug.addEventListener('input', function () {
     if (String(slug.value || '') !== lastGenerated) manual = true;
+    updateSlugInputWidth();
   });
 
   var regenerate = document.createElement('button');
@@ -261,6 +298,13 @@ function editorHtml(
     cid.textContent = 'CID=' + (currentCid > 0 ? String(currentCid) : '保存后生成');
     cid.style.cssText = 'color:#999;font-size:12px;white-space:nowrap;margin-left:2px;';
     permalinkRow.appendChild(cid);
+  }
+
+  updateSlugInputWidth();
+  window.addEventListener('resize', updateSlugInputWidth);
+  if (window.ResizeObserver) {
+    var slugRowObserver = new ResizeObserver(updateSlugInputWidth);
+    slugRowObserver.observe(permalinkRow);
   }
 
   form.addEventListener('submit', function (event) {
