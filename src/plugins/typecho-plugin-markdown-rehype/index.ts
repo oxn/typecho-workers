@@ -880,7 +880,7 @@ function createAdminPreviewScript(): string {
   frame.title = 'Markdown Rehype 同步预览';
   frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
   frame.setAttribute('referrerpolicy', 'same-origin');
-  frame.style.cssText = 'display:block;width:100%;height:180px;min-height:180px;border:0;background:#fff;';
+  frame.style.cssText = 'display:block;width:100%;height:70vh;min-height:480px;border:0;background:#fff;';
   preview.replaceChildren(frame);
   // Typecho's editor tab handler assigns the preview container the editor
   // textarea's height. That fixed height clips longer iframe content; let the
