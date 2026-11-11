@@ -882,17 +882,14 @@ function createAdminPreviewScript(): string {
   frame.setAttribute('referrerpolicy', 'same-origin');
   frame.style.cssText = 'display:block;width:100%;height:100%;min-height:0;box-sizing:border-box;border:1px solid #D9D9D6;border-radius:2px;background:#fff;';
   preview.replaceChildren(frame);
-  // The native tab switch sizes #wmd-preview from #wmd-editarea.innerHeight(),
-  // not from the textarea's border-box. Measure that same containing block so
-  // the preview and editor occupy exactly the same vertical space.
-  // Cache the value while the editor is visible; the tab switch hides it.
-  const editorArea = textarea.parentElement;
+  // Keep the preview width fluid so it follows its shared editor column even
+  // while the native textarea is hidden by the preview tab.
+  // Cache the editor height while it is measurable; the preview tab hides it.
   let editorHeight = 0;
   function enforcePreviewLayout() {
-    if (editorArea && editorArea.getClientRects().length > 0) {
-      const measuredHeight = editorArea.clientHeight;
-      if (measuredHeight > 0) editorHeight = measuredHeight;
-    }
+    const editorRect = textarea.getBoundingClientRect();
+    const measuredHeight = Math.round(editorRect.height);
+    if (measuredHeight > 0) editorHeight = measuredHeight;
     if (preview.style.getPropertyValue('width') !== '100%' ||
         preview.style.getPropertyPriority('width') !== 'important') {
       preview.style.setProperty('width', '100%', 'important');
@@ -914,10 +911,20 @@ function createAdminPreviewScript(): string {
     }
     // Match the native editor area's vertical spacing so switching tabs
     // does not move the surrounding page up or down.
+    const editorArea = textarea.parentElement;
     const editorMargin = editorArea ? getComputedStyle(editorArea).margin : '0px';
     if (preview.style.getPropertyValue('margin') !== editorMargin ||
         preview.style.getPropertyPriority('margin') !== 'important') {
       preview.style.setProperty('margin', editorMargin, 'important');
+    }
+    // The native editor wrapper has its own bottom margin (including the
+    // Typecho editor's negative spacing). Match that one value so the preview
+    // frame's bottom edge sits the same distance from the next control.
+    const editorWrapper = textarea.closest('.editor') || editorArea;
+    const editorBottomMargin = editorWrapper ? getComputedStyle(editorWrapper).marginBottom : '0px';
+    if (preview.style.getPropertyValue('margin-bottom') !== editorBottomMargin ||
+        preview.style.getPropertyPriority('margin-bottom') !== 'important') {
+      preview.style.setProperty('margin-bottom', editorBottomMargin, 'important');
     }
     if (preview.style.getPropertyValue('padding') !== '0px' ||
         preview.style.getPropertyPriority('padding') !== 'important') {
@@ -938,8 +945,7 @@ function createAdminPreviewScript(): string {
   window.addEventListener('resize', enforcePreviewLayout);
   if (window.ResizeObserver) {
     const editorSizeObserver = new ResizeObserver(enforcePreviewLayout);
-    if (editorArea) editorSizeObserver.observe(editorArea);
-    else editorSizeObserver.observe(textarea);
+    editorSizeObserver.observe(textarea);
   }
 
   let sequence = 0;
