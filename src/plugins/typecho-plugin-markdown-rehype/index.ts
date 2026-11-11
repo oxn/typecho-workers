@@ -886,28 +886,28 @@ function createAdminPreviewScript(): string {
   // The native resize handle lives inside the editor area, which is hidden
   // when the preview tab is active. Mirror that same handle below the preview
   // and keep both views on one persisted editor height.
-  const previewResizeHandle = document.createElement('span');
-  previewResizeHandle.className = 'resize wmd-hidetab';
+  // Clone the native handle itself (including its exact element type, classes,
+  // child markup and inline attributes) so both editor modes use the same control.
+  // The preview clone gets its own pointer/keyboard handlers below.
+  const nativeResizeHandle = textarea.nextElementSibling;
+  const previewResizeHandle = nativeResizeHandle && nativeResizeHandle.classList.contains('resize')
+    ? nativeResizeHandle.cloneNode(true)
+    : document.createElement('span');
+  previewResizeHandle.classList.add('wmd-hidetab');
   previewResizeHandle.setAttribute('role', 'separator');
   previewResizeHandle.setAttribute('aria-label', '调整编辑器高度');
   previewResizeHandle.setAttribute('aria-orientation', 'horizontal');
   previewResizeHandle.tabIndex = 0;
-  previewResizeHandle.innerHTML = '<i></i>';
   preview.insertAdjacentElement('afterend', previewResizeHandle);
 
-  // Copy the native editor handle's box metrics so the preview handle has
-  // exactly the same width, border, padding and distance from its editor.
-  const nativeResizeHandle = textarea.nextElementSibling;
+  // Preserve the native handle's computed appearance even if its surrounding
+  // editor selectors differ from the preview's DOM position.
   if (nativeResizeHandle && nativeResizeHandle.classList.contains('resize')) {
     const nativeHandleStyle = getComputedStyle(nativeResizeHandle);
-    ['width', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-      'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-      'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
-      'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
-      'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
-      'box-sizing'].forEach((property) => {
+    for (let index = 0; index < nativeHandleStyle.length; index++) {
+      const property = nativeHandleStyle.item(index);
       previewResizeHandle.style.setProperty(property, nativeHandleStyle.getPropertyValue(property));
-    });
+    }
   }
 
   function syncPreviewResizeHandleVisibility() {
