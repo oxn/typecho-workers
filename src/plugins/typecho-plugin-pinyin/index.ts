@@ -308,7 +308,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const page = extra?.page;
     return html + editorHtml(
       'write_page',
-      Boolean(extra?.isEdit),
       pattern.includes('{slug}'),
       String(page?.slug || ''),
       Number(page?.cid) || 0,
