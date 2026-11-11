@@ -195,7 +195,7 @@ function editorHtml(
 
   var csrf = form.querySelector('input[name="_"]');
   var lastGenerated = '';
-  var manual = ${isEdit ? 'true' : 'String(initialSlug || "").trim() !== ""'};
+  var manual = String(initialSlug || '').trim() !== '';
   var sequence = 0;
   var timer = 0;
   var generationPromise = Promise.resolve();
@@ -254,12 +254,12 @@ function editorHtml(
     manual = false;
     generate(true);
   });
-  slug.parentNode.appendChild(regenerate);
+  slug.parentNode.insertBefore(regenerate, slug.nextSibling);
 
   var cid = document.createElement('span');
   cid.textContent = 'CID=' + (currentCid > 0 ? String(currentCid) : '保存后生成');
   cid.style.cssText = 'color:#999;font-size:12px;white-space:nowrap;';
-  slug.parentNode.appendChild(cid);
+  regenerate.parentNode.insertBefore(cid, regenerate.nextSibling);
 
   form.addEventListener('submit', function (event) {
     var currentTitle = String(title.value || '').trim();
@@ -284,7 +284,7 @@ function editorHtml(
     }
   });
 
-  if (!${isEdit ? 'true' : 'false'} && !String(slug.value || '').trim()) {
+  if (!manual && !String(slug.value || '').trim()) {
     generate(false);
   }
 })();
