@@ -882,6 +882,78 @@ function createAdminPreviewScript(): string {
   frame.setAttribute('referrerpolicy', 'same-origin');
   frame.style.cssText = 'display:block;width:100%;height:100%;min-height:0;box-sizing:border-box;border:1px solid #D9D9D6;border-radius:2px;background:#fff;';
   preview.replaceChildren(frame);
+
+  // The native resize handle lives inside the editor area, which is hidden
+  // when the preview tab is active. Mirror that same handle below the preview
+  // and keep both views on one persisted editor height.
+  const previewResizeHandle = document.createElement('span');
+  previewResizeHandle.className = 'resize wmd-hidetab';
+  previewResizeHandle.setAttribute('role', 'separator');
+  previewResizeHandle.setAttribute('aria-label', '调整编辑器高度');
+  previewResizeHandle.setAttribute('aria-orientation', 'horizontal');
+  previewResizeHandle.tabIndex = 0;
+  previewResizeHandle.innerHTML = '<i></i>';
+  preview.insertAdjacentElement('afterend', previewResizeHandle);
+
+  function syncPreviewResizeHandleVisibility() {
+    previewResizeHandle.classList.toggle('wmd-hidetab', preview.classList.contains('wmd-hidetab'));
+  }
+  syncPreviewResizeHandleVisibility();
+  if (window.MutationObserver) {
+    const previewTabObserver = new MutationObserver(syncPreviewResizeHandleVisibility);
+    previewTabObserver.observe(preview, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  function applyPreviewEditorHeight(height) {
+    const nextHeight = Math.max(100, Math.min(2000, Math.round(height)));
+    editorHeight = nextHeight;
+    textarea.style.height = nextHeight + 'px';
+    preview.style.setProperty('height', nextHeight + 'px', 'important');
+    frame.style.height = '100%';
+    frame.style.minHeight = '0';
+    textarea.dispatchEvent(new Event('resize', { bubbles: true }));
+    return nextHeight;
+  }
+
+  function persistPreviewEditorHeight() {
+    const body = new URLSearchParams({ size: String(editorHeight) });
+    fetch('/api/admin/editor-size', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        'X-CSRF-Token': String(token.value || ''),
+      },
+      body: body.toString(),
+    }).catch(() => {
+      // The current editor height remains usable even if preference saving fails.
+    });
+  }
+
+  previewResizeHandle.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+    const startY = event.pageY;
+    const startHeight = editorHeight || Math.round(textarea.getBoundingClientRect().height) ||
+      Math.round(preview.getBoundingClientRect().height);
+    const onMove = (moveEvent) => {
+      applyPreviewEditorHeight(startHeight + moveEvent.pageY - startY);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      persistPreviewEditorHeight();
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  previewResizeHandle.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    const currentHeight = editorHeight || Math.round(preview.getBoundingClientRect().height);
+    applyPreviewEditorHeight(currentHeight + (event.key === 'ArrowUp' ? -20 : 20));
+    persistPreviewEditorHeight();
+  });
   // Keep the preview width fluid so it follows its shared editor column even
   // while the native textarea is hidden by the preview tab.
   // Cache the editor height while it is measurable; the preview tab hides it.
