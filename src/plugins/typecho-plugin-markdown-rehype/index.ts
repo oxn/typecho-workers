@@ -880,24 +880,23 @@ function createAdminPreviewScript(): string {
   frame.title = 'Markdown Rehype 同步预览';
   frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
   frame.setAttribute('referrerpolicy', 'same-origin');
-  frame.style.cssText = 'display:block;width:100%;height:100%;min-height:0;border:0;background:#fff;';
+  frame.style.cssText = 'display:block;width:100%;height:100%;min-height:0;box-sizing:border-box;border:1px solid #D9D9D6;border-radius:2px;background:#fff;';
   preview.replaceChildren(frame);
-  // Match the preview viewport to the actual editor textarea height.
-  // The iframe document keeps its own native scrollbar for long articles.
+  // Keep the preview width fluid so it follows its shared editor column even
+  // while the native textarea is hidden by the preview tab.
+  // Cache the editor height while it is measurable; the preview tab hides it.
+  let editorHeight = 0;
   function enforcePreviewLayout() {
     const editorRect = textarea.getBoundingClientRect();
-    const editorWidth = Math.round(editorRect.width);
-    const editorHeight = Math.round(editorRect.height);
-    if (editorWidth > 0) {
-      const width = editorWidth + 'px';
-      if (preview.style.getPropertyValue('width') !== width ||
-          preview.style.getPropertyPriority('width') !== 'important') {
-        preview.style.setProperty('width', width, 'important');
-      }
-      if (preview.style.getPropertyValue('box-sizing') !== 'border-box' ||
-          preview.style.getPropertyPriority('box-sizing') !== 'important') {
-        preview.style.setProperty('box-sizing', 'border-box', 'important');
-      }
+    const measuredHeight = Math.round(editorRect.height);
+    if (measuredHeight > 0) editorHeight = measuredHeight;
+    if (preview.style.getPropertyValue('width') !== '100%' ||
+        preview.style.getPropertyPriority('width') !== 'important') {
+      preview.style.setProperty('width', '100%', 'important');
+    }
+    if (preview.style.getPropertyValue('box-sizing') !== 'border-box' ||
+        preview.style.getPropertyPriority('box-sizing') !== 'important') {
+      preview.style.setProperty('box-sizing', 'border-box', 'important');
     }
     if (editorHeight > 0) {
       const height = editorHeight + 'px';
