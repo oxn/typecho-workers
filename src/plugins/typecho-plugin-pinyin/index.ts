@@ -246,7 +246,7 @@ function editorHtml(
   var regenerate = document.createElement('button');
   regenerate.type = 'button';
   regenerate.className = 'btn btn-xs';
-  regenerate.textContent = '重新生成拼音';
+  regenerate.textContent = '重新生成';
   regenerate.addEventListener('click', function () {
     manual = false;
     generate(true);
