@@ -7,20 +7,15 @@
     "./plugin-sdk": "./src/lib/plugin-sdk.ts",
     "./db": "./src/db/index.ts"
   },
-  "workspaces": [
-    "src/plugins/*",
-    "src/themes/*"
-  ],
-  "engines": {
-    "node": ">=22.12.0"
-  },
+  "workspaces": ["src/plugins/*", "src/themes/*"],
+  "engines": { "node": ">=22.12.0" },
   "scripts": {
     "dev": "astro dev --force",
     "build": "astro build",
     "generate:cloudflare-config": "bun run scripts/generate-wrangler-config.ts",
     "patch:deploy-wrangler": "bun run scripts/patch-deploy-wrangler.ts",
-    "build:cloudflare": "bun run generate:cloudflare-config && astro build && bun run patch:deploy-wrangler",
-    "deploy": "bun run build && bun run patch:deploy-wrangler && wrangler deploy --config dist/server/wrangler.json",
+    "build:cloudflare": "bun run generate:cloudflare-config && astro build && bun run patch-deploy-wrangler",
+    "deploy": "bun run build && bun run patch-deploy-wrangler && wrangler deploy --config dist/server/wrangler.json",
     "deploy:cloudflare-build": "wrangler deploy --config dist/server/wrangler.json",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -45,12 +40,16 @@
     "sanitize-html": "^2.17.6",
     "tslib": "^2.8.1",
     "typecho-plugin-antispam": "workspace:*",
+    "typecho-plugin-warm-cy": "workspace:*",
     "typecho-plugin-cache": "workspace:*",
     "typecho-plugin-notes": "workspace:*",
     "typecho-plugin-notifier": "workspace:*",
     "typecho-plugin-intelligence": "workspace:*",
     "typecho-plugin-turnstile": "workspace:*",
-    "typecho-theme-warm": "workspace:*"
+    "typecho-plugin-pinyin": "workspace:*",
+    "typecho-plugin-markdown-rehype": "workspace:*",
+    "typecho-theme-warm": "workspace:*",
+    "typecho-theme-warm-cy": "workspace:*"
   },
   "devDependencies": {
     "@libsql/client": "^0.17.4",
