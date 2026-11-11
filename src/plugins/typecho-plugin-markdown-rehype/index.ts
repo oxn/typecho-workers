@@ -885,8 +885,30 @@ function createAdminPreviewScript(): string {
   // Typecho's editor tab handler assigns the preview container the editor
   // textarea's height. That fixed height clips longer iframe content; let the
   // iframe's measured content height determine the container height instead.
-  preview.style.setProperty('height', 'auto', 'important');
-  preview.style.setProperty('min-height', '0', 'important');
+  function enforcePreviewLayout() {
+    // Typecho's tab handler writes a fixed inline height to #wmd-preview.
+    // Keep the outer container unconstrained so only the iframe content
+    // determines the preview height and there is no nested scrollbar.
+    if (preview.style.getPropertyValue('height') !== 'auto' ||
+        preview.style.getPropertyPriority('height') !== 'important') {
+      preview.style.setProperty('height', 'auto', 'important');
+    }
+    if (preview.style.getPropertyValue('min-height') !== '0px' &&
+        preview.style.getPropertyValue('min-height') !== '0') {
+      preview.style.setProperty('min-height', '0', 'important');
+    } else if (preview.style.getPropertyPriority('min-height') !== 'important') {
+      preview.style.setProperty('min-height', '0', 'important');
+    }
+    if (preview.style.getPropertyValue('max-height') !== 'none' ||
+        preview.style.getPropertyPriority('max-height') !== 'important') {
+      preview.style.setProperty('max-height', 'none', 'important');
+    }
+    if (preview.style.getPropertyValue('overflow') !== 'visible' ||
+        preview.style.getPropertyPriority('overflow') !== 'important') {
+      preview.style.setProperty('overflow', 'visible', 'important');
+    }
+  }
+  enforcePreviewLayout();
 
   window.addEventListener('message', event => {
     if (event.source !== frame.contentWindow) return;
@@ -963,12 +985,13 @@ function createAdminPreviewScript(): string {
   window.__warmCyMarkdownRehypePreviewRefresh = schedule;
 
   const previewObserver = new MutationObserver(() => {
+    enforcePreviewLayout();
     if (!preview.contains(frame)) {
       preview.replaceChildren(frame);
       schedule();
     }
   });
-  previewObserver.observe(preview, { childList: true });
+  previewObserver.observe(preview, { childList: true, attributes: true, attributeFilter: ['style'] });
 
   const themeObserver = new MutationObserver(schedule);
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
