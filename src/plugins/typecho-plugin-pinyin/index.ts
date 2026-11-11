@@ -168,13 +168,15 @@ function editorHtml(
 
   if (!slug) {
     var label = document.createElement('label');
-    label.htmlFor = 'pinyin-slug-input';
+    label.htmlFor = 'slug';
     label.textContent = '缩略名';
     label.style.cssText = 'flex:0 0 auto;margin-left:2px;';
 
     slug = document.createElement('input');
     slug.type = 'text';
-    slug.id = 'pinyin-slug-input';
+    // Use the native #slug ID so Typecho's original yellow input styling
+    // applies unchanged to this plugin-created control.
+    slug.id = 'slug';
     slug.autocomplete = 'off';
     slug.className = 'mono';
     slug.value = initialSlug;
