@@ -1,13 +1,25 @@
+import { and, eq, sql } from 'drizzle-orm';
 import { pinyin } from 'pinyin-pro';
 import { registerPluginAdminPath } from 'typecho/plugin-sdk';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
+import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 
 const ADMIN_PATH = '/api/admin/pinyin-slug';
+const SAVE_SLUG_PARAM = '__pinyinSlug';
+const MAX_SLUG_LENGTH = 180;
+const MAX_SLUG_ATTEMPTS = 100;
 
 type EditorExtra = {
   options?: Record<string, unknown>;
   isEdit?: boolean;
+  post?: { cid?: number; slug?: string | null };
+  page?: { cid?: number; slug?: string | null };
+};
+
+type SaveExtra = {
+  request?: Request;
+  db?: any;
 };
 
 function json(data: unknown, status = 200): Response {
@@ -48,27 +60,150 @@ export function titleToPinyinSlug(title: string): string {
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  return slug.slice(0, 180).replace(/-+$/g, '');
+  return slug.slice(0, MAX_SLUG_LENGTH).replace(/-+$/g, '');
 }
 
-function editorHtml(formName: 'write_post' | 'write_page', isEdit: boolean): string {
+/** Normalize a manually edited slug using the same URL-safe character set. */
+function normalizeSlug(value: string): string {
+  return value
+    .trim()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, MAX_SLUG_LENGTH)
+    .replace(/-+$/g, '');
+}
+
+/**
+ * Claim a unique slug after the core save has created/updated the content row.
+ * This mirrors the core compare-and-swap strategy and avoids a SELECT/UPDATE race.
+ */
+async function claimUniqueSlug(db: any, cid: number, base: string): Promise<string> {
+  let candidate = base;
+  let suffix = 0;
+
+  while (suffix < MAX_SLUG_ATTEMPTS) {
+    const claimed = await db.update(schema.contents)
+      .set({ slug: candidate })
+      .where(and(
+        eq(schema.contents.cid, cid),
+        sql`NOT EXISTS (SELECT 1 FROM typecho_contents WHERE slug = ${candidate} AND cid != ${cid})`,
+      ))
+      .returning({ cid: schema.contents.cid });
+
+    if (claimed.length > 0) return candidate;
+
+    suffix += 1;
+    candidate = suffix === 1 ? `${base}-${cid}` : `${base}-${cid}-${suffix}`;
+  }
+
+  // Keep the fallback distinct even in the pathological case of many collisions.
+  const fallback = `${base}-${cid}-${Date.now().toString(36)}`;
+  await db.update(schema.contents)
+    .set({ slug: fallback })
+    .where(eq(schema.contents.cid, cid));
+  return fallback;
+}
+
+/**
+ * The core content endpoint intentionally ignores slug when the permalink
+ * pattern has no {slug}. The editor places the requested value in the POST
+ * URL, and the existing finishSave hook persists it after the core has claimed
+ * its initial slug but before the core invalidates/warmups content caches.
+ */
+async function persistSubmittedSlug(content: Record<string, any>, extra?: SaveExtra): Promise<void> {
+  const request = extra?.request;
+  const db = extra?.db;
+  if (!request || !db || request.method !== 'POST') return;
+
+  const url = new URL(request.url);
+  if (url.pathname !== '/api/admin/content') return;
+
+  const requestedSlug = url.searchParams.get(SAVE_SLUG_PARAM);
+  if (!requestedSlug) return;
+
+  const cid = Number(content.cid);
+  const base = normalizeSlug(requestedSlug);
+  if (!Number.isSafeInteger(cid) || cid <= 0 || !base) return;
+
+  const finalSlug = await claimUniqueSlug(db, cid, base);
+  // finishData is the same object the core uses for its subsequent cache work.
+  content.slug = finalSlug;
+}
+
+function editorHtml(
+  formName: 'write_post' | 'write_page',
+  isEdit: boolean,
+  allowsSlugEdit: boolean,
+  currentSlug: string,
+  currentCid: number,
+): string {
+  const initialSlug = JSON.stringify(currentSlug).replace(/</g, '\\u003c');
+  const cidValue = Number.isSafeInteger(currentCid) && currentCid > 0 ? String(currentCid) : '0';
+
   return `<script>
 (function () {
   var form = document.forms.namedItem('${formName}');
   var title = document.getElementById('title');
-  var slug = document.getElementById('slug');
-  if (!form || !title || !slug || form.dataset.pinyinSlugReady === '1') return;
+  var permalinkRow = document.querySelector('p.url-slug');
+  if (!form || !title || !permalinkRow || form.dataset.pinyinSlugReady === '1') return;
   form.dataset.pinyinSlugReady = '1';
+
+  var slug = document.getElementById('slug');
+  var initialSlug = ${initialSlug};
+  var currentCid = ${cidValue};
+  var allowsSlugEdit = ${allowsSlugEdit ? 'true' : 'false'};
+
+  if (!slug) {
+    var control = document.createElement('div');
+    control.className = 'pinyin-slug-control';
+    control.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-width:100%;margin:8px 0;';
+
+    var label = document.createElement('label');
+    label.htmlFor = 'pinyin-slug-input';
+    label.textContent = '缩略名';
+    label.style.cssText = 'flex:0 0 auto;';
+
+    slug = document.createElement('input');
+    slug.type = 'text';
+    slug.id = 'pinyin-slug-input';
+    slug.autocomplete = 'off';
+    slug.className = 'mono';
+    slug.value = initialSlug;
+    slug.placeholder = '输入缩略名';
+    slug.setAttribute('aria-label', '缩略名');
+    slug.style.cssText = 'box-sizing:border-box;flex:1 1 220px;width:min(100%,420px);max-width:420px;min-width:0;';
+
+    control.appendChild(label);
+    control.appendChild(slug);
+    permalinkRow.parentNode.insertBefore(control, permalinkRow.nextSibling);
+  } else {
+    permalinkRow.style.display = 'flex';
+    permalinkRow.style.flexWrap = 'wrap';
+    permalinkRow.style.alignItems = 'center';
+    permalinkRow.style.gap = '8px';
+    permalinkRow.style.maxWidth = '100%';
+    slug.style.boxSizing = 'border-box';
+    slug.style.flex = '1 1 220px';
+    slug.style.width = 'min(100%,420px)';
+    slug.style.maxWidth = '420px';
+    slug.style.minWidth = '0';
+  }
 
   var csrf = form.querySelector('input[name="_"]');
   var lastGenerated = '';
-  var manual = ${isEdit ? 'true' : 'String(slug.value || "").trim() !== ""'};
+  var manual = ${isEdit ? 'true' : 'String(initialSlug || "").trim() !== ""'};
   var sequence = 0;
   var timer = 0;
 
   function generate(force) {
     var value = String(title.value || '').trim();
-    if (!value || (!force && (manual || (slug.value && slug.value !== lastGenerated)))) return Promise.resolve();
+    if (!value || (!force && (manual || (slug.value && slug.value !== lastGenerated)))) {
+      return Promise.resolve();
+    }
     var current = ++sequence;
     return fetch('${ADMIN_PATH}', {
       method: 'POST',
@@ -79,25 +214,18 @@ function editorHtml(formName: 'write_post' | 'write_page', isEdit: boolean): str
       },
       body: JSON.stringify({ title: value })
     }).then(function (response) {
-      if (!response.ok) throw new Error('拼音别名生成失败');
+      if (!response.ok) throw new Error('拼音缩略名生成失败');
       return response.json();
     }).then(function (data) {
       if (current !== sequence || manual || String(title.value || '').trim() !== value) return;
       if (typeof data.slug !== 'string' || !data.slug) return;
       lastGenerated = data.slug;
       slug.value = data.slug;
-      slug.setAttribute('size', String(Math.max(5, data.slug.length)));
       slug.dispatchEvent(new Event('change', { bubbles: true }));
     }).catch(function () {
-      // Slug generation is an optional editor enhancement; never block saving.
+      // Pinyin generation is an optional editor enhancement; never block saving.
     });
   }
-
-  title.addEventListener('input', function () {
-    if (manual) return;
-    window.clearTimeout(timer);
-    timer = window.setTimeout(function () { generate(false); }, 280);
-  });
 
   slug.addEventListener('input', function () {
     if (String(slug.value || '') !== lastGenerated) manual = true;
@@ -105,14 +233,28 @@ function editorHtml(formName: 'write_post' | 'write_page', isEdit: boolean): str
 
   var regenerate = document.createElement('button');
   regenerate.type = 'button';
-  regenerate.className = 'btn';
+  regenerate.className = 'btn btn-xs';
   regenerate.textContent = '重新生成拼音';
-  regenerate.style.marginLeft = '8px';
   regenerate.addEventListener('click', function () {
     manual = false;
     generate(true);
   });
-  slug.parentElement.appendChild(regenerate);
+  slug.parentNode.appendChild(regenerate);
+
+  var cid = document.createElement('span');
+  cid.textContent = 'CID=' + (currentCid > 0 ? String(currentCid) : '保存后生成');
+  cid.style.cssText = 'color:#999;font-size:12px;white-space:nowrap;';
+  slug.parentNode.appendChild(cid);
+
+  if (!allowsSlugEdit) {
+    form.addEventListener('submit', function () {
+      var value = String(slug.value || '').trim();
+      var target = new URL(form.getAttribute('action') || '/api/admin/content', window.location.href);
+      if (value) target.searchParams.set('${SAVE_SLUG_PARAM}', value);
+      else target.searchParams.delete('${SAVE_SLUG_PARAM}');
+      form.setAttribute('action', target.pathname + target.search + target.hash);
+    });
+  }
 
   if (!${isEdit ? 'true' : 'false'} && !String(slug.value || '').trim()) {
     generate(false);
@@ -126,14 +268,34 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   addHook('admin:writePost:bottom', pluginId, (html: string, extra?: EditorExtra) => {
     const pattern = String(extra?.options?.permalinkPattern || '/archives/{cid}/');
-    if (!pattern.includes('{slug}')) return html;
-    return html + editorHtml('write_post', Boolean(extra?.isEdit));
+    const post = extra?.post;
+    return html + editorHtml(
+      'write_post',
+      Boolean(extra?.isEdit),
+      pattern.includes('{slug}'),
+      String(post?.slug || ''),
+      Number(post?.cid) || 0,
+    );
   });
 
   addHook('admin:writePage:bottom', pluginId, (html: string, extra?: EditorExtra) => {
     const pattern = String(extra?.options?.pagePattern || '/{slug}.html');
-    if (!pattern.includes('{slug}')) return html;
-    return html + editorHtml('write_page', Boolean(extra?.isEdit));
+    const page = extra?.page;
+    return html + editorHtml(
+      'write_page',
+      Boolean(extra?.isEdit),
+      pattern.includes('{slug}'),
+      String(page?.slug || ''),
+      Number(page?.cid) || 0,
+    );
+  });
+
+  addHook('post:finishSave', pluginId, async (content: Record<string, any>, extra?: SaveExtra) => {
+    await persistSubmittedSlug(content, extra);
+  });
+
+  addHook('page:finishSave', pluginId, async (content: Record<string, any>, extra?: SaveExtra) => {
+    await persistSubmittedSlug(content, extra);
   });
 
   addHook('route:request', pluginId, async (
