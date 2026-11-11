@@ -909,10 +909,13 @@ function createAdminPreviewScript(): string {
         preview.style.getPropertyPriority('min-height') !== 'important') {
       preview.style.setProperty('min-height', '0', 'important');
     }
-    // Match the native textarea viewport: remove the legacy preview offsets.
-    if (preview.style.getPropertyValue('margin') !== '0px' ||
+    // Match the native editor area's vertical spacing so switching tabs
+    // does not move the surrounding page up or down.
+    const editorArea = textarea.parentElement;
+    const editorMargin = editorArea ? getComputedStyle(editorArea).margin : '0px';
+    if (preview.style.getPropertyValue('margin') !== editorMargin ||
         preview.style.getPropertyPriority('margin') !== 'important') {
-      preview.style.setProperty('margin', '0', 'important');
+      preview.style.setProperty('margin', editorMargin, 'important');
     }
     if (preview.style.getPropertyValue('padding') !== '0px' ||
         preview.style.getPropertyPriority('padding') !== 'important') {
