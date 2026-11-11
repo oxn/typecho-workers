@@ -897,6 +897,15 @@ function createAdminPreviewScript(): string {
         preview.style.getPropertyPriority('min-height') !== 'important') {
       preview.style.setProperty('min-height', '0', 'important');
     }
+    // Match the native textarea viewport: remove the legacy preview offsets.
+    if (preview.style.getPropertyValue('margin') !== '0px' ||
+        preview.style.getPropertyPriority('margin') !== 'important') {
+      preview.style.setProperty('margin', '0', 'important');
+    }
+    if (preview.style.getPropertyValue('padding') !== '0px' ||
+        preview.style.getPropertyPriority('padding') !== 'important') {
+      preview.style.setProperty('padding', '0', 'important');
+    }
     if (preview.style.getPropertyValue('max-height') !== 'none' ||
         preview.style.getPropertyPriority('max-height') !== 'important') {
       preview.style.setProperty('max-height', 'none', 'important');
@@ -933,7 +942,7 @@ function createAdminPreviewScript(): string {
       '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="/themes/typecho-theme-warm-cy/style.css">' +
       '<style>' + katexCss + '</style>' +
-      '<style>html,body{margin:0!important;padding:0!important;min-height:0!important;}body.warm-theme{min-width:0!important;min-height:0!important;overflow-x:hidden!important;} .warm-main{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important;padding:0 24px!important;} .warm-article{width:100%!important;margin:0!important;} .warm-article__body{min-width:0!important;width:100%!important;} .warm-prose{width:100%;max-width:none!important;}</style>' +
+      '<style>html,body{margin:0!important;padding:0!important;min-height:0!important;}html,body,*{scrollbar-width:auto!important;scrollbar-color:auto!important;}body.warm-theme{min-width:0!important;min-height:0!important;overflow-x:hidden!important;} .warm-main{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important;padding:0 24px!important;} .warm-article{width:100%!important;margin:0!important;} .warm-article__body{min-width:0!important;width:100%!important;} .warm-prose{width:100%;max-width:none!important;}</style>' +
       '<script>window.MathJax={startup:{typeset:false},tex:{inlineMath:[["\\\\(","\\\\)"]],displayMath:[["\\\\[","\\\\]"]]}};' + '</scr' + 'ipt>' +
       '</head><body class="' + bodyClass + '">' +
       '<main class="warm-main"><article class="warm-article"><div class="warm-article__body" data-math-engine="' + mathEngine + '"><div class="warm-prose">' + source + '</div></div></article></main>' +
