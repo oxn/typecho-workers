@@ -896,7 +896,9 @@ function createAdminPreviewScript(): string {
   preview.insertAdjacentElement('afterend', previewResizeHandle);
 
   function syncPreviewResizeHandleVisibility() {
-    previewResizeHandle.classList.toggle('wmd-hidetab', preview.classList.contains('wmd-hidetab'));
+    const hidden = preview.classList.contains('wmd-hidetab');
+    previewResizeHandle.classList.toggle('wmd-hidetab', hidden);
+    previewResizeHandle.style.display = hidden ? 'none' : 'block';
   }
   syncPreviewResizeHandleVisibility();
   if (window.MutationObserver) {
