@@ -895,6 +895,21 @@ function createAdminPreviewScript(): string {
   previewResizeHandle.innerHTML = '<i></i>';
   preview.insertAdjacentElement('afterend', previewResizeHandle);
 
+  // Copy the native editor handle's box metrics so the preview handle has
+  // exactly the same width, border, padding and distance from its editor.
+  const nativeResizeHandle = textarea.nextElementSibling;
+  if (nativeResizeHandle && nativeResizeHandle.classList.contains('resize')) {
+    const nativeHandleStyle = getComputedStyle(nativeResizeHandle);
+    ['width', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+      'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+      'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+      'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+      'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+      'box-sizing'].forEach((property) => {
+      previewResizeHandle.style.setProperty(property, nativeHandleStyle.getPropertyValue(property));
+    });
+  }
+
   function syncPreviewResizeHandleVisibility() {
     const hidden = preview.classList.contains('wmd-hidetab');
     previewResizeHandle.classList.toggle('wmd-hidetab', hidden);
@@ -1016,7 +1031,7 @@ function createAdminPreviewScript(): string {
   let sequence = 0;
   let timer = null;
   let hasRenderedPreview = false;
-  frame.srcdoc = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><body style="margin:0;padding:18px 24px;font:14px/1.7 system-ui,sans-serif;color:#77817b;background:#fff">正在加载 Markdown 预览…</body></html>';
+  frame.srcdoc = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><body style="box-sizing:border-box;margin:0;padding:0 15px;font:14px/1.7 system-ui,sans-serif;color:#77817b;background:#fff">正在加载 Markdown 预览…</body></html>';
   const isDarkMode = () =>
     document.documentElement.classList.contains('dark') ||
     document.body.classList.contains('dark');
@@ -1031,7 +1046,7 @@ function createAdminPreviewScript(): string {
       '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="/themes/typecho-theme-warm-cy/style.css">' +
       '<style>' + katexCss + '</style>' +
-      '<style>html,body{margin:0!important;padding:0!important;min-height:0!important;}html,body,*{scrollbar-width:auto!important;scrollbar-color:auto!important;}body.warm-theme{min-width:0!important;min-height:0!important;overflow-x:hidden!important;} .warm-main{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important;padding:0 24px!important;} .warm-article{width:100%!important;margin:0!important;} .warm-article__body{min-width:0!important;width:100%!important;} .warm-prose{width:100%;max-width:none!important;}</style>' +
+      '<style>html,body{margin:0!important;padding:0!important;min-height:0!important;}html,body,*{scrollbar-width:auto!important;scrollbar-color:auto!important;}body.warm-theme{min-width:0!important;min-height:0!important;overflow-x:hidden!important;} .warm-main{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important;padding:0 15px!important;} .warm-article{width:100%!important;margin:0!important;} .warm-article__body{min-width:0!important;width:100%!important;} .warm-prose{width:100%;max-width:none!important;}</style>' +
       '<script>window.MathJax={startup:{typeset:false},tex:{inlineMath:[["\\\\(","\\\\)"]],displayMath:[["\\\\[","\\\\]"]]}};' + '</scr' + 'ipt>' +
       '</head><body class="' + bodyClass + '">' +
       '<main class="warm-main"><article class="warm-article"><div class="warm-article__body" data-math-engine="' + mathEngine + '"><div class="warm-prose">' + source + '</div></div></article></main>' +
