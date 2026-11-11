@@ -917,15 +917,6 @@ function createAdminPreviewScript(): string {
         preview.style.getPropertyPriority('margin') !== 'important') {
       preview.style.setProperty('margin', editorMargin, 'important');
     }
-    // The native editor wrapper has its own bottom margin (including the
-    // Typecho editor's negative spacing). Match that one value so the preview
-    // frame's bottom edge sits the same distance from the next control.
-    const editorWrapper = textarea.closest('.editor') || editorArea;
-    const editorBottomMargin = editorWrapper ? getComputedStyle(editorWrapper).marginBottom : '0px';
-    if (preview.style.getPropertyValue('margin-bottom') !== editorBottomMargin ||
-        preview.style.getPropertyPriority('margin-bottom') !== 'important') {
-      preview.style.setProperty('margin-bottom', editorBottomMargin, 'important');
-    }
     if (preview.style.getPropertyValue('padding') !== '0px' ||
         preview.style.getPropertyPriority('padding') !== 'important') {
       preview.style.setProperty('padding', '0', 'important');
