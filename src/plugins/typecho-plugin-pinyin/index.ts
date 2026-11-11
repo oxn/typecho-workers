@@ -12,7 +12,6 @@ const MAX_SLUG_ATTEMPTS = 100;
 
 type EditorExtra = {
   options?: Record<string, unknown>;
-  isEdit?: boolean;
   post?: { cid?: number; slug?: string | null };
   page?: { cid?: number; slug?: string | null };
 };
@@ -136,7 +135,6 @@ async function persistSubmittedSlug(content: Record<string, any>, extra?: SaveEx
 
 function editorHtml(
   formName: 'write_post' | 'write_page',
-  isEdit: boolean,
   allowsSlugEdit: boolean,
   currentSlug: string,
   currentCid: number,
@@ -299,7 +297,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const post = extra?.post;
     return html + editorHtml(
       'write_post',
-      Boolean(extra?.isEdit),
       pattern.includes('{slug}'),
       String(post?.slug || ''),
       Number(post?.cid) || 0,
