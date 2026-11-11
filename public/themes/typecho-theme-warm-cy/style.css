@@ -162,6 +162,16 @@ body.warm-theme {
   transition: color 180ms ease, background-color 180ms ease;
 }
 
+.warm-nav__account {
+  gap: 6px;
+}
+
+.warm-nav__account-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
 .warm-nav__dropdown > summary::-webkit-details-marker {
   display: none;
 }
@@ -721,11 +731,21 @@ body.warm-theme {
 .warm-prose {
   color: var(--warm-body);
   font-size: 17px;
-  line-height: 2;
   overflow-wrap: anywhere;
 }
 
-.warm-prose p {
+/* Keep the roomy rhythm on Markdown blocks, not restored custom HTML. */
+.warm-prose > :not(.cy-inline-html-pending) {
+  line-height: 2;
+}
+
+/* Custom HTML inherits the site's base line-height unless it defines its own. */
+.warm-prose .cy-inline-html-pending {
+  line-height: 1.75;
+}
+
+/* Only Markdown paragraphs receive the theme's large paragraph spacing. */
+.warm-prose > p {
   margin: 0 0 1.65em;
 }
 
@@ -801,6 +821,27 @@ body.warm-theme {
   text-align: center;
 }
 
+.warm-prose details {
+  margin: 1.5em 0;
+  padding: .9em 1.1em;
+  border: 1px solid var(--warm-border);
+  background: var(--warm-surface);
+}
+
+.warm-prose details > summary {
+  color: var(--warm-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.warm-prose details[open] > summary {
+  margin-bottom: .8em;
+}
+
+.warm-prose details > :not(summary):first-of-type {
+  margin-top: .5em;
+}
+
 .warm-prose blockquote,
 .warm-note__content blockquote {
   margin: 1.7em 0;
@@ -811,6 +852,17 @@ body.warm-theme {
   font-size: 1.08em;
   letter-spacing: .005em;
   background: #f9f9f8;
+}
+
+.warm-prose blockquote > strong:first-child {
+  display: block;
+  margin-bottom: .65em;
+  color: #403b35;
+  font-family: var(--warm-font);
+  font-size: .78em;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
 }
 
 .warm-prose blockquote p,
@@ -856,20 +908,30 @@ body.warm-theme {
   line-height: 1.5;
   letter-spacing: 0;
 }
-/* Markdown Alerts 标题图标 */
+/* Render the alert glyph emitted by the Rehype pipeline directly.
+   Do not hide it: the title pseudo-element is intentionally disabled. */
 .warm-prose .markdown-alert-title .markdown-alert-icon,
 .warm-note__content .markdown-alert-title .markdown-alert-icon {
-  display: inline-block !important;
-  width: 18px !important;
-  height: 18px !important;
-  min-width: 18px !important;
-  max-width: 18px !important;
-  min-height: 18px !important;
-  max-height: 18px !important;
-  flex: 0 0 18px !important;
-  margin: 0 8px 0 0 !important;
-  vertical-align: middle;
+  display: inline-flex !important;
+  flex: 0 0 18px;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
 }
+
+.warm-prose .markdown-alert-title::before,
+.warm-note__content .markdown-alert-title::before {
+  content: none !important;
+  display: none !important;
+}
+
 /* 提示框正文 */
 .warm-prose .markdown-alert p,
 .warm-note__content .markdown-alert p {
@@ -903,7 +965,9 @@ body.warm-theme {
 
 /* IMPORTANT - 紫色 */
 .warm-prose .markdown-alert[data-alert="IMPORTANT" i],
-.warm-note__content .markdown-alert[data-alert="IMPORTANT" i] {
+.warm-note__content .markdown-alert[data-alert="IMPORTANT" i],
+.warm-prose .markdown-alert-important,
+.warm-note__content .markdown-alert-important {
   border-color: #e9d5ff;
   border-left-color: #c084fc;
   background: #faf5ff;
@@ -921,7 +985,9 @@ body.warm-theme {
 
 /* CAUTION - 红色 */
 .warm-prose .markdown-alert[data-alert="CAUTION" i],
-.warm-note__content .markdown-alert[data-alert="CAUTION" i] {
+.warm-note__content .markdown-alert[data-alert="CAUTION" i],
+.warm-prose .markdown-alert-caution,
+.warm-note__content .markdown-alert-caution {
   border-color: #fecaca;
   border-left-color: #f87171;
   background: #fef2f2;
@@ -952,7 +1018,9 @@ body.warm-theme {
 }
 
 .dark .warm-prose .markdown-alert[data-alert="IMPORTANT" i],
-.dark .warm-note__content .markdown-alert[data-alert="IMPORTANT" i] {
+.dark .warm-note__content .markdown-alert[data-alert="IMPORTANT" i],
+.dark .warm-prose .markdown-alert-important,
+.dark .warm-note__content .markdown-alert-important {
   border-color: #581c87;
   border-left-color: #c084fc;
   background: #581c87;
@@ -968,7 +1036,9 @@ body.warm-theme {
 }
 
 .dark .warm-prose .markdown-alert[data-alert="CAUTION" i],
-.dark .warm-note__content .markdown-alert[data-alert="CAUTION" i] {
+.dark .warm-note__content .markdown-alert[data-alert="CAUTION" i],
+.dark .warm-prose .markdown-alert-caution,
+.dark .warm-note__content .markdown-alert-caution {
   border-color: #7f1d1d;
   border-left-color: #f87171;
   background: #7f1d1d;
@@ -996,12 +1066,32 @@ body.warm-theme {
   tab-size: 2;
 }
 
+/* Code titles are emitted by remark-flexible-code-titles as a semantic strong node. */
+.warm-prose strong:has(+ pre) {
+  display: block;
+  margin: 2.5em 0 0;
+  padding: 10px 16px;
+  background: var(--warm-surface);
+  color: var(--warm-faint);
+  font-family: var(--warm-mono);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.warm-prose strong + pre {
+  margin-top: 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--warm-border);
+}
+
 .warm-prose pre code {
   padding: 0;
   background: transparent;
   color: inherit;
   font-size: inherit;
 }
+
 
 .warm-prose table {
   min-width: stretch;
@@ -1619,8 +1709,17 @@ body.warm-theme {
 }
 
 .warm-footer {
-  margin-top: 80px;
-  padding-bottom: 48px;
+  margin-top: 36px;
+  padding-bottom: 36px;
+}
+
+.warm-footer__custom {
+  margin-bottom: 12px;
+}
+
+/* Keep a natural gap before the article declaration; its visual style is user-defined. */
+.warm-article__declaration {
+  margin-top: 24px;
 }
 
 .warm-footer__meta {
@@ -1639,13 +1738,41 @@ body.warm-theme {
   gap: 6px;
 }
 
+/* 页脚自定义链接 */
 .warm-footer__meta nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  align-items: center;
+  column-gap: 18px;
+  row-gap: 4px;
 }
 
-.warm-footer__meta a:hover {
+/* 页脚链接 */
+.warm-footer__meta nav > a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--warm-faint);
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+/* 页脚链接中的图标容器 */
+.warm-footer__meta nav > a > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 页脚 SVG 图标 */
+.warm-footer__meta nav > a > span > svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* 页脚图标和文字统一悬停颜色 */
+.warm-footer__meta nav > a:hover {
   color: var(--warm-accent);
 }
 
@@ -1721,10 +1848,26 @@ body.warm-theme {
     font-size: 13px;
   }
 
-  .warm-comments__heading,
+  .warm-comments__heading {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  
   .warm-footer__meta {
     align-items: flex-start;
     flex-direction: column;
+  }
+  
+  .warm-comments__heading h2 {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  
+  .warm-article__actions {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
   .warm-comments__heading p {
@@ -1745,8 +1888,8 @@ body.warm-theme {
   }
 
   .warm-footer {
-    margin-top: 64px;
-    padding-bottom: 40px;
+    margin-top: 36px;
+    padding-bottom: 36px;
   }
 }
 
@@ -1845,37 +1988,639 @@ body.warm-theme {
   }
 }
 
-/* 管理员快捷编辑按钮 */
-.warm-article__hero-inner {
-  position: relative;
+/* ========================================
+   CY 管理弹窗：统一 Rin 字体规范
+   置顶、删除弹窗共用
+   ======================================== */
+
+/* 弹窗标题 */
+.warm-manage-dialog__panel [data-warm-dialog-title] {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.warm-edit-link {
-  position: absolute;
-  top: 0;
-  right: 0;
+/* 弹窗正文 */
+.warm-manage-dialog__panel [data-warm-dialog-message] {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
+/* 删除确认输入框 */
+.warm-manage-dialog__input {
+  font-size: 16px;
+}
+
+/* 确认和取消按钮 */
+.warm-manage-dialog__actions button {
+  font-size: 16px;
+}
+
+/* 错误提示 */
+.warm-manage-dialog__error {
+  font-size: 12px;
+}
+
+
+/* ========================================
+   CY 管理员文章操作按钮
+   ======================================== */
+
+   .warm-article__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  
+  .warm-action-button {
+    position: static;
+    display: inline-flex;
+    width: 32px;
+    height: 30px;
+    min-width: 32px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--warm-border);
+    border-radius: 6px;
+    background: var(--warm-bg);
+    color: var(--warm-muted);
+    cursor: pointer;
+    transition:
+      color .2s ease,
+      border-color .2s ease,
+      background-color .2s ease;
+  }
+  
+  .warm-action-button:hover {
+    border-color: var(--warm-accent);
+    background: var(--warm-surface);
+    color: var(--warm-accent);
+  }
+  
+  .warm-action-button svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+  }
+  
+  .warm-action-button.is-pinned {
+    border-color: var(--warm-accent);
+    color: var(--warm-accent);
+  }
+  
+  /* ========================================
+     CY 管理弹窗：基础容器
+     ======================================== */
+  
+  .warm-manage-dialog {
+    position: fixed;
+    inset: 0;
+    width: min(420px, calc(100% - 32px));
+    max-width: 420px;
+    max-height: calc(100% - 40px);
+    margin: auto;
+    padding: 0;
+    overflow: auto;
+    border: 1px solid var(--warm-border);
+    border-radius: 12px;
+    background: var(--warm-bg);
+    color: var(--warm-text);
+    box-shadow:
+      0 24px 80px rgb(0 0 0 / 18%),
+      0 4px 16px rgb(0 0 0 / 8%);
+    font-family: var(--warm-font);
+  }
+  
+  .warm-manage-dialog[open] {
+    display: block;
+    animation: warm-manage-dialog-in .2s ease-out;
+  }
+  
+  .warm-manage-dialog::backdrop {
+    background: rgb(20 19 18 / 55%);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+  
+  .warm-manage-dialog__panel {
+    padding: 28px;
+  }
+  
+  /* 弹窗进入动画 */
+  @keyframes warm-manage-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  /* ========================================
+     CY 管理弹窗：标题与正文
+     ======================================== */
+  
+  .warm-manage-dialog__panel h2,
+  .warm-manage-dialog__panel [data-warm-dialog-title] {
+    margin: 0 0 16px;
+    color: var(--warm-text);
+    font-family: var(--warm-font);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -.02em;
+  }
+  
+  .warm-manage-dialog__panel p,
+  .warm-manage-dialog__panel [data-warm-dialog-message] {
+    margin: 0 0 12px;
+    color: var(--warm-muted);
+    font-family: var(--warm-font);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+    overflow-wrap: anywhere;
+  }
+  
+  /* 删除弹窗第二段说明 */
+  .warm-manage-dialog[data-warm-dialog="delete"] .warm-manage-dialog__panel p:not(.warm-manage-dialog__error) {
+    margin-bottom: 12px;
+  }
+  
+  /* ========================================
+     CY 管理弹窗：输入框
+     ======================================== */
+  
+  .warm-manage-dialog__input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    margin: 16px 0 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--warm-border);
+    border-radius: 7px;
+    outline: none;
+    background: var(--warm-surface);
+    color: var(--warm-text);
+    font-family: var(--warm-font);
+    font-size: 15px;
+    line-height: 22px;
+    transition:
+      border-color .2s ease,
+      background-color .2s ease,
+      box-shadow .2s ease;
+  }
+  
+  .warm-manage-dialog__input::placeholder {
+    color: var(--warm-faint);
+  }
+  
+  .warm-manage-dialog__input:hover {
+    border-color: #c9c4bd;
+  }
+  
+  .warm-manage-dialog__input:focus {
+    border-color: var(--warm-accent);
+    background: var(--warm-bg);
+    box-shadow: 0 0 0 3px rgb(104 95 87 / 10%);
+  }
+  
+  /* ========================================
+     CY 管理弹窗：错误提示
+     ======================================== */
+  
+  .warm-manage-dialog__error {
+    min-height: 0;
+    margin: 8px 0 0 !important;
+    color: #dc4545 !important;
+    font-size: 13px !important;
+    line-height: 20px !important;
+  }
+  
+  .warm-manage-dialog__error:empty {
+    display: none;
+  }
+  
+  /* ========================================
+     CY 管理弹窗：操作按钮
+     ======================================== */
+  
+  .warm-manage-dialog__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  
+  .warm-manage-dialog__actions button {
+    display: inline-flex;
+    min-width: 82px;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border: 1px solid var(--warm-border);
+    border-radius: 7px;
+    background: var(--warm-bg);
+    color: var(--warm-muted);
+    font-family: var(--warm-font);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    cursor: pointer;
+    transition:
+      color .2s ease,
+      border-color .2s ease,
+      background-color .2s ease,
+      opacity .2s ease;
+  }
+  
+  .warm-manage-dialog__actions button:hover:not(:disabled) {
+    border-color: #c9c4bd;
+    background: var(--warm-surface);
+    color: var(--warm-text);
+  }
+  
+  /* 确认按钮 */
+  .warm-manage-dialog__actions [data-warm-dialog-confirm] {
+    border-color: var(--warm-accent);
+    background: var(--warm-accent);
+    color: #fff;
+  }
+  
+  .warm-manage-dialog__actions [data-warm-dialog-confirm]:hover:not(:disabled) {
+    border-color: var(--warm-text);
+    background: var(--warm-text);
+    color: #fff;
+  }
+  
+  /* 禁用状态 */
+  .warm-manage-dialog__actions button:disabled {
+    cursor: not-allowed;
+    opacity: .4;
+  }
+  
+  /* ========================================
+     CY 管理弹窗：深色模式
+     ======================================== */
+  
+  .dark .warm-manage-dialog {
+    border-color: #393939;
+    background: #202020;
+    color: #ededed;
+    box-shadow: 0 24px 80px rgb(0 0 0 / 45%);
+  }
+  
+  .dark .warm-manage-dialog__panel h2,
+  .dark .warm-manage-dialog__panel [data-warm-dialog-title] {
+    color: #f2f2f2;
+  }
+  
+  .dark .warm-manage-dialog__panel p,
+  .dark .warm-manage-dialog__panel [data-warm-dialog-message] {
+    color: #b5b5b5;
+  }
+  
+  .dark .warm-manage-dialog__input {
+    border-color: #414141;
+    background: #292929;
+    color: #ededed;
+  }
+  
+  .dark .warm-manage-dialog__input::placeholder {
+    color: #777;
+  }
+  
+  .dark .warm-manage-dialog__input:focus {
+    border-color: #a49a8f;
+    background: #252525;
+    box-shadow: 0 0 0 3px rgb(255 255 255 / 6%);
+  }
+  
+  .dark .warm-manage-dialog__actions button {
+    border-color: #414141;
+    background: #292929;
+    color: #ccc;
+  }
+  
+  .dark .warm-manage-dialog__actions button:hover:not(:disabled) {
+    border-color: #777;
+    background: #353535;
+    color: #fff;
+  }
+  
+  .dark .warm-manage-dialog__actions [data-warm-dialog-confirm] {
+    border-color: #777;
+    background: #777;
+    color: #fff;
+  }
+  
+  .dark .warm-manage-dialog__actions [data-warm-dialog-confirm]:hover:not(:disabled) {
+    border-color: #999;
+    background: #999;
+  }
+  
+  /* ========================================
+     CY 管理弹窗：手机端适配
+     ======================================== */
+  
+  @media (max-width: 640px) {
+    .warm-article__actions {
+      gap: 5px;
+    }
+  
+    .warm-action-button {
+      width: 30px;
+      height: 29px;
+      min-width: 30px;
+    }
+  
+    .warm-action-button svg {
+      width: 15px;
+      height: 15px;
+      flex-basis: 15px;
+    }
+  
+    .warm-manage-dialog {
+      width: calc(100% - 32px);
+      max-width: 380px;
+      border-radius: 11px;
+    }
+  
+    .warm-manage-dialog__panel {
+      padding: 24px 20px;
+    }
+  
+    .warm-manage-dialog__panel h2,
+    .warm-manage-dialog__panel [data-warm-dialog-title] {
+      font-size: 20px;
+      line-height: 28px;
+    }
+  
+    .warm-manage-dialog__panel p,
+    .warm-manage-dialog__panel [data-warm-dialog-message] {
+      font-size: 16px;
+      line-height: 24px;
+    }
+  
+    .warm-manage-dialog__actions {
+      gap: 8px;
+    }
+  
+    .warm-manage-dialog__actions button {
+      min-width: 76px;
+    }
+  }
+  
+  /* 减少动态效果 */
+  @media (prefers-reduced-motion: reduce) {
+    .warm-manage-dialog[open] {
+      animation: none;
+    }
+  }
+
+  .warm-manage-dialog__input:focus,
+.warm-manage-dialog__input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--theme-rgb, #11b031);
+}
+
+/* 删除图标：橙色 */
+.warm-action-button[data-warm-action="delete"] {
+  color: #f59e0b;
+}
+
+
+
+/* ========================================
+   Warm CY 首页搜索
+   ======================================== */
+.warm-search-trigger {
   display: inline-flex;
+  width: 32px;
+  height: 32px;
   align-items: center;
   justify-content: center;
-  padding: 5px 12px;
-  border: 1px solid var(--warm-border);
-  border-radius: 5px;
-  color: var(--warm-muted);
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #77736e;
+  cursor: pointer;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+.warm-search-trigger:hover,
+.warm-search-trigger:focus-visible {
+  background: var(--warm-hover);
+  color: #269b63;
+}
+.warm-search-trigger svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.warm-search-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(520px, calc(100vw - 32px));
+  max-width: none;
+  height: fit-content;
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--warm-text);
+}
+.warm-search-dialog::backdrop {
+  background: rgba(25, 25, 25, .28);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+.warm-search-dialog[open] {
+  animation: warm-search-dialog-in .18s ease-out;
+}
+@keyframes warm-search-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.warm-search-dialog__panel {
+  position: relative;
+  padding: 30px;
+  border: 1px solid rgba(235, 232, 227, .9);
+  border-radius: 14px;
   background: var(--warm-bg);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .16);
+}
+.warm-search-dialog__panel h2 {
+  margin: 0 0 20px;
+  color: var(--warm-text);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.warm-search-dialog__close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--warm-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.warm-search-dialog__close:hover {
+  background: var(--warm-surface);
+  color: var(--warm-text);
+}
+.warm-search-form {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.warm-search-input {
+  display: block;
+  min-width: 0;
+  min-height: 46px;
+  flex: 1 1 auto;
+  padding: 10px 13px;
+  border: 1px solid var(--warm-border);
+  border-radius: 8px;
+  outline: none;
+  background: var(--warm-bg);
+  color: var(--warm-text);
+  font-size: 15px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.warm-search-input:focus,
+.warm-search-input:focus-visible {
+  border-color: #269b63;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(38, 155, 99, .09);
+}
+.warm-search-submit {
+  display: inline-flex;
+  min-width: 94px;
+  min-height: 46px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid #269b63;
+  border-radius: 8px;
+  background: #269b63;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.warm-search-submit:hover {
+  border-color: #1e8654;
+  background: #1e8654;
+}
+.warm-search-submit svg {
+  width: 17px;
+  height: 17px;
+}
+.warm-search-error {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+  color: #c2413b;
   font-size: 12px;
-  line-height: 1.5;
+}
+.warm-search-error:empty {
+  display: none;
+}
+.dark .warm-search-dialog__panel {
+  border-color: #343434;
+  background: #202020;
+}
+.dark .warm-search-dialog__panel h2,
+.dark .warm-search-input {
+  color: #eee;
+}
+.dark .warm-search-input {
+  border-color: #454545;
+  background: #292929;
+}
+@media (max-width: 639px) {
+  .warm-search-dialog__panel { padding: 26px 18px 20px; }
+  .warm-search-form { gap: 8px; }
+  .warm-search-submit { min-width: 82px; padding-inline: 12px; }
+}
+
+
+/* Rehype Markdown: math, code highlighting and browser-rendered Mermaid. */
+.warm-prose .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: .25em 0; }
+.warm-prose .katex { font-size: 1.05em; }
+.warm-prose pre code.hljs { display: block; overflow-x: auto; padding: 1em; }
+.warm-prose code.hljs { padding: .15em .35em; border-radius: 4px; }
+.warm-prose .hljs-comment, .warm-prose .hljs-quote { color: #8a918d; font-style: italic; }
+.warm-prose .hljs-keyword, .warm-prose .hljs-selector-tag, .warm-prose .hljs-literal { color: #9b5bce; }
+.warm-prose .hljs-string, .warm-prose .hljs-attr { color: #27865a; }
+.warm-prose .hljs-number, .warm-prose .hljs-symbol { color: #c07835; }
+.warm-prose .hljs-title, .warm-prose .hljs-function { color: #3979b8; }
+.warm-prose pre.mermaid {
+  max-width: 100%;
+  margin: 1.5rem 0;
+  padding: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  background: transparent;
+  text-align: center;
+  white-space: normal;
+}
+
+.warm-prose pre.mermaid svg {
+  display: block;
+  width: max-content;
+  max-width: none;
+  height: auto;
+  margin-inline: auto;
+}
+
+
+/* Rehype heading permalinks: keep the anchor available without making the title noisy. */
+.warm-prose .warm-heading-anchor {
+  display: none !important;
+  margin-left: .45em;
+  color: var(--warm-faint);
+  font-size: .62em;
+  font-weight: 400;
+  line-height: 1;
+  opacity: .5;
   text-decoration: none;
-  transition: color .2s, border-color .2s, background .2s;
+  vertical-align: middle;
+  transition: color 160ms ease, opacity 160ms ease;
 }
 
-.warm-edit-link:hover {
+.warm-prose h2:hover .warm-heading-anchor,
+.warm-prose h3:hover .warm-heading-anchor,
+.warm-prose h4:hover .warm-heading-anchor,
+.warm-prose .warm-heading-anchor:hover {
   color: var(--warm-accent);
-  border-color: var(--warm-accent);
-}
-
-@media (max-width: 640px) {
-  .warm-edit-link {
-    padding: 4px 9px;
-    font-size: 11px;
-  }
+  opacity: 1;
+  text-decoration: none;
 }
