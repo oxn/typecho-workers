@@ -198,6 +198,9 @@ function editorHtml(
   var manual = ${isEdit ? 'true' : 'String(initialSlug || "").trim() !== ""'};
   var sequence = 0;
   var timer = 0;
+  var generationPromise = Promise.resolve();
+  var generationPending = false;
+  var lastGeneratedTitle = '';
 
   function generate(force) {
     var value = String(title.value || '').trim();
@@ -205,7 +208,8 @@ function editorHtml(
       return Promise.resolve();
     }
     var current = ++sequence;
-    return fetch('${ADMIN_PATH}', {
+    generationPending = true;
+    generationPromise = fetch('${ADMIN_PATH}', {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
@@ -220,11 +224,16 @@ function editorHtml(
       if (current !== sequence || manual || String(title.value || '').trim() !== value) return;
       if (typeof data.slug !== 'string' || !data.slug) return;
       lastGenerated = data.slug;
+      lastGeneratedTitle = value;
       slug.value = data.slug;
       slug.dispatchEvent(new Event('change', { bubbles: true }));
     }).catch(function () {
       // Pinyin generation is an optional editor enhancement; never block saving.
+      if (current === sequence) lastGeneratedTitle = value;
+    }).then(function () {
+      if (current === sequence) generationPending = false;
     });
+    return generationPromise;
   }
 
   slug.addEventListener('input', function () {
@@ -246,15 +255,28 @@ function editorHtml(
   cid.style.cssText = 'color:#999;font-size:12px;white-space:nowrap;';
   slug.parentNode.appendChild(cid);
 
-  if (!allowsSlugEdit) {
-    form.addEventListener('submit', function () {
+  form.addEventListener('submit', function (event) {
+    var currentTitle = String(title.value || '').trim();
+    if (!manual && currentTitle && (generationPending || currentTitle !== lastGeneratedTitle)) {
+      event.preventDefault();
+      window.clearTimeout(timer);
+      if (!generationPending) generate(false);
+      var submitter = event.submitter;
+      generationPromise.then(function () {
+        if (typeof form.requestSubmit === 'function') form.requestSubmit(submitter || undefined);
+        else form.submit();
+      });
+      return;
+    }
+
+    if (!allowsSlugEdit) {
       var value = String(slug.value || '').trim();
       var target = new URL(form.getAttribute('action') || '/api/admin/content', window.location.href);
       if (value) target.searchParams.set('${SAVE_SLUG_PARAM}', value);
       else target.searchParams.delete('${SAVE_SLUG_PARAM}');
       form.setAttribute('action', target.pathname + target.search + target.hash);
-    });
-  }
+    }
+  });
 
   if (!${isEdit ? 'true' : 'false'} && !String(slug.value || '').trim()) {
     generate(false);
