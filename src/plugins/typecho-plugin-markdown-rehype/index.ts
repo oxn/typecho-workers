@@ -885,7 +885,20 @@ function createAdminPreviewScript(): string {
   // Match the preview viewport to the actual editor textarea height.
   // The iframe document keeps its own native scrollbar for long articles.
   function enforcePreviewLayout() {
-    const editorHeight = Math.round(textarea.getBoundingClientRect().height);
+    const editorRect = textarea.getBoundingClientRect();
+    const editorWidth = Math.round(editorRect.width);
+    const editorHeight = Math.round(editorRect.height);
+    if (editorWidth > 0) {
+      const width = editorWidth + 'px';
+      if (preview.style.getPropertyValue('width') !== width ||
+          preview.style.getPropertyPriority('width') !== 'important') {
+        preview.style.setProperty('width', width, 'important');
+      }
+      if (preview.style.getPropertyValue('box-sizing') !== 'border-box' ||
+          preview.style.getPropertyPriority('box-sizing') !== 'important') {
+        preview.style.setProperty('box-sizing', 'border-box', 'important');
+      }
+    }
     if (editorHeight > 0) {
       const height = editorHeight + 'px';
       if (preview.style.getPropertyValue('height') !== height ||
