@@ -236,6 +236,12 @@ function editorHtml(
     return generationPromise;
   }
 
+  title.addEventListener('input', function () {
+    if (manual) return;
+    window.clearTimeout(timer);
+    timer = window.setTimeout(function () { generate(false); }, 280);
+  });
+
   slug.addEventListener('input', function () {
     if (String(slug.value || '') !== lastGenerated) manual = true;
   });
