@@ -670,36 +670,78 @@ function rehypeMathText() {
 }
 /**
  * Mark Mermaid fenced blocks for the theme's browser-side Mermaid runtime.
- * This avoids a server-side renderer and keeps the Worker pipeline browser-free.
+ * Create independent light/dark source nodes so each SVG is rendered with its
+ * own Mermaid theme instead of repainting one SVG when the site theme changes.
+ *
+ * The theme runtime already renders every pre.mermaid node. Mermaid's per-chart
+ * init directive lets this plugin select the palette without changing the
+ * theme-owned runtime or its navigation lifecycle.
  */
 function rehypeMermaidMarkers() {
+  const visibilityStyles = [
+    '.mermaid_default{display:block}',
+    '.mermaid_dark{display:none}',
+    'html.dark .mermaid_default,body.dark .mermaid_default{display:none}',
+    'html.dark .mermaid_dark,body.dark .mermaid_dark{display:block}',
+  ].join('');
+
   return (tree: any): void => {
-    const visit = (node: any): void => {
-      if (!node || typeof node !== 'object') return;
-      if (node.type === 'element' && node.tagName === 'pre') {
-        const code = Array.isArray(node.children)
-          ? node.children.find((child: any) => child?.type === 'element' && child.tagName === 'code')
-          : undefined;
-        const classes: string[] = Array.isArray(code?.properties?.className)
-          ? code.properties.className
-          : [];
-        if (classes.includes('language-mermaid')) {
-          const textContent = (child: any): string => {
-            if (!child || typeof child !== 'object') return '';
-            if (child.type === 'text') return typeof child.value === 'string' ? child.value : '';
-            return Array.isArray(child.children) ? child.children.map(textContent).join('') : '';
-          };
-          const value = Array.isArray(code.children)
-            ? code.children.map(textContent).join('')
-            : '';
-          node.properties = { ...(node.properties ?? {}), className: ['mermaid'] };
-          node.children = [{ type: 'text', value }];
-          return;
-        }
-      }
-      if (Array.isArray(node.children)) node.children.forEach(visit);
+    let foundMermaid = false;
+    const textContent = (child: any): string => {
+      if (!child || typeof child !== 'object') return '';
+      if (child.type === 'text') return typeof child.value === 'string' ? child.value : '';
+      return Array.isArray(child.children) ? child.children.map(textContent).join('') : '';
     };
+
+    const visit = (node: any): void => {
+      if (!node || typeof node !== 'object' || !Array.isArray(node.children)) return;
+      const children = node.children as any[];
+      for (let index = 0; index < children.length; index++) {
+        const child = children[index];
+        if (child?.type === 'element' && child.tagName === 'pre') {
+          const code = Array.isArray(child.children)
+            ? child.children.find((item: any) => item?.type === 'element' && item.tagName === 'code')
+            : undefined;
+          const classes: string[] = Array.isArray(code?.properties?.className)
+            ? code.properties.className
+            : [];
+          if (classes.includes('language-mermaid')) {
+            const value = Array.isArray(code.children)
+              ? code.children.map(textContent).join('')
+              : '';
+            const makeVariant = (theme: 'default' | 'dark') => ({
+              type: 'element',
+              tagName: 'pre',
+              properties: {
+                ...(child.properties ?? {}),
+                className: theme === 'default'
+                  ? ['mermaid', 'mermaid_default', 'dark:hidden']
+                  : ['mermaid', 'mermaid_dark', 'dark:block', 'hidden'],
+              },
+              children: [{
+                type: 'text',
+                value: `%%{init: {"theme":"${theme}"}}%%\\n${value}`,
+              }],
+            });
+            children.splice(index, 1, makeVariant('default'), makeVariant('dark'));
+            index++;
+            foundMermaid = true;
+            continue;
+          }
+        }
+        visit(child);
+      }
+    };
+
     visit(tree);
+    if (foundMermaid && Array.isArray(tree.children)) {
+      tree.children.unshift({
+        type: 'element',
+        tagName: 'style',
+        properties: {},
+        children: [{ type: 'text', value: visibilityStyles }],
+      });
+    }
   };
 }
 
