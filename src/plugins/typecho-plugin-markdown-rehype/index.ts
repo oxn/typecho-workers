@@ -898,7 +898,7 @@ function createAdminPreviewScript(): string {
   const frame = document.createElement('iframe');
   frame.className = 'markdown-rehype-preview-frame';
   frame.title = 'Markdown Rehype 同步预览';
-  frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
+  frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-presentation');
   frame.setAttribute('referrerpolicy', 'same-origin');
   frame.style.cssText = 'display:block;width:100%;height:100%;min-height:0;box-sizing:border-box;border:1px solid #D9D9D6;border-radius:2px;background:#fff;';
   preview.replaceChildren(frame);
