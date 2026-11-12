@@ -7,7 +7,6 @@ import { PUBLIC_HTML_HEADER } from '@/lib/cache';
 import { isCurrentPageLink, warmSettings, warmCyFeatureSettings, renderFooterCustomHtml, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
-import { getWarmMermaidConfig } from './warm-mermaid';
 
 interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
   title?: string;
@@ -332,6 +331,18 @@ const footerLinks = [
   </script>
   <script>
     import mermaid from 'mermaid';
+
+    // Keep the browser renderer's config in this module scope. Astro frontmatter
+    // and re-exported workspace bindings are not browser globals.
+    const getWarmMermaidConfig = (dark: boolean) => ({
+      startOnLoad: false,
+      theme: dark ? 'dark' : 'default',
+      look: 'classic',
+      themeVariables: {
+        fontFamily: '"trebuchet ms",verdana,arial,sans-serif',
+        fontSize: '16px',
+      },
+    });
     import 'katex/dist/katex.min.css';
 
     const isWarmDarkMode = () =>
