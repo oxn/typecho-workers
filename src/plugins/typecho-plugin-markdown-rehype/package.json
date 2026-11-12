@@ -83,7 +83,7 @@
     "remark-flexible-containers": "^1.5.6",
     "remark-ins": "^1.2.6",
     "katex": "^0.16.22",
-    "mermaid": "^11.17.2",
+    "mermaid": "11.12.2",
     "mathjax-full": "^3.2.2"
   }
 }
