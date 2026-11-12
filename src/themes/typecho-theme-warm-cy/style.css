@@ -2593,7 +2593,8 @@ body.warm-theme {
 .warm-prose .hljs-string, .warm-prose .hljs-attr { color: #27865a; }
 .warm-prose .hljs-number, .warm-prose .hljs-symbol { color: #c07835; }
 .warm-prose .hljs-title, .warm-prose .hljs-function { color: #3979b8; }
-.warm-prose pre.mermaid {
+.warm-prose pre.mermaid_default,
+.warm-prose pre.mermaid_dark {
   max-width: 100%;
   margin: 1.5rem 0;
   padding: 1rem 0;
@@ -2606,7 +2607,8 @@ body.warm-theme {
   white-space: normal;
 }
 
-.warm-prose pre.mermaid svg {
+.warm-prose pre.mermaid_default svg,
+.warm-prose pre.mermaid_dark svg {
   display: block;
   width: max-content;
   max-width: none;
@@ -2621,10 +2623,14 @@ body.warm-theme {
  * measured viewBox before those transitions settle. Keep the entire diagram
  * subtree geometry immediate, not only foreignObject labels.
  */
-.warm-prose pre.mermaid svg,
-.warm-prose pre.mermaid svg *,
-.warm-prose pre.mermaid svg *::before,
-.warm-prose pre.mermaid svg *::after {
+.warm-prose pre.mermaid_default svg,
+.warm-prose pre.mermaid_default svg *,
+.warm-prose pre.mermaid_default svg *::before,
+.warm-prose pre.mermaid_default svg *::after,
+.warm-prose pre.mermaid_dark svg,
+.warm-prose pre.mermaid_dark svg *,
+.warm-prose pre.mermaid_dark svg *::before,
+.warm-prose pre.mermaid_dark svg *::after {
   transition: none !important;
 }
 
