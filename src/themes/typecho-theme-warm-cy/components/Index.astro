@@ -240,7 +240,7 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
       </section>
     ) : items.map(item => item.type === 'note' ? (
       <article class="warm-stream-item warm-note" data-content-type="note">
-        <a class="warm-stream-item__hit" href={item.permalink} data-no-instant aria-label="查看这则笔记"></a>
+        <a class="warm-stream-item__hit" href={item.permalink} aria-label="查看这则笔记"></a>
         <div class="warm-item-meta">
           <span class="warm-note-label">笔记</span>
           <span aria-hidden="true">·</span>
