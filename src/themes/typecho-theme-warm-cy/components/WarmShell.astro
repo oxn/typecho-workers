@@ -367,6 +367,7 @@ const footerLinks = [
           // InstantClick, so Mermaid must not also run its automatic startup.
           mermaid.initialize({
             ...getWarmMermaidConfig(isWarmDarkMode()),
+            look: 'classic',
             startOnLoad: false,
           });
 
