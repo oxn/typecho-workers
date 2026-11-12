@@ -331,6 +331,7 @@ const footerLinks = [
   </script>
   <script>
     import mermaid from 'mermaid';
+    import 'katex/dist/katex.min.css';
 
     // Keep the browser renderer's config in this module scope. Astro frontmatter
     // and re-exported workspace bindings are not browser globals.
@@ -343,7 +344,6 @@ const footerLinks = [
         fontSize: '16px',
       },
     });
-    import 'katex/dist/katex.min.css';
 
     const isWarmDarkMode = () =>
       document.documentElement.classList.contains('dark') ||
