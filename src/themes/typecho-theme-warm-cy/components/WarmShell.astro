@@ -79,7 +79,7 @@ const footerLinks = [
           <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
         )}
         {pages.map((page) => (
-          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink}>{page.title}</a>
+          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink} data-no-instant>{page.title}</a>
         ))}
         {searchEnabled && (
           <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
