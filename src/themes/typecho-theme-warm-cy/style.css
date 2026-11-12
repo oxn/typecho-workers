@@ -2601,6 +2601,20 @@ body.warm-theme {
   margin-inline: auto;
 }
 
+/*
+ * Mermaid measures SVG geometry synchronously while rendering. The global
+ * reduced-motion rule above applies a non-zero transition duration to every
+ * theme element; transitions on SVG nodes/paths can therefore inflate the
+ * measured viewBox before those transitions settle. Keep the entire diagram
+ * subtree geometry immediate, not only foreignObject labels.
+ */
+.warm-prose pre.mermaid svg,
+.warm-prose pre.mermaid svg *,
+.warm-prose pre.mermaid svg *::before,
+.warm-prose pre.mermaid svg *::after {
+  transition: none !important;
+}
+
 /* Rehype heading permalinks: keep the anchor available without making the title noisy. */
 .warm-prose .warm-heading-anchor {
   display: none !important;
