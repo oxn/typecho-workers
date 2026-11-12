@@ -983,7 +983,7 @@ function createAdminPreviewScript(): string {
       '<script>window.MathJax={startup:{typeset:false},tex:{inlineMath:[["\\\\(","\\\\)"]],displayMath:[["\\\\[","\\\\]"]]}};' + '</scr' + 'ipt>' +
       '</head><body class="' + bodyClass + '">' +
       '<main class="warm-main"><article class="warm-article"><div class="warm-article__body" data-math-engine="' + mathEngine + '"><div class="warm-prose">' + source + '</div></div></article></main>' +
-      '<script>(function(){var mermaidConfigs=' + mermaidConfigs + ';var mathEngine=' + JSON.stringify(mathEngine) + ';var mathJaxUrl=' + JSON.stringify(mathJaxUrl) + ';' +
+      '<script>(function(){var mermaidConfigs=' + JSON.stringify(mermaidConfigs) + ';var mathEngine=' + JSON.stringify(mathEngine) + ';var mathJaxUrl=' + JSON.stringify(mathJaxUrl) + ';' +
         'function notify(){var root=document.documentElement,body=document.body,rect=body.getBoundingClientRect();var h=Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight,rect.bottom+window.scrollY));window.parent.postMessage({type:"markdown-rehype-preview-height",height:h},"*");}' +
         'if(window.ResizeObserver){var ro=new ResizeObserver(notify);ro.observe(document.documentElement);ro.observe(document.body);}' +
         'window.addEventListener("load",notify);window.addEventListener("resize",notify);setTimeout(notify,80);setTimeout(notify,350);' +
