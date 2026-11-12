@@ -388,7 +388,27 @@ const footerLinks = [
             node.dataset.warmMermaidSource = originalSource;
             node.textContent = originalSource.trim();
             try {
-              await mermaid.run({ nodes: [node] });
+              // Parse Mermaid's SVG as XML, not as HTML inside a <pre>. This
+              // keeps Mermaid's generated <style> element inside the SVG
+              // namespace instead of allowing its CSS rules to leak as text.
+              const renderId = `warm-mermaid-${Date.now()}-${nodes.indexOf(node)}`;
+              const result = await mermaid.render(renderId, originalSource.trim());
+              const svgDocument = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
+              const svgElement = svgDocument.documentElement;
+              if (svgElement.localName !== 'svg' || svgDocument.querySelector('parsererror')) {
+                throw new Error('Mermaid returned invalid SVG markup');
+              }
+
+              const wrapper = document.createElement('div');
+              wrapper.className = 'warm-mermaid-rendered';
+              wrapper.style.cssText = 'display:flex;justify-content:center;max-width:100%;min-width:0;margin:2.5em 0;overflow-x:auto;';
+              const renderedSvg = document.importNode(svgElement, true);
+              renderedSvg.style.maxWidth = '100%';
+              renderedSvg.style.height = 'auto';
+              renderedSvg.style.display = 'block';
+              wrapper.append(renderedSvg);
+              node.replaceWith(wrapper);
+              result.bindFunctions?.(wrapper);
             } catch (error) {
               // Leave the source intact and allow a later real page/content
               // lifecycle event to retry; do not permanently blacklist it.
