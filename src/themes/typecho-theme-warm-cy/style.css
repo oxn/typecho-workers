@@ -2581,6 +2581,9 @@ body.warm-theme {
   line-height: normal;
 }
 .warm-prose .katex { font-size: 1.05em; }
+/* MathJax SVG glyphs and tall operators need a larger vertical safety area
+   inside the horizontally scrollable display-math viewport. */
+.warm-prose .mathjax-display { padding-block: 1.25em; }
 .warm-prose .mathjax-inline { line-height: normal; }
 .warm-prose .mathjax-display mjx-container[display="true"] { margin: 0 !important; }
 .warm-prose pre code.hljs { display: block; overflow-x: auto; padding: 1em; }
