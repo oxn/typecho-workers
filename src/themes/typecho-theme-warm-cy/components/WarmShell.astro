@@ -331,108 +331,27 @@ const footerLinks = [
   </script>
   <script>
     import mermaid from 'mermaid';
-    import { getWarmMermaidConfig } from './warm-mermaid';
     import 'katex/dist/katex.min.css';
 
-    const isWarmDarkMode = () =>
-      document.documentElement.classList.contains('dark') ||
-      document.body.classList.contains('dark');
-    let mermaidDarkMode = isWarmDarkMode();
-
-    let mermaidRendering = false;
-    let mermaidRenderQueued = false;
-    let mermaidRenderSequence = 0;
-
+    // Match Rin: render two independent source nodes in a fixed theme order.
     const renderMermaidBlocks = async () => {
-      if (mermaidRendering) {
-        mermaidRenderQueued = true;
-        return;
-      }
+      const lightNodes = document.querySelectorAll('pre.mermaid_default:not([data-processed])');
+      const darkNodes = document.querySelectorAll('pre.mermaid_dark:not([data-processed])');
+      if (!lightNodes.length && !darkNodes.length) return;
 
-      mermaidRendering = true;
       try {
-        // Wait for the page's actual layout prerequisites, not a fixed
-        // network-dependent timeout. Font readiness settles Mermaid label
-        // metrics; two animation frames let the inserted page reach layout
-        // and paint before Mermaid measures its SVG geometry.
-        if (document.fonts?.ready) await document.fonts.ready;
-        await new Promise(resolve =>
-          requestAnimationFrame(() => requestAnimationFrame(resolve))
-        );
-
-        const nodes = [...document.querySelectorAll(
-          'pre.mermaid:not([data-processed])'
-        )].filter(node => node.isConnected);
-        if (nodes.length) {
-          // This theme owns rendering timing, including content inserted by
-          // InstantClick, so Mermaid must not also run its automatic startup.
-          mermaid.initialize({
-            ...getWarmMermaidConfig(isWarmDarkMode()),
-            startOnLoad: false,
-          });
-
-          // Isolate failures per diagram. A malformed or pathological block
-          // must not abort the remaining diagrams or trigger an endless retry.
-          for (const node of nodes) {
-            const originalSource = node.textContent || '';
-            node.dataset.warmMermaidSource = originalSource;
-            node.textContent = originalSource.trim();
-            try {
-              // Render to SVG markup, then parse it as XML before inserting it.
-              // This keeps SVG <style> and geometry in the SVG namespace and
-              // avoids Mermaid's HTML insertion path corrupting some diagrams.
-              const renderId = `warm-mermaid-${++mermaidRenderSequence}`;
-              const result = await mermaid.render(renderId, originalSource.trim());
-              const svgDocument = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
-              const svgElement = svgDocument.documentElement;
-              if (svgElement.localName !== 'svg' || svgDocument.querySelector('parsererror')) {
-                throw new Error('Mermaid returned invalid SVG markup');
-              }
-              const renderedSvg = document.importNode(svgElement, true);
-              node.replaceChildren(renderedSvg);
-              node.setAttribute('data-processed', 'true');
-              result.bindFunctions?.(node);
-            } catch (error) {
-              // Leave the source intact and allow a later real page/content
-              // lifecycle event to retry; do not permanently blacklist it.
-              console.error('Mermaid rendering failed for one diagram:', error);
-            }
-          }
+        mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        try {
+          await mermaid.run({ nodes: lightNodes });
+        } finally {
+          mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+          await mermaid.run({ nodes: darkNodes });
         }
       } catch (error) {
-        console.error('Mermaid renderer initialization failed:', error);
-      } finally {
-        mermaidRendering = false;
-        // Only a real insertion/navigation event may request another pass.
-        // Never retry merely because a failed node remains unprocessed.
-        if (mermaidRenderQueued) {
-          mermaidRenderQueued = false;
-          queueMicrotask(() => void renderMermaidBlocks());
-        }
+        console.error('Mermaid rendering failed:', error);
       }
     };
 
-    // Re-render already displayed diagrams when Warm CY switches light/dark mode.
-    const mermaidThemeObserver = new MutationObserver(() => {
-      const nextDarkMode = isWarmDarkMode();
-      if (nextDarkMode === mermaidDarkMode) return;
-      mermaidDarkMode = nextDarkMode;
-      const rendered = [...document.querySelectorAll('pre.mermaid[data-warm-mermaid-source]')];
-      if (!rendered.length) return;
-      for (const node of rendered) {
-        node.textContent = node.dataset.warmMermaidSource || '';
-        node.removeAttribute('data-processed');
-      }
-      void renderMermaidBlocks();
-    });
-    mermaidThemeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    mermaidThemeObserver.observe(document.body, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
     let mathJaxRendering = false;
     let mathJaxRenderQueued = false;
     const renderMathJaxBlocks = async () => {
@@ -486,7 +405,7 @@ const footerLinks = [
       const addedMermaid = records.some(record =>
         [...record.addedNodes].some(node =>
           node instanceof Element &&
-          (node.matches('pre.mermaid') || node.querySelector('pre.mermaid'))
+          (node.matches('pre.mermaid_default, pre.mermaid_dark') || node.querySelector('pre.mermaid_default, pre.mermaid_dark'))
         )
       );
       if (addedMermaid) void renderMermaidBlocks();
