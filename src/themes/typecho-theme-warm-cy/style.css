@@ -2571,8 +2571,18 @@ body.warm-theme {
 
 
 /* Rehype Markdown: math, code highlighting and browser-rendered Mermaid. */
-.warm-prose .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: .25em 0; }
+.warm-prose .katex-display,
+.warm-prose .mathjax-display {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: .75em 0;
+  line-height: normal;
+}
 .warm-prose .katex { font-size: 1.05em; }
+.warm-prose .mathjax-inline { line-height: normal; }
+.warm-prose .mathjax-display mjx-container[display="true"] { margin: 0 !important; }
 .warm-prose pre code.hljs { display: block; overflow-x: auto; padding: 1em; }
 .warm-prose code.hljs { padding: .15em .35em; border-radius: 4px; }
 .warm-prose .hljs-comment, .warm-prose .hljs-quote { color: #8a918d; font-style: italic; }
