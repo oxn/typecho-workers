@@ -353,36 +353,38 @@ const footerLinks = [
         // for web fonts so the measured label boxes match their final layout.
         if (document.fonts?.ready) await document.fonts.ready;
 
-        do {
-          mermaidRenderQueued = false;
-          const nodes = [...document.querySelectorAll('pre.mermaid:not([data-processed])')];
-          if (!nodes.length) break;
-
-          for (const node of nodes) {
-            node.dataset.warmMermaidSource = node.textContent || '';
-          }
-
+        const nodes = [...document.querySelectorAll(
+          'pre.mermaid:not([data-processed]):not([data-warm-mermaid-failed])'
+        )];
+        if (nodes.length) {
           // This theme owns rendering timing, including content inserted by
           // InstantClick, so Mermaid must not also run its automatic startup.
           mermaid.initialize({
             ...getWarmMermaidConfig(isWarmDarkMode()),
             startOnLoad: false,
           });
-          await mermaid.run({ nodes });
-        } while (
-          mermaidRenderQueued ||
-          document.querySelector('pre.mermaid:not([data-processed])')
-        );
+
+          // Isolate failures per diagram. A malformed or pathological block
+          // must not abort the remaining diagrams or trigger an endless retry.
+          for (const node of nodes) {
+            const originalSource = node.textContent || '';
+            node.dataset.warmMermaidSource = originalSource;
+            node.textContent = originalSource.trim();
+            try {
+              await mermaid.run({ nodes: [node] });
+            } catch (error) {
+              node.dataset.warmMermaidFailed = '1';
+              console.error('Mermaid rendering failed for one diagram:', error);
+            }
+          }
+        }
       } catch (error) {
-        console.error('Mermaid rendering failed:', error);
+        console.error('Mermaid renderer initialization failed:', error);
       } finally {
         mermaidRendering = false;
-        // Cover nodes inserted at the end of a render pass, including a
-        // navigation swap that overlaps font loading or another render.
-        if (
-          mermaidRenderQueued ||
-          document.querySelector('pre.mermaid:not([data-processed])')
-        ) {
+        // Only a real insertion/navigation event may request another pass.
+        // Never retry merely because a failed node remains unprocessed.
+        if (mermaidRenderQueued) {
           mermaidRenderQueued = false;
           queueMicrotask(() => void renderMermaidBlocks());
         }
