@@ -1204,7 +1204,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
           if (titleBar && !titleBar.querySelector('.warm-cy-theme-version')) {
             const version = document.createElement('span');
             version.className = 'warm-cy-theme-version';
-            version.textContent = '主题版本：' + THEME_VERSION;
+            version.textContent = '主题版本：' + ${JSON.stringify(THEME_VERSION)};
             titleBar.append(version);
           }
 
