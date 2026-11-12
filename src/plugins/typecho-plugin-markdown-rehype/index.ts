@@ -26,7 +26,6 @@ import { env } from 'cloudflare:workers';
 import { getDb } from 'typecho/db';
 import { getOption } from 'typecho/plugin-sdk';
 import { transformGithubAlerts } from '../../lib/markdown-alerts';
-import { getWarmMermaidConfig } from './mermaid-config';
 import mathJaxModuleUrl from 'mathjax-full/es5/tex-svg.js?url';
 import katexCss from 'katex/dist/katex.min.css?inline';
 
@@ -677,71 +676,32 @@ function rehypeMathText() {
  * init directive lets this plugin select the palette without changing the
  * theme-owned runtime or its navigation lifecycle.
  */
-function rehypeMermaidMarkers() {
-  const visibilityStyles = [
-    '.mermaid_default{display:block}',
-    '.mermaid_dark{display:none}',
-    'html.dark .mermaid_default,body.dark .mermaid_default{display:none}',
-    'html.dark .mermaid_dark,body.dark .mermaid_dark{display:block}',
-  ].join('');
-
+/**
+ * Mirror Rin's remark transform: each Mermaid fence becomes two independent
+ * source <pre> nodes, one for the light theme and one for the dark theme.
+ */
+function remarkMermaidVariants() {
   return (tree: any): void => {
-    let foundMermaid = false;
-    const textContent = (child: any): string => {
-      if (!child || typeof child !== 'object') return '';
-      if (child.type === 'text') return typeof child.value === 'string' ? child.value : '';
-      return Array.isArray(child.children) ? child.children.map(textContent).join('') : '';
-    };
-
     const visit = (node: any): void => {
-      if (!node || typeof node !== 'object' || !Array.isArray(node.children)) return;
+      if (!node || !Array.isArray(node.children)) return;
       const children = node.children as any[];
       for (let index = 0; index < children.length; index++) {
         const child = children[index];
-        if (child?.type === 'element' && child.tagName === 'pre') {
-          const code = Array.isArray(child.children)
-            ? child.children.find((item: any) => item?.type === 'element' && item.tagName === 'code')
-            : undefined;
-          const classes: string[] = Array.isArray(code?.properties?.className)
-            ? code.properties.className
-            : [];
-          if (classes.includes('language-mermaid')) {
-            const value = Array.isArray(code.children)
-              ? code.children.map(textContent).join('')
-              : '';
-            const makeVariant = (theme: 'default' | 'dark') => ({
-              type: 'element',
-              tagName: 'pre',
-              properties: {
-                ...(child.properties ?? {}),
-                className: theme === 'default'
-                  ? ['mermaid', 'mermaid_default', 'dark:hidden']
-                  : ['mermaid', 'mermaid_dark', 'dark:block', 'hidden'],
-              },
-              children: [{
-                type: 'text',
-                value: `%%{init: {"theme":"${theme}"}}%%\n${value}`,
-              }],
-            });
-            children.splice(index, 1, makeVariant('default'), makeVariant('dark'));
-            index++;
-            foundMermaid = true;
-            continue;
-          }
+        if (child?.type === 'code' && child.lang === 'mermaid') {
+          const value = typeof child.value === 'string' ? child.value : '';
+          children[index] = {
+            type: 'html',
+            value: `
+            <pre class="mermaid_default dark:hidden">${value}</pre>
+            <pre class="mermaid_dark dark:block hidden">${value}</pre>
+            `,
+          };
+          continue;
         }
         visit(child);
       }
     };
-
     visit(tree);
-    if (foundMermaid && Array.isArray(tree.children)) {
-      tree.children.unshift({
-        type: 'element',
-        tagName: 'style',
-        properties: {},
-        children: [{ type: 'text', value: visibilityStyles }],
-      });
-    }
   };
 }
 
@@ -827,7 +787,8 @@ function createMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boo
       titleTagName: 'strong',
       title: (type, title) => title ?? type?.toUpperCase(),
     })
-    .use(remarkImageSizeAttributes);
+    .use(remarkImageSizeAttributes)
+    .use(remarkMermaidVariants);
   if (tocEnabled) processor.use(remarkToc, { heading: '目录', prefix: 'user-content-' });
   processor
     .use(remarkRehype, {
@@ -844,8 +805,6 @@ function createMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boo
   if (mathEngine === 'katex') processor.use(rehypeKatex);
   return processor
     .use(rehypeExternalLinks, { rel: ['nofollow'] })
-    // Extract Mermaid source before generic code highlighting can wrap or alter it.
-    .use(rehypeMermaidMarkers)
     .use(rehypeHighlight)
     .use(rehypeSlug, { prefix: 'user-content-' })
     .use(rehypeAutolinkHeadings, {
@@ -908,8 +867,8 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
 
 function createAdminPreviewScript(): string {
   const mermaidConfigObject = {
-    light: getWarmMermaidConfig(false),
-    dark: getWarmMermaidConfig(true),
+    light: { startOnLoad: false, theme: 'default' },
+    dark: { startOnLoad: false, theme: 'dark' },
   };
   const mermaidConfigs = JSON.stringify(mermaidConfigObject).replace(/</g, '\\u003c');
   const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
@@ -1049,7 +1008,7 @@ function createAdminPreviewScript(): string {
         'function notify(){var root=document.documentElement,body=document.body,rect=body.getBoundingClientRect();var h=Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight,rect.bottom+window.scrollY));window.parent.postMessage({type:"markdown-rehype-preview-height",height:h},"*");}' +
         'if(window.ResizeObserver){var ro=new ResizeObserver(notify);ro.observe(document.documentElement);ro.observe(document.body);}' +
         'window.addEventListener("load",notify);window.addEventListener("resize",notify);setTimeout(notify,80);setTimeout(notify,350);' +
-        'var ms=document.createElement("script");ms.src="/plugin-assets/typecho-plugin-markdown-rehype/mermaid-runtime.js";ms.onload=function(){var m=window.__warmCyMermaid;if(!m)return;var nodes=Array.from(document.querySelectorAll("pre.mermaid:not([data-processed])"));if(!nodes.length){notify();return;}var started=false,mermaidObserver=null;function renderWhenMeasurable(){if(started)return;var measurable=nodes.every(function(node){return node.isConnected&&node.parentElement&&node.parentElement.getBoundingClientRect().width>0;});if(!measurable)return;started=true;if(mermaidObserver)mermaidObserver.disconnect();window.removeEventListener("resize",renderWhenMeasurable);try{var dark=document.documentElement.classList.contains("dark")||document.body.classList.contains("dark");m.initialize(dark?mermaidConfigs.dark:mermaidConfigs.light);var renderOne=function(node,index){var source=node.textContent||"";var renderId="warm-admin-mermaid-"+Date.now()+"-"+index;return m.render(renderId,source.trim()).then(function(result){var svgDocument=new DOMParser().parseFromString(result.svg,"image/svg+xml");var svgElement=svgDocument.documentElement;if(svgElement.localName!=="svg"||svgDocument.querySelector("parsererror"))throw new Error("Mermaid returned invalid SVG markup");node.replaceChildren(document.importNode(svgElement,true));node.setAttribute("data-processed","true");if(result.bindFunctions)result.bindFunctions(node);}).catch(function(e){node.setAttribute("data-processed","true");console.error("Mermaid diagram rendering failed:",e);});};nodes.reduce(function(chain,node,index){return chain.then(function(){return renderOne(node,index);});},Promise.resolve()).then(function(){requestAnimationFrame(function(){notify();requestAnimationFrame(notify);});}).catch(function(e){console.error("Mermaid rendering failed:",e);notify();});}catch(e){console.error("Mermaid initialization failed:",e);notify();}}if(window.ResizeObserver){mermaidObserver=new ResizeObserver(renderWhenMeasurable);mermaidObserver.observe(document.documentElement);mermaidObserver.observe(document.body);nodes.forEach(function(node){if(node.parentElement)mermaidObserver.observe(node.parentElement);});}window.addEventListener("resize",renderWhenMeasurable);renderWhenMeasurable();};ms.onerror=function(){console.error("Mermaid runtime failed to load");notify();};document.head.append(ms);' +
+        'var ms=document.createElement("script");ms.src="/plugin-assets/typecho-plugin-markdown-rehype/mermaid-runtime.js";ms.onload=function(){var m=window.__warmCyMermaid;if(!m)return;var lightNodes=Array.from(document.querySelectorAll("pre.mermaid_default:not([data-processed])"));var darkNodes=Array.from(document.querySelectorAll("pre.mermaid_dark:not([data-processed])"));var nodes=lightNodes.concat(darkNodes);if(!nodes.length){notify();return;}var started=false,mermaidObserver=null;function renderWhenMeasurable(){if(started)return;var measurable=nodes.every(function(node){return node.isConnected&&node.parentElement&&node.parentElement.getBoundingClientRect().width>0;});if(!measurable)return;started=true;if(mermaidObserver)mermaidObserver.disconnect();window.removeEventListener("resize",renderWhenMeasurable);try{m.initialize(mermaidConfigs.light);m.run({nodes:document.querySelectorAll("pre.mermaid_default")}).then(function(){m.initialize(mermaidConfigs.dark);return m.run({nodes:document.querySelectorAll("pre.mermaid_dark")});}).then(function(){requestAnimationFrame(function(){notify();requestAnimationFrame(notify);});}).catch(function(e){console.error("Mermaid rendering failed:",e);notify();});}catch(e){console.error("Mermaid initialization failed:",e);notify();}}if(window.ResizeObserver){mermaidObserver=new ResizeObserver(renderWhenMeasurable);mermaidObserver.observe(document.documentElement);mermaidObserver.observe(document.body);nodes.forEach(function(node){if(node.parentElement)mermaidObserver.observe(node.parentElement);});}window.addEventListener("resize",renderWhenMeasurable);renderWhenMeasurable();};ms.onerror=function(){console.error("Mermaid runtime failed to load");notify();};document.head.append(ms);' +
 
         'if(mathEngine==="mathjax"&&document.querySelector("code.language-math")){var mathScript=document.createElement("script");mathScript.src=mathJaxUrl;mathScript.onload=function(){var blocks=Array.from(document.querySelectorAll("code.language-math:not([data-mathjax-processed])"));var mathItems=[];blocks.forEach(function(code){var pre=code.closest("pre");var replacement=document.createElement(pre?"div":"span");replacement.className=pre?"mathjax-display":"mathjax-inline";var target=replacement;var tex=code.textContent||"";if(pre){var scroll=document.createElement("div");scroll.className="mathjax-display__scroll";target=scroll;replacement.append(scroll);}mathItems.push({target:target,tex:tex,display:!!pre});(pre||code).replaceWith(replacement);});var mathJax=window.MathJax;if(!mathJax||!mathJax.startup||!mathJax.startup.promise||typeof mathJax.tex2svgPromise!=="function"){console.error("MathJax tex2svg runtime did not initialize in the preview");notify();return;}mathJax.startup.promise.then(function(){return mathItems.reduce(function(chain,item){return chain.then(function(){return mathJax.tex2svgPromise(item.tex,{display:item.display}).then(function(output){item.target.replaceChildren(output);}).catch(function(e){console.error("MathJax formula rendering failed:",e);});});},Promise.resolve());}).then(notify).catch(function(e){console.error("MathJax rendering failed:",e);notify();});};mathScript.onerror=function(){console.error("MathJax script failed to load in the preview:",mathJaxUrl);notify();};document.head.append(mathScript);}' +
 '})();' + '</scr' + 'ipt>' +
