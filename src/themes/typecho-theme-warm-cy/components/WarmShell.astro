@@ -338,17 +338,54 @@ const footerLinks = [
       document.body.classList.contains('dark');
     let mermaidDarkMode = isWarmDarkMode();
 
+    let mermaidRendering = false;
+    let mermaidRenderQueued = false;
+
     const renderMermaidBlocks = async () => {
-      const nodes = [...document.querySelectorAll('pre.mermaid:not([data-processed])')];
-      if (!nodes.length) return;
-      for (const node of nodes) {
-        node.dataset.warmMermaidSource = node.textContent || '';
+      if (mermaidRendering) {
+        mermaidRenderQueued = true;
+        return;
       }
+
+      mermaidRendering = true;
       try {
-        mermaid.initialize(getWarmMermaidConfig(isWarmDarkMode()));
-        await mermaid.run({ nodes });
+        // Mermaid measures HTML labels while building the SVG viewBox. Wait
+        // for web fonts so the measured label boxes match their final layout.
+        if (document.fonts?.ready) await document.fonts.ready;
+
+        do {
+          mermaidRenderQueued = false;
+          const nodes = [...document.querySelectorAll('pre.mermaid:not([data-processed])')];
+          if (!nodes.length) break;
+
+          for (const node of nodes) {
+            node.dataset.warmMermaidSource = node.textContent || '';
+          }
+
+          // This theme owns rendering timing, including content inserted by
+          // InstantClick, so Mermaid must not also run its automatic startup.
+          mermaid.initialize({
+            ...getWarmMermaidConfig(isWarmDarkMode()),
+            startOnLoad: false,
+          });
+          await mermaid.run({ nodes });
+        } while (
+          mermaidRenderQueued ||
+          document.querySelector('pre.mermaid:not([data-processed])')
+        );
       } catch (error) {
         console.error('Mermaid rendering failed:', error);
+      } finally {
+        mermaidRendering = false;
+        // Cover nodes inserted at the end of a render pass, including a
+        // navigation swap that overlaps font loading or another render.
+        if (
+          mermaidRenderQueued ||
+          document.querySelector('pre.mermaid:not([data-processed])')
+        ) {
+          mermaidRenderQueued = false;
+          queueMicrotask(() => void renderMermaidBlocks());
+        }
       }
     };
 
@@ -399,6 +436,22 @@ const footerLinks = [
       void renderMermaidBlocks();
       void renderMathJaxBlocks();
     };
+    // InstantClick swaps the body node. Observe the document element rather
+    // than the old body so diagrams added with a replacement body are detected.
+    const mermaidContentObserver = new MutationObserver(records => {
+      const addedMermaid = records.some(record =>
+        [...record.addedNodes].some(node =>
+          node instanceof Element &&
+          (node.matches('pre.mermaid') || node.querySelector('pre.mermaid'))
+        )
+      );
+      if (addedMermaid) void renderMermaidBlocks();
+    });
+    mermaidContentObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+
     renderArticleEnhancements();
     window.addEventListener('instantclick:newpage', renderArticleEnhancements);
   </script>
