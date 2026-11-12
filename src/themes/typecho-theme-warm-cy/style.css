@@ -2650,3 +2650,20 @@ body.warm-theme {
   opacity: 1;
   text-decoration: none;
 }
+
+/* Rin-style dual Mermaid variants: keep both source nodes in the document and
+   switch visibility with the active page theme. */
+.warm-prose pre.mermaid_default {
+  display: block;
+}
+.warm-prose pre.mermaid_dark {
+  display: none;
+}
+html.dark .warm-prose pre.mermaid_default,
+body.dark .warm-prose pre.mermaid_default {
+  display: none;
+}
+html.dark .warm-prose pre.mermaid_dark,
+body.dark .warm-prose pre.mermaid_dark {
+  display: block;
+}
