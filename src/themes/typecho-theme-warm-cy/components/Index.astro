@@ -240,7 +240,7 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
       </section>
     ) : items.map(item => item.type === 'note' ? (
       <article class="warm-stream-item warm-note" data-content-type="note">
-        <a class="warm-stream-item__hit" href={item.permalink} aria-label="查看这则笔记"></a>
+        <a class="warm-stream-item__hit" href={item.permalink} data-no-instant aria-label="查看这则笔记"></a>
         <div class="warm-item-meta">
           <span class="warm-note-label">笔记</span>
           <span aria-hidden="true">·</span>
@@ -256,14 +256,14 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
       </article>
     ) : (
       <article class="warm-stream-item warm-post-card" data-content-type="post">
-        <a class="warm-stream-item__hit" href={item.permalink} aria-label={`阅读：${item.title}`}></a>
+        <a class="warm-stream-item__hit" href={item.permalink} data-no-instant aria-label={`阅读：${item.title}`}></a>
         <div class="warm-item-meta">
           <time datetime={new Date(item.created * 1000).toISOString()}>{formatWarmDate(item.created, options.postDateFormat, options.timezone)}</time>
           {item.categories[0] ? <span aria-hidden="true">·</span> : null}
           {item.categories[0] ? <a class="warm-category" href={item.categories[0].permalink}>{item.categories[0].name}</a> : null}
           {isHomepage && pinnedIdSet.has(Number(item.cid)) && <span class="warm-pinned-badge" aria-label="置顶文章"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2.5h6l-.7 3.1 2.2 2.2v1H8.8v4.7l-.8.8-.8-.8V8.8H3.5v-1l2.2-2.2L5 2.5Z" fill="currentColor"/></svg>置顶</span>}
         </div>
-        <h2><a href={item.permalink}>{item.title}</a></h2>
+        <h2><a href={item.permalink} data-no-instant>{item.title}</a></h2>
         {item.excerpt && <p>{item.excerpt}</p>}
       </article>
     ))}
