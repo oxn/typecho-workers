@@ -13,7 +13,7 @@
  */
 import type { AstroIntegration } from 'astro';
 import { existsSync, readdirSync, mkdirSync, writeFileSync, statSync, cpSync } from 'node:fs';
-import { join, relative, dirname } from 'node:path';
+import { join, relative, dirname, basename } from 'node:path';
 
 interface ClientSource {
   sourcePath: string;
@@ -82,7 +82,7 @@ async function compileAll(sources: ClientSource[], silent = false): Promise<void
     const esbuild = await import('esbuild');
     for (const src of sources) {
       mkdirSync(src.outDir, { recursive: true });
-      const outfile = join(src.outDir, src.sourcePath.split('/').pop()!.replace(/\.ts$/, '.js'));
+      const outfile = join(src.outDir, basename(src.sourcePath).replace(/\.ts$/, '.js'));
       await esbuild.build({
         entryPoints: [src.sourcePath],
         outfile,
