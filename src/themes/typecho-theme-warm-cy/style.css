@@ -2615,12 +2615,16 @@ body.warm-theme {
 }
 
 /*
- * Mermaid measures SVG geometry synchronously while rendering. The global
- * reduced-motion rule above applies a non-zero transition duration to every
- * theme element; transitions on SVG nodes/paths can therefore inflate the
- * measured viewBox before those transitions settle. Keep the entire diagram
- * subtree geometry immediate, not only foreignObject labels.
+ * Mermaid first measures temporary foreignObject labels before the final SVG
+ * is inserted into the article. A non-zero transition on foreignObject width
+ * or height makes Chromium report the initial 2000x2000 measurement to
+ * getBBox(), permanently inflating the generated viewBox. Disable geometry
+ * transitions on foreignObject at document scope so this also covers
+ * Mermaid's temporary measurement SVG, which is outside the article subtree.
  */
+foreignObject {
+  transition-property: none !important;
+}
 .warm-prose pre.mermaid svg,
 .warm-prose pre.mermaid svg *,
 .warm-prose pre.mermaid svg *::before,
