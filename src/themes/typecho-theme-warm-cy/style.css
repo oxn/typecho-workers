@@ -2601,17 +2601,6 @@ body.warm-theme {
   margin-inline: auto;
 }
 
-/*
- * Mermaid measures SVG foreignObject labels synchronously when building the
- * viewBox. A non-zero width/height transition makes getBBox() observe the
- * temporary 2000px measurement box on affected browsers. Keep SVG label
- * geometry immediate even when the site-wide reduced-motion rule is active.
- */
-.warm-prose pre.mermaid svg foreignObject {
-  transition: none !important;
-}
-
-
 /* Rehype heading permalinks: keep the anchor available without making the title noisy. */
 .warm-prose .warm-heading-anchor {
   display: none !important;
