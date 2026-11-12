@@ -846,8 +846,8 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
 
 function createAdminPreviewScript(): string {
   const mermaidConfigObject = {
-    light: { ...getWarmMermaidConfig(false), look: 'classic' },
-    dark: { ...getWarmMermaidConfig(true), look: 'classic' },
+    light: getWarmMermaidConfig(false),
+    dark: getWarmMermaidConfig(true),
   };
   const mermaidConfigs = JSON.stringify(mermaidConfigObject).replace(/</g, '\\u003c');
   const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
