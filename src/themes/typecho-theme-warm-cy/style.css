@@ -2595,6 +2595,7 @@ body.warm-theme {
 .warm-prose .hljs-title, .warm-prose .hljs-function { color: #3979b8; }
 .warm-prose .warm-mermaid-rendered {
   display: flex;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   margin: 1.5rem 0;
@@ -2614,7 +2615,7 @@ body.warm-theme {
 .warm-prose .warm-mermaid-rendered svg {
   display: block;
   flex: 0 0 auto;
-  width: max-content;
+  width: auto;
   max-width: none;
   height: auto;
   margin-inline: auto;
