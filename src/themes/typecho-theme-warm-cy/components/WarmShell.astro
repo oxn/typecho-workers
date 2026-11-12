@@ -323,8 +323,9 @@ const footerLinks = [
   </script>
 
   <script is:inline>
-    // Configure MathJax before its browser component is evaluated.
-    window.MathJax = {
+    // InstantClick re-executes inline body scripts after a page swap. Keep the
+    // existing MathJax runtime/config instead of replacing it after startup.
+    window.MathJax = window.MathJax || {
       startup: { typeset: false },
       tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
     };
@@ -412,27 +413,48 @@ const footerLinks = [
       attributes: true,
       attributeFilter: ['class'],
     });
+    let mathJaxRendering = false;
+    let mathJaxRenderQueued = false;
     const renderMathJaxBlocks = async () => {
-      const articleBody = document.querySelector('.warm-article__body[data-math-engine="mathjax"]');
-      if (!articleBody) return;
-      const blocks = [...articleBody.querySelectorAll('code.language-math:not([data-mathjax-processed])')];
-      if (!blocks.length) return;
-      try { await import('mathjax-full/es5/tex-svg.js'); }
-      catch (error) { console.error('MathJax browser component failed to load:', error); return; }
-      for (const code of blocks) {
-        const source = code.textContent || '';
-        const pre = code.closest('pre');
-        const replacement = document.createElement(pre ? 'div' : 'span');
-        replacement.className = pre ? 'mathjax-display' : 'mathjax-inline';
-        replacement.textContent = pre ? '\\[\n' + source + '\n\\]' : '\\(' + source + '\\)';
-        (pre || code).replaceWith(replacement);
+      if (mathJaxRendering) {
+        mathJaxRenderQueued = true;
+        return;
       }
-      const mathJax = window.MathJax;
-      if (!mathJax?.startup?.promise) return;
+
+      const articleBodies = [...document.querySelectorAll('.warm-article__body[data-math-engine="mathjax"]')];
+      const blocks = articleBodies.flatMap(body =>
+        [...body.querySelectorAll('code.language-math:not([data-mathjax-processed])')]
+      );
+      if (!blocks.length) return;
+
+      mathJaxRendering = true;
       try {
+        await import('mathjax-full/es5/tex-svg.js');
+        const replacements = [];
+        for (const code of blocks) {
+          if (!code.isConnected) continue;
+          const source = code.textContent || '';
+          const pre = code.closest('pre');
+          const replacement = document.createElement(pre ? 'div' : 'span');
+          replacement.className = pre ? 'mathjax-display' : 'mathjax-inline';
+          replacement.textContent = pre ? '\\[\n' + source + '\n\\]' : '\\(' + source + '\\)';
+          (pre || code).replaceWith(replacement);
+          replacements.push(replacement);
+        }
+
+        const mathJax = window.MathJax;
+        if (!mathJax?.startup?.promise || !replacements.length) return;
         await mathJax.startup.promise;
-        await mathJax.typesetPromise([...document.querySelectorAll('.warm-prose .mathjax-display, .warm-prose .mathjax-inline')]);
-      } catch (error) { console.error('MathJax rendering failed:', error); }
+        await mathJax.typesetPromise(replacements);
+      } catch (error) {
+        console.error('MathJax rendering failed:', error);
+      } finally {
+        mathJaxRendering = false;
+        if (mathJaxRenderQueued) {
+          mathJaxRenderQueued = false;
+          queueMicrotask(() => void renderMathJaxBlocks());
+        }
+      }
     };
     const renderArticleEnhancements = () => {
       void renderMermaidBlocks();
