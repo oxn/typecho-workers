@@ -15,13 +15,20 @@ export function getWarmMermaidConfig(dark: boolean) {
       fontSize: '16px',
       // Use transparent surfaces in both the public renderer and editor preview.
       primaryColor: 'transparent',
+      primaryBorderColor: '#9370DB',
+      primaryTextColor: '#333333',
       nodeBkg: 'transparent',
       mainBkg: 'transparent',
       background: 'transparent',
       secondaryColor: 'transparent',
+      secondaryBorderColor: '#aaaa33',
+      secondaryTextColor: '#333333',
       tertiaryColor: 'transparent',
+      tertiaryBorderColor: '#aaaa33',
+      tertiaryTextColor: '#333333',
       clusterBkg: 'transparent',
       edgeLabelBackground: 'transparent',
+      lineColor: '#333333',
     },
   };
 }
