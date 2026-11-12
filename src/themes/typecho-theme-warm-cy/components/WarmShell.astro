@@ -352,6 +352,7 @@ const footerLinks = [
 
     let mermaidRendering = false;
     let mermaidRenderQueued = false;
+    let mermaidRenderSequence = 0;
 
     const renderMermaidBlocks = async () => {
       if (mermaidRendering) {
@@ -391,7 +392,7 @@ const footerLinks = [
               // Parse Mermaid's SVG as XML, not as HTML inside a <pre>. This
               // keeps Mermaid's generated <style> element inside the SVG
               // namespace instead of allowing its CSS rules to leak as text.
-              const renderId = `warm-mermaid-${Date.now()}-${nodes.indexOf(node)}`;
+              const renderId = `warm-mermaid-${++mermaidRenderSequence}`;
               const result = await mermaid.render(renderId, originalSource.trim());
               const svgDocument = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
               const svgElement = svgDocument.documentElement;
