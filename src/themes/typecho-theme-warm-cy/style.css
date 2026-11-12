@@ -2593,32 +2593,23 @@ body.warm-theme {
 .warm-prose .hljs-string, .warm-prose .hljs-attr { color: #27865a; }
 .warm-prose .hljs-number, .warm-prose .hljs-symbol { color: #c07835; }
 .warm-prose .hljs-title, .warm-prose .hljs-function { color: #3979b8; }
-.warm-prose .warm-mermaid-rendered,
 .warm-prose pre.mermaid {
-  display: flex;
-  box-sizing: border-box;
-  width: 100%;
   max-width: 100%;
-  min-width: 0;
   margin: 1.5rem 0;
   padding: 1rem 0;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
-  align-items: flex-start;
-  justify-content: center;
   background: transparent;
   text-align: center;
   white-space: normal;
-  line-height: normal;
 }
 
-.warm-prose .warm-mermaid-rendered svg,
 .warm-prose pre.mermaid svg {
   display: block;
-  flex: 0 1 auto;
-  max-width: 100%;
+  width: max-content;
+  max-width: none;
   height: auto;
   margin-inline: auto;
 }
@@ -2630,10 +2621,6 @@ body.warm-theme {
  * measured viewBox before those transitions settle. Keep the entire diagram
  * subtree geometry immediate, not only foreignObject labels.
  */
-.warm-prose .warm-mermaid-rendered svg,
-.warm-prose .warm-mermaid-rendered svg *,
-.warm-prose .warm-mermaid-rendered svg *::before,
-.warm-prose .warm-mermaid-rendered svg *::after,
 .warm-prose pre.mermaid svg,
 .warm-prose pre.mermaid svg *,
 .warm-prose pre.mermaid svg *::before,
