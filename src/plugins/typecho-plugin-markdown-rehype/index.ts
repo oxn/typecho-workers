@@ -26,7 +26,7 @@ import { env } from 'cloudflare:workers';
 import { getDb } from 'typecho/db';
 import { getOption } from 'typecho/plugin-sdk';
 import { transformGithubAlerts } from '../../lib/markdown-alerts';
-import { getWarmMermaidConfig } from '../../lib/warm-mermaid-config';
+import { getWarmMermaidConfig } from './mermaid-config';
 import mathJaxModuleUrl from 'mathjax-full/es5/tex-svg.js?url';
 import katexCss from 'katex/dist/katex.min.css?inline';
 
