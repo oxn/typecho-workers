@@ -2593,8 +2593,10 @@ body.warm-theme {
 .warm-prose .hljs-string, .warm-prose .hljs-attr { color: #27865a; }
 .warm-prose .hljs-number, .warm-prose .hljs-symbol { color: #c07835; }
 .warm-prose .hljs-title, .warm-prose .hljs-function { color: #3979b8; }
-.warm-prose .warm-mermaid-rendered {
+.warm-prose .warm-mermaid-rendered,
+.warm-prose pre.mermaid {
   display: flex;
+  box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -2612,11 +2614,11 @@ body.warm-theme {
   line-height: normal;
 }
 
-.warm-prose .warm-mermaid-rendered svg {
+.warm-prose .warm-mermaid-rendered svg,
+.warm-prose pre.mermaid svg {
   display: block;
-  flex: 0 0 auto;
-  width: auto;
-  max-width: none;
+  flex: 0 1 auto;
+  max-width: 100%;
   height: auto;
   margin-inline: auto;
 }
@@ -2631,7 +2633,11 @@ body.warm-theme {
 .warm-prose .warm-mermaid-rendered svg,
 .warm-prose .warm-mermaid-rendered svg *,
 .warm-prose .warm-mermaid-rendered svg *::before,
-.warm-prose .warm-mermaid-rendered svg *::after {
+.warm-prose .warm-mermaid-rendered svg *::after,
+.warm-prose pre.mermaid svg,
+.warm-prose pre.mermaid svg *,
+.warm-prose pre.mermaid svg *::before,
+.warm-prose pre.mermaid svg *::after {
   transition: none !important;
 }
 
