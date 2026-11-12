@@ -7,6 +7,7 @@ import { PUBLIC_HTML_HEADER } from '@/lib/cache';
 import { isCurrentPageLink, warmSettings, warmCyFeatureSettings, renderFooterCustomHtml, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
+import { getWarmMermaidConfig } from './warm-mermaid';
 
 interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
   title?: string;
@@ -333,61 +334,6 @@ const footerLinks = [
     import mermaid from 'mermaid';
     import 'katex/dist/katex.min.css';
 
-    // Keep the browser renderer's config in this module scope. Astro frontmatter
-    // and re-exported workspace bindings are not browser globals.
-    const getWarmMermaidConfig = (dark) => ({
-      startOnLoad: false,
-      useMaxWidth: false,
-      // Use the base theme so light-mode diagrams inherit the site's quiet,
-      // transparent surfaces instead of Mermaid's default lavender fills.
-      theme: dark ? 'dark' : 'base',
-      look: 'classic',
-      themeVariables: {
-        fontFamily: '"trebuchet ms",verdana,arial,sans-serif',
-        fontSize: '16px',
-        primaryColor: 'transparent',
-        nodeBkg: 'transparent',
-        primaryBorderColor: '#9370DB',
-        primaryTextColor: '#333333',
-        secondaryColor: 'transparent',
-        secondaryBorderColor: '#aaaa33',
-        secondaryTextColor: '#333333',
-        tertiaryColor: 'transparent',
-        tertiaryBorderColor: '#aaaa33',
-        tertiaryTextColor: '#333333',
-        mainBkg: 'transparent',
-        background: 'transparent',
-        clusterBkg: 'transparent',
-        edgeLabelBackground: 'transparent',
-        lineColor: '#333333',
-        // Preserve Mermaid mindmap branch colors while keeping the canvas transparent.
-        git0: dark ? '#334155' : '#64748b',
-        gitBranchLabel0: '#ffffff',
-        cScale1: dark ? '#1e3a5f' : '#dbeafe',
-        cScaleLabel1: dark ? '#dbeafe' : '#1e3a8a',
-        cScale2: dark ? '#14532d' : '#dcfce7',
-        cScaleLabel2: dark ? '#dcfce7' : '#14532d',
-        cScale3: dark ? '#78350f' : '#fef3c7',
-        cScaleLabel3: dark ? '#fef3c7' : '#78350f',
-        cScale4: dark ? '#831843' : '#fce7f3',
-        cScaleLabel4: dark ? '#fce7f3' : '#831843',
-        cScale5: dark ? '#4c1d95' : '#ede9fe',
-        cScaleLabel5: dark ? '#ede9fe' : '#4c1d95',
-        cScale6: dark ? '#164e63' : '#cffafe',
-        cScaleLabel6: dark ? '#cffafe' : '#164e63',
-        cScale7: dark ? '#7c2d12' : '#ffedd5',
-        cScaleLabel7: dark ? '#ffedd5' : '#7c2d12',
-        cScale8: dark ? '#334155' : '#e2e8f0',
-        cScaleLabel8: dark ? '#e2e8f0' : '#334155',
-        cScale9: dark ? '#6b21a8' : '#f3e8ff',
-        cScaleLabel9: dark ? '#f3e8ff' : '#6b21a8',
-        cScale10: dark ? '#365314' : '#ecfccb',
-        cScaleLabel10: dark ? '#ecfccb' : '#365314',
-        cScale11: dark ? '#881337' : '#ffe4e6',
-        cScaleLabel11: dark ? '#ffe4e6' : '#881337',
-      },
-    });
-
     const isWarmDarkMode = () =>
       document.documentElement.classList.contains('dark') ||
       document.body.classList.contains('dark');
@@ -395,7 +341,6 @@ const footerLinks = [
 
     let mermaidRendering = false;
     let mermaidRenderQueued = false;
-    let mermaidRenderSequence = 0;
 
     const renderMermaidBlocks = async () => {
       if (mermaidRendering) {
@@ -432,28 +377,7 @@ const footerLinks = [
             node.dataset.warmMermaidSource = originalSource;
             node.textContent = originalSource.trim();
             try {
-              // Parse Mermaid's SVG as XML, not as HTML inside a <pre>. This
-              // keeps Mermaid's generated <style> element inside the SVG
-              // namespace instead of allowing its CSS rules to leak as text.
-              const renderId = `warm-mermaid-${++mermaidRenderSequence}`;
-              const result = await mermaid.render(renderId, originalSource.trim());
-              const svgDocument = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
-              const svgElement = svgDocument.documentElement;
-              if (svgElement.localName !== 'svg' || svgDocument.querySelector('parsererror')) {
-                throw new Error('Mermaid returned invalid SVG markup');
-              }
-
-              const wrapper = document.createElement('div');
-              wrapper.className = 'warm-mermaid-rendered';
-              wrapper.dataset.warmMermaidSource = originalSource;
-              const renderedSvg = document.importNode(svgElement, true);
-              // Keep Mermaid's intrinsic width/height attributes (useMaxWidth=false)
-              // so the shared responsive container can center the same geometry
-              // in both the public article and the editor preview.
-              renderedSvg.style.height = 'auto';
-              wrapper.append(renderedSvg);
-              node.replaceWith(wrapper);
-              result.bindFunctions?.(wrapper);
+              await mermaid.run({ nodes: [node] });
             } catch (error) {
               // Leave the source intact and allow a later real page/content
               // lifecycle event to retry; do not permanently blacklist it.
@@ -479,15 +403,11 @@ const footerLinks = [
       const nextDarkMode = isWarmDarkMode();
       if (nextDarkMode === mermaidDarkMode) return;
       mermaidDarkMode = nextDarkMode;
-      const rendered = [...document.querySelectorAll('.warm-mermaid-rendered[data-warm-mermaid-source]')];
+      const rendered = [...document.querySelectorAll('pre.mermaid[data-warm-mermaid-source]')];
       if (!rendered.length) return;
-      for (const wrapper of rendered) {
-        const source = wrapper.dataset.warmMermaidSource || '';
-        const node = document.createElement('pre');
-        node.className = 'mermaid';
-        node.dataset.warmMermaidSource = source;
-        node.textContent = source;
-        wrapper.replaceWith(node);
+      for (const node of rendered) {
+        node.textContent = node.dataset.warmMermaidSource || '';
+        node.removeAttribute('data-processed');
       }
       void renderMermaidBlocks();
     });
