@@ -542,7 +542,7 @@ function protectMathDelimiters(source: string): string {
       // that pair for remark-parse to collapse; shielding the second slash
       // would preserve two slashes and prevent the later TeX pass matching it.
       let precedingSlashes = 0;
-      for (let offset = index - 1; offset >= 0 && value[offset] === '\\\\'; offset--) {
+      for (let offset = index - 1; offset >= 0 && value[offset] === '\\'; offset--) {
         precedingSlashes++;
       }
       if (precedingSlashes % 2 === 0) {
