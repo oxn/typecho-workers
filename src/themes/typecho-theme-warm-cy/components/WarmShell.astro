@@ -337,6 +337,7 @@ const footerLinks = [
     // and re-exported workspace bindings are not browser globals.
     const getWarmMermaidConfig = (dark) => ({
       startOnLoad: false,
+      useMaxWidth: false,
       // Use the base theme so light-mode diagrams inherit the site's quiet,
       // transparent surfaces instead of Mermaid's default lavender fills.
       theme: dark ? 'dark' : 'base',
@@ -345,6 +346,7 @@ const footerLinks = [
         fontFamily: '"trebuchet ms",verdana,arial,sans-serif',
         fontSize: '16px',
         primaryColor: 'transparent',
+        nodeBkg: 'transparent',
         primaryBorderColor: '#9370DB',
         primaryTextColor: '#333333',
         secondaryColor: 'transparent',
@@ -420,11 +422,9 @@ const footerLinks = [
               wrapper.className = 'warm-mermaid-rendered';
               wrapper.dataset.warmMermaidSource = originalSource;
               const renderedSvg = document.importNode(svgElement, true);
-              // Mermaid emits width="100%" plus an inline max-width based on
-              // its render-time container. Remove that stale constraint so
-              // the article wrapper can center the SVG at its intrinsic size.
-              renderedSvg.style.width = 'auto';
-              renderedSvg.style.maxWidth = 'none';
+              // Keep Mermaid's intrinsic width/height attributes (useMaxWidth=false)
+              // so the shared responsive container can center the same geometry
+              // in both the public article and the editor preview.
               renderedSvg.style.height = 'auto';
               wrapper.append(renderedSvg);
               node.replaceWith(wrapper);
