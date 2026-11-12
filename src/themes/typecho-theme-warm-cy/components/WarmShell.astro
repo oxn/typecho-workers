@@ -401,6 +401,7 @@ const footerLinks = [
 
               const wrapper = document.createElement('div');
               wrapper.className = 'warm-mermaid-rendered';
+              wrapper.dataset.warmMermaidSource = originalSource;
               wrapper.style.cssText = 'display:flex;justify-content:center;max-width:100%;min-width:0;margin:2.5em 0;overflow-x:auto;';
               const renderedSvg = document.importNode(svgElement, true);
               renderedSvg.style.maxWidth = '100%';
@@ -434,11 +435,15 @@ const footerLinks = [
       const nextDarkMode = isWarmDarkMode();
       if (nextDarkMode === mermaidDarkMode) return;
       mermaidDarkMode = nextDarkMode;
-      const rendered = [...document.querySelectorAll('pre.mermaid[data-warm-mermaid-source]')];
+      const rendered = [...document.querySelectorAll('.warm-mermaid-rendered[data-warm-mermaid-source]')];
       if (!rendered.length) return;
-      for (const node of rendered) {
-        node.textContent = node.dataset.warmMermaidSource || '';
-        node.removeAttribute('data-processed');
+      for (const wrapper of rendered) {
+        const source = wrapper.dataset.warmMermaidSource || '';
+        const node = document.createElement('pre');
+        node.className = 'mermaid';
+        node.dataset.warmMermaidSource = source;
+        node.textContent = source;
+        wrapper.replaceWith(node);
       }
       void renderMermaidBlocks();
     });
