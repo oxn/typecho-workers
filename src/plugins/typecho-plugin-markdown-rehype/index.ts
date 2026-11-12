@@ -720,7 +720,7 @@ function rehypeMermaidMarkers() {
               },
               children: [{
                 type: 'text',
-                value: `%%{init: {"theme":"${theme}"}}%%\\n${value}`,
+                value: `%%{init: {"theme":"${theme}"}}%%\n${value}`,
               }],
             });
             children.splice(index, 1, makeVariant('default'), makeVariant('dark'));
