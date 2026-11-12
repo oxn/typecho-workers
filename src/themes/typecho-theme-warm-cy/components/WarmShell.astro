@@ -341,6 +341,7 @@ const footerLinks = [
 
     let mermaidRendering = false;
     let mermaidRenderQueued = false;
+    let mermaidRenderSequence = 0;
 
     const renderMermaidBlocks = async () => {
       if (mermaidRendering) {
@@ -377,7 +378,20 @@ const footerLinks = [
             node.dataset.warmMermaidSource = originalSource;
             node.textContent = originalSource.trim();
             try {
-              await mermaid.run({ nodes: [node] });
+              // Render to SVG markup, then parse it as XML before inserting it.
+              // This keeps SVG <style> and geometry in the SVG namespace and
+              // avoids Mermaid's HTML insertion path corrupting some diagrams.
+              const renderId = `warm-mermaid-${++mermaidRenderSequence}`;
+              const result = await mermaid.render(renderId, originalSource.trim());
+              const svgDocument = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
+              const svgElement = svgDocument.documentElement;
+              if (svgElement.localName !== 'svg' || svgDocument.querySelector('parsererror')) {
+                throw new Error('Mermaid returned invalid SVG markup');
+              }
+              const renderedSvg = document.importNode(svgElement, true);
+              node.replaceChildren(renderedSvg);
+              node.setAttribute('data-processed', 'true');
+              result.bindFunctions?.(node);
             } catch (error) {
               // Leave the source intact and allow a later real page/content
               // lifecycle event to retry; do not permanently blacklist it.
