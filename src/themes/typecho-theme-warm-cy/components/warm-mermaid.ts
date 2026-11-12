@@ -1,1 +1,1 @@
-export { getWarmMermaidConfig } from '@/lib/warm-mermaid-config';
+export { getWarmMermaidConfig } from 'typecho-plugin-markdown-rehype/mermaid-config';
