@@ -350,13 +350,18 @@ const footerLinks = [
 
       mermaidRendering = true;
       try {
-        // Mermaid measures HTML labels while building the SVG viewBox. Wait
-        // for web fonts so the measured label boxes match their final layout.
+        // Wait for the page's actual layout prerequisites, not a fixed
+        // network-dependent timeout. Font readiness settles Mermaid label
+        // metrics; two animation frames let the inserted page reach layout
+        // and paint before Mermaid measures its SVG geometry.
         if (document.fonts?.ready) await document.fonts.ready;
+        await new Promise(resolve =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve))
+        );
 
         const nodes = [...document.querySelectorAll(
-          'pre.mermaid:not([data-processed]):not([data-warm-mermaid-failed])'
-        )];
+          'pre.mermaid:not([data-processed])'
+        )].filter(node => node.isConnected);
         if (nodes.length) {
           // This theme owns rendering timing, including content inserted by
           // InstantClick, so Mermaid must not also run its automatic startup.
@@ -374,7 +379,8 @@ const footerLinks = [
             try {
               await mermaid.run({ nodes: [node] });
             } catch (error) {
-              node.dataset.warmMermaidFailed = '1';
+              // Leave the source intact and allow a later real page/content
+              // lifecycle event to retry; do not permanently blacklist it.
               console.error('Mermaid rendering failed for one diagram:', error);
             }
           }
