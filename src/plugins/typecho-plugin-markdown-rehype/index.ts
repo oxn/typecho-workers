@@ -531,10 +531,30 @@ const protectedMathDelimiters = [
  * but remain excluded by rehypeMathText.
  */
 function protectMathDelimiters(source: string): string {
-  return protectedMathDelimiters.reduce(
-    (value, [delimiter, placeholder]) => value.replaceAll(delimiter, placeholder),
-    source,
-  );
+  return protectedMathDelimiters.reduce((value, [delimiter, placeholder]) => {
+    let result = '';
+    let cursor = 0;
+    while (cursor < value.length) {
+      const index = value.indexOf(delimiter, cursor);
+      if (index < 0) break;
+
+      // A doubled backslash is a Markdown-escaped literal backslash. Leave
+      // that pair for remark-parse to collapse; shielding the second slash
+      // would preserve two slashes and prevent the later TeX pass matching it.
+      let precedingSlashes = 0;
+      for (let offset = index - 1; offset >= 0 && value[offset] === '\\\\'; offset--) {
+        precedingSlashes++;
+      }
+      if (precedingSlashes % 2 === 0) {
+        result += value.slice(cursor, index) + placeholder;
+        cursor = index + delimiter.length;
+      } else {
+        result += value.slice(cursor, index + 1);
+        cursor = index + 1;
+      }
+    }
+    return result + value.slice(cursor);
+  }, source);
 }
 
 function rehypeRestoreMathDelimiters() {
