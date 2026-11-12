@@ -334,7 +334,7 @@ const footerLinks = [
 
     // Keep the browser renderer's config in this module scope. Astro frontmatter
     // and re-exported workspace bindings are not browser globals.
-    const getWarmMermaidConfig = (dark: boolean) => ({
+    const getWarmMermaidConfig = (dark) => ({
       startOnLoad: false,
       theme: dark ? 'dark' : 'default',
       look: 'classic',
