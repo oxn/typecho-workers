@@ -1,7 +1,7 @@
 /**
  * Shared Mermaid configuration for the Warm CY public renderer and the
- * Markdown editor preview. Keep the light palette aligned with Mermaid's
- * classic default look used by the public theme.
+ * Markdown editor preview. Keep transparent surfaces and sizing aligned with
+ * the public theme's Mermaid renderer.
  */
 export function getWarmMermaidConfig(dark: boolean) {
   return {
