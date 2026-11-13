@@ -1062,9 +1062,10 @@ body.warm-theme {
 }
 
 .warm-prose pre {
+  position: relative;
   overflow-x: auto;
-  margin: 2.5em 0;
-  padding: 30px 34px;
+  margin: 1.5em 0;
+  padding: 18px 20px;
   background: var(--warm-surface);
   color: #403d39;
   font-family: var(--warm-mono);
@@ -1851,7 +1852,7 @@ body.warm-theme {
   }
 
   .warm-prose pre {
-    padding: 24px 28px;
+    padding: 14px 16px;
     font-size: 13px;
   }
 
@@ -2593,7 +2594,7 @@ body.warm-theme {
 .warm-prose .mathjax-display { padding-block: 1.25em; }
 .warm-prose .mathjax-inline { line-height: normal; }
 .warm-prose .mathjax-display mjx-container[display="true"] { margin: 0 !important; }
-.warm-prose pre code.hljs { display: block; overflow-x: auto; padding: 1em; }
+.warm-prose pre code.hljs { display: block; overflow-x: auto; padding: 0; }
 .warm-prose code.hljs { padding: .15em .35em; border-radius: 4px; }
 .warm-prose .hljs-comment, .warm-prose .hljs-quote { color: #8a918d; font-style: italic; }
 .warm-prose .hljs-keyword, .warm-prose .hljs-selector-tag, .warm-prose .hljs-literal { color: #9b5bce; }
