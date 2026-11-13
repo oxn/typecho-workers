@@ -358,6 +358,7 @@ body.warm-theme {
   line-height: 1.95;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2; /* 标准属性 */
   overflow-wrap: anywhere;
 }
 
