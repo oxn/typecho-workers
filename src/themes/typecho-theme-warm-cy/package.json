@@ -1,7 +1,7 @@
 {
   "name": "typecho-theme-warm-cy",
   "version": "1.0.0",
-  "description": "Independent custom fork of Typecho Warm theme",
+  "description": "Typecho Warm CY 独立自定义主题，提供文章阅读、目录跟随、代码复制及 Markdown 内容展示样式。",
   "author": "怸歪",
   "homepage": "https://oook.top",
   "license": "MIT",
@@ -17,7 +17,9 @@
     "components/",
     "screenshot.png",
     "favicon.ico",
-    "assets/"
+    "assets/",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "devDependencies": {
     "jsdom": "^26.1.0"
