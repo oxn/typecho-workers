@@ -945,7 +945,8 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
   const mathEngine = options.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
   const customIframeAttributes = await loadCustomIframeAttributes();
   const processor = getMarkdownProcessor(mathEngine, options.tocEnabled === true, customIframeAttributes);
-  const file = await processor.process(protectMathDelimiters(source));
+  const normalizedSource = normalizeIndentedHtmlBlocks(source);
+  const file = await processor.process(protectMathDelimiters(normalizedSource));
   return addMarkdownAlertIcons(transformGithubAlerts(String(file)));
 }
 
