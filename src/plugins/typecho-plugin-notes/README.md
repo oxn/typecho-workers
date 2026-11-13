@@ -62,3 +62,11 @@ const { items, pagination } = await getNotesStreamForTheme(
 
 WordPress WXR 迁移脚本会把 `post_type=note` 转为该数据格式，并将 WordPress
 的 `topic` taxonomy 转为 `note_topic`。迁移脚本默认自动启用本插件。
+
+
+## 当前实现边界（2026-11-13 核对）
+
+- 主题列表优先使用 `getNotesStreamForTheme()`：一次只加载 `notes` 或 `mixed` 所需的数据，使用 `pageSize + 1` 判断是否有下一页，不承诺精确总数。
+- 该主题流通过共享 `notes` 缓存域读取；缓存键包含流模式、页码、页大小、话题、站点 URL 和固定链接模式。
+- 前台流只包含已公开且发布时间已到的笔记；私密笔记与草稿不通过主题变量暴露。
+- 附件分桶由服务层按 MIME 类型完成；主题负责显示图片、视频、音频和普通附件。编辑回填需保留所有分桶，避免保存时丢失附件。

@@ -19,3 +19,12 @@
 - MathJax 第三方 bundle 产生 direct eval 构建警告；不是本次构建失败。
 - 本地构建日志不等同于 Cloudflare 线上部署记录。
 - 线上部署历史仍需在 Cloudflare Workers Builds / Deployments 控制台核实；本次未执行部署。
+
+
+## 2026-11-13 文档核对与同步
+
+- 按当前 `master` 的插件、主题源码重新核对说明文件，修正 AntiSpam 时间令牌的签发时机说明。
+- 补充 Edge Cache 的开发模式绕过策略与 D1 过期缓存清理说明。
+- 补充 Markdown Rehype 的图片尺寸语法与 SVG 安全处理边界。
+- 更新内置插件目录、Warm CY 配套插件版本信息及主题使用说明。
+- 本次为文档同步提交，不代表新增线上功能；未修改 Typecho 核心文件，未执行 Cloudflare 生产部署。

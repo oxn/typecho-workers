@@ -1,6 +1,6 @@
 # typecho-plugin-notifier (Notifier)
 
-多渠道通知插件：**邮件（Resend / MailerSend / Brevo / Plunk / Maileroo）+ WebHook（Bark / Telegram）**。Cloudflare Workers 环境无需 SMTP 服务器，邮件与 WebHook 均通过 HTTP API 发送。
+**插件版本：2.2.0（以 package.json 为准）**\n\n多渠道通知插件：邮件（Resend / MailerSend / Brevo / Plunk / Maileroo）+ 通用 WebHook。Cloudflare Workers 环境无需 SMTP 服务器，邮件与 WebHook 均通过 HTTP API 发送。
 
 > 2.0 起由 `typecho-plugin-mailer` 升级而来。旧版 Mailer 配置会自动读取迁移（见下文「升级迁移」）。
 >
@@ -8,7 +8,7 @@
 >
 > 2.2 起邮件合并为一套「新消息」模板；WebHook 内容改为 JSON 模板。
 >
-> 2.3 起移除 Bark / Telegram 渠道，仅保留**邮件 + WebHook**。需要手机推送时，把 WebHook 指向 Bark / Telegram 的推送端点即可（见下文「Bark / Telegram 用户迁移」）。
+
 
 ## 功能
 
@@ -63,7 +63,7 @@
 - 系统通知各渠道开关升级后默认关闭，需在设置页显式开启（例如恢复密码重置邮件的发送需勾选「系统通知 · 邮件」）
 - 首次保存设置后即写入新配置键；不写库即可完成迁移
 
-## Bark / Telegram 用户迁移（2.2 → 2.3）
+## 使用 WebHook 对接外部推送服务
 
 2.3 移除了 Bark / Telegram 渠道，但**不需要**插件支持也能继续用手机推送——WebHook 通道会把渲染后的 JSON 原样 POST 到任意地址，Bark 与 Telegram 的 API 恰好都是普通 JSON POST：
 

@@ -46,3 +46,11 @@
 - mermaid-config.ts：Mermaid 配置。
 - client/mermaid-runtime.ts：供构建器打包的 Mermaid 浏览器运行时入口。
 - iframe-allowlist.test.ts、svg-compat.test.ts：安全白名单与 SVG 兼容回归测试。
+
+
+## 图片尺寸与 SVG 兼容
+
+- Markdown 图片可使用受限尺寸语法，例如 `![说明](image.webp){width=48 height=48}`；仅接受 width/height，值为有限的像素数值、百分比或 `auto`。
+- 旧内容中图片 URL fragment 的 `#width=...` / `#height=...` 会在符合尺寸语法时转换为图片尺寸；其他 fragment 内容会保留。
+- SVG 通过扩展后的 sanitize schema 保留受约束的几何、绘制与引用属性；仅允许指向文档内 ID 的本地 SVG 引用，不开放任意外部资源或事件处理属性。
+- 以上兼容不等于关闭 sanitize。原始 HTML、SVG 与 iframe 仍受白名单约束。

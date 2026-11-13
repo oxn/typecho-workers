@@ -1,3 +1,5 @@
+**插件版本：** 2.0.0（以 package.json 为准）
+
 # Intelligence
 
 AI 智能助手：写作辅助、自动摘要、搜索方式。

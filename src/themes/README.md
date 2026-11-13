@@ -1,10 +1,10 @@
 # 主题开发规范
 
-> 本文档是 Typecho-Workers 主题开发的完整参考。以 `typecho-theme-warm/` 目录为默认主题示例。
+> 本文档是 Typecho-Workers 主题开发的完整参考。以 `typecho-theme-warm-cy/` 目录为当前仓库主题示例。
 
 ---
 
-## 目录结构
+## 当前仓库主题\n\n当前仓库内置主题为 `typecho-theme-warm-cy`。它使用 Astro 组件组织首页、文章、页面、归档、评论、目录和笔记媒体；具体功能与主题设置以 `src/themes/typecho-theme-warm-cy/README.md`、`theme.json` 和组件源码为准。\n\n## 目录结构
 
 ```
 typecho-theme-example/

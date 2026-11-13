@@ -4,7 +4,7 @@
 
 ---
 
-## 目录结构
+## 仓库内置插件索引\n\n| 插件 | 主要职责 |\n|---|---|\n| `typecho-plugin-antispam` | 本地反垃圾评论：蜜罐、动态时间令牌、链接数量限制 |\n| `typecho-plugin-cache` | 页面多层缓存、数据查询缓存、缓存失效与 CDN 地址改写 |\n| `typecho-plugin-intelligence` | AI 写作辅助、文章/页面摘要、站内或 Bing/Google 搜索 |\n| `typecho-plugin-markdown-rehype` | Markdown/GFM、HTML 安全过滤、公式、Mermaid 结构与目录 |\n| `typecho-plugin-notes` | 笔记内容类型、话题、附件和公开时间线数据 |\n| `typecho-plugin-notifier` | 系统邮件、新评论/回复通知与通用 WebHook |\n| `typecho-plugin-pinyin` | 文章/独立页面编辑器的拼音别名建议 |\n| `typecho-plugin-turnstile` | 评论与后台登录的 Cloudflare Turnstile 验证 |\n| `typecho-plugin-warm-cy` | Warm CY 配套管理、主题设置、置顶和可选前台增强 |\n\n各插件的具体配置、权限、Hook 和安全边界以各自目录的 `README.md` 及当前源码为准。插件是否参与请求处理仍取决于后台启用状态。\n\n## 目录结构
 
 ```
 typecho-plugin-example/

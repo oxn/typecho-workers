@@ -66,3 +66,11 @@ InstantClick / pjax
 ## 备注
 
 可与其他反垃圾插件（如 AntiSpam）同时使用，Turnstile 在提交时先执行。
+
+
+## 验证与兼容边界（2026-11-13 核对）
+
+- 服务端通过 Cloudflare `/siteverify` 验证 token，请求超时设为 5 秒；网络超时或验证失败按验证失败处理，不绕过校验。
+- 评论验证仅在评论场景按登录状态豁免；登录验证不会因已有登录状态而跳过。
+- 前端同时提供完整页面加载与 InstantClick 页面切换后的 SDK 确保加载逻辑，避免只依赖首次页面的 `<head>`。
+- 配置未填写 Site Key 或 Secret 时，插件不会凭空生成有效验证；启用前需在 Cloudflare Turnstile 控制台创建站点密钥。
