@@ -1435,7 +1435,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    };',
       '    htmlTags.addEventListener(\'blur\', normalizeHtmlTags);',
       '    form.addEventListener(\'submit\', normalizeHtmlTags);',
-      '  }',
+      '    normalizeHtmlTags();',
+      '  }'
       '  if (iframeAttributesCard) iframeAttributesCard.classList.add(\'markdown-rehype-allowlist-card\');',
       '  if (htmlTags && !form.querySelector(\'[data-html-tags-reset]\')) {',
       '    var htmlTagsReset = document.createElement(\'button\');',
@@ -1455,6 +1456,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    };',
       '    iframeAttributes.addEventListener(\'blur\', normalizeIframeAttributes);',
       '    form.addEventListener(\'submit\', normalizeIframeAttributes);',
+      '    normalizeIframeAttributes();',
       '  }',
       '  if (iframeAttributes && !form.querySelector(\'[data-iframe-allowlist-reset]\')) {',
       '    var reset = document.createElement(\'button\');',
