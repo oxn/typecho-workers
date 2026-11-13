@@ -1283,8 +1283,7 @@ body.warm-theme {
 }
 
 .warm-toc:hover .warm-toc__label,
-.warm-toc:focus-within .warm-toc__label,
-.warm-toc__link.is-active .warm-toc__label {
+.warm-toc:focus-within .warm-toc__label {
   max-width: 11.5em;
   margin-left: 10px;
   overflow: hidden;
