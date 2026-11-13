@@ -424,21 +424,21 @@ const footerLinks = [
       }
     };
     const enhanceCodeCopyButtons = () => {
-      document.querySelectorAll('.warm-prose pre > code.hljs').forEach(code => {
+      // Match Rin: one copy control per fenced code block, including plain-text blocks.
+      document.querySelectorAll('.warm-prose pre > code').forEach(code => {
         const pre = code.parentElement;
-        if (!pre || pre.querySelector(':scope > .warm-code-copy')) return;
+        if (!pre || pre.matches('.mermaid_default, .mermaid_dark') || pre.querySelector(':scope > .warm-code-copy')) return;
 
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'warm-code-copy';
         button.textContent = '复制';
         button.setAttribute('aria-label', '复制代码');
-        button.style.cssText = 'position:absolute;top:6px;right:8px;z-index:2;padding:4px 8px;border:0;border-radius:4px;background:var(--warm-surface-strong);color:var(--warm-muted);font:inherit;font-size:12px;line-height:1.4;cursor:pointer;user-select:none;visibility:hidden;opacity:0;transition:opacity 140ms ease;';
+        button.style.cssText = 'position:absolute;top:4px;right:4px;z-index:2;padding:2px 6px;border:0;border-radius:4px;background:var(--warm-surface-strong);color:var(--warm-muted);font:inherit;font-size:12px;line-height:1.4;cursor:pointer;user-select:none;visibility:hidden;opacity:0;transition:opacity 140ms ease;';
 
         if (getComputedStyle(pre).position === 'static') pre.style.position = 'relative';
         const canHover = window.matchMedia('(hover: hover)').matches;
         const showButton = () => {
-          if (!canHover) return;
           button.style.visibility = 'visible';
           button.style.opacity = '1';
         };
@@ -447,14 +447,47 @@ const footerLinks = [
           button.style.opacity = '0';
         };
 
-        pre.addEventListener('mouseenter', showButton);
-        pre.addEventListener('mouseleave', hideButton);
-        button.addEventListener('blur', hideButton);
+        if (canHover) {
+          pre.addEventListener('mouseenter', showButton);
+          pre.addEventListener('mouseleave', hideButton);
+          button.addEventListener('blur', hideButton);
+        } else {
+          // Touch devices have no hover state; keep the control reachable.
+          showButton();
+        }
+
+        const copyText = async value => {
+          if (navigator.clipboard && window.isSecureContext) {
+            try {
+              await navigator.clipboard.writeText(value);
+              return true;
+            } catch (error) {
+              console.warn('Clipboard API copy failed; trying the compatibility fallback.', error);
+            }
+          }
+
+          const textarea = document.createElement('textarea');
+          textarea.value = value;
+          textarea.setAttribute('readonly', '');
+          textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+          document.body.append(textarea);
+          textarea.focus();
+          textarea.select();
+          let copied = false;
+          try {
+            copied = document.execCommand('copy');
+          } finally {
+            textarea.remove();
+          }
+          return copied;
+        };
+
         button.addEventListener('click', async () => {
           try {
-            await navigator.clipboard.writeText(code.textContent || '');
-            button.textContent = '已复制';
-            button.setAttribute('aria-label', '已复制');
+            const copied = await copyText(code.textContent || '');
+            button.textContent = copied ? '已复制' : '复制失败';
+            button.setAttribute('aria-label', copied ? '已复制' : '复制失败');
+            if (!copied) console.error('Code copy failed: clipboard API and compatibility fallback were unavailable.');
           } catch (error) {
             console.error('Code copy failed:', error);
             button.textContent = '复制失败';
