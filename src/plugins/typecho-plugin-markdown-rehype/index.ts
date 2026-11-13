@@ -280,7 +280,7 @@ async function loadCustomIframeAttributes(): Promise<string[]> {
 export function normalizeCustomHtmlTags(value: unknown): string[] {
   if (typeof value !== 'string') return [];
   const result = new Set<string>();
-  for (const raw of value.split(/[\s,;]+/)) {
+  for (const raw of value.split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
     if (/^[a-z][a-z0-9]*$/.test(name) && !FORBIDDEN_CUSTOM_HTML_TAGS.has(name)) result.add(name);
   }
@@ -1428,6 +1428,14 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '  var htmlTagsCard = htmlTags && htmlTags.closest(\'.typecho-option\');',
       '  var iframeAttributesCard = form.querySelector(\'textarea[name="iframeAttributes"]\')?.closest(\'.typecho-option\');',
       '  if (htmlTagsCard) htmlTagsCard.classList.add(\'markdown-rehype-allowlist-card\');',
+      '  if (htmlTags) {',
+      '    var normalizeHtmlTags = function () {',
+      '      var tags = Array.from(new Set(htmlTags.value.split(/[\s,，;；]+/).map(function (tag) { return tag.trim().toLowerCase(); }).filter(Boolean)));',
+      '      htmlTags.value = tags.join(\', \');',
+      '    };',
+      '    htmlTags.addEventListener(\'blur\', normalizeHtmlTags);',
+      '    form.addEventListener(\'submit\', normalizeHtmlTags);',
+      '  }',
       '  if (iframeAttributesCard) iframeAttributesCard.classList.add(\'markdown-rehype-allowlist-card\');',
       '  if (htmlTags && !form.querySelector(\'[data-html-tags-reset]\')) {',
       '    var htmlTagsReset = document.createElement(\'button\');',
@@ -1436,7 +1444,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    htmlTagsReset.dataset.htmlTagsReset = \'1\';',
       '    htmlTagsReset.textContent = \'恢复常用标签默认值\';',
       '    htmlTagsReset.style.marginTop = \'8px\';',
-      '    htmlTagsReset.addEventListener(\'click\', function () { htmlTags.value = \'u\\ns\\nkbd\\nabbr\\nsmall\\ncite\\nq\\ntime\\ndel\\nins\\nruby\\nrt\\nrp\\nwbr\\nbdi\\nbdo\\ndata\\noutput\\nprogress\\nmeter\'; htmlTags.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
+      '    htmlTagsReset.addEventListener(\'click\', function () { htmlTags.value = \'u, s, kbd, abbr, small, cite, q, time, del, ins, ruby, rt, rp, wbr, bdi, bdo, data, output, progress, meter\'; htmlTags.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
       '    htmlTags.after(htmlTagsReset);',
       '  }',
       '  var iframeAttributes = form.querySelector(\'textarea[name="iframeAttributes"]\');',
