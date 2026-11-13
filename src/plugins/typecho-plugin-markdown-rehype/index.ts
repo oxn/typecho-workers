@@ -216,7 +216,7 @@ const HTML_TO_HAST_IFRAME_PROPERTIES: Record<string, string> = {
 export function normalizeCustomIframeAttributes(value: unknown): string[] {
   if (typeof value !== 'string') return [];
   const result = new Set<string>();
-  for (const raw of value.split(/[\s,;]+/)) {
+  for (const raw of value.split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
     if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
     if (name.startsWith('on') || FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES.has(name)) continue;
@@ -1448,6 +1448,14 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    htmlTags.after(htmlTagsReset);',
       '  }',
       '  var iframeAttributes = form.querySelector(\'textarea[name="iframeAttributes"]\');',
+      '  if (iframeAttributes) {',
+      '    var normalizeIframeAttributes = function () {',
+      '      var attributes = Array.from(new Set(iframeAttributes.value.split(/[\\s,，;；]+/).map(function (attribute) { return attribute.trim().toLowerCase(); }).filter(Boolean)));',
+      '      iframeAttributes.value = attributes.join(\', \');',
+      '    };',
+      '    iframeAttributes.addEventListener(\'blur\', normalizeIframeAttributes);',
+      '    form.addEventListener(\'submit\', normalizeIframeAttributes);',
+      '  }',
       '  if (iframeAttributes && !form.querySelector(\'[data-iframe-allowlist-reset]\')) {',
       '    var reset = document.createElement(\'button\');',
       '    reset.type = \'button\';',
