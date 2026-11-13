@@ -435,6 +435,7 @@ const footerLinks = [
         button.setAttribute('aria-label', '复制代码');
         button.style.cssText = 'position:absolute;top:6px;right:8px;z-index:2;padding:4px 8px;border:0;border-radius:4px;background:var(--warm-surface-strong);color:var(--warm-muted);font:inherit;font-size:12px;line-height:1.4;cursor:pointer;user-select:none;visibility:hidden;opacity:0;transition:opacity 140ms ease;';
 
+        if (getComputedStyle(pre).position === 'static') pre.style.position = 'relative';
         const canHover = window.matchMedia('(hover: hover)').matches;
         const showButton = () => {
           if (!canHover) return;
@@ -442,7 +443,6 @@ const footerLinks = [
           button.style.opacity = '1';
         };
         const hideButton = () => {
-          if (document.activeElement === button) return;
           button.style.visibility = 'hidden';
           button.style.opacity = '0';
         };
