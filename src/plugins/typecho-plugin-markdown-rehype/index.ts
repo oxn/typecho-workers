@@ -1324,13 +1324,19 @@ function createAdminPreviewScript(): string {
 
   const previewObserver = new MutationObserver(() => {
     enforcePreviewLayout();
+    if (!isPreviewVisible()) {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      renderPending = true;
+      return;
+    }
     if (!preview.contains(frame)) {
       preview.replaceChildren(frame);
       renderPending = true;
     }
     // Typecho toggles this class when the editor switches between source and
     // preview tabs. Defer remote rendering until the preview is actually shown.
-    if (isPreviewVisible() && renderPending) schedule();
+    if (renderPending) schedule();
   });
   previewObserver.observe(preview, {
     childList: true,
