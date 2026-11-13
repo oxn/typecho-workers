@@ -59,13 +59,13 @@
         "htmlTags": {
           "type": "textarea",
           "label": "原始 HTML 标签白名单",
-          "description": "每行填写一个允许在文章原始 HTML 中使用的标签名称。默认预置常用安全标签；留空表示关闭所有这些可选标签。标签名须为标准 HTML 标签格式，危险标签不能通过此处开放；标签属性仍单独遵循现有安全白名单。可使用下方按钮恢复常用标签默认值。",
+          "description": "每行填写一个允许在文章原始 HTML 中使用的标签名称。默认预置常用标签（u、s、kbd、abbr、small 等）；只填写需要放行的标签，留空则关闭本项额外放行的标签。支持换行、空格、逗号、分号分隔。仅放行标签本身，不会自动放行其属性；标签内的 style、class、事件属性等仍受原有属性安全规则限制，script、object、embed、form、iframe 等危险或受专门控制的标签不能通过此项开放。恢复默认按钮后需保存设置。",
           "default": "u\\ns\\nkbd\\nabbr\\nsmall\\ncite\\nq\\ntime\\ndel\\nins\\nruby\\nrt\\nrp\\nwbr\\nbdi\\nbdo\\ndata\\noutput\\nprogress\\nmeter"
         },
         "iframeAttributes": {
           "type": "textarea",
           "label": "iframe 属性白名单",
-          "description": "每行填写一个允许保留的 iframe 属性名。默认值为插件当前内置白名单；可直接在列表中新增或删除属性。危险事件属性（on*）、src 和 srcdoc 始终禁止。点击恢复默认值后，再保存设置即可还原初始白名单。",
+          "description": "每行填写一个允许保留的 iframe 属性名。此项只控制属性过滤，不会自动给 iframe 添加属性；文章中的 iframe 标签必须原本就写有该属性。src 不在此处配置，iframe 来源仍受插件固定域名白名单限制；srcdoc 和所有 on* 事件属性始终禁止。部分属性属于旧式或非标准属性（frameborder、framespacing、border、scrolling、marginwidth、marginheight、align、longdesc、allowtransparency、allowpaymentrequest），即使被保留，现代浏览器也可能忽略或不再支持；credentialless、fetchpriority 等则取决于浏览器版本。allow、sandbox 等属性的实际效果还取决于属性值、浏览器安全策略及嵌入服务提供方。新增属性名称只有在浏览器或嵌入页面确实识别时才会产生效果。留空或输入无效内容时恢复内置默认白名单；点击恢复默认值后仍需保存设置。",
           "default": "width\nheight\nframeborder\nframespacing\nborder\nallow\nallowfullscreen\nallowtransparency\nallowpaymentrequest\ntitle\nname\nid\nclass\nstyle\nreferrerpolicy\nsandbox\nscrolling\nmarginwidth\nmarginheight\nloading\ncredentialless\nfetchpriority\nalign\nlongdesc\naria-label\naria-hidden\ndata-diag-id"
         }
       }
