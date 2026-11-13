@@ -3,19 +3,14 @@
   "name": "Typecho Warm CY",
   "description": "基于 Typecho Warm 的独立自定义主题。",
   "author": "怸歪",
-  "version": "2026.11.10.21.03",
+  "version": "2026.11.13.10.49",
   "stylesheet": "style.css",
   "screenshot": "screenshot.png",
   "homepage": "https://oook.top",
   "license": "MIT",
   "commentsMode": "api",
   "publicHtml": true,
-  "tags": [
-    "warm",
-    "minimal",
-    "notes",
-    "single-column"
-  ],
+  "tags": ["warm", "minimal", "notes", "single-column"],
   "config": {
     "imageOptimizeParams": {
       "type": "text",
@@ -34,33 +29,20 @@
       "label": "内容列表",
       "description": "控制首页、分类和笔记内容列表后续页的加载方式。",
       "default": "manual",
-      "options": {
-        "manual": "手动加载",
-        "auto-2": "滚动加载 2 次",
-        "infinite": "无限滚动加载"
-      }
+      "options": {"manual":"手动加载","auto-2":"滚动加载 2 次","infinite":"无限滚动加载"}
     },
     "commentComponentLoadMode": {
       "type": "select",
       "label": "评论组件",
       "description": "控制评论框及其表单配置的加载方式。",
       "default": "manual",
-      "options": {
-        "manual": "手动加载",
-        "dwell": "停留 3 秒加载",
-        "auto": "自动加载"
-      }
+      "options": {"manual":"手动加载","dwell":"停留 3 秒加载","auto":"自动加载"}
     },
     "commentInitialLoadMode": {
       "type": "select",
       "label": "评论列表",
       "default": "manual",
-      "options": {
-        "manual": "手动加载",
-        "auto-first": "加载第一页",
-        "auto-2": "滚动加载 2 次",
-        "infinite": "无限滚动加载"
-      }
+      "options": {"manual":"手动加载","auto-first":"加载第一页","auto-2":"滚动加载 2 次","infinite":"无限滚动加载"}
     }
   }
 }
