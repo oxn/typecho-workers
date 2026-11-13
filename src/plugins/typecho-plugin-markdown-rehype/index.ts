@@ -1008,11 +1008,15 @@ function createAdminPreviewScript(): string {
           const mime = response.headers.get('content-type') ||
             (extension === 'woff2' ? 'font/woff2' : extension === 'woff' ? 'font/woff' : extension === 'otf' ? 'font/otf' : 'font/ttf');
           return 'data:' + mime.split(';')[0] + ';base64,' + btoa(binary);
-        })());
+        })().catch(error => {
+          console.error('KaTeX preview font could not be embedded:', error);
+          return null;
+        }));
       }
     }
     const replacements = await Promise.all(Array.from(assets, async ([url, promise]) => [url, await promise]));
     for (const [url, dataUrl] of replacements) {
+      if (!dataUrl) continue;
       css = css.replaceAll('url(' + url + ')', 'url("' + dataUrl + '")')
         .replaceAll("url('" + url + "')", 'url("' + dataUrl + '")')
         .replaceAll('url("' + url + '")', 'url("' + dataUrl + '")');
