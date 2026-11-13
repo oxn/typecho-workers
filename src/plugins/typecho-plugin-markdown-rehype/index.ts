@@ -983,10 +983,10 @@ function createAdminPreviewScript(): string {
 
   async function inlineKatexFontAssets(css) {
     const assets = new Map();
-    const matches = Array.from(css.matchAll(/url\\(([^)]+)\\)/g));
+    const matches = Array.from(css.matchAll(/url\(([^)]+)\)/g));
     for (const match of matches) {
       const rawUrl = match[1].trim().replace(/^['"]|['"]$/g, '');
-      if (!/\\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i.test(rawUrl)) continue;
+      if (!/\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i.test(rawUrl)) continue;
       let assetUrl;
       try {
         assetUrl = new URL(rawUrl, window.location.href);
@@ -994,9 +994,8 @@ function createAdminPreviewScript(): string {
         continue;
       }
       if (assetUrl.origin !== window.location.origin) continue;
-      const key = assetUrl.href;
-      if (!assets.has(key)) {
-        assets.set(key, (async () => {
+      if (!assets.has(rawUrl)) {
+        assets.set(rawUrl, (async () => {
           const response = await fetch(assetUrl.href, { credentials: 'same-origin' });
           if (!response.ok) throw new Error('KaTeX font request failed: ' + response.status + ' ' + assetUrl.pathname);
           const buffer = await response.arrayBuffer();
@@ -1064,9 +1063,16 @@ function createAdminPreviewScript(): string {
         if (current !== sequence || source !== textarea.value) return;
         frame.srcdoc = previewDocument;
         hasRenderedPreview = true;
+        if (timer) { clearTimeout(timer); timer = null; }
       });
-    }).then(() => {
-      if (current === sequence && hasRenderedPreview && timer) { clearTimeout(timer); timer = null; }
+    }).catch(error => {
+      // Preserve the last good document, but never leave the initial preview
+      // as an unexplained white iframe when the first request fails.
+      if (!hasRenderedPreview && current === sequence) {
+        const message = error instanceof Error ? error.message : '未知错误';
+        frame.srcdoc = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><body style="margin:0;padding:0 15px;font:14px/1.7 system-ui,sans-serif;color:#a33;background:#fff"><strong>Markdown 预览暂时无法加载</strong><p style="white-space:pre-wrap"></p></body><script>document.querySelector("p").textContent=' + JSON.stringify(message) + ';' + '</scr' + 'ipt></html>';
+      }
+    });
       if (timer) { clearTimeout(timer); timer = null; }
     }).catch(error => {
       // Preserve the last good document, but never leave the initial preview
