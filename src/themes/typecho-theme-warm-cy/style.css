@@ -1223,6 +1223,17 @@ body.warm-theme {
   display: none;
 }
 
+.warm-toc__inner {
+  max-height: min(68vh, calc(100vh - 140px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.warm-toc__inner::-webkit-scrollbar {
+  display: none;
+}
+
 .warm-toc__list {
   margin: 0;
   padding: 0;
