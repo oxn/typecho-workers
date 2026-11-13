@@ -981,16 +981,57 @@ function createAdminPreviewScript(): string {
     document.documentElement.classList.contains('dark') ||
     document.body.classList.contains('dark');
 
-  function createPreviewDocument(payload) {
+  async function inlineKatexFontAssets(css) {
+    const assets = new Map();
+    const matches = Array.from(css.matchAll(/url\\(([^)]+)\\)/g));
+    for (const match of matches) {
+      const rawUrl = match[1].trim().replace(/^['"]|['"]$/g, '');
+      if (!/\\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i.test(rawUrl)) continue;
+      let assetUrl;
+      try {
+        assetUrl = new URL(rawUrl, window.location.href);
+      } catch {
+        continue;
+      }
+      if (assetUrl.origin !== window.location.origin) continue;
+      const key = assetUrl.href;
+      if (!assets.has(key)) {
+        assets.set(key, (async () => {
+          const response = await fetch(assetUrl.href, { credentials: 'same-origin' });
+          if (!response.ok) throw new Error('KaTeX font request failed: ' + response.status + ' ' + assetUrl.pathname);
+          const buffer = await response.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+            binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+          }
+          const extension = assetUrl.pathname.split('.').pop().toLowerCase();
+          const mime = response.headers.get('content-type') ||
+            (extension === 'woff2' ? 'font/woff2' : extension === 'woff' ? 'font/woff' : extension === 'otf' ? 'font/otf' : 'font/ttf');
+          return 'data:' + mime.split(';')[0] + ';base64,' + btoa(binary);
+        })());
+      }
+    }
+    const replacements = await Promise.all(Array.from(assets, async ([url, promise]) => [url, await promise]));
+    for (const [url, dataUrl] of replacements) {
+      css = css.replaceAll('url(' + url + ')', 'url("' + dataUrl + '")')
+        .replaceAll("url('" + url + "')", 'url("' + dataUrl + '")')
+        .replaceAll('url("' + url + '")', 'url("' + dataUrl + '")');
+    }
+    return css;
+  }
+
+  async function createPreviewDocument(payload) {
     const dark = isDarkMode();
     const mathEngine = payload.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
+    const previewKatexCss = await inlineKatexFontAssets(katexCss);
     const bodyClass = 'warm-theme' + (dark ? ' dark' : '');
     const htmlClass = dark ? 'dark' : '';
     const source = typeof payload.html === 'string' ? payload.html : '';
     return '<!doctype html><html lang="zh-CN" class="' + htmlClass + '"><head>' +
       '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="/themes/typecho-theme-warm-cy/style.css">' +
-      '<style>' + katexCss + '</style>' +
+      '<style>' + previewKatexCss + '</style>' +
       '<style>html,body{margin:0!important;padding:0!important;min-height:0!important;}html,body,*{scrollbar-width:auto!important;scrollbar-color:auto!important;}body.warm-theme{min-width:0!important;min-height:0!important;overflow-x:hidden!important;} .warm-main{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin:0!important;padding:0 15px!important;} .warm-article{width:100%!important;margin:0!important;} .warm-article__body{min-width:0!important;width:100%!important;} .warm-prose{width:100%;max-width:none!important;} .warm-prose .mathjax-display{box-sizing:border-box;max-width:100%;overflow:visible;padding:0;line-height:normal;} .warm-prose .mathjax-display__scroll{box-sizing:border-box;max-width:100%;overflow-x:auto;overflow-y:hidden;padding-block:1.5em;} .warm-prose .mathjax-display__scroll mjx-container[display="true"]{margin:0!important;}</style>' +
       '<script>(function(){try{window.localStorage;}catch(e){var values=Object.create(null);var storage={get length(){return Object.keys(values).length;},clear:function(){values=Object.create(null);},getItem:function(key){key=String(key);return Object.prototype.hasOwnProperty.call(values,key)?values[key]:null;},key:function(index){return Object.keys(values)[index]||null;},removeItem:function(key){delete values[String(key)];},setItem:function(key,value){values[String(key)]=String(value);}};try{Object.defineProperty(window,"localStorage",{configurable:true,value:storage});}catch(ignore){}}})();window.MathJax={startup:{typeset:false},options:{enableMenu:false,renderActions:{addMenu:[],checkLoading:[]}},tex:{inlineMath:[["\\\\(","\\\\)"]],displayMath:[["\\\\[","\\\\]"]]}};' + '</scr' + 'ipt>' +
       '</head><body class="' + bodyClass + '">' +
@@ -1019,8 +1060,13 @@ function createAdminPreviewScript(): string {
       return response.json();
     }).then(payload => {
       if (current !== sequence || source !== textarea.value || !payload || typeof payload.html !== 'string') return;
-      frame.srcdoc = createPreviewDocument(payload);
-      hasRenderedPreview = true;
+      return createPreviewDocument(payload).then(previewDocument => {
+        if (current !== sequence || source !== textarea.value) return;
+        frame.srcdoc = previewDocument;
+        hasRenderedPreview = true;
+      });
+    }).then(() => {
+      if (current === sequence && hasRenderedPreview && timer) { clearTimeout(timer); timer = null; }
       if (timer) { clearTimeout(timer); timer = null; }
     }).catch(error => {
       // Preserve the last good document, but never leave the initial preview
