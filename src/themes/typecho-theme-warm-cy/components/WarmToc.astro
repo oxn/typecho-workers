@@ -44,11 +44,26 @@ if (items.length < 2) return;
       nav.dataset.warmTocReady = '1';
 
       let activeId = '';
+      const tocScroller = nav.querySelector('.warm-toc__inner');
       const setActive = id => {
         if (id === activeId) return;
         activeId = id;
+        let activeLink = null;
         for (const { link, heading } of headings) {
-          link.classList.toggle(ACTIVE, heading.id === id);
+          const isActive = heading.id === id;
+          link.classList.toggle(ACTIVE, isActive);
+          if (isActive) activeLink = link;
+        }
+
+        // Keep the current section around the vertical center of the visible TOC.
+        // Scroll only the TOC viewport, never the article/document itself.
+        if (activeLink && tocScroller) {
+          const scrollerRect = tocScroller.getBoundingClientRect();
+          const linkRect = activeLink.getBoundingClientRect();
+          const targetTop = tocScroller.scrollTop
+            + linkRect.top - scrollerRect.top
+            - (tocScroller.clientHeight - linkRect.height) / 2;
+          tocScroller.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
         }
       };
 
