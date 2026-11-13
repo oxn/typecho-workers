@@ -59,8 +59,8 @@
         "htmlTags": {
           "type": "textarea",
           "label": "原始 HTML 标签白名单",
-          "description": "无需重复填写插件已经内置的标签：button、figure、figcaption、style、mark、sup、sub、details、summary、video、audio、source、iframe，以及 SVG 图形标签（svg、g、path、rect、circle、ellipse、image、line、polyline、polygon、title、desc、defs、use、symbol、linearGradient、radialGradient、stop、clipPath、mask、filter、marker、pattern、fe* 滤镜元素、text、tspan）。此外还继承 rehype-sanitize 的默认安全标签集，包含常见 Markdown/HTML 结构标签。下方默认预置的 u、s、kbd、abbr、small、cite、q、time、del、ins、ruby、rt、rp、wbr、bdi、bdo、data、output、progress、meter 是额外补充标签。只需填写插件尚未内置、且确实需要使用的标签；重复填写不会增加功能。每行一个，支持换行、空格、逗号、分号分隔。留空则关闭本项额外补充的标签，但不会关闭上面已经内置的标签。仅放行标签本身，不会自动放行其属性；属性仍受原有安全规则限制。script、object、embed、form、iframe 等危险或受专门控制的标签不能通过此项开放。恢复默认按钮后需保存设置。",
-          "default": "u\\ns\\nkbd\\nabbr\\nsmall\\ncite\\nq\\ntime\\ndel\\nins\\nruby\\nrt\\nrp\\nwbr\\nbdi\\nbdo\\ndata\\noutput\\nprogress\\nmeter"
+          "description": "无需重复填写插件已经内置的标签：button、figure、figcaption、style、mark、sup、sub、details、summary、video、audio、source、iframe，以及 SVG 图形标签（svg、g、path、rect、circle、ellipse、image、line、polyline、polygon、title、desc、defs、use、symbol、linearGradient、radialGradient、stop、clipPath、mask、filter、marker、pattern、fe* 滤镜元素、text、tspan）。此外还继承 rehype-sanitize 的默认安全标签集，包含常见 Markdown/HTML 结构标签。下方默认预置的 u、s、kbd、abbr、small、cite、q、time、del、ins、ruby、rt、rp、wbr、bdi、bdo、data、output、progress、meter 是额外补充标签。只需填写插件尚未内置、且确实需要使用的标签；重复填写不会增加功能。输入时可使用空格、中英文逗号、中英文分号或回车换行分隔；离开输入框或点击保存时会自动去重，并统一显示为“空格 + 英文逗号 + 空格”的格式。留空则关闭本项额外补充的标签，但不会关闭上面已经内置的标签。仅放行标签本身，不会自动放行其属性；属性仍受原有安全规则限制。script、object、embed、form、iframe 等危险或受专门控制的标签不能通过此项开放。恢复默认按钮后需保存设置。",
+          "default": "u, s, kbd, abbr, small, cite, q, time, del, ins, ruby, rt, rp, wbr, bdi, bdo, data, output, progress, meter"
         },
         "iframeAttributes": {
           "type": "textarea",
