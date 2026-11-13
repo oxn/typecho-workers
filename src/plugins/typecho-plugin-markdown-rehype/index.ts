@@ -216,7 +216,7 @@ const HTML_TO_HAST_IFRAME_PROPERTIES: Record<string, string> = {
 export function normalizeCustomIframeAttributes(value: unknown): string[] {
   if (typeof value !== 'string') return [];
   const result = new Set<string>();
-  for (const raw of value.split(/[\s,，;；]+/)) {
+  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
     if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
     if (name.startsWith('on') || FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES.has(name)) continue;
@@ -280,7 +280,7 @@ async function loadCustomIframeAttributes(): Promise<string[]> {
 export function normalizeCustomHtmlTags(value: unknown): string[] {
   if (typeof value !== 'string') return [];
   const result = new Set<string>();
-  for (const raw of value.split(/[\s,，;；]+/)) {
+  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
     if (/^[a-z][a-z0-9]*$/.test(name) && !FORBIDDEN_CUSTOM_HTML_TAGS.has(name)) result.add(name);
   }
@@ -1430,7 +1430,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '  if (htmlTagsCard) htmlTagsCard.classList.add(\'markdown-rehype-allowlist-card\');',
       '  if (htmlTags) {',
       '    var normalizeHtmlTags = function () {',
-      '      var tags = Array.from(new Set(htmlTags.value.split(/[\\s,，;；]+/).map(function (tag) { return tag.trim().toLowerCase(); }).filter(Boolean)));',
+      '      var tags = Array.from(new Set(htmlTags.value.replace(/\\\\[nr]/gi, ' ').split(/[\\s,，;；]+/).map(function (tag) { return tag.trim().toLowerCase(); }).filter(Boolean)));',
       '      htmlTags.value = tags.join(\', \');',
       '    };',
       '    htmlTags.addEventListener(\'blur\', normalizeHtmlTags);',
@@ -1451,7 +1451,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '  var iframeAttributes = form.querySelector(\'textarea[name="iframeAttributes"]\');',
       '  if (iframeAttributes) {',
       '    var normalizeIframeAttributes = function () {',
-      '      var attributes = Array.from(new Set(iframeAttributes.value.split(/[\\s,，;；]+/).map(function (attribute) { return attribute.trim().toLowerCase(); }).filter(Boolean)));',
+      '      var attributes = Array.from(new Set(iframeAttributes.value.replace(/\\\\[nr]/gi, ' ').split(/[\\s,，;；]+/).map(function (attribute) { return attribute.trim().toLowerCase(); }).filter(Boolean)));',
       '      iframeAttributes.value = attributes.join(\', \');',
       '    };',
       '    iframeAttributes.addEventListener(\'blur\', normalizeIframeAttributes);',
