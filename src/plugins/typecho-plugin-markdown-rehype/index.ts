@@ -276,7 +276,7 @@ async function loadCustomIframeAttributes(): Promise<string[]> {
   }
 }
 
-/** Only explicitly listed, known-safe HTML tags are added to the sanitizer schema. */
+/** Normalize explicit standard HTML tag names while rejecting executable or document-level tags. */
 export function normalizeCustomHtmlTags(value: unknown): string[] {
   if (typeof value !== 'string') return [];
   const result = new Set<string>();
