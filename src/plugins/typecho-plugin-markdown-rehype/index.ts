@@ -1438,7 +1438,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    normalizeHtmlTags();',
       '    setTimeout(normalizeHtmlTags, 0);',
       '    setTimeout(normalizeHtmlTags, 100);',
-      '  }'
+      '  }',
       '  if (iframeAttributesCard) iframeAttributesCard.classList.add(\'markdown-rehype-allowlist-card\');',
       '  if (htmlTags && !form.querySelector(\'[data-html-tags-reset]\')) {',
       '    var htmlTagsReset = document.createElement(\'button\');',
