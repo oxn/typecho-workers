@@ -1312,6 +1312,7 @@ function createAdminPreviewScript(): string {
 const markdownRehypeAdminCss = [
   '.markdown-rehype-settings-page .typecho-option { margin: 0 0 16px !important; padding: 20px 22px !important; border: 1px solid #e5e9e7 !important; border-radius: 10px !important; background: #fff !important; box-shadow: 0 2px 9px rgba(20, 40, 30, .035) !important; }',
   '.markdown-rehype-settings-page .typecho-option > li { padding: 0 !important; }',
+  '.markdown-rehype-settings-page .markdown-rehype-allowlist-card { border-color: #dfe8e2 !important; border-radius: 10px !important; background: #fff !important; }',
   '.markdown-rehype-settings-page .typecho-option input[type="checkbox"] { accent-color: #269b63; }',
   '.markdown-rehype-settings-page .typecho-option p.description, .markdown-rehype-settings-page .typecho-option .description { margin: 8px 0 0 !important; color: #77817b; font-size: 13px; line-height: 1.7; }',
   '.markdown-rehype-settings-page .typecho-option-submit { padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }',
@@ -1424,6 +1425,10 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    form.before(warning);',
       '  }',
       '  var htmlTags = form.querySelector(\'textarea[name="htmlTags"]\');',
+      '  var htmlTagsCard = htmlTags && htmlTags.closest(\'.typecho-option\');',
+      '  var iframeAttributesCard = form.querySelector(\'textarea[name="iframeAttributes"]\')?.closest(\'.typecho-option\');',
+      '  if (htmlTagsCard) htmlTagsCard.classList.add(\'markdown-rehype-allowlist-card\');',
+      '  if (iframeAttributesCard) iframeAttributesCard.classList.add(\'markdown-rehype-allowlist-card\');',
       '  if (htmlTags && !form.querySelector(\'[data-html-tags-reset]\')) {',
       '    var htmlTagsReset = document.createElement(\'button\');',
       '    htmlTagsReset.type = \'button\';',
