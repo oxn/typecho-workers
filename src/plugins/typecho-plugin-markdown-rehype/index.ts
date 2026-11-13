@@ -173,7 +173,10 @@ export const DEFAULT_CUSTOM_HTML_TAGS = [
   'data', 'output', 'progress', 'meter',
 ] as const;
 
-const SAFE_CUSTOM_HTML_TAGS = new Set<string>(DEFAULT_CUSTOM_HTML_TAGS);
+const FORBIDDEN_CUSTOM_HTML_TAGS = new Set([
+  'script', 'object', 'embed', 'applet', 'frame', 'frameset',
+  'base', 'meta', 'link', 'form', 'template', 'portal',
+]);
 
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-markdown-rehype';
 
@@ -279,7 +282,7 @@ export function normalizeCustomHtmlTags(value: unknown): string[] {
   const result = new Set<string>();
   for (const raw of value.split(/[\s,;]+/)) {
     const name = raw.trim().toLowerCase();
-    if (SAFE_CUSTOM_HTML_TAGS.has(name)) result.add(name);
+    if (/^[a-z][a-z0-9]*$/.test(name) && !FORBIDDEN_CUSTOM_HTML_TAGS.has(name)) result.add(name);
   }
   return [...result];
 }
