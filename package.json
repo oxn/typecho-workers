@@ -34,7 +34,10 @@
     "perf:metrics": "bun run scripts/analyze-metrics.ts",
     "perf:usage": "bun run scripts/analyze-usage.ts",
     "perf:warm": "bun run scripts/warm-cache.ts",
-    "perf:baseline": "bun run scripts/capture-baseline.ts"
+    "perf:baseline": "bun run scripts/capture-baseline.ts",
+    "deploy:preflight": "bun run scripts/validate-deploy-wrangler.ts",
+    "deploy:checked": "bun run build:cloudflare && bun run deploy:preflight && wrangler deploy --config dist/server/wrangler.json",
+    "deploy:cloudflare-build:checked": "bun run deploy:preflight && wrangler deploy --config dist/server/wrangler.json"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.1.5",
