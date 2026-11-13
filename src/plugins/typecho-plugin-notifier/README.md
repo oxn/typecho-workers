@@ -65,7 +65,7 @@
 
 ## 使用 WebHook 对接外部推送服务
 
-2.3 移除了 Bark / Telegram 渠道，但**不需要**插件支持也能继续用手机推送——WebHook 通道会把渲染后的 JSON 原样 POST 到任意地址，Bark 与 Telegram 的 API 恰好都是普通 JSON POST：
+当前实现没有独立的 Bark / Telegram 渠道适配器。需要对接手机推送服务时，可将通用 WebHook 指向对应服务端点，并在 JSON 模板中填写服务商要求的字段：
 
 - **Bark**：WebHook 地址填 `https://api.day.app/push`（或自部署地址），payload 模板里带上自己的 `device_key`。例如系统通知：
 
