@@ -358,6 +358,7 @@ body.warm-theme {
   line-height: 1.95;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2; /* 标准属性 */
   overflow-wrap: anywhere;
 }
 
@@ -805,6 +806,80 @@ body.warm-theme {
   margin: 2.9em 0;
 }
 
+/* WordPress/Gutenberg block alignment and common media wrappers. */
+.warm-prose .aligncenter,
+.warm-prose .wp-block-image.aligncenter,
+.warm-prose .wp-block-gallery.aligncenter {
+  display: block;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.warm-prose .alignleft {
+  float: left;
+  max-width: min(48%, 320px);
+  margin: .35em 1.5em 1em 0;
+}
+
+.warm-prose .alignright {
+  float: right;
+  max-width: min(48%, 320px);
+  margin: .35em 0 1em 1.5em;
+}
+
+.warm-prose .wp-block-image,
+.warm-prose .wp-block-gallery,
+.warm-prose .wp-block-embed,
+.warm-prose .wp-block-video {
+  max-width: 100%;
+}
+
+.warm-prose .wp-block-image img,
+.warm-prose .wp-block-gallery img,
+.warm-prose .wp-block-video video {
+  max-width: 100%;
+  height: auto;
+}
+
+.warm-prose .wp-block-image figcaption,
+.warm-prose .wp-block-gallery figcaption,
+.warm-prose .wp-caption-text {
+  margin: 10px auto 0;
+  color: var(--warm-faint);
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.warm-prose .wp-block-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.warm-prose .wp-block-column {
+  flex: 1 1 0;
+  min-width: min(100%, 220px);
+}
+
+.warm-prose .wp-block-separator {
+  width: min(100%, 7rem);
+  margin: 2.5em auto;
+  border: 0;
+  border-top: 1px solid var(--warm-border);
+}
+
+.warm-prose .wp-block-table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.warm-prose .wp-block-table table {
+  width: 100%;
+  margin: 1.5em 0;
+}
+
 .warm-prose figure img {
   display: block;
   max-width: 100%;
@@ -1000,6 +1075,13 @@ body.warm-theme {
   color: inherit;
 }
 
+/* Keep emphasized text throughout an alert aligned with its variant color.
+   Inline HTML styles still take precedence when an author supplies them. */
+.warm-prose .markdown-alert strong,
+.warm-note__content .markdown-alert strong {
+  color: inherit;
+}
+
 /* 深色模式 */
 .dark .warm-prose .markdown-alert-note,
 .dark .warm-note__content .markdown-alert-note {
@@ -1056,8 +1138,8 @@ body.warm-theme {
 
 .warm-prose pre {
   overflow-x: auto;
-  margin: 2.5em 0;
-  padding: 30px 34px;
+  margin: 1.5em 0;
+  padding: 18px 20px;
   background: var(--warm-surface);
   color: #403d39;
   font-family: var(--warm-mono);
@@ -1069,8 +1151,8 @@ body.warm-theme {
 /* Code titles are emitted by remark-flexible-code-titles as a semantic strong node. */
 .warm-prose strong:has(+ pre) {
   display: block;
-  margin: 2.5em 0 0;
-  padding: 10px 16px;
+  margin: 1.5em 0 0;
+  padding: 6px 12px;
   background: var(--warm-surface);
   color: var(--warm-faint);
   font-family: var(--warm-mono);
@@ -1081,7 +1163,7 @@ body.warm-theme {
 
 .warm-prose strong + pre {
   margin-top: 0;
-  padding-top: 20px;
+  padding-top: 12px;
   border-top: 1px solid var(--warm-border);
 }
 
@@ -1142,9 +1224,20 @@ body.warm-theme {
   display: none;
 }
 
+.warm-toc__inner {
+  max-height: min(68vh, calc(100vh - 140px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.warm-toc__inner::-webkit-scrollbar {
+  display: none;
+}
+
 .warm-toc__list {
   margin: 0;
-  padding: 0;
+  padding: 32vh 0;
   list-style: none;
 }
 
@@ -1191,8 +1284,7 @@ body.warm-theme {
 }
 
 .warm-toc:hover .warm-toc__label,
-.warm-toc:focus-within .warm-toc__label,
-.warm-toc__link.is-active .warm-toc__label {
+.warm-toc:focus-within .warm-toc__label {
   max-width: 11.5em;
   margin-left: 10px;
   overflow: hidden;
@@ -1844,7 +1936,7 @@ body.warm-theme {
   }
 
   .warm-prose pre {
-    padding: 24px 28px;
+    padding: 14px 16px;
     font-size: 13px;
   }
 
@@ -2571,16 +2663,30 @@ body.warm-theme {
 
 
 /* Rehype Markdown: math, code highlighting and browser-rendered Mermaid. */
-.warm-prose .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: .25em 0; }
+.warm-prose .katex-display,
+.warm-prose .mathjax-display {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: .75em 0;
+  line-height: normal;
+}
 .warm-prose .katex { font-size: 1.05em; }
-.warm-prose pre code.hljs { display: block; overflow-x: auto; padding: 1em; }
+/* MathJax SVG glyphs and tall operators need a larger vertical safety area
+   inside the horizontally scrollable display-math viewport. */
+.warm-prose .mathjax-display { padding-block: 1.25em; }
+.warm-prose .mathjax-inline { line-height: normal; }
+.warm-prose .mathjax-display mjx-container[display="true"] { margin: 0 !important; }
+.warm-prose pre code.hljs { display: block; overflow-x: auto; padding: 0; }
 .warm-prose code.hljs { padding: .15em .35em; border-radius: 4px; }
 .warm-prose .hljs-comment, .warm-prose .hljs-quote { color: #8a918d; font-style: italic; }
 .warm-prose .hljs-keyword, .warm-prose .hljs-selector-tag, .warm-prose .hljs-literal { color: #9b5bce; }
 .warm-prose .hljs-string, .warm-prose .hljs-attr { color: #27865a; }
 .warm-prose .hljs-number, .warm-prose .hljs-symbol { color: #c07835; }
 .warm-prose .hljs-title, .warm-prose .hljs-function { color: #3979b8; }
-.warm-prose pre.mermaid {
+.warm-prose pre.mermaid_default,
+.warm-prose pre.mermaid_dark {
   max-width: 100%;
   margin: 1.5rem 0;
   padding: 1rem 0;
@@ -2593,7 +2699,8 @@ body.warm-theme {
   white-space: normal;
 }
 
-.warm-prose pre.mermaid svg {
+.warm-prose pre.mermaid_default svg,
+.warm-prose pre.mermaid_dark svg {
   display: block;
   width: max-content;
   max-width: none;
@@ -2601,6 +2708,23 @@ body.warm-theme {
   margin-inline: auto;
 }
 
+/*
+ * Mermaid measures SVG geometry synchronously while rendering. The global
+ * reduced-motion rule above applies a non-zero transition duration to every
+ * theme element; transitions on SVG nodes/paths can therefore inflate the
+ * measured viewBox before those transitions settle. Keep the entire diagram
+ * subtree geometry immediate, not only foreignObject labels.
+ */
+.warm-prose pre.mermaid_default svg,
+.warm-prose pre.mermaid_default svg *,
+.warm-prose pre.mermaid_default svg *::before,
+.warm-prose pre.mermaid_default svg *::after,
+.warm-prose pre.mermaid_dark svg,
+.warm-prose pre.mermaid_dark svg *,
+.warm-prose pre.mermaid_dark svg *::before,
+.warm-prose pre.mermaid_dark svg *::after {
+  transition: none !important;
+}
 
 /* Rehype heading permalinks: keep the anchor available without making the title noisy. */
 .warm-prose .warm-heading-anchor {
@@ -2623,4 +2747,21 @@ body.warm-theme {
   color: var(--warm-accent);
   opacity: 1;
   text-decoration: none;
+}
+
+/* Rin-style dual Mermaid variants: keep both source nodes in the document and
+   switch visibility with the active page theme. */
+.warm-prose pre.mermaid_default {
+  display: block;
+}
+.warm-prose pre.mermaid_dark {
+  display: none;
+}
+html.dark .warm-prose pre.mermaid_default,
+body.dark .warm-prose pre.mermaid_default {
+  display: none;
+}
+html.dark .warm-prose pre.mermaid_dark,
+body.dark .warm-prose pre.mermaid_dark {
+  display: block;
 }
