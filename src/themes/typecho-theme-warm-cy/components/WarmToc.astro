@@ -53,13 +53,30 @@ if (items.length < 2) return;
       };
 
       const syncFromScroll = () => {
-        const offset = Math.round(window.innerHeight * 0.22);
+        // The heading crossing the viewport's vertical midpoint represents
+        // the section currently being read.
+        const marker = window.innerHeight * 0.5;
         let current = headings[0].heading.id;
         for (const { heading } of headings) {
-          if (heading.getBoundingClientRect().top - offset <= 0) current = heading.id;
+          if (heading.getBoundingClientRect().top <= marker) current = heading.id;
           else break;
         }
+        // Always expose the final section when the reader reaches the end
+        // of the article, even if that section is shorter than half a viewport.
+        const documentElement = document.documentElement;
+        if (window.scrollY + window.innerHeight >= documentElement.scrollHeight - 2) {
+          current = headings[headings.length - 1].heading.id;
+        }
         setActive(current);
+      };
+
+      let scrollFrame = 0;
+      const onScroll = () => {
+        if (scrollFrame) return;
+        scrollFrame = window.requestAnimationFrame(() => {
+          scrollFrame = 0;
+          syncFromScroll();
+        });
       };
 
       const onClick = event => {
@@ -75,7 +92,7 @@ if (items.length < 2) return;
       };
 
       nav.addEventListener('click', onClick);
-      window.addEventListener('scroll', syncFromScroll, { passive: true });
+      window.addEventListener('scroll', onScroll, { passive: true });
       window.addEventListener('resize', syncFromScroll);
       syncFromScroll();
 
@@ -84,7 +101,8 @@ if (items.length < 2) return;
       const cleanupStalePage = () => {
         if (nav.isConnected) return;
         nav.removeEventListener('click', onClick);
-        window.removeEventListener('scroll', syncFromScroll);
+        window.removeEventListener('scroll', onScroll);
+        if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
         window.removeEventListener('resize', syncFromScroll);
         window.removeEventListener('instantclick:newpage', cleanupStalePage);
         delete nav.dataset.warmTocReady;
