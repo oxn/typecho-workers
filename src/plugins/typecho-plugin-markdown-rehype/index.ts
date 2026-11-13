@@ -166,6 +166,15 @@ export const DEFAULT_IFRAME_ATTRIBUTES = [
   'fetchPriority', 'align', 'longDesc', 'ariaLabel', 'ariaHidden', 'dataDiagId',
 ] as const;
 
+/** Safe optional HTML tags that administrators may explicitly allow in article content. */
+export const DEFAULT_CUSTOM_HTML_TAGS = [
+  'u', 's', 'kbd', 'abbr', 'small', 'cite', 'q', 'time',
+  'del', 'ins', 'ruby', 'rt', 'rp', 'wbr', 'bdi', 'bdo',
+  'data', 'output', 'progress', 'meter',
+] as const;
+
+const SAFE_CUSTOM_HTML_TAGS = new Set<string>(DEFAULT_CUSTOM_HTML_TAGS);
+
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-markdown-rehype';
 
 const ADMIN_PREVIEW_PATH = '/api/admin/markdown-rehype-preview';
@@ -217,9 +226,13 @@ export function normalizeCustomIframeAttributes(value: unknown): string[] {
   return [...result];
 }
 
-export function createArticleSanitizeSchema(iframeAttributes: string[] = [...DEFAULT_IFRAME_ATTRIBUTES]) {
+export function createArticleSanitizeSchema(
+  iframeAttributes: string[] = [...DEFAULT_IFRAME_ATTRIBUTES],
+  customHtmlTags: string[] = [],
+) {
   return {
     ...articleSanitizeSchema,
+    tagNames: [...articleSanitizeSchema.tagNames, ...customHtmlTags],
     attributes: {
       ...articleSanitizeSchema.attributes,
       iframe: [
@@ -233,6 +246,9 @@ export function createArticleSanitizeSchema(iframeAttributes: string[] = [...DEF
 let cachedCustomIframeAttributes: string[] = [];
 let customIframeAttributesExpiresAt = 0;
 let customIframeAttributesLoad: Promise<string[]> | null = null;
+let cachedCustomHtmlTags: string[] = [...DEFAULT_CUSTOM_HTML_TAGS];
+let customHtmlTagsExpiresAt = 0;
+let customHtmlTagsLoad: Promise<string[]> | null = null;
 
 async function loadCustomIframeAttributes(): Promise<string[]> {
   if (Date.now() < customIframeAttributesExpiresAt) return cachedCustomIframeAttributes;
@@ -254,6 +270,43 @@ async function loadCustomIframeAttributes(): Promise<string[]> {
     return await customIframeAttributesLoad;
   } finally {
     customIframeAttributesLoad = null;
+  }
+}
+
+/** Only explicitly listed, known-safe HTML tags are added to the sanitizer schema. */
+export function normalizeCustomHtmlTags(value: unknown): string[] {
+  if (typeof value !== 'string') return [];
+  const result = new Set<string>();
+  for (const raw of value.split(/[\s,;]+/)) {
+    const name = raw.trim().toLowerCase();
+    if (SAFE_CUSTOM_HTML_TAGS.has(name)) result.add(name);
+  }
+  return [...result];
+}
+
+async function loadCustomHtmlTags(): Promise<string[]> {
+  if (Date.now() < customHtmlTagsExpiresAt) return cachedCustomHtmlTags;
+  if (customHtmlTagsLoad) return customHtmlTagsLoad;
+  customHtmlTagsLoad = (async () => {
+    try {
+      const db = getDb(env.DB);
+      const raw = await getOption(db, 'plugin:typecho-plugin-markdown-rehype');
+      const config = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+      // Existing installations without this setting receive the curated defaults.
+      // An explicitly saved empty field disables all optional custom tags.
+      cachedCustomHtmlTags = Object.prototype.hasOwnProperty.call(config, 'htmlTags')
+        ? normalizeCustomHtmlTags(config.htmlTags)
+        : [...DEFAULT_CUSTOM_HTML_TAGS];
+    } catch {
+      cachedCustomHtmlTags = [...DEFAULT_CUSTOM_HTML_TAGS];
+    }
+    customHtmlTagsExpiresAt = Date.now() + 15_000;
+    return cachedCustomHtmlTags;
+  })();
+  try {
+    return await customHtmlTagsLoad;
+  } finally {
+    customHtmlTagsLoad = null;
   }
 }
 
@@ -856,7 +909,12 @@ function rehypeRestoreLocalReferences() {
  * processors can process files repeatedly. Reuse avoids rebuilding the plugin
  * chain on every article request while keeping math/TOC options isolated.
  */
-function createMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boolean, customIframeAttributes: string[] = []) {
+function createMarkdownProcessor(
+  mathEngine: MarkdownMathEngine,
+  tocEnabled: boolean,
+  customIframeAttributes: string[] = [],
+  customHtmlTags: string[] = [],
+) {
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -885,7 +943,7 @@ function createMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boo
     .use(rehypeImageDimensions)
     .use(rehypeRestoreMathDelimiters)
     .use(rehypeMathText)
-    .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes))
+    .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes, customHtmlTags))
     .use(rehypeRestoreLocalReferences);
   if (mathEngine === 'katex') processor.use(rehypeKatex);
   return processor
@@ -902,11 +960,16 @@ function createMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boo
 
 const processorCache = new Map<string, ReturnType<typeof createMarkdownProcessor>>();
 
-function getMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boolean, customIframeAttributes: string[] = []) {
-  const key = `${mathEngine}:${tocEnabled ? 'toc' : 'no-toc'}:${customIframeAttributes.join(',')}`;
+function getMarkdownProcessor(
+  mathEngine: MarkdownMathEngine,
+  tocEnabled: boolean,
+  customIframeAttributes: string[] = [],
+  customHtmlTags: string[] = [],
+) {
+  const key = [mathEngine, tocEnabled ? 'toc' : 'no-toc', customIframeAttributes.join(','), customHtmlTags.join(',')].join(':');
   let processor = processorCache.get(key);
   if (!processor) {
-    processor = createMarkdownProcessor(mathEngine, tocEnabled, customIframeAttributes);
+    processor = createMarkdownProcessor(mathEngine, tocEnabled, customIframeAttributes, customHtmlTags);
     processorCache.set(key, processor);
   }
   return processor;
@@ -943,8 +1006,16 @@ function addMarkdownAlertIcons(html: string): string {
 export async function renderMarkdown(source: string, options: MarkdownRenderOptions = {}): Promise<string> {
   if (!source) return '';
   const mathEngine = options.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
-  const customIframeAttributes = await loadCustomIframeAttributes();
-  const processor = getMarkdownProcessor(mathEngine, options.tocEnabled === true, customIframeAttributes);
+  const [customIframeAttributes, customHtmlTags] = await Promise.all([
+    loadCustomIframeAttributes(),
+    loadCustomHtmlTags(),
+  ]);
+  const processor = getMarkdownProcessor(
+    mathEngine,
+    options.tocEnabled === true,
+    customIframeAttributes,
+    customHtmlTags,
+  );
   const normalizedSource = normalizeIndentedHtmlBlocks(source);
   const file = await processor.process(protectMathDelimiters(normalizedSource));
   return addMarkdownAlertIcons(transformGithubAlerts(String(file)));
@@ -1305,7 +1376,10 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   }, 20);
 
   addHook('plugin:config:beforeSave', pluginId, (result: any, extra?: { pluginId?: string }) => {
-    if (extra?.pluginId === pluginId) customIframeAttributesExpiresAt = 0;
+    if (extra?.pluginId === pluginId) {
+      customIframeAttributesExpiresAt = 0;
+      customHtmlTagsExpiresAt = 0;
+    }
     return result;
   }, 20);
 
@@ -1345,6 +1419,17 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    warning.className = \'markdown-rehype-conflict-warning\';',
       '    warning.textContent = \'注：运行此插件不要打开CY服务插件中的【正文 HTML / CSS / JavaScript 增强】选项，与之冲突。\';',
       '    form.before(warning);',
+      '  }',
+      '  var htmlTags = form.querySelector(\'textarea[name="htmlTags"]\');',
+      '  if (htmlTags && !form.querySelector(\'[data-html-tags-reset]\')) {',
+      '    var htmlTagsReset = document.createElement(\'button\');',
+      '    htmlTagsReset.type = \'button\';',
+      '    htmlTagsReset.className = \'btn btn-xs\';',
+      '    htmlTagsReset.dataset.htmlTagsReset = \'1\';',
+      '    htmlTagsReset.textContent = \'恢复常用标签默认值\';',
+      '    htmlTagsReset.style.marginTop = \'8px\';',
+      '    htmlTagsReset.addEventListener(\'click\', function () { htmlTags.value = \'u\\ns\\nkbd\\nabbr\\nsmall\\ncite\\nq\\ntime\\ndel\\nins\\nruby\\nrt\\nrp\\nwbr\\nbdi\\nbdo\\ndata\\noutput\\nprogress\\nmeter\'; htmlTags.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
+      '    htmlTags.after(htmlTagsReset);',
       '  }',
       '  var iframeAttributes = form.querySelector(\'textarea[name="iframeAttributes"]\');',
       '  if (iframeAttributes && !form.querySelector(\'[data-iframe-allowlist-reset]\')) {',
