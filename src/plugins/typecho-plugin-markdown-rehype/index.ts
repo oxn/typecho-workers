@@ -668,15 +668,6 @@ function rehypeMathText() {
   };
 }
 /**
- * Mark Mermaid fenced blocks for the theme's browser-side Mermaid runtime.
- * Create independent light/dark source nodes so each SVG is rendered with its
- * own Mermaid theme instead of repainting one SVG when the site theme changes.
- *
- * The theme runtime already renders every pre.mermaid node. Mermaid's per-chart
- * init directive lets this plugin select the palette without changing the
- * theme-owned runtime or its navigation lifecycle.
- */
-/**
  * Mirror Rin's remark transform: each Mermaid fence becomes two independent
  * source <pre> nodes, one for the light theme and one for the dark theme.
  */
