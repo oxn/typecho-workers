@@ -63,7 +63,7 @@ if (items.length < 2) return;
           const targetTop = tocScroller.scrollTop
             + linkRect.top - scrollerRect.top
             - (tocScroller.clientHeight - linkRect.height) / 2;
-          tocScroller.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+          tocScroller.scrollTo({ top: Math.max(0, targetTop), behavior: 'auto' });
         }
       };
 
