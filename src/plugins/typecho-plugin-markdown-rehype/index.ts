@@ -982,22 +982,35 @@ function createAdminPreviewScript(): string {
     document.body.classList.contains('dark');
 
   async function inlineKatexFontAssets(css) {
-    const assets = new Map();
-    const matches = Array.from(css.matchAll(/url\(([^)]+)\)/g));
-    for (const match of matches) {
-      const rawUrl = match[1].trim().replace(/^['"]|['"]$/g, '');
+    // Vite's inline CSS can contain an extra pair of parentheses around
+    // emitted root-relative asset URLs. Parse the url() token, normalize that
+    // wrapper, and resolve site assets from the origin root (not /admin/).
+    const urlPattern = /url\(\s*((?:[^()]|\([^)]*\))*)\s*\)/gi;
+    const normalizeUrl = (value) => value.trim()
+      .replace(/^(['"])([\s\S]*)\1$/, '$2')
+      .trim()
+      .replace(/^\(+/, '')
+      .replace(/\)+$/, '');
+    const assetPromises = new Map();
+
+    for (const match of css.matchAll(urlPattern)) {
+      const rawUrl = normalizeUrl(match[1]);
       if (!/\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i.test(rawUrl)) continue;
+
       let assetUrl;
       try {
-        assetUrl = new URL(rawUrl, window.location.href);
+        assetUrl = new URL(rawUrl, window.location.origin + '/');
       } catch {
         continue;
       }
       if (assetUrl.origin !== window.location.origin) continue;
-      if (!assets.has(rawUrl)) {
-        assets.set(rawUrl, (async () => {
+
+      if (!assetPromises.has(assetUrl.href)) {
+        assetPromises.set(assetUrl.href, (async () => {
           const response = await fetch(assetUrl.href, { credentials: 'same-origin' });
-          if (!response.ok) throw new Error('KaTeX font request failed: ' + response.status + ' ' + assetUrl.pathname);
+          if (!response.ok) {
+            throw new Error('KaTeX font request failed: ' + response.status + ' ' + assetUrl.pathname);
+          }
           const buffer = await response.arrayBuffer();
           const bytes = new Uint8Array(buffer);
           let binary = '';
@@ -1014,14 +1027,25 @@ function createAdminPreviewScript(): string {
         }));
       }
     }
-    const replacements = await Promise.all(Array.from(assets, async ([url, promise]) => [url, await promise]));
-    for (const [url, dataUrl] of replacements) {
-      if (!dataUrl) continue;
-      css = css.replaceAll('url(' + url + ')', 'url("' + dataUrl + '")')
-        .replaceAll("url('" + url + "')", 'url("' + dataUrl + '")')
-        .replaceAll('url("' + url + '")', 'url("' + dataUrl + '")');
-    }
-    return css;
+
+    const embeddedAssets = new Map(await Promise.all(
+      Array.from(assetPromises, async ([url, promise]) => [url, await promise])
+    ));
+
+    return css.replace(urlPattern, (original, token) => {
+      const rawUrl = normalizeUrl(token);
+      if (!/\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i.test(rawUrl)) return original;
+
+      let assetUrl;
+      try {
+        assetUrl = new URL(rawUrl, window.location.origin + '/');
+      } catch {
+        return original;
+      }
+      if (assetUrl.origin !== window.location.origin) return original;
+      const dataUrl = embeddedAssets.get(assetUrl.href);
+      return dataUrl ? 'url("' + dataUrl + '")' : original;
+    });
   }
 
   async function createPreviewDocument(payload) {
