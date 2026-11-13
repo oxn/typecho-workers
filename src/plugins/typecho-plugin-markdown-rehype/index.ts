@@ -286,8 +286,8 @@ const articleSanitizeSchema = {
     ],
     code: [...(defaultSchema.attributes.code ?? []), 'className', 'style'],
     pre: [...(defaultSchema.attributes.pre ?? []), 'className', 'style'],
-    th: [...(defaultSchema.attributes.th ?? []), ['align', 'left', 'center', 'right'], ['valign', 'top', 'middle', 'bottom']],
-    td: [...(defaultSchema.attributes.td ?? []), ['align', 'left', 'center', 'right'], ['valign', 'top', 'middle', 'bottom']],
+    th: [...(defaultSchema.attributes.th ?? []), 'className', ['align', 'left', 'center', 'right'], ['valign', 'top', 'middle', 'bottom']],
+    td: [...(defaultSchema.attributes.td ?? []), 'className', ['align', 'left', 'center', 'right'], ['valign', 'top', 'middle', 'bottom']],
     video: [
       'src', 'controls', 'width', 'height', 'poster', 'autoplay', 'muted', 'loop',
       ['preload', 'none', 'metadata', 'auto'],
@@ -340,16 +340,12 @@ const articleSanitizeSchema = {
     h6: [...(defaultSchema.attributes.h6 ?? []), 'className'],
     ul: [...(defaultSchema.attributes.ul ?? []), 'className'],
     ol: [...(defaultSchema.attributes.ol ?? []), 'className'],
-    li: [...(defaultSchema.attributes.li ?? []), 'className'],
-    blockquote: [...(defaultSchema.attributes.blockquote ?? []), 'className', 'style'],
     hr: [...(defaultSchema.attributes.hr ?? []), 'className'],
     table: [...(defaultSchema.attributes.table ?? []), 'className'],
     thead: [...(defaultSchema.attributes.thead ?? []), 'className'],
     tbody: [...(defaultSchema.attributes.tbody ?? []), 'className'],
     tfoot: [...(defaultSchema.attributes.tfoot ?? []), 'className'],
     tr: [...(defaultSchema.attributes.tr ?? []), 'className'],
-    th: [...(defaultSchema.attributes.th ?? []), 'className'],
-    td: [...(defaultSchema.attributes.td ?? []), 'className'],
     dl: [...(defaultSchema.attributes.dl ?? []), 'className'],
     dt: [...(defaultSchema.attributes.dt ?? []), 'className'],
     dd: [...(defaultSchema.attributes.dd ?? []), 'className'],
@@ -361,7 +357,7 @@ const articleSanitizeSchema = {
     sup: ['id', 'title', 'ariaLabel', 'ariaDescribedBy', 'dataFootnoteRef', 'dataFootnoteBackref', 'className', 'style'],
     // GFM footnote links target the generated <li id="fn-N"> element.
     // Preserve that target ID or the visible superscript link has nowhere to jump.
-    li: [...(defaultSchema.attributes.li ?? []), 'id'],
+    li: [...(defaultSchema.attributes.li ?? []), 'id', 'className'],
     sub: ['id', 'title', 'ariaLabel', 'ariaDescribedBy', 'className', 'style'],
 
     img: [
