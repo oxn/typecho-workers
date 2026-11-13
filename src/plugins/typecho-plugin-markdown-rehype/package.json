@@ -59,7 +59,7 @@
         "htmlTags": {
           "type": "textarea",
           "label": "原始 HTML 标签白名单",
-          "description": "每行填写一个允许在文章原始 HTML 中使用的标签名称。默认预置常用安全标签；留空表示关闭所有这些可选标签。只允许插件内置的安全标签集合，危险标签不能通过此处开放；标签属性仍单独遵循现有安全白名单。可使用下方按钮恢复常用标签默认值。",
+          "description": "每行填写一个允许在文章原始 HTML 中使用的标签名称。默认预置常用安全标签；留空表示关闭所有这些可选标签。标签名须为标准 HTML 标签格式，危险标签不能通过此处开放；标签属性仍单独遵循现有安全白名单。可使用下方按钮恢复常用标签默认值。",
           "default": "u\\ns\\nkbd\\nabbr\\nsmall\\ncite\\nq\\ntime\\ndel\\nins\\nruby\\nrt\\nrp\\nwbr\\nbdi\\nbdo\\ndata\\noutput\\nprogress\\nmeter"
         },
         "iframeAttributes": {
