@@ -325,7 +325,7 @@ describe('Warm CY theme helpers', () => {
 });
 
 describe('Warm CY Mermaid chart-family compatibility', () => {
-  it('parses representative diagram types with the shared Neo configuration', async () => {
+  it('parses representative diagram types with the default Mermaid configuration', async () => {
     const diagrams: Array<[string, string[]]> = [
       ['flowchart', ['flowchart TD', '  A[Start] --> B[Finish]']],
       ['sequence', ['sequenceDiagram', '  Alice->>Bob: Hello']],
