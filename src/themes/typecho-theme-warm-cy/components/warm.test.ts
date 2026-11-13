@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderMarkdown } from 'typecho-plugin-markdown-rehype';
+import { getWarmMermaidConfig } from 'typecho-plugin-markdown-rehype/mermaid-config';
 import {
   isCurrentPageLink,
   normalizeCommentComponentLoadMode,
@@ -51,8 +52,10 @@ describe('Warm CY theme helpers', () => {
       Object.defineProperty(globalThis, 'window', { configurable: true, value: dom.window });
       Object.defineProperty(globalThis, 'document', { configurable: true, value: dom.window.document });
       const { default: mermaid } = await import('mermaid');
-      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'default' });
-      await expect(mermaid.parse(renderedSource)).resolves.toBeTruthy();
+      for (const config of [getWarmMermaidConfig(false), getWarmMermaidConfig(true)]) {
+        mermaid.initialize({ ...config, securityLevel: 'strict' });
+        await expect(mermaid.parse(renderedSource)).resolves.toBeTruthy();
+      }
     } finally {
       dom.window.close();
       if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow);
