@@ -1062,7 +1062,6 @@ body.warm-theme {
 }
 
 .warm-prose pre {
-  position: relative;
   overflow-x: auto;
   margin: 1.5em 0;
   padding: 18px 20px;
