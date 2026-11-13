@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { getWarmMermaidConfig } from './warm-mermaid';
 import { renderMarkdown } from 'typecho-plugin-markdown-rehype';
 import {
   isCurrentPageLink,
@@ -19,29 +18,6 @@ import {
   warmSettings,
 } from './warm';
 
-describe('Warm CY Mermaid visual configuration', () => {
-  it('uses the official Neo look, matching light/dark themes, and compact flowcharts', () => {
-    const light = getWarmMermaidConfig(false);
-    const dark = getWarmMermaidConfig(true);
-
-    expect(light).toMatchObject({
-      startOnLoad: false,
-      securityLevel: 'strict',
-      theme: 'neo',
-      look: 'neo',
-      flowchart: { nodeSpacing: 32, rankSpacing: 40, wrappingWidth: 160 },
-    });
-    expect(dark).toMatchObject({
-      startOnLoad: false,
-      securityLevel: 'strict',
-      theme: 'neo-dark',
-      look: 'neo',
-      flowchart: { nodeSpacing: 32, rankSpacing: 40, wrappingWidth: 160 },
-    });
-    expect(light.fontFamily).toContain('PingFang SC');
-  });
-});
-
 describe('Warm CY theme helpers', () => {
   it('parses the exact basic Mermaid flowchart emitted by the Rehype pipeline', async () => {
     const diagram = [
@@ -53,13 +29,20 @@ describe('Warm CY theme helpers', () => {
       '    D --> E',
     ].join('\n');
     const html = await renderMarkdown('```mermaid\n' + diagram + '\n```');
-    const marker = '<pre class="mermaid">';
-    const start = html.indexOf(marker);
-    const end = html.indexOf('</pre>', start + marker.length);
-    expect(start).toBeGreaterThanOrEqual(0);
-    expect(end).toBeGreaterThan(start);
-    const renderedSource = html.slice(start + marker.length, end);
+    const lightMarker = '<pre class="mermaid_default dark:hidden">';
+    const darkMarker = '<pre class="mermaid_dark dark:block hidden">';
+    const lightStart = html.indexOf(lightMarker);
+    const lightEnd = html.indexOf('</pre>', lightStart + lightMarker.length);
+    const darkStart = html.indexOf(darkMarker);
+    const darkEnd = html.indexOf('</pre>', darkStart + darkMarker.length);
+    expect(lightStart).toBeGreaterThanOrEqual(0);
+    expect(lightEnd).toBeGreaterThan(lightStart);
+    expect(darkStart).toBeGreaterThanOrEqual(0);
+    expect(darkEnd).toBeGreaterThan(darkStart);
+    const renderedSource = html.slice(lightStart + lightMarker.length, lightEnd);
+    const darkSource = html.slice(darkStart + darkMarker.length, darkEnd);
     expect(renderedSource.trim()).toBe(diagram);
+    expect(darkSource.trim()).toBe(diagram);
     const { JSDOM } = await import('jsdom');
     const dom = new JSDOM('<!doctype html><html><body></body></html>');
     const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
@@ -366,7 +349,7 @@ describe('Warm CY Mermaid chart-family compatibility', () => {
       Object.defineProperty(globalThis, 'window', { configurable: true, value: dom.window });
       Object.defineProperty(globalThis, 'document', { configurable: true, value: dom.window.document });
       const { default: mermaid } = await import('mermaid');
-      mermaid.initialize(getWarmMermaidConfig(false));
+      mermaid.initialize({ startOnLoad: false, theme: 'default' });
       for (const [type, lines] of diagrams) {
         await expect(mermaid.parse(lines.join('\n')), type).resolves.toBeTruthy();
       }
