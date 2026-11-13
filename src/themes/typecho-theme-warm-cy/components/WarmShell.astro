@@ -333,19 +333,47 @@ const footerLinks = [
     import mermaid from 'mermaid';
     import 'katex/dist/katex.min.css';
 
-    // Match Rin: render two independent source nodes in a fixed theme order.
+    // Mermaid must measure each theme variant while it participates in layout.
+    // The inactive variant is normally display:none; render it temporarily as
+    // visibility:hidden so Gantt/SVG geometry never starts from zero dimensions.
+    const renderMermaidVariant = async (nodes, config) => {
+      const restoreStyles = [];
+      nodes.forEach(node => {
+        if (getComputedStyle(node).display !== 'none') return;
+        restoreStyles.push({
+          node,
+          display: node.style.getPropertyValue('display'),
+          displayPriority: node.style.getPropertyPriority('display'),
+          visibility: node.style.getPropertyValue('visibility'),
+          visibilityPriority: node.style.getPropertyPriority('visibility'),
+        });
+        node.style.setProperty('display', 'block', 'important');
+        node.style.setProperty('visibility', 'hidden', 'important');
+      });
+
+      try {
+        mermaid.initialize(config);
+        await mermaid.run({ nodes });
+      } finally {
+        restoreStyles.forEach(item => {
+          if (item.display) item.node.style.setProperty('display', item.display, item.displayPriority);
+          else item.node.style.removeProperty('display');
+          if (item.visibility) item.node.style.setProperty('visibility', item.visibility, item.visibilityPriority);
+          else item.node.style.removeProperty('visibility');
+        });
+      }
+    };
+
     const renderMermaidBlocks = async () => {
       const lightNodes = document.querySelectorAll('pre.mermaid_default:not([data-processed])');
       const darkNodes = document.querySelectorAll('pre.mermaid_dark:not([data-processed])');
       if (!lightNodes.length && !darkNodes.length) return;
 
       try {
-        mermaid.initialize({ startOnLoad: false, theme: 'default' });
         try {
-          await mermaid.run({ nodes: lightNodes });
+          await renderMermaidVariant(lightNodes, { startOnLoad: false, theme: 'default' });
         } finally {
-          mermaid.initialize({ startOnLoad: false, theme: 'dark' });
-          await mermaid.run({ nodes: darkNodes });
+          await renderMermaidVariant(darkNodes, { startOnLoad: false, theme: 'dark' });
         }
       } catch (error) {
         console.error('Mermaid rendering failed:', error);
