@@ -1430,7 +1430,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '  if (htmlTagsCard) htmlTagsCard.classList.add(\'markdown-rehype-allowlist-card\');',
       '  if (htmlTags) {',
       '    var normalizeHtmlTags = function () {',
-      '      var tags = Array.from(new Set(htmlTags.value.split(/[\s,，;；]+/).map(function (tag) { return tag.trim().toLowerCase(); }).filter(Boolean)));',
+      '      var tags = Array.from(new Set(htmlTags.value.split(/[\\s,，;；]+/).map(function (tag) { return tag.trim().toLowerCase(); }).filter(Boolean)));',
       '      htmlTags.value = tags.join(\', \');',
       '    };',
       '    htmlTags.addEventListener(\'blur\', normalizeHtmlTags);',
