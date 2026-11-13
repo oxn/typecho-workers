@@ -1000,10 +1000,10 @@ body.warm-theme {
   color: inherit;
 }
 
-/* Keep semantic emphasis in alert titles aligned with the alert text color.
+/* Keep emphasized text throughout an alert aligned with its variant color.
    Inline HTML styles still take precedence when an author supplies them. */
-.warm-prose .markdown-alert-title strong,
-.warm-note__content .markdown-alert-title strong {
+.warm-prose .markdown-alert strong,
+.warm-note__content .markdown-alert strong {
   color: inherit;
 }
 
