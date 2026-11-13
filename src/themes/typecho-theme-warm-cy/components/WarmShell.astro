@@ -482,20 +482,27 @@ const footerLinks = [
           return copied;
         };
 
+        let feedbackTimer;
         button.addEventListener('click', async () => {
+          showButton();
+          if (feedbackTimer) window.clearTimeout(feedbackTimer);
+          let copied = false;
           try {
-            const copied = await copyText(code.textContent || '');
-            button.textContent = copied ? '已复制' : '复制失败';
-            button.setAttribute('aria-label', copied ? '已复制' : '复制失败');
+            copied = await copyText(code.textContent || '');
             if (!copied) console.error('Code copy failed: clipboard API and compatibility fallback were unavailable.');
           } catch (error) {
             console.error('Code copy failed:', error);
-            button.textContent = '复制失败';
-            button.setAttribute('aria-label', '复制失败');
           }
-          window.setTimeout(() => {
+
+          const feedback = copied ? '已复制 ✓' : '复制失败';
+          button.textContent = feedback;
+          button.title = feedback;
+          button.setAttribute('aria-label', feedback);
+          feedbackTimer = window.setTimeout(() => {
             button.textContent = '复制';
+            button.title = '复制代码';
             button.setAttribute('aria-label', '复制代码');
+            if (canHover && !pre.matches(':hover')) hideButton();
           }, 2000);
         });
 
