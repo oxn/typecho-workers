@@ -30,7 +30,7 @@
       "id": "typecho-plugin-markdown-rehype",
       "name": "Markdown Rehype",
       "description": "统一 Markdown 渲染流程，支持 GFM、HTML、数学公式、Mermaid、目录与代码高亮；部分前端渲染能力需主题配合。",
-      "version": "2026.11.13.10.49",
+      "version": "2026.11.13.21.10",
       "author": "怸歪",
       "authorUrl": "https://347777.xyz",
       "homepage": "https://347777.xyz",
@@ -55,6 +55,12 @@
           "label": "启用 Rehype 目录生成",
           "description": "默认关闭。仅在 Markdown 中存在“## 目录”标题时生成目录；若使用主题自带目录，请保持关闭，避免重复。",
           "default": false
+        },
+        "htmlTags": {
+          "type": "textarea",
+          "label": "原始 HTML 标签白名单",
+          "description": "每行填写一个允许在文章原始 HTML 中使用的标签名称。默认预置常用安全标签；留空表示关闭所有这些可选标签。只允许插件内置的安全标签集合，危险标签不能通过此处开放；标签属性仍单独遵循现有安全白名单。可使用下方按钮恢复常用标签默认值。",
+          "default": "u\\ns\\nkbd\\nabbr\\nsmall\\ncite\\nq\\ntime\\ndel\\nins\\nruby\\nrt\\nrp\\nwbr\\nbdi\\nbdo\\ndata\\noutput\\nprogress\\nmeter"
         },
         "iframeAttributes": {
           "type": "textarea",
