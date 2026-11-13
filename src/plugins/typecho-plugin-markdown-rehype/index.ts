@@ -166,6 +166,18 @@ export const DEFAULT_IFRAME_ATTRIBUTES = [
   'fetchPriority', 'align', 'longDesc', 'ariaLabel', 'ariaHidden', 'dataDiagId',
 ] as const;
 
+/** Safe optional HTML tags that administrators may explicitly allow in article content. */
+export const DEFAULT_CUSTOM_HTML_TAGS = [
+  'u', 's', 'kbd', 'abbr', 'small', 'cite', 'q', 'time',
+  'del', 'ins', 'ruby', 'rt', 'rp', 'wbr', 'bdi', 'bdo',
+  'data', 'output', 'progress', 'meter',
+] as const;
+
+const FORBIDDEN_CUSTOM_HTML_TAGS = new Set([
+  'script', 'object', 'embed', 'applet', 'frame', 'frameset',
+  'base', 'meta', 'link', 'form', 'template', 'portal',
+]);
+
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-markdown-rehype';
 
 const ADMIN_PREVIEW_PATH = '/api/admin/markdown-rehype-preview';
@@ -204,7 +216,7 @@ const HTML_TO_HAST_IFRAME_PROPERTIES: Record<string, string> = {
 export function normalizeCustomIframeAttributes(value: unknown): string[] {
   if (typeof value !== 'string') return [];
   const result = new Set<string>();
-  for (const raw of value.split(/[\s,;]+/)) {
+  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
     if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
     if (name.startsWith('on') || FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES.has(name)) continue;
@@ -217,9 +229,13 @@ export function normalizeCustomIframeAttributes(value: unknown): string[] {
   return [...result];
 }
 
-export function createArticleSanitizeSchema(iframeAttributes: string[] = [...DEFAULT_IFRAME_ATTRIBUTES]) {
+export function createArticleSanitizeSchema(
+  iframeAttributes: string[] = [...DEFAULT_IFRAME_ATTRIBUTES],
+  customHtmlTags: string[] = [],
+) {
   return {
     ...articleSanitizeSchema,
+    tagNames: [...articleSanitizeSchema.tagNames, ...customHtmlTags],
     attributes: {
       ...articleSanitizeSchema.attributes,
       iframe: [
@@ -233,6 +249,9 @@ export function createArticleSanitizeSchema(iframeAttributes: string[] = [...DEF
 let cachedCustomIframeAttributes: string[] = [];
 let customIframeAttributesExpiresAt = 0;
 let customIframeAttributesLoad: Promise<string[]> | null = null;
+let cachedCustomHtmlTags: string[] = [...DEFAULT_CUSTOM_HTML_TAGS];
+let customHtmlTagsExpiresAt = 0;
+let customHtmlTagsLoad: Promise<string[]> | null = null;
 
 async function loadCustomIframeAttributes(): Promise<string[]> {
   if (Date.now() < customIframeAttributesExpiresAt) return cachedCustomIframeAttributes;
@@ -254,6 +273,43 @@ async function loadCustomIframeAttributes(): Promise<string[]> {
     return await customIframeAttributesLoad;
   } finally {
     customIframeAttributesLoad = null;
+  }
+}
+
+/** Normalize explicit standard HTML tag names while rejecting executable or document-level tags. */
+export function normalizeCustomHtmlTags(value: unknown): string[] {
+  if (typeof value !== 'string') return [];
+  const result = new Set<string>();
+  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
+    const name = raw.trim().toLowerCase();
+    if (/^[a-z][a-z0-9]*$/.test(name) && !FORBIDDEN_CUSTOM_HTML_TAGS.has(name)) result.add(name);
+  }
+  return [...result];
+}
+
+async function loadCustomHtmlTags(): Promise<string[]> {
+  if (Date.now() < customHtmlTagsExpiresAt) return cachedCustomHtmlTags;
+  if (customHtmlTagsLoad) return customHtmlTagsLoad;
+  customHtmlTagsLoad = (async () => {
+    try {
+      const db = getDb(env.DB);
+      const raw = await getOption(db, 'plugin:typecho-plugin-markdown-rehype');
+      const config = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+      // Existing installations without this setting receive the curated defaults.
+      // An explicitly saved empty field disables all optional custom tags.
+      cachedCustomHtmlTags = Object.prototype.hasOwnProperty.call(config, 'htmlTags')
+        ? normalizeCustomHtmlTags(config.htmlTags)
+        : [...DEFAULT_CUSTOM_HTML_TAGS];
+    } catch {
+      cachedCustomHtmlTags = [...DEFAULT_CUSTOM_HTML_TAGS];
+    }
+    customHtmlTagsExpiresAt = Date.now() + 15_000;
+    return cachedCustomHtmlTags;
+  })();
+  try {
+    return await customHtmlTagsLoad;
+  } finally {
+    customHtmlTagsLoad = null;
   }
 }
 
@@ -856,7 +912,12 @@ function rehypeRestoreLocalReferences() {
  * processors can process files repeatedly. Reuse avoids rebuilding the plugin
  * chain on every article request while keeping math/TOC options isolated.
  */
-function createMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boolean, customIframeAttributes: string[] = []) {
+function createMarkdownProcessor(
+  mathEngine: MarkdownMathEngine,
+  tocEnabled: boolean,
+  customIframeAttributes: string[] = [],
+  customHtmlTags: string[] = [],
+) {
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -885,7 +946,7 @@ function createMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boo
     .use(rehypeImageDimensions)
     .use(rehypeRestoreMathDelimiters)
     .use(rehypeMathText)
-    .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes))
+    .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes, customHtmlTags))
     .use(rehypeRestoreLocalReferences);
   if (mathEngine === 'katex') processor.use(rehypeKatex);
   return processor
@@ -902,11 +963,16 @@ function createMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boo
 
 const processorCache = new Map<string, ReturnType<typeof createMarkdownProcessor>>();
 
-function getMarkdownProcessor(mathEngine: MarkdownMathEngine, tocEnabled: boolean, customIframeAttributes: string[] = []) {
-  const key = `${mathEngine}:${tocEnabled ? 'toc' : 'no-toc'}:${customIframeAttributes.join(',')}`;
+function getMarkdownProcessor(
+  mathEngine: MarkdownMathEngine,
+  tocEnabled: boolean,
+  customIframeAttributes: string[] = [],
+  customHtmlTags: string[] = [],
+) {
+  const key = [mathEngine, tocEnabled ? 'toc' : 'no-toc', customIframeAttributes.join(','), customHtmlTags.join(',')].join(':');
   let processor = processorCache.get(key);
   if (!processor) {
-    processor = createMarkdownProcessor(mathEngine, tocEnabled, customIframeAttributes);
+    processor = createMarkdownProcessor(mathEngine, tocEnabled, customIframeAttributes, customHtmlTags);
     processorCache.set(key, processor);
   }
   return processor;
@@ -943,8 +1009,16 @@ function addMarkdownAlertIcons(html: string): string {
 export async function renderMarkdown(source: string, options: MarkdownRenderOptions = {}): Promise<string> {
   if (!source) return '';
   const mathEngine = options.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
-  const customIframeAttributes = await loadCustomIframeAttributes();
-  const processor = getMarkdownProcessor(mathEngine, options.tocEnabled === true, customIframeAttributes);
+  const [customIframeAttributes, customHtmlTags] = await Promise.all([
+    loadCustomIframeAttributes(),
+    loadCustomHtmlTags(),
+  ]);
+  const processor = getMarkdownProcessor(
+    mathEngine,
+    options.tocEnabled === true,
+    customIframeAttributes,
+    customHtmlTags,
+  );
   const normalizedSource = normalizeIndentedHtmlBlocks(source);
   const file = await processor.process(protectMathDelimiters(normalizedSource));
   return addMarkdownAlertIcons(transformGithubAlerts(String(file)));
@@ -1238,6 +1312,7 @@ function createAdminPreviewScript(): string {
 const markdownRehypeAdminCss = [
   '.markdown-rehype-settings-page .typecho-option { margin: 0 0 16px !important; padding: 20px 22px !important; border: 1px solid #e5e9e7 !important; border-radius: 10px !important; background: #fff !important; box-shadow: 0 2px 9px rgba(20, 40, 30, .035) !important; }',
   '.markdown-rehype-settings-page .typecho-option > li { padding: 0 !important; }',
+  '.markdown-rehype-settings-page .markdown-rehype-allowlist-card { border-color: #dfe8e2 !important; border-radius: 10px !important; background: #fff !important; }',
   '.markdown-rehype-settings-page .typecho-option input[type="checkbox"] { accent-color: #269b63; }',
   '.markdown-rehype-settings-page .typecho-option p.description, .markdown-rehype-settings-page .typecho-option .description { margin: 8px 0 0 !important; color: #77817b; font-size: 13px; line-height: 1.7; }',
   '.markdown-rehype-settings-page .typecho-option-submit { padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }',
@@ -1305,7 +1380,10 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   }, 20);
 
   addHook('plugin:config:beforeSave', pluginId, (result: any, extra?: { pluginId?: string }) => {
-    if (extra?.pluginId === pluginId) customIframeAttributesExpiresAt = 0;
+    if (extra?.pluginId === pluginId) {
+      customIframeAttributesExpiresAt = 0;
+      customHtmlTagsExpiresAt = 0;
+    }
     return result;
   }, 20);
 
@@ -1346,7 +1424,48 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    warning.textContent = \'注：运行此插件不要打开CY服务插件中的【正文 HTML / CSS / JavaScript 增强】选项，与之冲突。\';',
       '    form.before(warning);',
       '  }',
+      '  var htmlTags = form.querySelector(\'textarea[name="htmlTags"]\');',
+      '  var htmlTagsCard = htmlTags && htmlTags.closest(\'.typecho-option\');',
+      '  var iframeAttributesCard = form.querySelector(\'textarea[name="iframeAttributes"]\')?.closest(\'.typecho-option\');',
+      '  if (htmlTagsCard) htmlTagsCard.classList.add(\'markdown-rehype-allowlist-card\');',
+      '  if (htmlTags) {',
+      '    var normalizeHtmlTags = function () {',
+      '      var tags = Array.from(new Set(htmlTags.value.replace(/\\\\[nr]/gi, \' \').split(/[\\s,，;；]+/).map(function (tag) { return tag.trim().toLowerCase(); }).filter(Boolean)));',
+      '      htmlTags.value = tags.join(\', \');',
+      '    };',
+      '    htmlTags.addEventListener(\'blur\', normalizeHtmlTags);',
+      '    form.addEventListener(\'submit\', normalizeHtmlTags);',
+      '    normalizeHtmlTags();',
+      '  }',
+      '  if (iframeAttributesCard) iframeAttributesCard.classList.add(\'markdown-rehype-allowlist-card\');',
+      '  if (htmlTags && !form.querySelector(\'[data-html-tags-reset]\')) {',
+      '    var htmlTagsReset = document.createElement(\'button\');',
+      '    htmlTagsReset.type = \'button\';',
+      '    htmlTagsReset.className = \'btn btn-xs\';',
+      '    htmlTagsReset.dataset.htmlTagsReset = \'1\';',
+      '    htmlTagsReset.textContent = \'恢复常用标签默认值\';',
+      '    htmlTagsReset.style.marginTop = \'8px\';',
+      '    htmlTagsReset.addEventListener(\'click\', function () { htmlTags.value = \'u, s, kbd, abbr, small, cite, q, time, del, ins, ruby, rt, rp, wbr, bdi, bdo, data, output, progress, meter\'; normalizeHtmlTags(); htmlTags.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
+      '    htmlTags.after(htmlTagsReset);',
+      '  }',
       '  var iframeAttributes = form.querySelector(\'textarea[name="iframeAttributes"]\');',
+      '  if (iframeAttributes) {',
+      '    var normalizeIframeAttributes = function () {',
+      '      var attributes = Array.from(new Set(iframeAttributes.value.replace(/\\\\[nr]/gi, \' \').split(/[\\s,，;；]+/).map(function (attribute) { return attribute.trim().toLowerCase(); }).filter(Boolean)));',
+      '      iframeAttributes.value = attributes.join(\', \');',
+      '    };',
+      '    iframeAttributes.addEventListener(\'blur\', normalizeIframeAttributes);',
+      '    form.addEventListener(\'submit\', normalizeIframeAttributes);',
+      '    normalizeIframeAttributes();',
+      '  }',
+      '  document.addEventListener(\'DOMContentLoaded\', function () {',
+      '    if (htmlTags) normalizeHtmlTags();',
+      '    if (iframeAttributes) normalizeIframeAttributes();',
+      '  });',
+      '  window.addEventListener(\'pageshow\', function () {',
+      '    if (htmlTags) normalizeHtmlTags();',
+      '    if (iframeAttributes) normalizeIframeAttributes();',
+      '  });',
       '  if (iframeAttributes && !form.querySelector(\'[data-iframe-allowlist-reset]\')) {',
       '    var reset = document.createElement(\'button\');',
       '    reset.type = \'button\';',
@@ -1354,7 +1473,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    reset.dataset.iframeAllowlistReset = \'1\';',
       '    reset.textContent = \'恢复默认白名单\';',
       '    reset.style.marginTop = \'8px\';',
-      '    reset.addEventListener(\'click\', function () { iframeAttributes.value = \'width\\nheight\\nframeborder\\nframespacing\\nborder\\nallow\\nallowfullscreen\\nallowtransparency\\nallowpaymentrequest\\ntitle\\nname\\nid\\nclass\\nstyle\\nreferrerpolicy\\nsandbox\\nscrolling\\nmarginwidth\\nmarginheight\\nloading\\ncredentialless\\nfetchpriority\\nalign\\nlongdesc\\naria-label\\naria-hidden\\ndata-diag-id\'; iframeAttributes.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
+      '    reset.addEventListener(\'click\', function () { iframeAttributes.value = \'width, height, frameborder, framespacing, border, allow, allowfullscreen, allowtransparency, allowpaymentrequest, title, name, id, class, style, referrerpolicy, sandbox, scrolling, marginwidth, marginheight, loading, credentialless, fetchpriority, align, longdesc, aria-label, aria-hidden, data-diag-id\'; normalizeIframeAttributes(); iframeAttributes.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
       '    iframeAttributes.after(reset);',
       '  }',
       '})();',
