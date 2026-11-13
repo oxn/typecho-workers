@@ -65,7 +65,7 @@
         "iframeAttributes": {
           "type": "textarea",
           "label": "iframe 属性白名单",
-          "description": "每行填写一个允许保留的 iframe 属性名。此项只控制属性过滤，不会自动给 iframe 添加属性；文章中的 iframe 标签必须原本就写有该属性。src 不在此处配置，iframe 来源仍受插件固定域名白名单限制；srcdoc 和所有 on* 事件属性始终禁止。部分属性属于旧式或非标准属性（frameborder、framespacing、border、scrolling、marginwidth、marginheight、align、longdesc、allowtransparency、allowpaymentrequest），即使被保留，现代浏览器也可能忽略或不再支持；credentialless、fetchpriority 等则取决于浏览器版本。allow、sandbox 等属性的实际效果还取决于属性值、浏览器安全策略及嵌入服务提供方。新增属性名称只有在浏览器或嵌入页面确实识别时才会产生效果。留空或输入无效内容时恢复内置默认白名单；点击恢复默认值后仍需保存设置。",
+          "description": "输入时可使用空格、中英文逗号、中英文分号或回车换行分隔；离开输入框或点击保存时会自动去重，并统一显示为“空格 + 英文逗号 + 空格”的格式。每行填写一个允许保留的 iframe 属性名。此项只控制属性过滤，不会自动给 iframe 添加属性；文章中的 iframe 标签必须原本就写有该属性。src 不在此处配置，iframe 来源仍受插件固定域名白名单限制；srcdoc 和所有 on* 事件属性始终禁止。部分属性属于旧式或非标准属性（frameborder、framespacing、border、scrolling、marginwidth、marginheight、align、longdesc、allowtransparency、allowpaymentrequest），即使被保留，现代浏览器也可能忽略或不再支持；credentialless、fetchpriority 等则取决于浏览器版本。allow、sandbox 等属性的实际效果还取决于属性值、浏览器安全策略及嵌入服务提供方。新增属性名称只有在浏览器或嵌入页面确实识别时才会产生效果。留空或输入无效内容时恢复内置默认白名单；点击恢复默认值后仍需保存设置。",
           "default": "width\nheight\nframeborder\nframespacing\nborder\nallow\nallowfullscreen\nallowtransparency\nallowpaymentrequest\ntitle\nname\nid\nclass\nstyle\nreferrerpolicy\nsandbox\nscrolling\nmarginwidth\nmarginheight\nloading\ncredentialless\nfetchpriority\nalign\nlongdesc\naria-label\naria-hidden\ndata-diag-id"
         }
       }
