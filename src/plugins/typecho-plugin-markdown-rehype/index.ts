@@ -985,17 +985,17 @@ function createAdminPreviewScript(): string {
     // Vite's inline CSS can contain an extra pair of parentheses around
     // emitted root-relative asset URLs. Parse the url() token, normalize that
     // wrapper, and resolve site assets from the origin root (not /admin/).
-    const urlPattern = /url\(\s*((?:[^()]|\([^)]*\))*)\s*\)/gi;
+    const urlPattern = /url\\(\\s*((?:[^()]|\\([^)]*\\))*)\\s*\\)/gi;
     const normalizeUrl = (value) => value.trim()
-      .replace(/^(['"])([\s\S]*)\1$/, '$2')
+      .replace(/^(['"])([\\s\\S]*)\\1$/, '$2')
       .trim()
-      .replace(/^\(+/, '')
-      .replace(/\)+$/, '');
+      .replace(/^\\(+/, '')
+      .replace(/\\)+$/, '');
     const assetPromises = new Map();
 
     for (const match of css.matchAll(urlPattern)) {
       const rawUrl = normalizeUrl(match[1]);
-      if (!/\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i.test(rawUrl)) continue;
+      if (!/\\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i.test(rawUrl)) continue;
 
       let assetUrl;
       try {
@@ -1034,7 +1034,7 @@ function createAdminPreviewScript(): string {
 
     return css.replace(urlPattern, (original, token) => {
       const rawUrl = normalizeUrl(token);
-      if (!/\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i.test(rawUrl)) return original;
+      if (!/\\.(?:woff2?|ttf|otf)(?:[?#].*)?$/i.test(rawUrl)) return original;
 
       let assetUrl;
       try {
