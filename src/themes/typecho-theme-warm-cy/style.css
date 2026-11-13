@@ -1076,8 +1076,8 @@ body.warm-theme {
 /* Code titles are emitted by remark-flexible-code-titles as a semantic strong node. */
 .warm-prose strong:has(+ pre) {
   display: block;
-  margin: 2.5em 0 0;
-  padding: 10px 16px;
+  margin: 1.5em 0 0;
+  padding: 6px 12px;
   background: var(--warm-surface);
   color: var(--warm-faint);
   font-family: var(--warm-mono);
@@ -1088,7 +1088,7 @@ body.warm-theme {
 
 .warm-prose strong + pre {
   margin-top: 0;
-  padding-top: 20px;
+  padding-top: 12px;
   border-top: 1px solid var(--warm-border);
 }
 
