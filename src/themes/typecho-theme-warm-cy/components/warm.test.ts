@@ -54,7 +54,8 @@ describe('Warm CY theme helpers', () => {
       const { default: mermaid } = await import('mermaid');
       for (const config of [getWarmMermaidConfig(false), getWarmMermaidConfig(true)]) {
         mermaid.initialize({ ...config, securityLevel: 'strict' });
-      await expect(mermaid.parse(renderedSource)).resolves.toBeTruthy();
+        await expect(mermaid.parse(renderedSource)).resolves.toBeTruthy();
+      }
     } finally {
       dom.window.close();
       if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow);
