@@ -199,6 +199,7 @@ describe('Markdown Rehype complex-content compatibility', () => {
       'mindmap',
       '  root((Warm CY))',
       '    一级节点',
+      '      节点<br/>说明',
       '\u00a0\u00a0二级节点',
       '\u3000\u3000三级节点',
       '```',
@@ -210,6 +211,9 @@ describe('Markdown Rehype complex-content compatibility', () => {
     expect(html.match(/class="mermaid_dark dark:block hidden"/g)).toHaveLength(1);
     expect(html).toContain('root((Warm CY))');
     expect(html).toContain('    一级节点');
+    expect(html).toContain('&lt;br/&gt;');
+    expect(html).toContain('<pre class="mermaid_default dark:hidden">');
+    expect(html).toContain('<pre class="mermaid_dark dark:block hidden">');
     expect(html).toContain('        二级节点');
     expect(html).toContain('        三级节点');
     expect(html).not.toContain('layout: tidy-tree');
