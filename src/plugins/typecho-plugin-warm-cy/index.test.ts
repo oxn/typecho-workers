@@ -256,6 +256,26 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('CYCYINLINEHTMLX');
   });
 
+  it('restores nested encoded HTML markers beyond the former depth limit', async () => {
+    const restore = collectHooks().get('content:content')!;
+    let nested = '<p>deepest encoded payload</p>';
+    const depth = 12;
+    for (let index = 0; index < depth; index += 1) {
+      const fragment = '<div class="encoded-level-' + index + '">' + nested + '</div>';
+      nested = 'CYCYINLINECONTAINERX'
+        + Buffer.from(fragment, 'utf8').toString('hex')
+        + 'XEND';
+    }
+
+    const restored = await restore(nested);
+
+    for (let index = 0; index < depth; index += 1) {
+      expect(restored).toContain('class="encoded-level-' + index + '"');
+    }
+    expect(restored).toContain('deepest encoded payload');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+  });
+
   it('keeps crossed container closing tags consistent with the legacy first-close behavior', async () => {
     const protect = collectHooks().get('content:markdown')!;
     const source = '<div class="outer"><section class="inner">content</div></section>';
