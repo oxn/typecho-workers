@@ -917,6 +917,71 @@ function rehypeRestoreLocalReferences() {
 }
 
 /**
+ * remark-flexible-containers currently parses multiline container types with
+ * an ASCII-only \\w expression, then dereferences the match without checking
+ * it. A Unicode type such as "推论" therefore crashes the entire Markdown
+ * render. Encode non-ASCII type tokens before that plugin runs, then restore
+ * their original class names and title fallback afterwards.
+ */
+const UNICODE_CONTAINER_TYPE_PREFIX = 'warmunicode-';
+
+function encodeUnicodeContainerType(type: string): string {
+  return UNICODE_CONTAINER_TYPE_PREFIX
+    + Array.from(type).map((character) => character.codePointAt(0)!.toString(16)).join('-');
+}
+
+function decodeUnicodeContainerType(type?: string): string | undefined {
+  if (!type?.startsWith(UNICODE_CONTAINER_TYPE_PREFIX)) return undefined;
+  const encoded = type.slice(UNICODE_CONTAINER_TYPE_PREFIX.length);
+  if (!/^[a-f0-9]+(?:-[a-f0-9]+)*$/i.test(encoded)) return undefined;
+  try {
+    return String.fromCodePoint(...encoded.split('-').map((point) => Number.parseInt(point, 16))).toLowerCase();
+  } catch {
+    return undefined;
+  }
+}
+
+/** Make Unicode container type tokens safe for the dependency's ASCII parser. */
+function remarkNormalizeUnicodeContainerTypes() {
+  return (tree: any): void => {
+    const visit = (node: any): void => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'paragraph' && Array.isArray(node.children)) {
+        const first = node.children[0];
+        if (first?.type === 'text' && typeof first.value === 'string') {
+          const match = first.value.match(/^(:{3,})([ \\t]*)([^\\s]+)(?=[ \\t\\r\\n]|$)/u);
+          if (match && !/^[A-Za-z0-9_-]+$/.test(match[3]) && !match[3].startsWith('{')) {
+            const alias = encodeUnicodeContainerType(match[3]);
+            first.value = match[1] + match[2] + alias + first.value.slice(match[0].length);
+          }
+        }
+      }
+      if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
+
+/** Restore the author-facing Unicode type after flexible-containers has parsed it. */
+function remarkRestoreUnicodeContainerTypes() {
+  return (tree: any): void => {
+    const visit = (node: any): void => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'container') {
+        const classNames = node.data?.hProperties?.className;
+        if (Array.isArray(classNames)) {
+          node.data.hProperties.className = classNames.map((name: unknown) =>
+            typeof name === 'string' ? decodeUnicodeContainerType(name) ?? name : name,
+          );
+        }
+      }
+      if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
+
+/**
  * Build one immutable processor for each supported render configuration.
  * Unified freezes a processor on first process() and documents that frozen
  * processors can process files repeatedly. Reuse avoids rebuilding the plugin
@@ -938,11 +1003,13 @@ function createMarkdownProcessor(
     .use(remarkEmoji)
     .use(remarkIns)
     .use(remarkFlexibleCodeTitles, { titleTagName: 'strong', container: false })
+    .use(remarkNormalizeUnicodeContainerTypes)
     .use(remarkFlexibleContainers, {
       containerTagName: 'blockquote',
       titleTagName: 'strong',
-      title: (type, title) => title ?? type?.toUpperCase(),
+      title: (type, title) => title ?? decodeUnicodeContainerType(type)?.toUpperCase() ?? type?.toUpperCase(),
     })
+    .use(remarkRestoreUnicodeContainerTypes)
     .use(remarkImageSizeAttributes)
     .use(remarkMermaidVariants);
   if (tocEnabled) processor.use(remarkToc, { heading: '目录', prefix: 'user-content-' });
