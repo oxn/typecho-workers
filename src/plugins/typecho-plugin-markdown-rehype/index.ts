@@ -837,7 +837,19 @@ function normalizeMermaidSource(value: string): string {
   // indentation level in the node lines.
   const normalizedMindmap = lines
     .slice(firstContentLine)
-    .map((line, index) => index === 0 ? line.trimStart() : line.replace(/\t/g, '    '))
+    .map((line, index) => {
+      if (index === 0) return line.trimStart();
+
+      // Mindmap hierarchy is encoded by leading whitespace. Content copied
+      // from editors/Word often uses NBSP, ideographic spaces or narrow
+      // Unicode spaces instead of ASCII spaces; Mermaid's mindmap tokenizer
+      // does not treat those consistently as indentation. Normalize each
+      // such leading character to one four-space indentation unit while
+      // preserving ordinary ASCII indentation and its relative depth.
+      return line
+        .replace(/\t/g, '    ')
+        .replace(/^[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]+/u, (indent) => '    '.repeat([...indent].length));
+    })
     .join('\n');
 
   // Select the dedicated tree layout only for mindmaps. Other Mermaid diagram
