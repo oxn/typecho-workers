@@ -984,6 +984,132 @@ function getMarkdownProcessor(
  * output; no probabilistic hash is used, so a collision cannot return another
  * article's HTML. Both entry count and retained string size are bounded.
  */
+/**
+ * A bounded, isolate-local gate for expensive Markdown processor runs.
+ * This protects one Worker isolate; it is not a global limit across Cloudflare isolates.
+ */
+export class MarkdownRenderCapacityError extends Error {
+  constructor(message = 'Markdown preview capacity is temporarily full') {
+    super(message);
+    this.name = 'MarkdownRenderCapacityError';
+  }
+}
+
+type MarkdownRenderQueueWaiter = {
+  resolve: () => void;
+  reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+export function createBoundedConcurrencyGate(maxConcurrent: number, maxPending: number, waitTimeoutMs: number) {
+  const concurrencyLimit = Math.max(1, Math.floor(maxConcurrent));
+  const pendingLimit = Math.max(0, Math.floor(maxPending));
+  const waiting: MarkdownRenderQueueWaiter[] = [];
+  let active = 0;
+
+  const releaseSlot = (): void => {
+    const next = waiting.shift();
+    if (next) {
+      clearTimeout(next.timer);
+      next.resolve();
+      return;
+    }
+    active = Math.max(0, active - 1);
+  };
+
+  const acquireSlot = (): Promise<() => void> => {
+    if (active < concurrencyLimit) {
+      active += 1;
+      return Promise.resolve(releaseSlot);
+    }
+    if (waiting.length >= pendingLimit) {
+      return Promise.reject(new MarkdownRenderCapacityError());
+    }
+
+    return new Promise((resolve, reject) => {
+      const waiter = {} as MarkdownRenderQueueWaiter;
+      waiter.resolve = () => {
+        clearTimeout(waiter.timer);
+        resolve(releaseSlot);
+      };
+      waiter.reject = reject;
+      waiter.timer = setTimeout(() => {
+        const index = waiting.indexOf(waiter);
+        if (index < 0) return;
+        waiting.splice(index, 1);
+        reject(new MarkdownRenderCapacityError('Markdown preview queue wait timed out'));
+      }, Math.max(1, waitTimeoutMs));
+      waiting.push(waiter);
+    });
+  };
+
+  return async function run<T>(task: () => Promise<T> | T): Promise<T> {
+    const release = await acquireSlot();
+    try {
+      return await task();
+    } finally {
+      release();
+    }
+  };
+}
+
+const MARKDOWN_RENDER_MAX_CONCURRENT = 1;
+const MARKDOWN_RENDER_MAX_PENDING = 4;
+const MARKDOWN_RENDER_QUEUE_WAIT_TIMEOUT_MS = 5_000;
+const runMarkdownRender = createBoundedConcurrencyGate(
+  MARKDOWN_RENDER_MAX_CONCURRENT,
+  MARKDOWN_RENDER_MAX_PENDING,
+  MARKDOWN_RENDER_QUEUE_WAIT_TIMEOUT_MS,
+);
+
+export class PreviewRequestBodyTooLargeError extends Error {
+  constructor() {
+    super('Preview request body is too large');
+    this.name = 'PreviewRequestBodyTooLargeError';
+  }
+}
+
+export const MARKDOWN_PREVIEW_MAX_BODY_BYTES = 1_000_000;
+export const MARKDOWN_PREVIEW_MAX_SOURCE_LENGTH = 100_000;
+
+/** Read a request stream with a byte ceiling before JSON.parse allocates the full payload. */
+export async function readPreviewRequestBodyText(
+  request: Request,
+  maxBytes = MARKDOWN_PREVIEW_MAX_BODY_BYTES,
+): Promise<string> {
+  const declaredLength = request.headers.get('content-length');
+  if (declaredLength && /^\\d+$/.test(declaredLength) && Number(declaredLength) > maxBytes) {
+    throw new PreviewRequestBodyTooLargeError();
+  }
+
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        try { await reader.cancel(); } catch { /* The size limit still takes precedence. */ }
+        throw new PreviewRequestBodyTooLargeError();
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder('utf-8', { fatal: true }).decode(body);
+}
+
 const RENDERED_MARKDOWN_CACHE_MAX_ENTRIES = 12;
 const RENDERED_MARKDOWN_CACHE_MAX_WEIGHT = 1_500_000;
 const RENDERED_MARKDOWN_CACHE_MAX_ENTRY_WEIGHT = 750_000;
@@ -1098,16 +1224,16 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
     customIframeAttributes,
     customHtmlTags,
   );
-  const render = (async () => {
+  // The cache and in-flight lookup happen before the gate, so cache hits never
+  // wait for a render slot and identical concurrent requests still share work.
+  const render = runMarkdownRender(async () => {
     const file = await processor.process(protectMathDelimiters(normalizedSource));
     const html = addMarkdownAlertIcons(transformGithubAlerts(String(file)));
     if (cacheKey) cacheMarkdownRender(cacheKey, html);
     return html;
-  })();
+  });
 
-  if (!cacheKey || inFlightMarkdownRenders.size >= IN_FLIGHT_MARKDOWN_RENDER_MAX_ENTRIES) {
-    return render;
-  }
+  if (!cacheKey) return render;
 
   inFlightMarkdownRenders.set(cacheKey, render);
   try {
@@ -1341,7 +1467,7 @@ function createAdminPreviewScript(): string {
         'function notify(){var root=document.documentElement,body=document.body,rect=body.getBoundingClientRect();var h=Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight,rect.bottom+window.scrollY));window.parent.postMessage({type:"markdown-rehype-preview-height",height:h},"*");}' +
         'if(window.ResizeObserver){var ro=new ResizeObserver(notify);ro.observe(document.documentElement);ro.observe(document.body);}' +
         'window.addEventListener("load",notify);window.addEventListener("resize",notify);setTimeout(notify,80);setTimeout(notify,350);' +
-        'var ms=document.createElement("script");ms.src="/plugin-assets/typecho-plugin-markdown-rehype/mermaid-runtime.js";ms.onload=function(){var m=window.__warmCyMermaid;if(!m)return;var lightNodes=Array.from(document.querySelectorAll("pre.mermaid_default:not([data-processed])"));var darkNodes=Array.from(document.querySelectorAll("pre.mermaid_dark:not([data-processed])"));var nodes=lightNodes.concat(darkNodes);if(!nodes.length){notify();return;}var started=false,mermaidObserver=null;function renderWhenMeasurable(){if(started)return;var measurable=nodes.every(function(node){return node.isConnected&&node.parentElement&&node.parentElement.getBoundingClientRect().width>0;});if(!measurable)return;started=true;if(mermaidObserver)mermaidObserver.disconnect();window.removeEventListener("resize",renderWhenMeasurable);try{function renderVariant(nodes,config){var restore=[];nodes.forEach(function(node){if(getComputedStyle(node).display!=="none")return;restore.push({node:node,display:node.style.getPropertyValue("display"),displayPriority:node.style.getPropertyPriority("display"),visibility:node.style.getPropertyValue("visibility"),visibilityPriority:node.style.getPropertyPriority("visibility")});node.style.setProperty("display","block","important");node.style.setProperty("visibility","hidden","important");});function restoreStyles(){restore.forEach(function(item){if(item.display)item.node.style.setProperty("display",item.display,item.displayPriority);else item.node.style.removeProperty("display");if(item.visibility)item.node.style.setProperty("visibility",item.visibility,item.visibilityPriority);else item.node.style.removeProperty("visibility");});}try{m.initialize(config);return Promise.resolve(m.run({nodes:nodes})).finally(restoreStyles);}catch(error){restoreStyles();throw error;}}renderVariant(lightNodes,mermaidConfigs.light).then(function(){return renderVariant(darkNodes,mermaidConfigs.dark);}).then(function(){requestAnimationFrame(function(){notify();requestAnimationFrame(notify);});}).catch(function(e){console.error("Mermaid rendering failed:",e);notify();});}catch(e){console.error("Mermaid initialization failed:",e);notify();}}if(window.ResizeObserver){mermaidObserver=new ResizeObserver(renderWhenMeasurable);mermaidObserver.observe(document.documentElement);mermaidObserver.observe(document.body);nodes.forEach(function(node){if(node.parentElement)mermaidObserver.observe(node.parentElement);});}window.addEventListener("resize",renderWhenMeasurable);renderWhenMeasurable();};ms.onerror=function(){console.error("Mermaid runtime failed to load");notify();};document.head.append(ms);' +
+        'var ms=document.createElement("script");ms.src="/plugin-assets/typecho-plugin-markdown-rehype/mermaid-runtime.js";ms.onload=function(){var m=window.__warmCyMermaid;if(!m)return;var darkMode=document.documentElement.classList.contains("dark");var nodes=Array.from(document.querySelectorAll(darkMode?"pre.mermaid_dark:not([data-processed])":"pre.mermaid_default:not([data-processed])"));if(!nodes.length){notify();return;}var started=false,mermaidObserver=null;function renderWhenMeasurable(){if(started)return;var measurable=nodes.every(function(node){return node.isConnected&&node.parentElement&&node.parentElement.getBoundingClientRect().width>0;});if(!measurable)return;started=true;if(mermaidObserver)mermaidObserver.disconnect();window.removeEventListener("resize",renderWhenMeasurable);try{m.initialize(darkMode?mermaidConfigs.dark:mermaidConfigs.light);Promise.resolve(m.run({nodes:nodes})).then(function(){requestAnimationFrame(function(){notify();requestAnimationFrame(notify);});}).catch(function(e){console.error("Mermaid rendering failed:",e);notify();});}catch(e){console.error("Mermaid initialization failed:",e);notify();}}if(window.ResizeObserver){mermaidObserver=new ResizeObserver(renderWhenMeasurable);mermaidObserver.observe(document.documentElement);mermaidObserver.observe(document.body);nodes.forEach(function(node){if(node.parentElement)mermaidObserver.observe(node.parentElement);});}window.addEventListener("resize",renderWhenMeasurable);renderWhenMeasurable();};ms.onerror=function(){console.error("Mermaid runtime failed to load");notify();};document.head.append(ms);' +
 
         'if(mathEngine==="mathjax"&&document.querySelector("code.language-math")){var mathScript=document.createElement("script");mathScript.src=mathJaxUrl;mathScript.onload=function(){var blocks=Array.from(document.querySelectorAll("code.language-math:not([data-mathjax-processed])"));var mathItems=[];blocks.forEach(function(code){var pre=code.closest("pre");var replacement=document.createElement(pre?"div":"span");replacement.className=pre?"mathjax-display":"mathjax-inline";var target=replacement;var tex=code.textContent||"";if(pre){var scroll=document.createElement("div");scroll.className="mathjax-display__scroll";target=scroll;replacement.append(scroll);}mathItems.push({target:target,tex:tex,display:!!pre});(pre||code).replaceWith(replacement);});var mathJax=window.MathJax;if(!mathJax||!mathJax.startup||!mathJax.startup.promise||typeof mathJax.tex2svgPromise!=="function"){console.error("MathJax tex2svg runtime did not initialize in the preview");notify();return;}mathJax.startup.promise.then(function(){return mathItems.reduce(function(chain,item){return chain.then(function(){return mathJax.tex2svgPromise(item.tex,{display:item.display}).then(function(output){item.target.replaceChildren(output);}).catch(function(e){console.error("MathJax formula rendering failed:",e);});});},Promise.resolve());}).then(notify).catch(function(e){console.error("MathJax rendering failed:",e);notify();});};mathScript.onerror=function(){console.error("MathJax script failed to load in the preview:",mathJaxUrl);notify();};document.head.append(mathScript);}' +
 '})();' + '</scr' + 'ipt>' +
@@ -1499,14 +1625,20 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     }
 
     let body: unknown;
-    try { body = await request.json(); } catch {
+    try {
+      const bodyText = await readPreviewRequestBodyText(request);
+      body = JSON.parse(bodyText);
+    } catch (error) {
+      if (error instanceof PreviewRequestBodyTooLargeError) {
+        return { handled: true, response: new Response('Preview request body is too large', { status: 413 }) };
+      }
       return { handled: true, response: new Response('Invalid JSON', { status: 400 }) };
     }
     if (!body || typeof body !== 'object' || typeof (body as { text?: unknown }).text !== 'string') {
       return { handled: true, response: new Response('Invalid preview content', { status: 400 }) };
     }
     const source = (body as { text: string }).text;
-    if (source.length > 100_000) {
+    if (source.length > MARKDOWN_PREVIEW_MAX_SOURCE_LENGTH) {
       return { handled: true, response: new Response('Preview content is too large', { status: 413 }) };
     }
 
@@ -1523,7 +1655,16 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
           headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
         }),
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof MarkdownRenderCapacityError) {
+        return {
+          handled: true,
+          response: new Response('Markdown preview is busy; please retry shortly', {
+            status: 503,
+            headers: { 'Retry-After': '2' },
+          }),
+        };
+      }
       return { handled: true, response: new Response('Markdown preview failed', { status: 500 }) };
     }
   }, 20);
