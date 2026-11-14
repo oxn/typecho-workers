@@ -68,7 +68,7 @@ function remarkRinImageMetadata() {
           const fragment = node.url.slice(hashIndex + 1).replace(/&amp;/gi, '&');
           const params = new URLSearchParams(fragment);
           const blurhash = params.get('blurhash') || '';
-          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(blurhash)
+          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(blurhash)
             ? blurhash
             : '';
           const dimensions: Record<'width' | 'height', string | undefined> = {
