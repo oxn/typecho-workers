@@ -833,18 +833,22 @@ function sanitizeInlineHtmlFragment(source: string): string {
 }
 
 function restoreInlineHtmlFragments(content: string): string {
-  function restoreNestedFragments(source: string): string {
+  function restoreNestedFragments(source: string, depth = 0): string {
+    // Bound nested fragment expansion just like encoded-payload restoration.
+    // Deep or malformed user HTML must not create unbounded recursive work.
+    if (depth > 8) return source;
+
     return source.replace(
       /<p>\s*CYCYINLINECONTAINERX([0-9a-f]+)XEND\s*<\/p>|CYCYINLINE(CONTAINER|HTML)X([0-9a-f]+)XEND/gi,
       (_marker, paragraphPayload: string | undefined, kind: string | undefined, payload: string | undefined) => {
-        if (paragraphPayload) return restoreContainer(paragraphPayload);
-        if (kind?.toUpperCase() === 'CONTAINER') return restoreContainer(payload || '');
-        return restoreInline(payload || '');
+        if (paragraphPayload) return restoreContainer(paragraphPayload, depth + 1);
+        if (kind?.toUpperCase() === 'CONTAINER') return restoreContainer(payload || '', depth + 1);
+        return restoreInline(payload || '', depth + 1);
       },
     );
   }
 
-  function restoreContainer(payload: string): string {
+  function restoreContainer(payload: string, depth = 0): string {
     let source = decodeInlinePayload(payload);
 
     // Keep style/script blocks as inert text markers through fragment sanitization.
@@ -888,10 +892,10 @@ function restoreInlineHtmlFragments(content: string): string {
     // A container can hold an independently protected styled anchor or another
     // HTML fragment. Restore those markers within this fragment only, rather
     // than rescanning the entire article or leaving literal markers behind.
-    return safe ? '<div class="cy-inline-html-pending">' + restoreNestedFragments(safe) + '</div>' : '';
+    return safe ? '<div class="cy-inline-html-pending">' + restoreNestedFragments(safe, depth) + '</div>' : '';
   }
 
-  function restoreInline(payload: string): string {
+  function restoreInline(payload: string, depth = 0): string {
     // Preserve nested SVG verbatim through the HTML sanitizer. The browser
     // runtime will rebuild each SVG using its dedicated SVG allowlist.
     const source = decodeInlinePayload(payload).replace(
@@ -899,7 +903,7 @@ function restoreInlineHtmlFragments(content: string): string {
       svg => 'CYCYINLINEBLOCKX' + encodeInlinePayload(svg) + 'XEND',
     );
     const safe = sanitizeInlineHtmlFragment(source);
-    return safe ? '<span class="cy-inline-html-pending">' + restoreNestedFragments(safe) + '</span>' : '';
+    return safe ? '<span class="cy-inline-html-pending">' + restoreNestedFragments(safe, depth) + '</span>' : '';
   }
 
   // Restore top-level fragments in one document pass. Recursion is restricted
