@@ -538,4 +538,11 @@ const footerLinks = [
     renderArticleEnhancements();
     window.addEventListener('instantclick:newpage', renderArticleEnhancements);
   </script>
+  <script>
+    import { initWarmBlurhash } from './warm-blurhash';
+
+    const initializeBlurhashImages = () => initWarmBlurhash(document);
+    initializeBlurhashImages();
+    window.addEventListener('instantclick:newpage', initializeBlurhashImages);
+  </script>
 </Base>
