@@ -498,6 +498,10 @@ function protectInlineHtml(source: string): string {
   // Code examples were already protected above and remain byte-for-byte intact.
   content = content.replace(/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/g, 'CYCY\u200bINLINE');
 
+  // Keep HTML comments opaque to the container tokenizer. A comment may
+  // contain illustrative tag text (for example, "<div>") that is not markup.
+  content = content.replace(/<!--[\\s\\S]*?-->/g, protect);
+
   // Preserve styled download-card anchors as a single fragment so nested SVG markup
   // is not fragmented by Markdown tokenization or the core HTML sanitizer.
   content = content.replace(/<a\b[^>]*>[\s\S]*?<\/a\s*>/gi, block => {
@@ -555,10 +559,9 @@ function protectInlineHtml(source: string): string {
       + 'X' + encodeInlinePayload(JSON.stringify(preserved)) + 'XEND';
   });
 
-  for (let index = protectedSegments.length - 1; index >= 0; index--) {
-    content = content.replace('CYCYCODESEGMENT' + index + 'TOKEN', protectedSegments[index]);
-  }
-  return content;
+  // Restore all protected segments in one pass instead of rescanning the
+  // complete article once for every marker.
+  return restoreProtectedSegments(content);
 }
 
 
