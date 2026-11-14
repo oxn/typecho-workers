@@ -7,7 +7,6 @@ import { PUBLIC_HTML_HEADER } from '@/lib/cache';
 import { isCurrentPageLink, warmSettings, warmCyFeatureSettings, renderFooterCustomHtml, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
-import { getWarmMermaidConfig } from 'typecho-plugin-markdown-rehype/mermaid-config';
 
 interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
   title?: string;
@@ -332,6 +331,7 @@ const footerLinks = [
   </script>
   <script>
     import mermaid from 'mermaid';
+    import { getWarmMermaidConfig } from 'typecho-plugin-markdown-rehype/mermaid-config';
     import 'katex/dist/katex.min.css';
 
     // Mermaid must measure each theme variant while it participates in layout.
