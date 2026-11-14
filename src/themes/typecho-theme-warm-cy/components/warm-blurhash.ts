@@ -81,12 +81,12 @@ export function decodeBlurHash(hash: string, width: number, height: number): Uin
 function drawBlurhashToCanvas(canvas: HTMLCanvasElement, hash: string): void {
   const width = 32;
   const height = 32;
+  canvas.width = width;
+  canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas is unavailable');
   const imageData = context.createImageData(width, height);
   imageData.data.set(decodeBlurHash(hash, width, height));
-  canvas.width = width;
-  canvas.height = height;
   context.putImageData(imageData, 0, 0);
 }
 
@@ -117,8 +117,10 @@ export function initWarmBlurhash(root: ParentNode = document): void {
       const parent = image.parentNode;
       if (!parent) continue;
       const wrapper = document.createElement('span');
-      const display = window.getComputedStyle(image).display;
+      const computedStyle = window.getComputedStyle(image);
+      const display = computedStyle.display;
       wrapper.style.position = 'relative';
+      wrapper.style.borderRadius = computedStyle.borderRadius;
       wrapper.style.display = display === 'block' ? 'block' : 'inline-block';
       wrapper.style.maxWidth = '100%';
       wrapper.style.overflow = 'hidden';
@@ -145,10 +147,11 @@ export function initWarmBlurhash(root: ParentNode = document): void {
       image.style.transition = image.style.transition
         ? image.style.transition + ', opacity 180ms ease'
         : 'opacity 180ms ease';
+      const originalOpacity = image.style.opacity;
       image.style.opacity = '0';
 
       const reveal = () => {
-        image.style.opacity = '';
+        image.style.opacity = originalOpacity;
         canvas.remove();
         image.removeEventListener('load', reveal);
       };
