@@ -523,7 +523,10 @@ function protectInlineHtml(source: string): string {
   // contain illustrative tag text (for example, "<div>") that is not markup.
   content = content.replace(/<!--[\s\S]*?-->/g, protect);
   // Raw-text elements may contain literal tag examples, not nested markup.
-  content = content.replace(/<(textarea|title|xmp|noembed|noframes)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
+  content = content.replace(/<(textarea|title|xmp|noembed|noframes|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
+  // HTML's obsolete plaintext element consumes the remainder of the document.
+  // Keep its tag-like examples opaque to the container and attribute scanners.
+  content = content.replace(/<plaintext\b[^>]*>[\s\S]*$/gi, protect);
 
   // Preserve styled download-card anchors as a single fragment so nested SVG markup
   // is not fragmented by Markdown tokenization or the core HTML sanitizer.
@@ -558,7 +561,7 @@ function protectInlineHtml(source: string): string {
   // Encoded HTML payloads have already been isolated. Re-protect top-level
   // comments so the following attribute pass cannot rewrite example tags.
   content = content.replace(/<!--[\s\S]*?-->/g, protect);
-  content = content.replace(/<(textarea|title|xmp|noembed|noframes)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
+  content = content.replace(/<(textarea|title|xmp|noembed|noframes|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
