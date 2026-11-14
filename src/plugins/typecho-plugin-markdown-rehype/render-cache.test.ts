@@ -193,6 +193,28 @@ describe('Markdown Rehype complex-content compatibility', () => {
     expect(html).toContain('钙');
   });
 
+  it('preserves Mermaid mindmap hierarchy with the native layout', async () => {
+    const source = [
+      '```mermaid',
+      'mindmap',
+      '  root((Warm CY))',
+      '    一级节点',
+      '\u00a0\u00a0二级节点',
+      '\u3000\u3000三级节点',
+      '```',
+    ].join('\n');
+
+    const html = await renderMarkdown(source, { mathEngine: 'katex' });
+
+    expect(html.match(/class="mermaid_default dark:hidden"/g)).toHaveLength(1);
+    expect(html.match(/class="mermaid_dark dark:block hidden"/g)).toHaveLength(1);
+    expect(html).toContain('root((Warm CY))');
+    expect(html).toContain('    一级节点');
+    expect(html).toContain('        二级节点');
+    expect(html).toContain('        三级节点');
+    expect(html).not.toContain('layout: tidy-tree');
+  });
+
   it('keeps math, highlighting, Mermaid variants, raw HTML and GFM output in one full render', async () => {
     const codeBlocks = Array.from({ length: 12 }, (_, index) =>
       '\x60\x60\x60ts\nconst item' + index + ' = ' + index + ';\n\x60\x60\x60',
