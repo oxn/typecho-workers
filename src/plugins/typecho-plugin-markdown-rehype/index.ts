@@ -865,14 +865,19 @@ function remarkMermaidVariants() {
         const child = children[index];
         if (child?.type === 'code' && child.lang === 'mermaid') {
           const source = typeof child.value === 'string' ? normalizeMermaidSource(child.value) : '';
-          const createVariant = (className: string[]) => ({
-            type: 'paragraph',
-            data: {
-              hName: 'pre',
-              hProperties: { className },
-            },
-            children: [{ type: 'text', value: source }],
-          });
+          // Emit the same raw <pre> structure used by the working master
+          // renderer, but escape the diagram source before it enters HTML.
+          // The HAST paragraph/hName route can be rewrapped by remark-rehype
+          // and does not reliably produce the direct pre nodes Mermaid scans.
+          const escapedSource = source
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          const createVariant = (className: string[]) =>
+            ({
+              type: 'html',
+              value: `<pre class="${className.join(' ')}">${escapedSource}</pre>`,
+            });
           children.splice(
             index,
             1,
