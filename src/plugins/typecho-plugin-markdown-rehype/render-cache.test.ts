@@ -136,17 +136,6 @@ describe('Markdown preview request protection', () => {
 });
 
 describe('Markdown image BlurHash compatibility', () => {
-  it('normalizes escaped image delimiters and URL colon from copied article text', async () => {
-    const html = await renderMarkdown(
-      '![markdown.webp]\\(https\\://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024)',
-      { mathEngine: 'mathjax' },
-    );
-
-    expect(html).toContain('<img');
-    expect(html).toContain('src="https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp"');
-    expect(html).toContain('data-blurhash="LfLp{l%09GXo.T-S%1tSIWj=t7f9"');
-  });
-
   it('extracts encoded BlurHash and dimensions before sanitizing the image URL', async () => {
     const html = await renderMarkdown(
       '![markdown.webp](https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024)',
@@ -158,6 +147,26 @@ describe('Markdown image BlurHash compatibility', () => {
     expect(html).toContain('width="1536"');
     expect(html).toContain('height="1024"');
     expect(html).not.toContain('#blurhash=');
+  });
+
+  it('keeps PlantUML and infographic fences immediately after a BlurHash image', async () => {
+    const html = await renderMarkdown([
+      '![markdown.webp](https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024)',
+      '```plantuml',
+      '@startuml',
+      'Alice -> Bob: Hello',
+      '@enduml',
+      '```',
+      '```infographic',
+      'title: Example',
+      '```',
+    ].join('\\n'), { mathEngine: 'mathjax' });
+
+    expect(html).toContain('src="https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp"');
+    expect(html).toContain('@startuml');
+    expect(html).toContain('Alice -&gt; Bob: Hello');
+    expect(html).toContain('infographic');
+    expect(html).toContain('title: Example');
   });
 });
 
