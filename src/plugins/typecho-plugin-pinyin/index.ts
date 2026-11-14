@@ -8,7 +8,7 @@ import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 const ADMIN_PATH = '/api/admin/pinyin-slug';
 const SAVE_SLUG_PARAM = '__pinyinSlug';
 const MAX_SLUG_LENGTH = 180;
-const MAX_SLUG_ATTEMPTS = 100;
+const MAX_SLUG_ATTEMPTS = 10;
 
 type EditorExtra = {
   options?: Record<string, unknown>;
@@ -87,10 +87,12 @@ function appendSlugSuffix(base: string, suffix: string): string {
 }
 
 async function claimUniqueSlug(db: any, cid: number, base: string): Promise<string> {
-  let candidate = base;
-  let suffix = 0;
-
-  while (suffix < MAX_SLUG_ATTEMPTS) {
+  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt += 1) {
+    const candidate = attempt === 0
+      ? base
+      : attempt === MAX_SLUG_ATTEMPTS - 1
+        ? appendSlugSuffix(base, `${cid}-${Date.now().toString(36)}`)
+        : appendSlugSuffix(base, attempt === 1 ? String(cid) : `${cid}-${attempt}`);
     const claimed = await db.update(schema.contents)
       .set({ slug: candidate })
       .where(and(
@@ -100,17 +102,9 @@ async function claimUniqueSlug(db: any, cid: number, base: string): Promise<stri
       .returning({ cid: schema.contents.cid });
 
     if (claimed.length > 0) return candidate;
-
-    suffix += 1;
-    candidate = appendSlugSuffix(base, suffix === 1 ? String(cid) : `${cid}-${suffix}`);
   }
 
-  // Keep the fallback distinct even in the pathological case of many collisions.
-  const fallback = appendSlugSuffix(base, `${cid}-${Date.now().toString(36)}`);
-  await db.update(schema.contents)
-    .set({ slug: fallback })
-    .where(eq(schema.contents.cid, cid));
-  return fallback;
+  throw new Error('别名冲突重试已达 10 次，请修改别名后重试');
 }
 
 /**
