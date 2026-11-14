@@ -450,6 +450,10 @@ function protectCompleteHtmlContainers(content: string, protectedSegments: strin
   return output + content.slice(cursor);
 }
 function normalizeFullHtmlDocument(source: string): string {
+  // Most article inputs are fragments. Avoid three document-shell regex scans
+  // unless a doctype/html/head/body wrapper is actually present.
+  if (!/<!doctype\s+html\b|<html\b|<head\b|<body\b/i.test(source)) return source;
+
   // Article content is an HTML fragment, not a nested browsing context. Keep
   // executable/style blocks from <head> and the actual <body> content, while
   // dropping document-only metadata and wrappers that cannot render in an article.
