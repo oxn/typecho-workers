@@ -980,7 +980,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     // Plain Markdown cannot contain an enhancement fragment. Avoid a private
     // options-table D1 read for the common case; only inspect the feature
     // switch when the source actually contains an HTML tag.
-    if (!/<\/?[a-z][\w:-]*(?:\s[^<>]*|\/?)>|CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/i.test(content)) return content;
+    if (!/<\/?[a-zA-Z][\w:-]*(?:\s[^<>]*|\/?)>|CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/.test(content)) return content;
     return await isHtmlEnhancementEnabled() ? protectInlineHtml(content) : content;
   }, 1);
 
