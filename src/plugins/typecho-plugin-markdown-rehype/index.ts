@@ -92,7 +92,7 @@ function remarkImageSizeAttributes() {
   };
 }
 
-/** Interpret legacy image URL-fragment dimensions and preserve unrelated fragments. */
+/** Extract image display metadata before sanitization and keep resource URLs clean. */
 function rehypeImageDimensions() {
   return (tree: any): void => {
     const visit = (node: any): void => {
@@ -103,25 +103,39 @@ function rehypeImageDimensions() {
         if (typeof src === 'string') {
           const hash = src.indexOf('#');
           if (hash >= 0) {
-            const parts = src.slice(hash + 1).split('&');
             const remaining: string[] = [];
-            let found = false;
-            for (const part of parts) {
-              const parameter = part.match(/^(width|height)=(.*)$/i);
-              if (!parameter) {
-                if (part) remaining.push(part);
-                continue;
+            let recognized = false;
+            for (const part of src.slice(hash + 1).replace(/&amp;/gi, '&').split('&')) {
+              if (!part) continue;
+              const separator = part.indexOf('=');
+              if (separator < 0) { remaining.push(part); continue; }
+              let key = part.slice(0, separator);
+              let value = part.slice(separator + 1);
+              try { key = decodeURIComponent(key); } catch {}
+              const normalizedKey = key.toLowerCase();
+              if (normalizedKey === 'blurhash') {
+                let decoded = value;
+                try { decoded = decodeURIComponent(value); } catch {}
+                if (/^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(decoded)) {
+                  properties.dataBlurhash = decoded;
+                  recognized = true;
+                  continue;
+                }
               }
-              const name = parameter[1].toLowerCase() as 'width' | 'height';
-              const value = parameter[2];
-              if (!parseImageDimension(value)) {
-                remaining.push(part);
-                continue;
+              if (normalizedKey === 'width' || normalizedKey === 'height') {
+                try { value = decodeURIComponent(value); } catch {}
+                const name = normalizedKey as 'width' | 'height';
+                if (parseImageDimension(value)) {
+                  if (properties[name] == null) applyImageDimension(properties, name, value);
+                  recognized = true;
+                  continue;
+                }
               }
-              if (properties[name] == null) applyImageDimension(properties, name, value);
-              found = true;
+              remaining.push(part);
             }
-            if (found) properties.src = src.slice(0, hash) + (remaining.length ? `#${remaining.join('&')}` : '');
+            if (recognized) {
+              properties.src = src.slice(0, hash) + (remaining.length ? `#${remaining.join('&')}` : '');
+            }
           }
         }
       }
@@ -419,7 +433,7 @@ const articleSanitizeSchema = {
 
     img: [
       ...(defaultSchema.attributes.img ?? []),
-      'alt', 'title', 'width', 'height', 'loading', 'className', 'style',
+      'alt', 'title', 'width', 'height', 'loading', 'className', 'style', 'dataBlurhash',
     ],
     svg: [
       'id', 'className', 'width', 'height', 'viewBox', 'xmlns', 'xmlnsXLink', 'version', 'preserveAspectRatio', 'style',
