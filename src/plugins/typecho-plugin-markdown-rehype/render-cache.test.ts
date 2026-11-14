@@ -138,7 +138,7 @@ describe('Markdown preview request protection', () => {
 describe('Markdown Rehype sanitizer safety', () => {
   it('removes raw style elements but preserves supported inline style attributes', async () => {
     const html = await renderMarkdown(
-      '<style>.unsafe-article-rule { display: none }</style>\\n\\n<div style="color: red">保留内联样式</div>',
+      '<style>.unsafe-article-rule { display: none }</style>\n\n<div style="color: red">保留内联样式</div>',
       { mathEngine: 'katex' },
     );
 
