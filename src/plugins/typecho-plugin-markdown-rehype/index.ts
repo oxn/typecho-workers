@@ -28,6 +28,7 @@ import { getOption } from 'typecho/plugin-sdk';
 import { transformGithubAlerts } from '../../lib/markdown-alerts';
 import mathJaxModuleUrl from 'mathjax-full/es5/tex-svg.js?url';
 import katexCss from 'katex/dist/katex.min.css?inline';
+import { getWarmMermaidConfig } from './mermaid-config';
 
 /** Parse a small, safe image-dimension grammar: numeric pixels, percentages and auto. */
 function parseImageDimension(value: string): { attribute?: string; style?: string } | null {
@@ -47,6 +48,71 @@ function applyImageDimension(properties: Record<string, any>, name: 'width' | 'h
   const declaration = `${name}:${dimension.style}`;
   const existing = typeof properties.style === 'string' ? properties.style.trim().replace(/;?$/, ';') : '';
   properties.style = `${existing}${declaration}`;
+}
+
+/**
+ * Rin-compatible Markdown image metadata handling.
+ * Runs on remark image nodes before remark-rehype, so Markdown images receive
+ * the same clean src + display metadata contract as Rin's MarkdownImage.
+ * Literal '+' is preserved because it is part of the BlurHash alphabet.
+ */
+function remarkRinImageMetadata() {
+  return (tree: any): void => {
+    const visit = (node: any): void => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'image' && typeof node.url === 'string') {
+        const hashIndex = node.url.indexOf('#');
+        if (hashIndex >= 0) {
+          const resourceUrl = node.url.slice(0, hashIndex);
+          const fragment = node.url.slice(hashIndex + 1).replace(/&amp;/gi, '&');
+          const metadata = new Map<string, string>();
+          for (const part of fragment.split(/[&;]/)) {
+            if (!part) continue;
+            const separator = part.indexOf('=');
+            if (separator < 0) continue;
+            let key = part.slice(0, separator);
+            let value = part.slice(separator + 1);
+            try { key = decodeURIComponent(key); } catch {}
+            // URLSearchParams treats '+' as a space; BlurHash does not.
+            value = value.replace(/\+/g, '%2B');
+            try { value = decodeURIComponent(value); } catch {}
+            metadata.set(key.toLowerCase(), value);
+          }
+
+          const blurhash = metadata.get('blurhash') || '';
+          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(blurhash)
+            ? blurhash
+            : '';
+          const dimensions: Record<'width' | 'height', string | undefined> = {
+            width: undefined,
+            height: undefined,
+          };
+          for (const name of ['width', 'height'] as const) {
+            const raw = metadata.get(name);
+            if (!raw) continue;
+            const value = Number.parseInt(raw, 10);
+            if (Number.isInteger(value) && value > 0 && value <= 10000) {
+              dimensions[name] = String(value);
+            }
+          }
+
+          if (validBlurhash || dimensions.width || dimensions.height) {
+            node.url = resourceUrl;
+            node.data = node.data ?? {};
+            const properties = { ...(node.data.hProperties ?? {}) } as Record<string, any>;
+            if (validBlurhash) properties.dataBlurhash = validBlurhash;
+            for (const name of ['width', 'height'] as const) {
+              const value = dimensions[name];
+              if (value && properties[name] == null) applyImageDimension(properties, name, value);
+            }
+            node.data.hProperties = properties;
+          }
+        }
+      }
+      if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    visit(tree);
+  };
 }
 
 /** Support ![alt](url){width=48 height=48} without interpreting arbitrary attributes. */
@@ -91,7 +157,7 @@ function remarkImageSizeAttributes() {
   };
 }
 
-/** Interpret legacy image URL-fragment dimensions and preserve unrelated fragments. */
+/** Extract image display metadata before sanitization and keep resource URLs clean. */
 function rehypeImageDimensions() {
   return (tree: any): void => {
     const visit = (node: any): void => {
@@ -102,25 +168,39 @@ function rehypeImageDimensions() {
         if (typeof src === 'string') {
           const hash = src.indexOf('#');
           if (hash >= 0) {
-            const parts = src.slice(hash + 1).split('&');
             const remaining: string[] = [];
-            let found = false;
-            for (const part of parts) {
-              const parameter = part.match(/^(width|height)=(.*)$/i);
-              if (!parameter) {
-                if (part) remaining.push(part);
-                continue;
+            let recognized = false;
+            for (const part of src.slice(hash + 1).replace(/&amp;/gi, '&').split('&')) {
+              if (!part) continue;
+              const separator = part.indexOf('=');
+              if (separator < 0) { remaining.push(part); continue; }
+              let key = part.slice(0, separator);
+              let value = part.slice(separator + 1);
+              try { key = decodeURIComponent(key); } catch {}
+              const normalizedKey = key.toLowerCase();
+              if (normalizedKey === 'blurhash') {
+                let decoded = value;
+                try { decoded = decodeURIComponent(value); } catch {}
+                if (/^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(decoded)) {
+                  properties.dataBlurhash = decoded;
+                  recognized = true;
+                  continue;
+                }
               }
-              const name = parameter[1].toLowerCase() as 'width' | 'height';
-              const value = parameter[2];
-              if (!parseImageDimension(value)) {
-                remaining.push(part);
-                continue;
+              if (normalizedKey === 'width' || normalizedKey === 'height') {
+                try { value = decodeURIComponent(value); } catch {}
+                const name = normalizedKey as 'width' | 'height';
+                if (parseImageDimension(value)) {
+                  if (properties[name] == null) applyImageDimension(properties, name, value);
+                  recognized = true;
+                  continue;
+                }
               }
-              if (properties[name] == null) applyImageDimension(properties, name, value);
-              found = true;
+              remaining.push(part);
             }
-            if (found) properties.src = src.slice(0, hash) + (remaining.length ? `#${remaining.join('&')}` : '');
+            if (recognized) {
+              properties.src = src.slice(0, hash) + (remaining.length ? `#${remaining.join('&')}` : '');
+            }
           }
         }
       }
@@ -133,9 +213,9 @@ function rehypeImageDimensions() {
 
 
 // Extend the maintained GitHub-style sanitizer schema rather than implementing
-// a second HTML parser or sanitizer. Preserve author-supplied article CSS and
-// SVG presentation directly; executable scripts and event-handler attributes
-// remain outside the allowlist.
+// a second HTML parser or sanitizer. Preserve inline style attributes and SVG
+// presentation, but do not allow raw <style> elements in article content;
+// executable scripts and event-handler attributes remain outside the allowlist.
 const safeSvgId = /^[\p{L}\p{N}\p{M}_:.-]+$/u;
 const safeSvgHref = /^#[\p{L}\p{N}\p{M}_:.-]+$/u;
 const safeSvgPaint = /^(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)|url\(\s*(["']?)#[\p{L}\p{N}\p{M}_:.-]+\1\s*\)(?:\s+(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)))?)$/iu;
@@ -317,7 +397,7 @@ const articleSanitizeSchema = {
   ...defaultSchema,
   tagNames: [
     ...defaultSchema.tagNames,
-    'button', 'figure', 'figcaption', 'style', 'mark', 'sup', 'sub',
+    'button', 'figure', 'figcaption', 'mark', 'sup', 'sub',
     'details', 'summary', 'video', 'audio', 'source', 'iframe',
     'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'image',
     'line', 'polyline', 'polygon', 'title', 'desc', 'defs', 'use', 'symbol',
@@ -418,7 +498,7 @@ const articleSanitizeSchema = {
 
     img: [
       ...(defaultSchema.attributes.img ?? []),
-      'alt', 'title', 'width', 'height', 'loading', 'className', 'style',
+      'alt', 'title', 'width', 'height', 'loading', 'className', 'style', 'dataBlurhash',
     ],
     svg: [
       'id', 'className', 'width', 'height', 'viewBox', 'xmlns', 'xmlnsXLink', 'version', 'preserveAspectRatio', 'style',
@@ -706,6 +786,24 @@ function protectMathDelimiters(source: string): string {
   }, source);
 }
 
+/**
+ * Remove raw style blocks before sanitization. CSS text inside a disallowed
+ * style element would otherwise be unwrapped into visible article text.
+ * Inline style attributes remain available for existing article formatting.
+ */
+function rehypeRemoveStyleElements() {
+  return (tree: any): void => {
+    const visit = (node: any): void => {
+      if (!node || !Array.isArray(node.children)) return;
+      node.children = node.children.filter((child: any) =>
+        !(child?.type === 'element' && String(child.tagName).toLowerCase() === 'style'),
+      );
+      node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
+
 function rehypeRestoreMathDelimiters() {
   const replacements = new Map(protectedMathDelimiters.map(([delimiter, placeholder]) => [placeholder, delimiter]));
   return (tree: any): void => {
@@ -818,9 +916,43 @@ function rehypeMathText() {
   };
 }
 /**
- * Mirror Rin's remark transform: each Mermaid fence becomes two independent
- * source <pre> nodes, one for the light theme and one for the dark theme.
+ * Mirror the theme's two color variants without routing Mermaid source through
+ * raw HTML. Building HAST elements from text nodes keeps labels containing
+ * <, >, &, quotes or HTML-looking text literal, and avoids a second rehypeRaw
+ * parse of every Mermaid block.
  */
+function normalizeMermaidSource(value: string): string {
+  const normalized = value.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+  const lines = normalized.split('\n');
+  const firstContentLine = lines.findIndex(line => line.trim().length > 0);
+  if (firstContentLine < 0 || !/^mindmap\s*$/i.test(lines[firstContentLine].trim())) {
+    return normalized;
+  }
+
+  // Mindmap uses indentation as its hierarchy. Start the parser at the
+  // diagram header, expand tabs consistently, and preserve every relative
+  // indentation level in the node lines.
+  const normalizedMindmap = lines
+    .slice(firstContentLine)
+    .map((line, index) => {
+      if (index === 0) return line.trimStart();
+
+      // Mindmap hierarchy is encoded by leading whitespace. Content copied
+      // from editors/Word often uses NBSP, ideographic spaces or narrow
+      // Unicode spaces instead of ASCII spaces; Mermaid's mindmap tokenizer
+      // does not treat those consistently as indentation. Normalize each
+      // such leading character to one four-space indentation unit while
+      // preserving ordinary ASCII indentation and its relative depth.
+      return line
+        .replace(/\t/g, '    ')
+        .replace(/^[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]+/u, (indent) => '    '.repeat([...indent].length));
+    })
+    .join('\n');
+
+  // Keep Mermaid's native Mindmap layout, matching the working master/Rin path.
+  return normalizedMindmap;
+}
+
 function remarkMermaidVariants() {
   return (tree: any): void => {
     const visit = (node: any): void => {
@@ -829,14 +961,27 @@ function remarkMermaidVariants() {
       for (let index = 0; index < children.length; index++) {
         const child = children[index];
         if (child?.type === 'code' && child.lang === 'mermaid') {
-          const value = typeof child.value === 'string' ? child.value : '';
-          children[index] = {
-            type: 'html',
-            value: `
-            <pre class="mermaid_default dark:hidden">${value}</pre>
-            <pre class="mermaid_dark dark:block hidden">${value}</pre>
-            `,
-          };
+          const source = typeof child.value === 'string' ? normalizeMermaidSource(child.value) : '';
+          // Emit the same raw <pre> structure used by the working master
+          // renderer, but escape the diagram source before it enters HTML.
+          // The HAST paragraph/hName route can be rewrapped by remark-rehype
+          // and does not reliably produce the direct pre nodes Mermaid scans.
+          const escapedSource = source
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          const createVariant = (className: string[]) =>
+            ({
+              type: 'html',
+              value: `<pre class="${className.join(' ')}">${escapedSource}</pre>`,
+            });
+          children.splice(
+            index,
+            1,
+            createVariant(['mermaid_default', 'dark:hidden']),
+            createVariant(['mermaid_dark', 'dark:block', 'hidden']),
+          );
+          index += 1;
           continue;
         }
         visit(child);
@@ -907,6 +1052,71 @@ function rehypeRestoreLocalReferences() {
 }
 
 /**
+ * remark-flexible-containers currently parses multiline container types with
+ * an ASCII-only \\w expression, then dereferences the match without checking
+ * it. A Unicode type such as "推论" therefore crashes the entire Markdown
+ * render. Encode non-ASCII type tokens before that plugin runs, then restore
+ * their original class names and title fallback afterwards.
+ */
+const UNICODE_CONTAINER_TYPE_PREFIX = 'warmunicode-';
+
+function encodeUnicodeContainerType(type: string): string {
+  return UNICODE_CONTAINER_TYPE_PREFIX
+    + Array.from(type).map((character) => character.codePointAt(0)!.toString(16)).join('-');
+}
+
+function decodeUnicodeContainerType(type?: string): string | undefined {
+  if (!type?.startsWith(UNICODE_CONTAINER_TYPE_PREFIX)) return undefined;
+  const encoded = type.slice(UNICODE_CONTAINER_TYPE_PREFIX.length);
+  if (!/^[a-f0-9]+(?:-[a-f0-9]+)*$/i.test(encoded)) return undefined;
+  try {
+    return String.fromCodePoint(...encoded.split('-').map((point) => Number.parseInt(point, 16))).toLowerCase();
+  } catch {
+    return undefined;
+  }
+}
+
+/** Make Unicode container type tokens safe for the dependency's ASCII parser. */
+function remarkNormalizeUnicodeContainerTypes() {
+  return (tree: any): void => {
+    const visit = (node: any): void => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'paragraph' && Array.isArray(node.children)) {
+        const first = node.children[0];
+        if (first?.type === 'text' && typeof first.value === 'string') {
+          const match = first.value.match(/^(:{3,})([ \t]*)([^\s]+)(?=[ \t\r\n]|$)/u);
+          if (match && !/^[A-Za-z0-9_-]+$/.test(match[3]) && !match[3].startsWith('{')) {
+            const alias = encodeUnicodeContainerType(match[3]);
+            first.value = match[1] + match[2] + alias + first.value.slice(match[0].length);
+          }
+        }
+      }
+      if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
+
+/** Restore the author-facing Unicode type after flexible-containers has parsed it. */
+function remarkRestoreUnicodeContainerTypes() {
+  return (tree: any): void => {
+    const visit = (node: any): void => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'container') {
+        const classNames = node.data?.hProperties?.className;
+        if (Array.isArray(classNames)) {
+          node.data.hProperties.className = classNames.map((name: unknown) =>
+            typeof name === 'string' ? decodeUnicodeContainerType(name) ?? name : name,
+          );
+        }
+      }
+      if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
+
+/**
  * Build one immutable processor for each supported render configuration.
  * Unified freezes a processor on first process() and documents that frozen
  * processors can process files repeatedly. Reuse avoids rebuilding the plugin
@@ -917,6 +1127,7 @@ function createMarkdownProcessor(
   tocEnabled: boolean,
   customIframeAttributes: string[] = [],
   customHtmlTags: string[] = [],
+  containersEnabled = true,
 ) {
   const processor = unified()
     .use(remarkParse)
@@ -927,12 +1138,19 @@ function createMarkdownProcessor(
     .use(remarkMath)
     .use(remarkEmoji)
     .use(remarkIns)
-    .use(remarkFlexibleCodeTitles, { titleTagName: 'strong', container: false })
-    .use(remarkFlexibleContainers, {
-      containerTagName: 'blockquote',
-      titleTagName: 'strong',
-      title: (type, title) => title ?? type?.toUpperCase(),
-    })
+    .use(remarkFlexibleCodeTitles, { titleTagName: 'strong', container: false });
+  if (containersEnabled) {
+    processor
+      .use(remarkNormalizeUnicodeContainerTypes)
+      .use(remarkFlexibleContainers, {
+        containerTagName: 'blockquote',
+        titleTagName: 'strong',
+        title: (type, title) => title ?? decodeUnicodeContainerType(type)?.toUpperCase() ?? type?.toUpperCase(),
+      })
+      .use(remarkRestoreUnicodeContainerTypes);
+  }
+  processor
+    .use(remarkRinImageMetadata)
     .use(remarkImageSizeAttributes)
     .use(remarkMermaidVariants);
   if (tocEnabled) processor.use(remarkToc, { heading: '目录', prefix: 'user-content-' });
@@ -943,6 +1161,7 @@ function createMarkdownProcessor(
       footnoteBackLabel: '返回正文',
     })
     .use(rehypeRaw)
+    .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
     .use(rehypeRestoreMathDelimiters)
     .use(rehypeMathText)
@@ -968,14 +1187,207 @@ function getMarkdownProcessor(
   tocEnabled: boolean,
   customIframeAttributes: string[] = [],
   customHtmlTags: string[] = [],
+  containersEnabled = true,
 ) {
-  const key = [mathEngine, tocEnabled ? 'toc' : 'no-toc', customIframeAttributes.join(','), customHtmlTags.join(',')].join(':');
+  const key = [
+    mathEngine,
+    tocEnabled ? 'toc' : 'no-toc',
+    customIframeAttributes.join(','),
+    customHtmlTags.join(','),
+    containersEnabled ? 'containers' : 'plain-containers',
+  ].join(':');
   let processor = processorCache.get(key);
   if (!processor) {
-    processor = createMarkdownProcessor(mathEngine, tocEnabled, customIframeAttributes, customHtmlTags);
+    processor = createMarkdownProcessor(mathEngine, tocEnabled, customIframeAttributes, customHtmlTags, containersEnabled);
     processorCache.set(key, processor);
   }
   return processor;
+}
+
+/**
+ * A bounded, isolate-local gate for expensive Markdown processor runs.
+ * This protects one Worker isolate; it is not a global limit across Cloudflare isolates.
+ */
+function isFlexibleContainerParserFailure(error: unknown): boolean {
+  if (!(error instanceof TypeError)) return false;
+  return /Cannot read properties of null \(reading ['"]1['"]\)/.test(error.message)
+    && (error.stack ?? '').includes('parseFenceTypeTitle');
+}
+
+export class MarkdownRenderCapacityError extends Error {
+  constructor(message = 'Markdown preview capacity is temporarily full') {
+    super(message);
+    this.name = 'MarkdownRenderCapacityError';
+  }
+}
+
+type MarkdownRenderQueueWaiter = {
+  resolve: () => void;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+export function createBoundedConcurrencyGate(maxConcurrent: number, maxPending: number, waitTimeoutMs: number) {
+  const concurrencyLimit = Math.max(1, Math.floor(maxConcurrent));
+  const pendingLimit = Math.max(0, Math.floor(maxPending));
+  const waiting: MarkdownRenderQueueWaiter[] = [];
+  let active = 0;
+
+  const releaseSlot = (): void => {
+    const next = waiting.shift();
+    if (next) {
+      clearTimeout(next.timer);
+      next.resolve();
+      return;
+    }
+    active = Math.max(0, active - 1);
+  };
+
+  const acquireSlot = (): Promise<() => void> => {
+    if (active < concurrencyLimit) {
+      active += 1;
+      return Promise.resolve(releaseSlot);
+    }
+    if (waiting.length >= pendingLimit) {
+      return Promise.reject(new MarkdownRenderCapacityError());
+    }
+
+    return new Promise((resolve, reject) => {
+      const waiter = {} as MarkdownRenderQueueWaiter;
+      waiter.resolve = () => {
+        clearTimeout(waiter.timer);
+        resolve(releaseSlot);
+      };
+      waiter.timer = setTimeout(() => {
+        const index = waiting.indexOf(waiter);
+        if (index < 0) return;
+        waiting.splice(index, 1);
+        reject(new MarkdownRenderCapacityError('Markdown preview queue wait timed out'));
+      }, Math.max(1, waitTimeoutMs));
+      waiting.push(waiter);
+    });
+  };
+
+  return async function run<T>(task: () => Promise<T> | T): Promise<T> {
+    const release = await acquireSlot();
+    try {
+      return await task();
+    } finally {
+      release();
+    }
+  };
+}
+
+const MARKDOWN_RENDER_MAX_CONCURRENT = 1;
+const MARKDOWN_RENDER_MAX_PENDING = 4;
+const MARKDOWN_RENDER_QUEUE_WAIT_TIMEOUT_MS = 5_000;
+const MARKDOWN_RENDER_MAX_TRACKED_IN_FLIGHT =
+  MARKDOWN_RENDER_MAX_CONCURRENT + MARKDOWN_RENDER_MAX_PENDING;
+const runMarkdownRender = createBoundedConcurrencyGate(
+  MARKDOWN_RENDER_MAX_CONCURRENT,
+  MARKDOWN_RENDER_MAX_PENDING,
+  MARKDOWN_RENDER_QUEUE_WAIT_TIMEOUT_MS,
+);
+
+export class PreviewRequestBodyTooLargeError extends Error {
+  constructor() {
+    super('Preview request body is too large');
+    this.name = 'PreviewRequestBodyTooLargeError';
+  }
+}
+
+export const MARKDOWN_PREVIEW_MAX_BODY_BYTES = 1_000_000;
+export const MARKDOWN_PREVIEW_MAX_SOURCE_LENGTH = 100_000;
+
+/** Read a request stream with a byte ceiling before JSON.parse allocates the full payload. */
+export async function readPreviewRequestBodyText(
+  request: Request,
+  maxBytes = MARKDOWN_PREVIEW_MAX_BODY_BYTES,
+): Promise<string> {
+  const declaredLength = request.headers.get('content-length');
+  if (declaredLength && /^\d+$/.test(declaredLength) && Number(declaredLength) > maxBytes) {
+    throw new PreviewRequestBodyTooLargeError();
+  }
+
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        try { await reader.cancel(); } catch { /* The size limit still takes precedence. */ }
+        throw new PreviewRequestBodyTooLargeError();
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder('utf-8', { fatal: true }).decode(body);
+}
+
+/**
+ * Reuse completed renders across requests in the same Worker isolate.
+ * Keys contain the exact normalized source and every setting that affects
+ * output; no probabilistic hash is used, so a collision cannot return another
+ * article's HTML. Both entry count and retained string size are bounded.
+ */
+const RENDERED_MARKDOWN_CACHE_MAX_ENTRIES = 12;
+const RENDERED_MARKDOWN_CACHE_MAX_WEIGHT = 1_500_000;
+const RENDERED_MARKDOWN_CACHE_MAX_ENTRY_WEIGHT = 750_000;
+const RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH = 100_000;
+
+type RenderedMarkdownCacheEntry = { html: string; weight: number };
+const renderedMarkdownCache = new Map<string, RenderedMarkdownCacheEntry>();
+const inFlightMarkdownRenders = new Map<string, Promise<string>>();
+let renderedMarkdownCacheWeight = 0;
+
+function getCachedMarkdownRender(key: string): string | undefined {
+  const entry = renderedMarkdownCache.get(key);
+  if (!entry) return undefined;
+  renderedMarkdownCache.delete(key);
+  renderedMarkdownCache.set(key, entry);
+  return entry.html;
+}
+
+function cacheMarkdownRender(key: string, html: string): void {
+  const weight = key.length + html.length;
+  if (weight > RENDERED_MARKDOWN_CACHE_MAX_ENTRY_WEIGHT) return;
+
+  const previous = renderedMarkdownCache.get(key);
+  if (previous) {
+    renderedMarkdownCacheWeight -= previous.weight;
+    renderedMarkdownCache.delete(key);
+  }
+
+  while (
+    renderedMarkdownCache.size >= RENDERED_MARKDOWN_CACHE_MAX_ENTRIES ||
+    renderedMarkdownCacheWeight + weight > RENDERED_MARKDOWN_CACHE_MAX_WEIGHT
+  ) {
+    const oldest = renderedMarkdownCache.entries().next().value as
+      [string, RenderedMarkdownCacheEntry] | undefined;
+    if (!oldest) break;
+    renderedMarkdownCache.delete(oldest[0]);
+    renderedMarkdownCacheWeight -= oldest[1].weight;
+  }
+
+  renderedMarkdownCache.set(key, { html, weight });
+  renderedMarkdownCacheWeight += weight;
+}
+
+function clearMarkdownRenderCache(): void {
+  renderedMarkdownCache.clear();
+  renderedMarkdownCacheWeight = 0;
 }
 
 const MARKDOWN_ALERT_SVGS: Record<string, string> = {
@@ -1009,26 +1421,83 @@ function addMarkdownAlertIcons(html: string): string {
 export async function renderMarkdown(source: string, options: MarkdownRenderOptions = {}): Promise<string> {
   if (!source) return '';
   const mathEngine = options.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
+  const tocEnabled = options.tocEnabled === true;
   const [customIframeAttributes, customHtmlTags] = await Promise.all([
     loadCustomIframeAttributes(),
     loadCustomHtmlTags(),
   ]);
+  const normalizedSource = normalizeIndentedHtmlBlocks(source);
+  // Avoid allocating a second large copy of exceptionally long articles just
+  // to form a cache key. The preview endpoint's existing 100k limit fits here.
+  const cacheKey = normalizedSource.length <= RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH
+    ? JSON.stringify([
+      mathEngine,
+      tocEnabled,
+      customIframeAttributes,
+      customHtmlTags,
+      normalizedSource,
+    ])
+    : null;
+
+  if (cacheKey) {
+    const cached = getCachedMarkdownRender(cacheKey);
+    if (cached !== undefined) return cached;
+
+    // Separate tabs or users can submit the same article at nearly the same
+    // time. Share that exact render instead of running KaTeX/highlight twice.
+    const inFlight = inFlightMarkdownRenders.get(cacheKey);
+    if (inFlight) return inFlight;
+  }
+
   const processor = getMarkdownProcessor(
     mathEngine,
-    options.tocEnabled === true,
+    tocEnabled,
     customIframeAttributes,
     customHtmlTags,
   );
-  const normalizedSource = normalizeIndentedHtmlBlocks(source);
-  const file = await processor.process(protectMathDelimiters(normalizedSource));
-  return addMarkdownAlertIcons(transformGithubAlerts(String(file)));
+  // The cache and in-flight lookup happen before the gate, so cache hits never
+  // wait for a render slot and identical concurrent requests still share work.
+  const render = runMarkdownRender(async () => {
+    let file: any;
+    try {
+      file = await processor.process(protectMathDelimiters(normalizedSource));
+    } catch (error) {
+      // A malformed/unsupported fence must not turn an otherwise readable
+      // article into HTTP 500. Only bypass containers for this known failure.
+      if (!isFlexibleContainerParserFailure(error)) throw error;
+      const fallbackProcessor = getMarkdownProcessor(
+        mathEngine,
+        tocEnabled,
+        customIframeAttributes,
+        customHtmlTags,
+        false,
+      );
+      file = await fallbackProcessor.process(protectMathDelimiters(normalizedSource));
+    }
+    const html = addMarkdownAlertIcons(transformGithubAlerts(String(file)));
+    if (cacheKey) cacheMarkdownRender(cacheKey, html);
+    return html;
+  });
+
+  if (!cacheKey || inFlightMarkdownRenders.size >= MARKDOWN_RENDER_MAX_TRACKED_IN_FLIGHT) {
+    return render;
+  }
+
+  inFlightMarkdownRenders.set(cacheKey, render);
+  try {
+    return await render;
+  } finally {
+    if (inFlightMarkdownRenders.get(cacheKey) === render) {
+      inFlightMarkdownRenders.delete(cacheKey);
+    }
+  }
 }
 
 
 function createAdminPreviewScript(): string {
   const mermaidConfigObject = {
-    light: { startOnLoad: false, theme: 'default' },
-    dark: { startOnLoad: false, theme: 'dark' },
+    light: getWarmMermaidConfig(false),
+    dark: getWarmMermaidConfig(true),
   };
   const mermaidConfigs = JSON.stringify(mermaidConfigObject).replace(/</g, '\\u003c');
   const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
@@ -1151,6 +1620,7 @@ function createAdminPreviewScript(): string {
   let renderPending = false;
   let lastRenderedSource = null;
   let requestedVersion = 0;
+  let previewKatexCssPromise = null;
 
   function isPreviewVisible() {
     return !preview.classList.contains('wmd-hidetab');
@@ -1227,10 +1697,20 @@ function createAdminPreviewScript(): string {
     });
   }
 
+  function getPreviewKatexCss() {
+    if (!previewKatexCssPromise) {
+      // KaTeX font assets are immutable for this page lifetime. Share the
+      // first embedding pass across preview updates instead of refetching and
+      // base64-encoding the same fonts after every edit.
+      previewKatexCssPromise = inlineKatexFontAssets(katexCss);
+    }
+    return previewKatexCssPromise;
+  }
+
   async function createPreviewDocument(payload) {
     const dark = isDarkMode();
     const mathEngine = payload.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
-    const previewKatexCss = await inlineKatexFontAssets(katexCss);
+    const previewKatexCss = mathEngine === 'katex' ? await getPreviewKatexCss() : '';
     const bodyClass = 'warm-theme' + (dark ? ' dark' : '');
     const htmlClass = dark ? 'dark' : '';
     const source = typeof payload.html === 'string' ? payload.html : '';
@@ -1246,7 +1726,7 @@ function createAdminPreviewScript(): string {
         'function notify(){var root=document.documentElement,body=document.body,rect=body.getBoundingClientRect();var h=Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight,rect.bottom+window.scrollY));window.parent.postMessage({type:"markdown-rehype-preview-height",height:h},"*");}' +
         'if(window.ResizeObserver){var ro=new ResizeObserver(notify);ro.observe(document.documentElement);ro.observe(document.body);}' +
         'window.addEventListener("load",notify);window.addEventListener("resize",notify);setTimeout(notify,80);setTimeout(notify,350);' +
-        'var ms=document.createElement("script");ms.src="/plugin-assets/typecho-plugin-markdown-rehype/mermaid-runtime.js";ms.onload=function(){var m=window.__warmCyMermaid;if(!m)return;var lightNodes=Array.from(document.querySelectorAll("pre.mermaid_default:not([data-processed])"));var darkNodes=Array.from(document.querySelectorAll("pre.mermaid_dark:not([data-processed])"));var nodes=lightNodes.concat(darkNodes);if(!nodes.length){notify();return;}var started=false,mermaidObserver=null;function renderWhenMeasurable(){if(started)return;var measurable=nodes.every(function(node){return node.isConnected&&node.parentElement&&node.parentElement.getBoundingClientRect().width>0;});if(!measurable)return;started=true;if(mermaidObserver)mermaidObserver.disconnect();window.removeEventListener("resize",renderWhenMeasurable);try{function renderVariant(nodes,config){var restore=[];nodes.forEach(function(node){if(getComputedStyle(node).display!=="none")return;restore.push({node:node,display:node.style.getPropertyValue("display"),displayPriority:node.style.getPropertyPriority("display"),visibility:node.style.getPropertyValue("visibility"),visibilityPriority:node.style.getPropertyPriority("visibility")});node.style.setProperty("display","block","important");node.style.setProperty("visibility","hidden","important");});function restoreStyles(){restore.forEach(function(item){if(item.display)item.node.style.setProperty("display",item.display,item.displayPriority);else item.node.style.removeProperty("display");if(item.visibility)item.node.style.setProperty("visibility",item.visibility,item.visibilityPriority);else item.node.style.removeProperty("visibility");});}try{m.initialize(config);return Promise.resolve(m.run({nodes:nodes})).finally(restoreStyles);}catch(error){restoreStyles();throw error;}}renderVariant(lightNodes,mermaidConfigs.light).then(function(){return renderVariant(darkNodes,mermaidConfigs.dark);}).then(function(){requestAnimationFrame(function(){notify();requestAnimationFrame(notify);});}).catch(function(e){console.error("Mermaid rendering failed:",e);notify();});}catch(e){console.error("Mermaid initialization failed:",e);notify();}}if(window.ResizeObserver){mermaidObserver=new ResizeObserver(renderWhenMeasurable);mermaidObserver.observe(document.documentElement);mermaidObserver.observe(document.body);nodes.forEach(function(node){if(node.parentElement)mermaidObserver.observe(node.parentElement);});}window.addEventListener("resize",renderWhenMeasurable);renderWhenMeasurable();};ms.onerror=function(){console.error("Mermaid runtime failed to load");notify();};document.head.append(ms);' +
+        'var lightNodes=Array.from(document.querySelectorAll("pre.mermaid_default:not([data-processed])")),darkNodes=Array.from(document.querySelectorAll("pre.mermaid_dark:not([data-processed])"));var allNodes=lightNodes.concat(darkNodes);if(!allNodes.length){notify();}else{var ms=document.createElement("script");ms.src="/plugin-assets/typecho-plugin-markdown-rehype/mermaid-runtime.js";ms.onload=function(){var m=window.__warmCyMermaid;if(!m){console.error("Mermaid runtime did not expose its renderer");notify();return;}var started=false,mermaidObserver=null;function renderWhenMeasurable(){if(started)return;var measurable=allNodes.every(function(node){return node.isConnected&&node.parentElement&&node.parentElement.getBoundingClientRect().width>0;});if(!measurable)return;started=true;if(mermaidObserver)mermaidObserver.disconnect();window.removeEventListener("resize",renderWhenMeasurable);function renderVariant(nodes,config){if(!nodes.length)return Promise.resolve();var restoreStyles=[];nodes.forEach(function(node){if(getComputedStyle(node).display!=="none")return;restoreStyles.push({node:node,display:node.style.getPropertyValue("display"),displayPriority:node.style.getPropertyPriority("display"),visibility:node.style.getPropertyValue("visibility"),visibilityPriority:node.style.getPropertyPriority("visibility")});node.style.setProperty("display","block","important");node.style.setProperty("visibility","hidden","important");});function restore(){restoreStyles.forEach(function(item){if(item.display)item.node.style.setProperty("display",item.display,item.displayPriority);else item.node.style.removeProperty("display");if(item.visibility)item.node.style.setProperty("visibility",item.visibility,item.visibilityPriority);else item.node.style.removeProperty("visibility");});}try{m.initialize(config);return Promise.resolve(m.run({nodes:nodes})).finally(restore);}catch(e){restore();return Promise.reject(e);}}renderVariant(lightNodes,mermaidConfigs.light).then(function(){return renderVariant(darkNodes,mermaidConfigs.dark);}).then(function(){requestAnimationFrame(function(){notify();requestAnimationFrame(notify);});}).catch(function(e){console.error("Mermaid rendering failed:",e);notify();});}if(window.ResizeObserver){mermaidObserver=new ResizeObserver(renderWhenMeasurable);mermaidObserver.observe(document.documentElement);mermaidObserver.observe(document.body);allNodes.forEach(function(node){if(node.parentElement)mermaidObserver.observe(node.parentElement);});}window.addEventListener("resize",renderWhenMeasurable);renderWhenMeasurable();};ms.onerror=function(){console.error("Mermaid runtime failed to load:",ms.src);notify();};document.head.append(ms);}' +
 
         'if(mathEngine==="mathjax"&&document.querySelector("code.language-math")){var mathScript=document.createElement("script");mathScript.src=mathJaxUrl;mathScript.onload=function(){var blocks=Array.from(document.querySelectorAll("code.language-math:not([data-mathjax-processed])"));var mathItems=[];blocks.forEach(function(code){var pre=code.closest("pre");var replacement=document.createElement(pre?"div":"span");replacement.className=pre?"mathjax-display":"mathjax-inline";var target=replacement;var tex=code.textContent||"";if(pre){var scroll=document.createElement("div");scroll.className="mathjax-display__scroll";target=scroll;replacement.append(scroll);}mathItems.push({target:target,tex:tex,display:!!pre});(pre||code).replaceWith(replacement);});var mathJax=window.MathJax;if(!mathJax||!mathJax.startup||!mathJax.startup.promise||typeof mathJax.tex2svgPromise!=="function"){console.error("MathJax tex2svg runtime did not initialize in the preview");notify();return;}mathJax.startup.promise.then(function(){return mathItems.reduce(function(chain,item){return chain.then(function(){return mathJax.tex2svgPromise(item.tex,{display:item.display}).then(function(output){item.target.replaceChildren(output);}).catch(function(e){console.error("MathJax formula rendering failed:",e);});});},Promise.resolve());}).then(notify).catch(function(e){console.error("MathJax rendering failed:",e);notify();});};mathScript.onerror=function(){console.error("MathJax script failed to load in the preview:",mathJaxUrl);notify();};document.head.append(mathScript);}' +
 '})();' + '</scr' + 'ipt>' +
@@ -1404,14 +1884,20 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     }
 
     let body: unknown;
-    try { body = await request.json(); } catch {
+    try {
+      const bodyText = await readPreviewRequestBodyText(request);
+      body = JSON.parse(bodyText);
+    } catch (error) {
+      if (error instanceof PreviewRequestBodyTooLargeError) {
+        return { handled: true, response: new Response('Preview request body is too large', { status: 413 }) };
+      }
       return { handled: true, response: new Response('Invalid JSON', { status: 400 }) };
     }
     if (!body || typeof body !== 'object' || typeof (body as { text?: unknown }).text !== 'string') {
       return { handled: true, response: new Response('Invalid preview content', { status: 400 }) };
     }
     const source = (body as { text: string }).text;
-    if (source.length > 100_000) {
+    if (source.length > MARKDOWN_PREVIEW_MAX_SOURCE_LENGTH) {
       return { handled: true, response: new Response('Preview content is too large', { status: 413 }) };
     }
 
@@ -1428,7 +1914,16 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
           headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
         }),
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof MarkdownRenderCapacityError) {
+        return {
+          handled: true,
+          response: new Response('Markdown preview is busy; please retry shortly', {
+            status: 503,
+            headers: { 'Retry-After': '2' },
+          }),
+        };
+      }
       return { handled: true, response: new Response('Markdown preview failed', { status: 500 }) };
     }
   }, 20);
@@ -1437,6 +1932,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     if (extra?.pluginId === pluginId) {
       customIframeAttributesExpiresAt = 0;
       customHtmlTagsExpiresAt = 0;
+      clearMarkdownRenderCache();
     }
     return result;
   }, 20);
