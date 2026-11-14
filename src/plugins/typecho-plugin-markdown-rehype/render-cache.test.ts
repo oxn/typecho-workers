@@ -152,6 +152,47 @@ describe('Markdown Rehype complex-content compatibility', () => {
     expect(html).toContain('mermaid_dark');
   });
 
+  it('keeps multiple real-world Mermaid diagram types as literal text in both theme variants', async () => {
+    const source = [
+      '```mermaid',
+      'graph LR',
+      '  A[GraphCommand] --> B[update] --> C[goto] --> D[send]',
+      '```',
+      '',
+      '```mermaid',
+      'graph TD',
+      '  A[开始] --> B[结束]',
+      '```',
+      '',
+      '```mermaid',
+      'pie',
+      '  title Mineral composition',
+      '  "Calcium" : 40',
+      '  "Potassium" : 30',
+      '  "Magnesium" : 20',
+      '  "Iron" : 10',
+      '```',
+      '',
+      '```mermaid',
+      'pie',
+      '  title 中文矿物分类',
+      '  "钙" : 40',
+      '  "钾" : 30',
+      '  "镁" : 20',
+      '  "铁" : 10',
+      '```',
+    ].join('\n');
+
+    const html = await renderMarkdown(source, { mathEngine: 'katex' });
+
+    expect(html.match(/class="mermaid_default dark:hidden"/g)).toHaveLength(4);
+    expect(html.match(/class="mermaid_dark dark:block hidden"/g)).toHaveLength(4);
+    expect(html).toContain('GraphCommand');
+    expect(html).toContain('Potassium');
+    expect(html).toContain('中文矿物分类');
+    expect(html).toContain('钙');
+  });
+
   it('keeps math, highlighting, Mermaid variants, raw HTML and GFM output in one full render', async () => {
     const codeBlocks = Array.from({ length: 12 }, (_, index) =>
       '\x60\x60\x60ts\nconst item' + index + ' = ' + index + ';\n\x60\x60\x60',
