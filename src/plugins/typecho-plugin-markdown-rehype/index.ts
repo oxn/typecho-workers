@@ -1417,6 +1417,16 @@ function addMarkdownAlertIcons(html: string): string {
   );
 }
 
+const TYPECHO_MARKDOWN_PREFIX = '<!--markdown-->';
+
+/** Apply the same Typecho content-marker normalization before every Markdown render entry point. */
+function normalizeTypechoMarkdownSource(source: string): string {
+  const withoutPrefix = source.startsWith(TYPECHO_MARKDOWN_PREFIX)
+    ? source.slice(TYPECHO_MARKDOWN_PREFIX.length)
+    : source;
+  return withoutPrefix.replace(/<!--more-->/g, '');
+}
+
 /** Warm CY article-only Markdown pipeline; raw HTML uses the official sanitizer with a narrow article schema extension. */
 export async function renderMarkdown(source: string, options: MarkdownRenderOptions = {}): Promise<string> {
   if (!source) return '';
@@ -1426,7 +1436,7 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
     loadCustomIframeAttributes(),
     loadCustomHtmlTags(),
   ]);
-  const normalizedSource = normalizeIndentedHtmlBlocks(source);
+  const normalizedSource = normalizeIndentedHtmlBlocks(normalizeTypechoMarkdownSource(source));
   // Avoid allocating a second large copy of exceptionally long articles just
   // to form a cache key. The preview endpoint's existing 100k limit fits here.
   const cacheKey = normalizedSource.length <= RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH
