@@ -997,7 +997,6 @@ export class MarkdownRenderCapacityError extends Error {
 
 type MarkdownRenderQueueWaiter = {
   resolve: () => void;
-  reject: (error: Error) => void;
   timer: ReturnType<typeof setTimeout>;
 };
 
@@ -1032,7 +1031,6 @@ export function createBoundedConcurrencyGate(maxConcurrent: number, maxPending: 
         clearTimeout(waiter.timer);
         resolve(releaseSlot);
       };
-      waiter.reject = reject;
       waiter.timer = setTimeout(() => {
         const index = waiting.indexOf(waiter);
         if (index < 0) return;
