@@ -852,9 +852,8 @@ function normalizeMermaidSource(value: string): string {
     })
     .join('\n');
 
-  // Select the dedicated tree layout only for mindmaps. Other Mermaid diagram
-  // types keep their existing layout defaults and rendering behavior.
-  return ['---', 'config:', '  layout: tidy-tree', '---', normalizedMindmap].join('\n');
+  // Keep Mermaid's native Mindmap layout, matching the working master/Rin path.
+  return normalizedMindmap;
 }
 
 function remarkMermaidVariants() {
