@@ -829,7 +829,11 @@ function remarkMermaidVariants() {
       for (let index = 0; index < children.length; index++) {
         const child = children[index];
         if (child?.type === 'code' && child.lang === 'mermaid') {
-          const value = typeof child.value === 'string' ? child.value : '';
+          const source = typeof child.value === 'string' ? child.value : '';
+          // Mermaid source is inserted into raw HTML and later parsed by rehypeRaw.
+          // Escape it as text first so labels containing HTML syntax cannot become
+          // live nodes or be altered by the sanitizer before Mermaid sees them.
+          const value = source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
           children[index] = {
             type: 'html',
             value: `
