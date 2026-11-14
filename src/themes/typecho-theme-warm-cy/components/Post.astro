@@ -2,7 +2,6 @@
 import { eq } from 'drizzle-orm';
 import { env } from 'cloudflare:workers';
 import { getDb, schema } from 'typecho/db';
-import { renderMarkdownFiltered } from '@/lib/markdown';
 import { optimizeContentImages } from './warm-image';
 import type { ThemePostProps } from '@/lib/theme-props';
 import WarmShell from './WarmShell.astro';
@@ -32,17 +31,15 @@ const rawArticleSource = !isNote && !passwordLocked
     .where(eq(schema.contents.cid, post.cid))
     .limit(1))[0]?.text || ''
   : '';
-const rehypeEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-markdown-rehype');
+// Keep published articles on the exact same Markdown renderer used by the
+// editor's live preview. Do not switch parsers based on plugin activation:
+// that made identical Markdown render differently between preview and frontend.
 const renderedArticleHtml = !isNote && !passwordLocked
-  ? rehypeEnabled
-    ? await (await import('typecho-plugin-markdown-rehype')).renderMarkdown(rawArticleSource, {
-      mathEngine: settings.markdownMathEngine,
-      tocEnabled: settings.markdownTocEnabled,
-    })
-    : await renderMarkdownFiltered(pluginCtx, rawArticleSource)
+  ? await (await import('typecho-plugin-markdown-rehype')).renderMarkdown(rawArticleSource, {
+    mathEngine: settings.markdownMathEngine,
+    tocEnabled: settings.markdownTocEnabled,
+  })
   : post.content;
-// Rehype is a complete, independent Markdown pipeline. Do not run the legacy
-// HTML-enhancement filters on its output; the user chooses either pipeline.
 const articleHtml = !isNote && !passwordLocked ? renderedArticleHtml : post.content;
 const optimizedContent = optimizeContentImages(
   isNote ? note.html : articleHtml,
@@ -104,7 +101,7 @@ const articleDeclarationHtml = !isNote
       </div>
     </header>
 
-    <div class:list={["warm-article__body", { "warm-article__body--toc": tocItems.length > 0 }]} data-math-engine={!isNote && rehypeEnabled ? settings.markdownMathEngine : undefined}>
+    <div class:list={["warm-article__body", { "warm-article__body--toc": tocItems.length > 0 }]} data-math-engine={!isNote && !passwordLocked ? settings.markdownMathEngine : undefined}>
       <div class:list={["warm-prose", { "warm-note-prose": isNote }]} view-image itemprop="articleBody" set:html={displayContent} />
       {tocItems.length > 0 && <WarmToc items={tocItems} />}
     </div>
