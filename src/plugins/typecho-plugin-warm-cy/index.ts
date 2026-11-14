@@ -775,7 +775,7 @@ function decodeInlinePayload(hex: string): string {
         : high >= 65 && high <= 70 ? high - 55 : -1;
     const lowValue = low >= 48 && low <= 57 ? low - 48
       : low >= 97 && low <= 102 ? low - 87
-        : low >= 65 && low <= 70 ? low - 87
+        : low >= 65 && low <= 70 ? low - 55
           : -1;
     if (highValue < 0 || lowValue < 0) return '';
     bytes[index] = (highValue << 4) | lowValue;
