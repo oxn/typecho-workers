@@ -806,35 +806,36 @@ function decodeInlinePayload(hex: string): string {
   return INLINE_TEXT_DECODER.decode(bytes);
 }
 
-function sanitizeInlineSvgReferences(source: string): string {
-  return source.replace(/<(?:svg|g|path|use|symbol|mask|clippath|lineargradient|radialgradient|text|tspan|filter|feGaussianBlur|feOffset|feComponentTransfer|feFuncA|feMerge|feMergeNode)\b[^>]*>/gi, tag => {
-    let safe = tag.replace(/\s+(href|xlink:href)\s*=\s*(["'])(.*?)\2/gi, (attribute, _name, _quote, value) =>
-      /^#[\w:.-]+$/.test(String(value).trim()) ? attribute : '',
-    );
-    safe = safe.replace(/\s+(fill|stroke|clip-path|mask)\s*=\s*(["'])(.*?)\2/gi, (attribute, _name, _quote, value) => {
-      const cssValue = String(value).trim();
-      return /\burl\s*\(/i.test(cssValue) && !/^url\(\s*#[\w:.-]+\s*\)$/i.test(cssValue)
-        ? ''
-        : attribute;
-    });
-    return safe;
-  });
-}
-
 function sanitizeInlineHtmlFragment(source: string): string {
-  const safeFormActions = source.replace(
-    /<form\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
-    formTag => formTag.replace(
-      /\saction\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i,
-      (attribute, doubleQuoted: string | undefined, singleQuoted: string | undefined, bare: string | undefined) => {
-        const value = (doubleQuoted ?? singleQuoted ?? bare ?? '').trim();
-        if (!value || value.startsWith('//')) return '';
-        const scheme = value.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
-        return scheme && scheme !== 'http' && scheme !== 'https' ? '' : attribute;
-      },
-    ),
+  // Inspect only tags whose attributes need additional handling. Combining
+  // form-action and SVG-reference checks avoids two full-fragment passes while
+  // retaining sanitize-html as the final allowlist enforcement layer.
+  const protectedSource = source.replace(
+    /<(form|svg|g|path|use|symbol|mask|clippath|lineargradient|radialgradient|text|tspan|filter|feGaussianBlur|feOffset|feComponentTransfer|feFuncA|feMerge|feMergeNode)\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
+    tag => {
+      const tagName = tag.match(/^<([a-z][\\w:-]*)/i)?.[1]?.toLowerCase() || '';
+      const isForm = tagName === 'form';
+      return tag.replace(
+        /\\s+(action|href|xlink:href|fill|stroke|clip-path|mask)\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))/gi,
+        (attribute, rawName: string, doubleQuoted: string | undefined, singleQuoted: string | undefined, bare: string | undefined) => {
+          const name = rawName.toLowerCase();
+          const value = (doubleQuoted ?? singleQuoted ?? bare ?? '').trim();
+          if (isForm && name === 'action') {
+            if (!value || value.startsWith('//')) return '';
+            const scheme = value.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
+            return scheme && scheme !== 'http' && scheme !== 'https' ? '' : attribute;
+          }
+          if (!isForm && (name === 'href' || name === 'xlink:href')) {
+            return /^#[\\w:.-]+$/.test(value) ? attribute : '';
+          }
+          if (!isForm && /\\burl\\s*\\(/i.test(value)
+            && !/^url\\(\\s*#[\\w:.-]+\\s*\\)$/i.test(value)) return '';
+          return attribute;
+        },
+      );
+    },
   );
-  return sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), INLINE_FRAGMENT_SANITIZE_OPTIONS);
+  return sanitizeHtml(protectedSource, INLINE_FRAGMENT_SANITIZE_OPTIONS);
 }
 
 function restoreInlineHtmlFragments(content: string): string {
