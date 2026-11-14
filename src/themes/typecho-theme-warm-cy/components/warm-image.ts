@@ -27,18 +27,22 @@ function parseOwnUpload(raw: string, siteUrl: string): URL | null {
   return parsed;
 }
 
+/**
+ * Remove URL fragments before returning an image URL. Fragments are display
+ * metadata, not part of the image resource; preserve the original path/query.
+ */
 export function optimizeImageUrl(url: string, params: string, siteUrl: string): string {
+  const hash = url.indexOf('#');
+  const imageUrl = hash >= 0 ? url.slice(0, hash) : url;
   const clean = normalizeOptimizeParams(params);
-  if (!clean || !url) return url;
-  const parsed = parseOwnUpload(url, siteUrl);
-  if (!parsed) return url;
-  // Add query parameters before any fragment. Image dimensions may be
-  // encoded in the fragment (for example #width=640&height=360).
-  parsed.search = parsed.search
-    ? `${parsed.search}&${clean}`
-    : `?${clean}`;
-  if (url.startsWith('/')) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-  return parsed.href;
+  if (!clean || !imageUrl) return imageUrl;
+  const parsed = parseOwnUpload(imageUrl, siteUrl);
+  if (!parsed) return imageUrl;
+  const sep = parsed.search ? '&' : '?';
+  if (imageUrl.startsWith('/')) {
+    return `${parsed.pathname}${parsed.search}${sep}${clean}`;
+  }
+  return `${parsed.href}${sep}${clean}`;
 }
 
 export function optimizeContentImages(html: string, params: string, siteUrl: string): string {
@@ -48,7 +52,8 @@ export function optimizeContentImages(html: string, params: string, siteUrl: str
     const srcMatch = tag.match(/(\ssrc\s*=\s*)(["'])(.*?)\2/i);
     if (!srcMatch) return tag;
     const src = srcMatch[3];
-    const fragment = (src.split('#', 2)[1] || '').replace(/&amp;/gi, '&');
+    const hashIndex = src.indexOf('#');
+    const fragment = (hashIndex >= 0 ? src.slice(hashIndex + 1) : '').replace(/&amp;/gi, '&');
 
     const getDimension = (name: 'width' | 'height'): string | null => {
       const result = fragment.match(new RegExp('(?:^|[&;])' + name + '=(\\d+)(?=[&;]|$)', 'i'));
