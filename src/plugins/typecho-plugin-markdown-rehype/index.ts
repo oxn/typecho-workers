@@ -949,7 +949,7 @@ function remarkNormalizeUnicodeContainerTypes() {
       if (node.type === 'paragraph' && Array.isArray(node.children)) {
         const first = node.children[0];
         if (first?.type === 'text' && typeof first.value === 'string') {
-          const match = first.value.match(/^(:{3,})([ \\t]*)([^\\s]+)(?=[ \\t\\r\\n]|$)/u);
+          const match = first.value.match(/^(:{3,})([ \t]*)([^\s]+)(?=[ \t\r\n]|$)/u);
           if (match && !/^[A-Za-z0-9_-]+$/.test(match[3]) && !match[3].startsWith('{')) {
             const alias = encodeUnicodeContainerType(match[3]);
             first.value = match[1] + match[2] + alias + first.value.slice(match[0].length);
