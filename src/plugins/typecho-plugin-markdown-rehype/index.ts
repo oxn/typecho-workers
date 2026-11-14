@@ -1073,7 +1073,7 @@ function getMarkdownProcessor(
  */
 function isFlexibleContainerParserFailure(error: unknown): boolean {
   if (!(error instanceof TypeError)) return false;
-  return /Cannot read properties of null \\(reading ['"]1['"]\\)/.test(error.message)
+  return /Cannot read properties of null \(reading ['"]1['"]\)/.test(error.message)
     && (error.stack ?? '').includes('parseFenceTypeTitle');
 }
 
