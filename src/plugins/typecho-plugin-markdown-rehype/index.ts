@@ -134,9 +134,9 @@ function rehypeImageDimensions() {
 
 
 // Extend the maintained GitHub-style sanitizer schema rather than implementing
-// a second HTML parser or sanitizer. Preserve author-supplied article CSS and
-// SVG presentation directly; executable scripts and event-handler attributes
-// remain outside the allowlist.
+// a second HTML parser or sanitizer. Preserve inline style attributes and SVG
+// presentation, but do not allow raw <style> elements in article content;
+// executable scripts and event-handler attributes remain outside the allowlist.
 const safeSvgId = /^[\p{L}\p{N}\p{M}_:.-]+$/u;
 const safeSvgHref = /^#[\p{L}\p{N}\p{M}_:.-]+$/u;
 const safeSvgPaint = /^(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)|url\(\s*(["']?)#[\p{L}\p{N}\p{M}_:.-]+\1\s*\)(?:\s+(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)))?)$/iu;
@@ -318,7 +318,7 @@ const articleSanitizeSchema = {
   ...defaultSchema,
   tagNames: [
     ...defaultSchema.tagNames,
-    'button', 'figure', 'figcaption', 'style', 'mark', 'sup', 'sub',
+    'button', 'figure', 'figcaption', 'mark', 'sup', 'sub',
     'details', 'summary', 'video', 'audio', 'source', 'iframe',
     'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'image',
     'line', 'polyline', 'polygon', 'title', 'desc', 'defs', 'use', 'symbol',
