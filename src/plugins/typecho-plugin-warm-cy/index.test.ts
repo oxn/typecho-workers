@@ -368,7 +368,9 @@ describe('typecho-plugin-warm-cy', () => {
     const source = [
       '<textarea><div>this is text, not a nested container</div></textarea>',
       '<title><section>also text, not a container</section></title>',
+      '<noscript><section>fallback text, not a live container</section></noscript>',
       '<section class="real-container"><p>actual content</p></section>',
+      '<plaintext><article>literal tag example through end of input',
     ].join('\n');
 
     const protectedSource = await protect(source);
@@ -376,6 +378,8 @@ describe('typecho-plugin-warm-cy', () => {
     expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(1);
     expect(protectedSource).toContain('<textarea><div>this is text, not a nested container</div></textarea>');
     expect(protectedSource).toContain('<title><section>also text, not a container</section></title>');
+    expect(protectedSource).toContain('<noscript><section>fallback text, not a live container</section></noscript>');
+    expect(protectedSource).toContain('<plaintext><article>literal tag example through end of input');
     expect(protectedSource).not.toContain('<section class="real-container">');
   });
 
