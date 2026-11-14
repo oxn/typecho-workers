@@ -707,6 +707,24 @@ function protectMathDelimiters(source: string): string {
   }, source);
 }
 
+/**
+ * Remove raw style blocks before sanitization. CSS text inside a disallowed
+ * style element would otherwise be unwrapped into visible article text.
+ * Inline style attributes remain available for existing article formatting.
+ */
+function rehypeRemoveStyleElements() {
+  return (tree: any): void => {
+    const visit = (node: any): void => {
+      if (!node || !Array.isArray(node.children)) return;
+      node.children = node.children.filter((child: any) =>
+        !(child?.type === 'element' && String(child.tagName).toLowerCase() === 'style'),
+      );
+      node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
+
 function rehypeRestoreMathDelimiters() {
   const replacements = new Map(protectedMathDelimiters.map(([delimiter, placeholder]) => [placeholder, delimiter]));
   return (tree: any): void => {
@@ -1063,6 +1081,7 @@ function createMarkdownProcessor(
       footnoteBackLabel: '返回正文',
     })
     .use(rehypeRaw)
+    .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
     .use(rehypeRestoreMathDelimiters)
     .use(rehypeMathText)
