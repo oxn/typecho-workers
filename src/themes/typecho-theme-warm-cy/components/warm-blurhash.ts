@@ -78,18 +78,19 @@ export function decodeBlurHash(hash: string, width: number, height: number): Uin
   return pixels;
 }
 
-function blurHashDataUrl(hash: string): string {
-  const canvas = document.createElement('canvas');
-  canvas.width = 32;
-  canvas.height = 32;
+function drawBlurhashToCanvas(canvas: HTMLCanvasElement, hash: string): void {
+  const width = 32;
+  const height = 32;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas is unavailable');
-  const imageData = context.createImageData(canvas.width, canvas.height);
-  imageData.data.set(decodeBlurHash(hash, canvas.width, canvas.height));
+  const imageData = context.createImageData(width, height);
+  imageData.data.set(decodeBlurHash(hash, width, height));
+  canvas.width = width;
+  canvas.height = height;
   context.putImageData(imageData, 0, 0);
-  return canvas.toDataURL('image/png');
 }
 
+/** Render the placeholder on a sibling canvas, as Rin does, not on the hidden img itself. */
 export function initWarmBlurhash(root: ParentNode = document): void {
   const images: HTMLImageElement[] = [];
   if (root instanceof HTMLImageElement) images.push(root);
@@ -100,31 +101,59 @@ export function initWarmBlurhash(root: ParentNode = document): void {
   for (const image of images) {
     if (image.dataset.warmBlurhashReady === '1') continue;
     const hash = image.dataset.blurhash || '';
-    if (!hash) continue;
-    try {
-      const placeholder = blurHashDataUrl(hash);
+    if (!hash || image.parentElement?.tagName === 'PICTURE') continue;
+    if (image.complete && image.naturalWidth > 0) {
       image.dataset.warmBlurhashReady = '1';
-      image.style.backgroundImage = 'url("' + placeholder + '")';
-      image.style.backgroundSize = 'cover';
-      image.style.backgroundPosition = 'center';
-      if (image.complete && image.naturalWidth > 0) {
-        image.style.backgroundImage = 'none';
-        continue;
-      }
+      continue;
+    }
+
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.setAttribute('aria-hidden', 'true');
+      canvas.width = 32;
+      canvas.height = 32;
+      drawBlurhashToCanvas(canvas, hash);
+
+      const parent = image.parentNode;
+      if (!parent) continue;
+      const wrapper = document.createElement('span');
+      const display = window.getComputedStyle(image).display;
+      wrapper.style.position = 'relative';
+      wrapper.style.display = display === 'block' ? 'block' : 'inline-block';
+      wrapper.style.maxWidth = '100%';
+      wrapper.style.overflow = 'hidden';
+      wrapper.style.verticalAlign = 'middle';
+
+      const width = image.getAttribute('width');
+      const height = image.getAttribute('height');
+      if (width && height) wrapper.style.aspectRatio = width + ' / ' + height;
+
+      canvas.style.position = 'absolute';
+      canvas.style.inset = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.objectFit = 'cover';
+      canvas.style.filter = 'blur(8px)';
+      canvas.style.transform = 'scale(1.05)';
+      canvas.style.pointerEvents = 'none';
+
+      parent.insertBefore(wrapper, image);
+      wrapper.append(canvas, image);
+      image.dataset.warmBlurhashReady = '1';
+      image.style.position = 'relative';
+      image.style.zIndex = '1';
       image.style.transition = image.style.transition
         ? image.style.transition + ', opacity 180ms ease'
         : 'opacity 180ms ease';
       image.style.opacity = '0';
+
       const reveal = () => {
         image.style.opacity = '';
-        image.style.backgroundImage = 'none';
+        canvas.remove();
         image.removeEventListener('load', reveal);
-        image.removeEventListener('error', reveal);
       };
       image.addEventListener('load', reveal, { once: true });
-      image.addEventListener('error', () => {
-        image.style.opacity = '';
-      }, { once: true });
+      // On failure, keep the decoded canvas visible as Rin does when an image fails.
     } catch {
       // Invalid hashes or unavailable canvas support must never affect the image.
     }
