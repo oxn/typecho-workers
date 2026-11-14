@@ -428,6 +428,33 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('selected');
   });
 
+  it('keeps local SVG references and safe form actions while stripping external references', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = [
+      '<div class="svg-security-fixture">',
+      '<svg viewBox="0 0 24 24"><defs><linearGradient id="safe-gradient"></linearGradient></defs>',
+      '<use href="#local-icon" xlink:href="#local-icon"></use>',
+      '<path d="M0 0h10v10z" fill="url(#safe-gradient)" stroke="url(https://evil.example/payload)"></path>',
+      '<use href="https://evil.example/icon.svg#remote"></use></svg>',
+      '<form action="/safe-submit"><button type="submit">提交</button></form>',
+      '<form action="javascript:alert(1)"><button type="submit">危险</button></form>',
+      '</div>',
+    ].join('');
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed);
+    const restored = await restore(coreSanitized);
+
+    expect(restored).toContain('href="#local-icon"');
+    expect(restored).toContain('xlink:href="#local-icon"');
+    expect(restored).toContain('fill="url(#safe-gradient)"');
+    expect(restored).not.toContain('https://evil.example');
+    expect(restored).toContain('action="/safe-submit"');
+    expect(restored).not.toContain('javascript:alert(1)');
+  });
+
   it('restores a single-line styled div after the core sanitizer strips div tags', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
