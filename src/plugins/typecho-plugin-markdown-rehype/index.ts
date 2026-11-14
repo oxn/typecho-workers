@@ -823,6 +823,23 @@ function rehypeMathText() {
  * <, >, &, quotes or HTML-looking text literal, and avoids a second rehypeRaw
  * parse of every Mermaid block.
  */
+function normalizeMermaidSource(value: string): string {
+  const normalized = value.replace(/^\\uFEFF/, '').replace(/\\r\\n?/g, '\\n');
+  const lines = normalized.split('\\n');
+  const firstContentLine = lines.findIndex(line => line.trim().length > 0);
+  if (firstContentLine < 0 || !/^mindmap\\s*$/i.test(lines[firstContentLine].trim())) {
+    return normalized;
+  }
+
+  // Mindmap uses indentation as its hierarchy. Start the parser at the
+  // diagram header, expand tabs consistently, and preserve every relative
+  // indentation level in the node lines.
+  return lines
+    .slice(firstContentLine)
+    .map((line, index) => index === 0 ? line.trimStart() : line.replace(/\\t/g, '    '))
+    .join('\\n');
+}
+
 function remarkMermaidVariants() {
   return (tree: any): void => {
     const visit = (node: any): void => {
@@ -831,7 +848,7 @@ function remarkMermaidVariants() {
       for (let index = 0; index < children.length; index++) {
         const child = children[index];
         if (child?.type === 'code' && child.lang === 'mermaid') {
-          const source = typeof child.value === 'string' ? child.value : '';
+          const source = typeof child.value === 'string' ? normalizeMermaidSource(child.value) : '';
           const createVariant = (className: string[]) => ({
             type: 'paragraph',
             data: {
