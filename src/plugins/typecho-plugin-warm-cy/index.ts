@@ -31,6 +31,13 @@ function parsePluginSettings(value: unknown): Record<string, unknown> {
   }
 }
 
+function haveSamePluginSettings(left: Record<string, unknown>, right: Record<string, unknown>): boolean {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  return leftKeys.length === rightKeys.length
+    && leftKeys.every(key => Object.prototype.hasOwnProperty.call(right, key) && left[key] === right[key]);
+}
+
 function isEnabled(value: unknown, fallback = true): boolean {
   if (value === undefined || value === null || value === '') return fallback;
   return !(value === false || value === 0 || value === '0');
@@ -1310,8 +1317,11 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         const key = `linkblank${String(i).padStart(2, '0')}`;
         if (typeof values[key] === 'boolean') next[key] = values[key] ? '1' : '0';
       }
+      if (haveSamePluginSettings(current, next)) {
+        return { handled: true, response: json({ success: true, unchanged: true }) };
+      }
       await setOption(auth.db, PLUGIN_OPTION_KEY, JSON.stringify(next));
-      return { handled: true, response: json({ success: true }) };
+      return { handled: true, response: json({ success: true, unchanged: false }) };
     }
 
     const { cid, pinned, confirmation } = body as { cid?: unknown; pinned?: unknown; confirmation?: unknown };

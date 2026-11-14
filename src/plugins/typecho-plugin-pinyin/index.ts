@@ -8,7 +8,7 @@ import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 const ADMIN_PATH = '/api/admin/pinyin-slug';
 const SAVE_SLUG_PARAM = '__pinyinSlug';
 const MAX_SLUG_LENGTH = 180;
-const MAX_SLUG_ATTEMPTS = 100;
+const MAX_SLUG_ATTEMPTS = 10;
 
 type EditorExtra = {
   options?: Record<string, unknown>;
@@ -80,11 +80,19 @@ function normalizeSlug(value: string): string {
  * Claim a unique slug after the core save has created/updated the content row.
  * This mirrors the core compare-and-swap strategy and avoids a SELECT/UPDATE race.
  */
-async function claimUniqueSlug(db: any, cid: number, base: string): Promise<string> {
-  let candidate = base;
-  let suffix = 0;
+function appendSlugSuffix(base: string, suffix: string): string {
+  const tail = `-${suffix}`;
+  const head = base.slice(0, Math.max(1, MAX_SLUG_LENGTH - tail.length)).replace(/-+$/g, '');
+  return `${head}${tail}`;
+}
 
-  while (suffix < MAX_SLUG_ATTEMPTS) {
+async function claimUniqueSlug(db: any, cid: number, base: string): Promise<string> {
+  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt += 1) {
+    const candidate = attempt === 0
+      ? base
+      : attempt === MAX_SLUG_ATTEMPTS - 1
+        ? appendSlugSuffix(base, `${cid}-${Date.now().toString(36)}`)
+        : appendSlugSuffix(base, attempt === 1 ? String(cid) : `${cid}-${attempt}`);
     const claimed = await db.update(schema.contents)
       .set({ slug: candidate })
       .where(and(
@@ -94,17 +102,9 @@ async function claimUniqueSlug(db: any, cid: number, base: string): Promise<stri
       .returning({ cid: schema.contents.cid });
 
     if (claimed.length > 0) return candidate;
-
-    suffix += 1;
-    candidate = suffix === 1 ? `${base}-${cid}` : `${base}-${cid}-${suffix}`;
   }
 
-  // Keep the fallback distinct even in the pathological case of many collisions.
-  const fallback = `${base}-${cid}-${Date.now().toString(36)}`;
-  await db.update(schema.contents)
-    .set({ slug: fallback })
-    .where(eq(schema.contents.cid, cid));
-  return fallback;
+  throw new Error('别名冲突重试已达 10 次，请修改别名后重试');
 }
 
 /**
@@ -127,6 +127,7 @@ async function persistSubmittedSlug(content: Record<string, any>, extra?: SaveEx
   const cid = Number(content.cid);
   const base = normalizeSlug(requestedSlug);
   if (!Number.isSafeInteger(cid) || cid <= 0 || !base) return;
+  if (String(content.slug || '') === base) return;
 
   const finalSlug = await claimUniqueSlug(db, cid, base);
   // finishData is the same object the core uses for its subsequent cache work.
@@ -150,6 +151,7 @@ function editorHtml(
   if (!form || !title || !permalinkRow || form.dataset.pinyinSlugReady === '1') return;
   form.dataset.pinyinSlugReady = '1';
 
+  title.maxLength = 500;
   var slug = document.getElementById('slug');
   var initialSlug = ${initialSlug};
   var currentCid = ${cidValue};
@@ -194,6 +196,7 @@ function editorHtml(
     slug.style.minWidth = '48px';
     slug.style.overflow = 'hidden';
   }
+  slug.maxLength = 180;
 
   function updateSlugInputWidth() {
     var mobile = window.matchMedia('(max-width: 767px)').matches;
@@ -274,7 +277,7 @@ function editorHtml(
   title.addEventListener('input', function () {
     if (manual) return;
     window.clearTimeout(timer);
-    timer = window.setTimeout(function () { generate(false); }, 280);
+    timer = window.setTimeout(function () { generate(false); }, 500);
   });
 
   slug.addEventListener('input', function () {
