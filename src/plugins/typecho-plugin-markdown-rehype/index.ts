@@ -987,6 +987,7 @@ function getMarkdownProcessor(
 const RENDERED_MARKDOWN_CACHE_MAX_ENTRIES = 12;
 const RENDERED_MARKDOWN_CACHE_MAX_WEIGHT = 1_500_000;
 const RENDERED_MARKDOWN_CACHE_MAX_ENTRY_WEIGHT = 750_000;
+const RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH = 100_000;
 const IN_FLIGHT_MARKDOWN_RENDER_MAX_ENTRIES = 8;
 
 type RenderedMarkdownCacheEntry = { html: string; weight: number };
@@ -1069,21 +1070,27 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
     loadCustomHtmlTags(),
   ]);
   const normalizedSource = normalizeIndentedHtmlBlocks(source);
-  const cacheKey = JSON.stringify([
-    mathEngine,
-    tocEnabled,
-    customIframeAttributes,
-    customHtmlTags,
-    normalizedSource,
-  ]);
+  // Avoid allocating a second large copy of exceptionally long articles just
+  // to form a cache key. The preview endpoint's existing 100k limit fits here.
+  const cacheKey = normalizedSource.length <= RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH
+    ? JSON.stringify([
+      mathEngine,
+      tocEnabled,
+      customIframeAttributes,
+      customHtmlTags,
+      normalizedSource,
+    ])
+    : null;
 
-  const cached = getCachedMarkdownRender(cacheKey);
-  if (cached !== undefined) return cached;
+  if (cacheKey) {
+    const cached = getCachedMarkdownRender(cacheKey);
+    if (cached !== undefined) return cached;
 
-  // Separate tabs or users can submit the same article at nearly the same
-  // time. Share that exact render instead of running KaTeX/highlight twice.
-  const inFlight = inFlightMarkdownRenders.get(cacheKey);
-  if (inFlight) return inFlight;
+    // Separate tabs or users can submit the same article at nearly the same
+    // time. Share that exact render instead of running KaTeX/highlight twice.
+    const inFlight = inFlightMarkdownRenders.get(cacheKey);
+    if (inFlight) return inFlight;
+  }
 
   const processor = getMarkdownProcessor(
     mathEngine,
@@ -1094,11 +1101,11 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
   const render = (async () => {
     const file = await processor.process(protectMathDelimiters(normalizedSource));
     const html = addMarkdownAlertIcons(transformGithubAlerts(String(file)));
-    cacheMarkdownRender(cacheKey, html);
+    if (cacheKey) cacheMarkdownRender(cacheKey, html);
     return html;
   })();
 
-  if (inFlightMarkdownRenders.size >= IN_FLIGHT_MARKDOWN_RENDER_MAX_ENTRIES) {
+  if (!cacheKey || inFlightMarkdownRenders.size >= IN_FLIGHT_MARKDOWN_RENDER_MAX_ENTRIES) {
     return render;
   }
 
