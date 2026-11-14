@@ -26,11 +26,11 @@ function signPow(value: number, exp: number): number {
   return Math.sign(value) * Math.pow(Math.abs(value), exp);
 }
 
-function decodeBlurHash(hash: string, width: number, height: number): Uint8ClampedArray {
+export function decodeBlurHash(hash: string, width: number, height: number): Uint8ClampedArray {
   if (hash.length < 6) throw new Error('Invalid BlurHash length');
   const sizeFlag = decode83(hash[0]);
-  const componentsX = (sizeFlag % 4) + 1;
-  const componentsY = Math.floor(sizeFlag / 4) + 1;
+  const componentsX = (sizeFlag % 9) + 1;
+  const componentsY = Math.floor(sizeFlag / 9) + 1;
   if (componentsX > 9 || componentsY > 9 || hash.length !== 4 + 2 * componentsX * componentsY) {
     throw new Error('Invalid BlurHash component count');
   }
