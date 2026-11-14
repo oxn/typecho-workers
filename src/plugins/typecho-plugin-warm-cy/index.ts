@@ -396,37 +396,48 @@ function protectCompleteHtmlContainers(content: string, protectedSegments: strin
     'figure', 'form', 'fieldset', 'details', 'table', 'thead', 'tbody', 'tfoot',
     'tr', 'ul', 'ol', 'dl', 'blockquote',
   ]);
-  const openingPattern = /<([a-z][\w:-]*)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
-  let output = '';
-  let cursor = 0;
+  // Tokenize opening and closing tags once. The previous implementation ran a
+  // fresh forward regex scan for every opening container; malformed/unclosed
+  // wrappers could therefore make the same suffix get scanned repeatedly.
+  const tagPattern = /<(\\/)?([a-z][\\w:-]*)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
+  const openTags = new Map<string, number[]>();
+  const completeBlocks: Array<{ start: number; end: number }> = [];
   let match: RegExpExecArray | null;
 
-  while ((match = openingPattern.exec(content))) {
-    const tag = match[1].toLowerCase();
-    if (!containerTags.has(tag) || /\/\s*>$/.test(match[0])) continue;
-    const tagPattern = new RegExp("<\\/?"+tag+"\\b(?:[^\"'<>]|\"[^\"]*\"|'[^']*')*>", 'gi');
-    tagPattern.lastIndex = openingPattern.lastIndex;
-    let depth = 1;
-    let closeEnd = -1;
-    let nested: RegExpExecArray | null;
-    while ((nested = tagPattern.exec(content))) {
-      if (/^<\//.test(nested[0])) depth -= 1;
-      else if (!/\/\s*>$/.test(nested[0])) depth += 1;
-      if (depth === 0) {
-        closeEnd = tagPattern.lastIndex;
-        break;
-      }
-    }
-    if (closeEnd < 0) continue;
+  while ((match = tagPattern.exec(content))) {
+    const tag = match[2].toLowerCase();
+    if (!containerTags.has(tag)) continue;
 
-    const block = content.slice(match.index, closeEnd).replace(
-      /CYCYCODESEGMENT(\d+)TOKEN/g,
+    if (match[1]) {
+      const positions = openTags.get(tag);
+      const start = positions?.pop();
+      if (start !== undefined) completeBlocks.push({ start, end: tagPattern.lastIndex });
+    } else if (!/\\/\\s*>$/.test(match[0])) {
+      const positions = openTags.get(tag) ?? [];
+      positions.push(match.index);
+      openTags.set(tag, positions);
+    }
+  }
+
+  if (completeBlocks.length === 0) return content;
+
+  // Prefer the outermost complete fragment. Nested intervals are already
+  // contained by it and should travel inside the same encoded payload.
+  completeBlocks.sort((left, right) =>
+    left.start - right.start || right.end - left.end,
+  );
+
+  let output = '';
+  let cursor = 0;
+  for (const blockRange of completeBlocks) {
+    if (blockRange.start < cursor) continue;
+    const block = content.slice(blockRange.start, blockRange.end).replace(
+      /CYCYCODESEGMENT(\\d+)TOKEN/g,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
-    output += content.slice(cursor, match.index)
+    output += content.slice(cursor, blockRange.start)
       + 'CYCYINLINECONTAINERX' + encodeInlinePayload(block) + 'XEND';
-    cursor = closeEnd;
-    openingPattern.lastIndex = closeEnd;
+    cursor = blockRange.end;
   }
 
   return output + content.slice(cursor);
