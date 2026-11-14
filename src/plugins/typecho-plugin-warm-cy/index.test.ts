@@ -310,6 +310,20 @@ describe('typecho-plugin-warm-cy', () => {
     expect(protectedSource).not.toContain('<section class="real-container">');
   });
 
+  it('handles dense HTML containers and many protected code spans without leaking markers', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const blocks = Array.from({ length: 120 }, (_, index) =>
+      '<section data-index="' + index + '"><p>item ' + index + ' with `inline ' + index + '`</p></section>',
+    );
+    const source = blocks.join('\\n');
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(120);
+    expect(protectedSource).not.toContain('CYCYCODESEGMENT');
+    expect(protectedSource).not.toContain('<section data-index="0">');
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+  });
+
   it('preserves semantic HTML and form attributes through the full sanitizer pipeline', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
