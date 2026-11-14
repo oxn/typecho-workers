@@ -1048,6 +1048,8 @@ export function createBoundedConcurrencyGate(maxConcurrent: number, maxPending: 
 const MARKDOWN_RENDER_MAX_CONCURRENT = 1;
 const MARKDOWN_RENDER_MAX_PENDING = 4;
 const MARKDOWN_RENDER_QUEUE_WAIT_TIMEOUT_MS = 5_000;
+const MARKDOWN_RENDER_MAX_TRACKED_IN_FLIGHT =
+  MARKDOWN_RENDER_MAX_CONCURRENT + MARKDOWN_RENDER_MAX_PENDING;
 const runMarkdownRender = createBoundedConcurrencyGate(
   MARKDOWN_RENDER_MAX_CONCURRENT,
   MARKDOWN_RENDER_MAX_PENDING,
@@ -1230,7 +1232,9 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
     return html;
   });
 
-  if (!cacheKey) return render;
+  if (!cacheKey || inFlightMarkdownRenders.size >= MARKDOWN_RENDER_MAX_TRACKED_IN_FLIGHT) {
+    return render;
+  }
 
   inFlightMarkdownRenders.set(cacheKey, render);
   try {
