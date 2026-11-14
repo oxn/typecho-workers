@@ -1114,7 +1114,6 @@ const RENDERED_MARKDOWN_CACHE_MAX_ENTRIES = 12;
 const RENDERED_MARKDOWN_CACHE_MAX_WEIGHT = 1_500_000;
 const RENDERED_MARKDOWN_CACHE_MAX_ENTRY_WEIGHT = 750_000;
 const RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH = 100_000;
-const IN_FLIGHT_MARKDOWN_RENDER_MAX_ENTRIES = 8;
 
 type RenderedMarkdownCacheEntry = { html: string; weight: number };
 const renderedMarkdownCache = new Map<string, RenderedMarkdownCacheEntry>();
