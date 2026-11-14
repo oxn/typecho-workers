@@ -53,6 +53,7 @@
     "typecho-plugin-turnstile": "workspace:*",
     "typecho-plugin-pinyin": "workspace:*",
     "typecho-plugin-markdown-rehype": "workspace:*",
+    "@mermaid-js/layout-tidy-tree": "0.2.2",
     "typecho-theme-warm": "workspace:*",
     "typecho-theme-warm-cy": "workspace:*"
   },
