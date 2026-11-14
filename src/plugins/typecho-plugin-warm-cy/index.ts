@@ -384,10 +384,17 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown, rawThe
   `;
 }
 
+const INLINE_TEXT_ENCODER = new TextEncoder();
+const INLINE_TEXT_DECODER = new TextDecoder();
+const HEX_BYTES = Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, '0'));
+
 function encodeInlinePayload(value: string): string {
-  return Array.from(new TextEncoder().encode(value), byte =>
-    byte.toString(16).padStart(2, '0'),
-  ).join('');
+  const bytes = INLINE_TEXT_ENCODER.encode(value);
+  const hex = new Array<string>(bytes.length);
+  for (let index = 0; index < bytes.length; index += 1) {
+    hex[index] = HEX_BYTES[bytes[index]];
+  }
+  return hex.join('');
 }
 
 function protectCompleteHtmlContainers(content: string, protectedSegments: string[]): string {
@@ -758,11 +765,22 @@ function restoreProtectedSegmentsInEncodedPayloads(content: string, protectedSeg
 }
 
 function decodeInlinePayload(hex: string): string {
+  if (hex.length % 2 !== 0) return '';
   const bytes = new Uint8Array(hex.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+    const high = hex.charCodeAt(index * 2);
+    const low = hex.charCodeAt(index * 2 + 1);
+    const highValue = high >= 48 && high <= 57 ? high - 48
+      : high >= 97 && high <= 102 ? high - 87
+        : high >= 65 && high <= 70 ? high - 55 : -1;
+    const lowValue = low >= 48 && low <= 57 ? low - 48
+      : low >= 97 && low <= 102 ? low - 87
+        : low >= 65 && low <= 70 ? low - 87
+          : -1;
+    if (highValue < 0 || lowValue < 0) return '';
+    bytes[index] = (highValue << 4) | lowValue;
   }
-  return new TextDecoder().decode(bytes);
+  return INLINE_TEXT_DECODER.decode(bytes);
 }
 
 function sanitizeInlineSvgReferences(source: string): string {
