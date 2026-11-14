@@ -315,7 +315,7 @@ describe('typecho-plugin-warm-cy', () => {
     const blocks = Array.from({ length: 120 }, (_, index) =>
       '<section data-index="' + index + '"><p>item ' + index + ' with `inline ' + index + '`</p></section>',
     );
-    const source = blocks.join('\\n');
+    const source = blocks.join('\n');
     const protectedSource = await protect(source);
 
     expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(120);
