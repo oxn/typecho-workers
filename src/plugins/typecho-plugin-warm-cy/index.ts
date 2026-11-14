@@ -500,7 +500,7 @@ function protectInlineHtml(source: string): string {
 
   // Keep HTML comments opaque to the container tokenizer. A comment may
   // contain illustrative tag text (for example, "<div>") that is not markup.
-  content = content.replace(/<!--[\\s\\S]*?-->/g, protect);
+  content = content.replace(/<!--[\s\S]*?-->/g, protect);
 
   // Preserve styled download-card anchors as a single fragment so nested SVG markup
   // is not fragmented by Markdown tokenization or the core HTML sanitizer.
