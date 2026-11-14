@@ -652,7 +652,7 @@ function normalizeEscapedMarkdownImageDestinations(source: string): string {
     }
     if (!line.includes('![') || !line.includes('\\(')) continue;
     lines[index] = line.replace(
-      /(!\[[^\]\n]*\])\\\((https?):\\:\/\/([^\s)]*?)\\\)/g,
+      /(!\[[^\]\n]*\])\\\((https?):\\:\/\/([^\s)]*?)\\?\)/g,
       '$1($2://$3)',
     );
   }
