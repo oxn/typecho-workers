@@ -280,6 +280,22 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('<p><div');
   });
 
+  it('protects complete inner containers when an outer HTML wrapper is unclosed', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = [
+      '<div class="unclosed-outer">',
+      '<section class="complete-section"><p>section content</p></section>',
+      '<article class="complete-article"><p>article content</p></article>',
+    ].join('\\n');
+
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(2);
+    expect(protectedSource).toContain('<div');
+    expect(protectedSource).not.toContain('<section class="complete-section">');
+    expect(protectedSource).not.toContain('<article class="complete-article">');
+  });
+
   it('preserves semantic HTML and form attributes through the full sanitizer pipeline', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
