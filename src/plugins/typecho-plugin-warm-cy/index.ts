@@ -388,6 +388,13 @@ const INLINE_TEXT_ENCODER = new TextEncoder();
 const INLINE_TEXT_DECODER = new TextDecoder();
 const HEX_BYTES = Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, '0'));
 
+// Reused by every article body; do not allocate the same tag set per invocation.
+const INLINE_CONTAINER_TAGS = new Set([
+  'main', 'article', 'section', 'aside', 'div', 'header', 'footer', 'nav',
+  'figure', 'form', 'fieldset', 'details', 'table', 'thead', 'tbody', 'tfoot',
+  'tr', 'ul', 'ol', 'dl', 'blockquote',
+]);
+
 function encodeInlinePayload(value: string): string {
   const bytes = INLINE_TEXT_ENCODER.encode(value);
   const hex = new Array<string>(bytes.length);
@@ -398,11 +405,7 @@ function encodeInlinePayload(value: string): string {
 }
 
 function protectCompleteHtmlContainers(content: string, protectedSegments: string[]): string {
-  const containerTags = new Set([
-    'main', 'article', 'section', 'aside', 'div', 'header', 'footer', 'nav',
-    'figure', 'form', 'fieldset', 'details', 'table', 'thead', 'tbody', 'tfoot',
-    'tr', 'ul', 'ol', 'dl', 'blockquote',
-  ]);
+
   // Tokenize opening and closing tags once. The previous implementation ran a
   // fresh forward regex scan for every opening container; malformed/unclosed
   // wrappers could therefore make the same suffix get scanned repeatedly.
@@ -413,7 +416,7 @@ function protectCompleteHtmlContainers(content: string, protectedSegments: strin
 
   while ((match = tagPattern.exec(content))) {
     const tag = match[2].toLowerCase();
-    if (!containerTags.has(tag)) continue;
+    if (!INLINE_CONTAINER_TAGS.has(tag)) continue;
 
     if (match[1]) {
       const positions = openTags.get(tag);
@@ -974,8 +977,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     // Plain Markdown cannot contain an enhancement fragment. Avoid a private
     // options-table D1 read for the common case; only inspect the feature
     // switch when the source actually contains an HTML tag.
-    if (!/<\/?[a-z][\w:-]*(?:\s[^<>]*|\/?)>/i.test(content)
-      && !/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/.test(content)) return content;
+    if (!/<\/?[a-z][\w:-]*(?:\s[^<>]*|\/?)>|CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/i.test(content)) return content;
     return await isHtmlEnhancementEnabled() ? protectInlineHtml(content) : content;
   }, 1);
 
