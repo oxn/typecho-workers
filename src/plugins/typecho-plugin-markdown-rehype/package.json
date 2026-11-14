@@ -95,7 +95,6 @@
     "remark-ins": "^1.2.6",
     "katex": "^0.16.22",
     "mermaid": "11.12.2",
-    "@mermaid-js/layout-tidy-tree": "0.2.2",
     "mathjax-full": "^3.2.2"
   }
 }
