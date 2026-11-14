@@ -92,12 +92,12 @@ export function optimizeContentImages(html: string, params: string, siteUrl: str
       }
     }
 
-    if (clean) {
-      const optimized = optimizeImageUrl(src, clean, siteUrl);
-      if (optimized !== src) {
-        updated = updated.replace(/(\ssrc\s*=\s*)(["'])(.*?)\2/i,
-          (_match: string, prefix: string, quote: string) => prefix + quote + optimized + quote);
-      }
+    // Strip the entire fragment for every image type and origin. Keep existing
+    // width/height recovery above, then apply configured optimization if eligible.
+    const optimized = optimizeImageUrl(src, clean, siteUrl);
+    if (optimized !== src) {
+      updated = updated.replace(/(\ssrc\s*=\s*)(["'])(.*?)\2/i,
+        (_match: string, prefix: string, quote: string) => prefix + quote + optimized + quote);
     }
     return updated;
   });
