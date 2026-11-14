@@ -15,7 +15,16 @@ export interface ImageFragmentMetadata {
 export function parseImageFragment(raw: string): ImageFragmentMetadata {
   const hashIndex = raw.indexOf('#');
   const fragment = (hashIndex >= 0 ? raw.slice(hashIndex + 1) : '').replace(/&amp;/gi, '&');
-  const values = new URLSearchParams(fragment);
+  const values = new Map<string, string>();
+  for (const part of fragment.split(/[&;]/)) {
+    if (!part) continue;
+    const separator = part.indexOf('=');
+    if (separator < 0) continue;
+    const key = part.slice(0, separator).toLowerCase();
+    const encoded = part.slice(separator + 1).replace(/\+/g, '%2B');
+    try { values.set(key, decodeURIComponent(encoded)); }
+    catch { values.set(key, encoded); }
+  }
   const candidate = values.get('blurhash') || '';
   const blurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]+$/.test(candidate)
     && candidate.length >= 6 && candidate.length <= 200 ? candidate : '';
