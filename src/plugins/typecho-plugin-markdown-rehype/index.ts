@@ -626,39 +626,6 @@ const protectedMathDelimiters = [
  * HTML block are touched. Fenced code blocks are always left byte-for-byte
  * unchanged, and an indented code block cannot start an HTML fragment.
  */
-/**
- * Accept image destinations copied with escaped Markdown delimiters.
- * Only normalize image syntax outside fenced code blocks.
- */
-function normalizeEscapedMarkdownImageDestinations(source: string): string {
-  const lines = source.split('\n');
-  let fenceCharacter = '';
-  let fenceLength = 0;
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index];
-    const fence = line.match(/^ {0,3}([\x60~]{3,})/);
-    if (fenceCharacter) {
-      const marker = fenceCharacter === String.fromCharCode(96) ? '\\x60' : '~';
-      if (new RegExp('^ {0,3}' + marker + '{' + fenceLength + ',}\\s*$').test(line)) {
-        fenceCharacter = '';
-        fenceLength = 0;
-      }
-      continue;
-    }
-    if (fence) {
-      fenceCharacter = fence[1][0];
-      fenceLength = fence[1].length;
-      continue;
-    }
-    if (!line.includes('![') || !line.includes('\\(')) continue;
-    lines[index] = line.replace(
-      /(!\[[^\]\n]*\])\\\((https?):\\:\/\/([^\s)]*?)\\?\)/g,
-      '$1($2://$3)',
-    );
-  }
-  return lines.join('\n');
-}
-
 function normalizeIndentedHtmlBlocks(source: string): string {
   const voidElements = new Set([
     'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
