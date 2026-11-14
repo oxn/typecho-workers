@@ -7,6 +7,7 @@ import { PUBLIC_HTML_HEADER } from '@/lib/cache';
 import { isCurrentPageLink, warmSettings, warmCyFeatureSettings, renderFooterCustomHtml, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
+import { getWarmMermaidConfig } from 'typecho-plugin-markdown-rehype/mermaid-config';
 
 interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
   title?: string;
@@ -371,9 +372,9 @@ const footerLinks = [
 
       try {
         try {
-          await renderMermaidVariant(lightNodes, { startOnLoad: false, theme: 'default' });
+          await renderMermaidVariant(lightNodes, getWarmMermaidConfig(false));
         } finally {
-          await renderMermaidVariant(darkNodes, { startOnLoad: false, theme: 'dark' });
+          await renderMermaidVariant(darkNodes, getWarmMermaidConfig(true));
         }
       } catch (error) {
         console.error('Mermaid rendering failed:', error);
