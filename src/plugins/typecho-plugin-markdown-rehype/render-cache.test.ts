@@ -53,6 +53,16 @@ describe('Markdown preview request protection', () => {
       .resolves.toBe(body);
   });
 
+  it('rejects an oversized declared Content-Length before reading the body', async () => {
+    const request = new Request('https://example.test/preview', {
+      method: 'POST',
+      headers: { 'Content-Length': '1024' },
+    });
+
+    await expect(readPreviewRequestBodyText(request, 128))
+      .rejects.toBeInstanceOf(PreviewRequestBodyTooLargeError);
+  });
+
   it('rejects a streamed request body as soon as its byte limit is exceeded', async () => {
     const request = new Request('https://example.test/preview', {
       method: 'POST',
@@ -95,6 +105,13 @@ describe('Markdown preview request protection', () => {
     await expect(first).resolves.toBe('first');
     await expect(second).resolves.toBe('second');
     expect(maximumActive).toBe(1);
+  });
+
+  it('releases the render slot when a task rejects', async () => {
+    const run = createBoundedConcurrencyGate(1, 1, 1_000);
+    await expect(run(async () => { throw new Error('render failed'); }))
+      .rejects.toThrow('render failed');
+    await expect(run(async () => 'slot-released')).resolves.toBe('slot-released');
   });
 
   it('removes a queued task when its maximum wait expires', async () => {
