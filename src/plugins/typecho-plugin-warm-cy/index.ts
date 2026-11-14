@@ -848,10 +848,10 @@ function restoreInlineHtmlFragments(content: string): string {
   const protectedCodeSegments: string[] = [];
   const protectCode = (block: string): string => {
     const index = protectedCodeSegments.push(block) - 1;
-    return '\\u0000CYRESTORECODE' + index + '\\u0000';
+    return '\u0000CYRESTORECODE' + index + '\u0000';
   };
   const restoreCode = (source: string): string => source.replace(
-    /\\u0000CYRESTORECODE(\\d+)\\u0000/g,
+    /\u0000CYRESTORECODE(\d+)\u0000/g,
     (_marker, index: string) => protectedCodeSegments[Number(index)] ?? '',
   );
 
@@ -860,8 +860,8 @@ function restoreInlineHtmlFragments(content: string): string {
     // a strictly smaller string. The encoded input itself bounds recursion.
     // Code/pre nodes are opaque user text at every nesting level.
     const protectedSource = source
-      .replace(/<pre\\b[^>]*>[\\s\\S]*?<\\/pre\\s*>/gi, protectCode)
-      .replace(/<code\\b[^>]*>[\\s\\S]*?<\\/code\\s*>/gi, protectCode);
+      .replace(/<pre\b[^>]*>[\s\S]*?<\/pre\s*>/gi, protectCode)
+      .replace(/<code\b[^>]*>[\s\S]*?<\/code\s*>/gi, protectCode);
     const restored = protectedSource.replace(
       /<p>\s*CYCYINLINECONTAINERX([0-9a-f]+)XEND\s*<\/p>|CYCYINLINE(CONTAINER|HTML)X([0-9a-f]+)XEND/gi,
       (_marker, paragraphPayload: string | undefined, kind: string | undefined, payload: string | undefined) => {
