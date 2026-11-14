@@ -296,6 +296,20 @@ describe('typecho-plugin-warm-cy', () => {
     expect(protectedSource).not.toContain('<article class="complete-article">');
   });
 
+  it('does not treat tag examples inside HTML comments as real containers', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = [
+      '<!-- example: <div class="documentation">not a real container</div> -->',
+      '<section class="real-container"><p>actual content</p></section>',
+    ].join('\\n');
+
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(1);
+    expect(protectedSource).toContain('<!-- example: <div class="documentation">not a real container</div> -->');
+    expect(protectedSource).not.toContain('<section class="real-container">');
+  });
+
   it('preserves semantic HTML and form attributes through the full sanitizer pipeline', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
