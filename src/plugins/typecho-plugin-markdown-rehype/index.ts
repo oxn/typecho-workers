@@ -116,7 +116,7 @@ function rehypeImageDimensions() {
               if (normalizedKey === 'blurhash') {
                 let decoded = value;
                 try { decoded = decodeURIComponent(value); } catch {}
-                if (/^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(decoded)) {
+                if (/^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(decoded)) {
                   properties.dataBlurhash = decoded;
                   recognized = true;
                   continue;
