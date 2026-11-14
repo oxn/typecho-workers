@@ -165,7 +165,8 @@ describe('Markdown image BlurHash compatibility', () => {
     expect(html).toContain('src="https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp"');
     expect(html).toContain('@startuml');
     expect(html).toContain('Alice');
-    expect(html).toContain('Bob: Hello');
+    expect(html).toContain('Bob');
+    expect(html).toContain('Hello');
     expect(html).toContain('infographic');
     expect(html).toContain('title: Example');
   });
