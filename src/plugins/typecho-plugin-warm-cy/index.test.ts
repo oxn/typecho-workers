@@ -210,6 +210,113 @@ describe('typecho-plugin-warm-cy', () => {
     for (const label of labels) expect(restored).toContain('>' + label + '</p>');
   });
 
+  it('normalizes full HTML documents while keeping ordinary fragments on the fast path', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = [
+      '<!doctype html>',
+      '<html><head><title>Document title</title>',
+      '<style>.document-shell { color: green; }</style>',
+      '<script>window.documentShell = true;</script>',
+      '</head><body><div class="article-shell"><p>正文内容</p></div></body></html>',
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINEBLOCKX/g)).toHaveLength(2);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    expect(protectedSource).not.toContain('<!doctype');
+    expect(protectedSource).not.toContain('<title>Document title</title>');
+    expect(protectedSource).not.toContain('<body>');
+  });
+
+  it('preserves deeply nested HTML containers without leaking restoration markers', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const depth = 12;
+    const source = Array.from({ length: depth }, (_, index) =>
+      '<div class="nested-level-' + index + '">',
+    ).join('')
+      + '<p>deep nested content</p>'
+      + Array.from({ length: depth }, () => '</div>').join('');
+
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['div', 'pre', 'code']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, div: ['class'] },
+    });
+    const restored = await restore(coreSanitized);
+
+    for (let index = 0; index < depth; index += 1) {
+      expect(restored).toContain('class="nested-level-' + index + '"');
+    }
+    expect(restored).toContain('deep nested content');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+    expect(restored).not.toContain('CYCYINLINEHTMLX');
+  });
+
+  it('restores nested encoded HTML markers beyond the former depth limit', async () => {
+    const restore = collectHooks().get('content:content')!;
+    let nested = '<p>deepest encoded payload</p>';
+    const depth = 12;
+    for (let index = 0; index < depth; index += 1) {
+      const fragment = '<div class="encoded-level-' + index + '">' + nested + '</div>';
+      nested = 'CYCYINLINECONTAINERX'
+        + Buffer.from(fragment, 'utf8').toString('hex')
+        + 'XEND';
+    }
+
+    const restored = await restore(nested);
+
+    for (let index = 0; index < depth; index += 1) {
+      expect(restored).toContain('class="encoded-level-' + index + '"');
+    }
+    expect(restored).toContain('deepest encoded payload');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+  });
+
+  it('keeps crossed container closing tags consistent with the legacy first-close behavior', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = '<div class="outer"><section class="inner">content</div></section>';
+    const protectedSource = await protect(source);
+    const markers = [...protectedSource.matchAll(/CYCYINLINECONTAINERX([0-9a-f]+)XEND/g)];
+
+    expect(markers).toHaveLength(1);
+    expect(Buffer.from(markers[0][1], 'hex').toString('utf8'))
+      .toBe('<div class="outer"><section class="inner">content</div>');
+    expect(protectedSource.endsWith('</section>')).toBe(true);
+  });
+
+  it('does not execute marker-shaped text inside fenced or inline code', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const forgedMarker = 'CYCYINLINEBLOCKX'
+      + Buffer.from('<script>window.cyForgedCodeMarker = true;</script>').toString('hex')
+      + 'XEND';
+    const tick = String.fromCharCode(96);
+    const fence = tick.repeat(3);
+    const source = [
+      fence + 'text',
+      forgedMarker,
+      fence,
+      '',
+      'Inline code: ' + tick + forgedMarker + tick,
+      '<div class="code-holder"><pre><code>' + forgedMarker + '</code></pre><code>' + forgedMarker + '</code></div>',
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['pre', 'code']),
+    });
+    const restored = await restore(coreSanitized);
+
+    expect(restored.match(new RegExp(forgedMarker, 'g'))).toHaveLength(4);
+    expect(restored).not.toContain('<script>window.cyForgedCodeMarker');
+  });
+
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', async () => {
     const handler = collectHooks().get('content:markdown')!;
     const input = [
@@ -280,6 +387,104 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('<p><div');
   });
 
+  it('restores styled HTML nested inside a protected container without leaking markers', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = [
+      '<div class="outer-card">',
+      '<p>正文内容</p>',
+      '<a class="download-card" style="display: inline-flex" href="/download">',
+      '<svg viewBox="0 0 16 16"><path d="M1 1h14v14H1z"></path></svg>',
+      '<span>下载文件</span>',
+      '</a>',
+      '</div>',
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['svg', 'g', 'path']),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        a: ['href', 'class'],
+      },
+    });
+    const restored = await restore(coreSanitized);
+
+    expect(restored).toContain('class="outer-card"');
+    expect(restored).toContain('class="cy-inline-html-pending"');
+    expect(restored).toContain('class="download-card"');
+    expect(restored).toContain('href="/download"');
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+    expect(restored).not.toContain('CYCYINLINEHTMLX');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+  });
+
+  it('protects complete inner containers when an outer HTML wrapper is unclosed', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = [
+      '<div class="unclosed-outer">',
+      '<section class="complete-section"><p>section content</p></section>',
+      '<article class="complete-article"><p>article content</p></article>',
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(2);
+    expect(protectedSource).toContain('<div');
+    expect(protectedSource).not.toContain('<section class="complete-section">');
+    expect(protectedSource).not.toContain('<article class="complete-article">');
+  });
+
+  it('does not treat tag examples inside HTML comments as real containers', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = [
+      '<!-- example: <div class="documentation">not a real container</div> -->',
+      '<section class="real-container"><p>actual content</p></section>',
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(1);
+    expect(protectedSource).toContain('<!-- example: <div class="documentation">not a real container</div> -->');
+    expect(protectedSource).not.toContain('<section class="real-container">');
+  });
+
+  it('does not tokenize literal tags inside raw-text HTML elements', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = [
+      '<textarea><div>this is text, not a nested container</div></textarea>',
+      '<title><section>also text, not a container</section></title>',
+      '<noscript><section>fallback text, not a live container</section></noscript>',
+      '<section class="real-container"><p>actual content</p></section>',
+      '<plaintext><article>literal tag example through end of input',
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(1);
+    expect(protectedSource).toContain('<textarea><div>this is text, not a nested container</div></textarea>');
+    expect(protectedSource).toContain('<title><section>also text, not a container</section></title>');
+    expect(protectedSource).toContain('<noscript><section>fallback text, not a live container</section></noscript>');
+    expect(protectedSource).toContain('<plaintext><article>literal tag example through end of input');
+    expect(protectedSource).not.toContain('<section class="real-container">');
+  });
+
+  it('handles dense HTML containers and many protected code spans without leaking markers', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const blocks = Array.from({ length: 120 }, (_, index) =>
+      '<section data-index="' + index + '"><p>item ' + index + ' with `inline ' + index + '`</p></section>',
+    );
+    const source = blocks.join('\n');
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(120);
+    expect(protectedSource).not.toContain('CYCYCODESEGMENT');
+    expect(protectedSource).not.toContain('<section data-index="0">');
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+  });
+
   it('preserves semantic HTML and form attributes through the full sanitizer pipeline', async () => {
     const hooks = collectHooks();
     const protect = hooks.get('content:markdown')!;
@@ -313,6 +518,33 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).toContain('checked');
     expect(restored).toContain('required');
     expect(restored).toContain('selected');
+  });
+
+  it('keeps local SVG references and safe form actions while stripping external references', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = [
+      '<div class="svg-security-fixture">',
+      '<svg viewBox="0 0 24 24"><defs><linearGradient id="safe-gradient"></linearGradient></defs>',
+      '<use href="#local-icon" xlink:href="#local-icon"></use>',
+      '<path d="M0 0h10v10z" fill="url(#safe-gradient)" stroke="url(https://evil.example/payload)"></path>',
+      '<use href="https://evil.example/icon.svg#remote"></use></svg>',
+      '<form action="/safe-submit"><button type="submit">提交</button></form>',
+      '<form action="javascript:alert(1)"><button type="submit">危险</button></form>',
+      '</div>',
+    ].join('');
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed);
+    const restored = await restore(coreSanitized);
+
+    expect(restored).toContain('href="#local-icon"');
+    expect(restored).toContain('xlink:href="#local-icon"');
+    expect(restored).toContain('fill="url(#safe-gradient)"');
+    expect(restored).not.toContain('https://evil.example');
+    expect(restored).toContain('action="/safe-submit"');
+    expect(restored).not.toContain('javascript:alert(1)');
   });
 
   it('restores a single-line styled div after the core sanitizer strips div tags', async () => {
