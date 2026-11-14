@@ -979,12 +979,6 @@ function getMarkdownProcessor(
 }
 
 /**
- * Reuse completed renders across requests in the same Worker isolate.
- * Keys contain the exact normalized source and every setting that affects
- * output; no probabilistic hash is used, so a collision cannot return another
- * article's HTML. Both entry count and retained string size are bounded.
- */
-/**
  * A bounded, isolate-local gate for expensive Markdown processor runs.
  * This protects one Worker isolate; it is not a global limit across Cloudflare isolates.
  */
@@ -1108,6 +1102,12 @@ export async function readPreviewRequestBodyText(
   return new TextDecoder('utf-8', { fatal: true }).decode(body);
 }
 
+/**
+ * Reuse completed renders across requests in the same Worker isolate.
+ * Keys contain the exact normalized source and every setting that affects
+ * output; no probabilistic hash is used, so a collision cannot return another
+ * article's HTML. Both entry count and retained string size are bounded.
+ */
 const RENDERED_MARKDOWN_CACHE_MAX_ENTRIES = 12;
 const RENDERED_MARKDOWN_CACHE_MAX_WEIGHT = 1_500_000;
 const RENDERED_MARKDOWN_CACHE_MAX_ENTRY_WEIGHT = 750_000;
