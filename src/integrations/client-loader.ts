@@ -83,14 +83,18 @@ async function compileAll(sources: ClientSource[], silent = false): Promise<void
     for (const src of sources) {
       mkdirSync(src.outDir, { recursive: true });
       const outfile = join(src.outDir, basename(src.sourcePath).replace(/\.ts$/, '.js'));
+      const isMermaidRuntime = src.publicUrl === '/plugin-assets/typecho-plugin-markdown-rehype/mermaid-runtime.js';
       await esbuild.build({
         entryPoints: [src.sourcePath],
         outfile,
         bundle: true,
         format: 'iife',
         target: 'es2020',
-        minify: false,
-        sourcemap: process.env.NODE_ENV !== 'production' ? 'inline' : false,
+        // Mermaid bundles the full diagram runtime. Minify this one browser asset
+        // and omit its inline source map so local Miniflare does not have to
+        // transfer a multi-megabyte debug payload into every preview iframe.
+        minify: isMermaidRuntime,
+        sourcemap: isMermaidRuntime ? false : (process.env.NODE_ENV !== 'production' ? 'inline' : false),
         logLevel: 'warning',
         // External: browser scripts must not bundle server-side modules
         external: ['cloudflare:*', 'typecho/*', '@/*', 'astro:*', 'node:*'],
