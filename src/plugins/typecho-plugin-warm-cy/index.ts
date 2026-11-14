@@ -555,26 +555,27 @@ function protectInlineHtml(source: string): string {
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
-    let match: RegExpExecArray | null;
-    while ((match = attributePattern.exec(attrs))) {
-      const name = match[1].toLowerCase();
-      if (name === 'style' || name === 'class' || name === 'id' || name === 'title'
-        || name === 'role' || name === 'width' || name === 'height' || name === 'alt'
-        || name === 'loading' || name === 'type' || name === 'name' || name === 'value'
-        || name === 'placeholder' || name === 'datetime' || name === 'open' || name === 'for'
-        || name === 'checked' || name === 'selected' || name === 'rows' || name === 'cols'
-        || name === 'max' || name === 'min' || name === 'action' || name === 'method'
-        || name === 'disabled' || name === 'multiple' || name === 'required' || name === 'step'
-        || (tag.toLowerCase() === 'iframe'
-          && ['src', 'frameborder', 'allow', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing'].includes(name))
-        || name.startsWith('data-') || name.startsWith('aria-')) {
-        preserved[name] = match[2] ?? match[3] ?? match[4] ?? '';
-      }
-    }
-    if (!Object.keys(preserved).length) return full;
-    const cleanAttrs = attrs.replace(attributePattern, (attribute, name: string) =>
-      Object.prototype.hasOwnProperty.call(preserved, name.toLowerCase()) ? '' : attribute,
+    const cleanAttrs = attrs.replace(
+      attributePattern,
+      (attribute, rawName: string, doubleQuoted: string | undefined, singleQuoted: string | undefined, bare: string | undefined) => {
+        const name = rawName.toLowerCase();
+        if (name === 'style' || name === 'class' || name === 'id' || name === 'title'
+          || name === 'role' || name === 'width' || name === 'height' || name === 'alt'
+          || name === 'loading' || name === 'type' || name === 'name' || name === 'value'
+          || name === 'placeholder' || name === 'datetime' || name === 'open' || name === 'for'
+          || name === 'checked' || name === 'selected' || name === 'rows' || name === 'cols'
+          || name === 'max' || name === 'min' || name === 'action' || name === 'method'
+          || name === 'disabled' || name === 'multiple' || name === 'required' || name === 'step'
+          || (tag.toLowerCase() === 'iframe'
+            && ['src', 'frameborder', 'allow', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing'].includes(name))
+          || name.startsWith('data-') || name.startsWith('aria-')) {
+          preserved[name] = doubleQuoted ?? singleQuoted ?? bare ?? '';
+          return '';
+        }
+        return attribute;
+      },
     );
+    if (!Object.keys(preserved).length) return full;
     return '<' + tag + cleanAttrs + '>CYCYINLINEATTRX' + tag.toLowerCase()
       + 'X' + encodeInlinePayload(JSON.stringify(preserved)) + 'XEND';
   });
