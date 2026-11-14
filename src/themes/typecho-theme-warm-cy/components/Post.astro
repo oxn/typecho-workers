@@ -24,23 +24,20 @@ const note = pluginCtx.activatedPlugins.has('typecho-plugin-notes')
 const isNote = note?.type === 'note';
 const settings = warmSettings(options);
 const passwordLocked = post.hasPassword && !post.passwordVerified;
-const rawArticleSource = !isNote && !passwordLocked
-  ? (await db
-    .select({ text: schema.contents.text })
-    .from(schema.contents)
-    .where(eq(schema.contents.cid, post.cid))
-    .limit(1))[0]?.text || ''
-  : '';
-// Keep published articles on the exact same Markdown renderer used by the
-// editor's live preview. Do not switch parsers based on plugin activation:
-// that made identical Markdown render differently between preview and frontend.
-const renderedArticleHtml = !isNote && !passwordLocked
-  ? await (await import('typecho-plugin-markdown-rehype')).renderMarkdown(rawArticleSource, {
-    mathEngine: settings.markdownMathEngine,
-    tocEnabled: settings.markdownTocEnabled,
-  })
+const markdownRehypeActive = pluginCtx.activatedPlugins.has('typecho-plugin-markdown-rehype');
+const articleHtml = !isNote && !passwordLocked && markdownRehypeActive
+  ? await (async () => {
+    const rawArticleSource = (await db
+      .select({ text: schema.contents.text })
+      .from(schema.contents)
+      .where(eq(schema.contents.cid, post.cid))
+      .limit(1))[0]?.text || '';
+    return (await import('typecho-plugin-markdown-rehype')).renderMarkdown(rawArticleSource, {
+      mathEngine: settings.markdownMathEngine,
+      tocEnabled: settings.markdownTocEnabled,
+    });
+  })()
   : post.content;
-const articleHtml = !isNote && !passwordLocked ? renderedArticleHtml : post.content;
 const optimizedContent = optimizeContentImages(
   isNote ? note.html : articleHtml,
   settings.imageOptimizeParams,
