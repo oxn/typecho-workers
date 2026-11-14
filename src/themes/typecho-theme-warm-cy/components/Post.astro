@@ -25,18 +25,18 @@ const isNote = note?.type === 'note';
 const settings = warmSettings(options);
 const passwordLocked = post.hasPassword && !post.passwordVerified;
 const markdownRehypeActive = pluginCtx.activatedPlugins.has('typecho-plugin-markdown-rehype');
+const rawArticleSource = !isNote && !passwordLocked && markdownRehypeActive
+  ? (await db
+    .select({ text: schema.contents.text })
+    .from(schema.contents)
+    .where(eq(schema.contents.cid, post.cid))
+    .limit(1))[0]?.text || ''
+  : '';
 const articleHtml = !isNote && !passwordLocked && markdownRehypeActive
-  ? await (async () => {
-    const rawArticleSource = (await db
-      .select({ text: schema.contents.text })
-      .from(schema.contents)
-      .where(eq(schema.contents.cid, post.cid))
-      .limit(1))[0]?.text || '';
-    return (await import('typecho-plugin-markdown-rehype')).renderMarkdown(rawArticleSource, {
-      mathEngine: settings.markdownMathEngine,
-      tocEnabled: settings.markdownTocEnabled,
-    });
-  })()
+  ? await (await import('typecho-plugin-markdown-rehype')).renderMarkdown(rawArticleSource, {
+    mathEngine: settings.markdownMathEngine,
+    tocEnabled: settings.markdownTocEnabled,
+  })
   : post.content;
 const optimizedContent = optimizeContentImages(
   isNote ? note.html : articleHtml,
