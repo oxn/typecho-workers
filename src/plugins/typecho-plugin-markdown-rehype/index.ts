@@ -1145,6 +1145,16 @@ function createAdminPreviewScript(): string {
   let sequence = 0;
   let timer = null;
   let hasRenderedPreview = false;
+  // Keep expensive server-side rendering out of the hidden editor tab and
+  // coalesce changes while a previous render is still running.
+  let renderInFlight = false;
+  let renderPending = false;
+  let lastRenderedSource = null;
+  let requestedVersion = 0;
+
+  function isPreviewVisible() {
+    return !preview.classList.contains('wmd-hidetab');
+  }
   frame.srcdoc = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><body style="box-sizing:border-box;margin:0;padding:0 15px;font:14px/1.7 system-ui,sans-serif;color:#77817b;background:#fff">正在加载 Markdown 预览…</body></html>';
   const isDarkMode = () =>
     document.documentElement.classList.contains('dark') ||
@@ -1244,8 +1254,27 @@ function createAdminPreviewScript(): string {
   }
 
   function render() {
-    const current = ++sequence;
+    timer = null;
+    if (!isPreviewVisible()) {
+      renderPending = true;
+      return;
+    }
+    if (renderInFlight) {
+      renderPending = true;
+      return;
+    }
+
     const source = textarea.value;
+    if (hasRenderedPreview && source === lastRenderedSource) {
+      renderPending = false;
+      return;
+    }
+
+    const current = ++sequence;
+    const version = requestedVersion;
+    renderPending = false;
+    renderInFlight = true;
+
     fetch('/api/admin/markdown-rehype-preview', {
       method: 'POST',
       credentials: 'same-origin',
@@ -1255,26 +1284,38 @@ function createAdminPreviewScript(): string {
       if (!response.ok) throw new Error('Markdown preview request failed');
       return response.json();
     }).then(payload => {
-      if (current !== sequence || source !== textarea.value || !payload || typeof payload.html !== 'string') return;
+      if (current !== sequence || version !== requestedVersion ||
+          source !== textarea.value || !isPreviewVisible() ||
+          !payload || typeof payload.html !== 'string') return;
       return createPreviewDocument(payload).then(previewDocument => {
-        if (current !== sequence || source !== textarea.value) return;
+        if (current !== sequence || version !== requestedVersion ||
+            source !== textarea.value || !isPreviewVisible()) return;
         frame.srcdoc = previewDocument;
         hasRenderedPreview = true;
-        if (timer) { clearTimeout(timer); timer = null; }
+        lastRenderedSource = source;
       });
     }).catch(error => {
       // Preserve the last good document, but never leave the initial preview
       // as an unexplained white iframe when the first request fails.
-      if (!hasRenderedPreview && current === sequence) {
+      if (!hasRenderedPreview && current === sequence && version === requestedVersion) {
         const message = error instanceof Error ? error.message : '未知错误';
         frame.srcdoc = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><body style="margin:0;padding:0 15px;font:14px/1.7 system-ui,sans-serif;color:#a33;background:#fff"><strong>Markdown 预览暂时无法加载</strong><p style="white-space:pre-wrap"></p></body><script>document.querySelector("p").textContent=' + JSON.stringify(message) + ';' + '</scr' + 'ipt></html>';
       }
+    }).finally(() => {
+      renderInFlight = false;
+      // At most one server render runs at a time. If the source changed while
+      // it was running, render only the latest source after the debounce.
+      if (renderPending && isPreviewVisible()) schedule();
     });
   }
 
   function schedule() {
+    requestedVersion += 1;
+    renderPending = true;
     if (timer) clearTimeout(timer);
-    timer = setTimeout(render, 280);
+    timer = null;
+    if (!isPreviewVisible() || renderInFlight) return;
+    timer = setTimeout(render, 700);
   }
 
   textarea.addEventListener('input', schedule);
@@ -1283,12 +1324,25 @@ function createAdminPreviewScript(): string {
 
   const previewObserver = new MutationObserver(() => {
     enforcePreviewLayout();
+    if (!isPreviewVisible()) {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      renderPending = true;
+      return;
+    }
     if (!preview.contains(frame)) {
       preview.replaceChildren(frame);
-      schedule();
+      renderPending = true;
     }
+    // Typecho toggles this class when the editor switches between source and
+    // preview tabs. Defer remote rendering until the preview is actually shown.
+    if (renderPending) schedule();
   });
-  previewObserver.observe(preview, { childList: true, attributes: true, attributeFilter: ['style'] });
+  previewObserver.observe(preview, {
+    childList: true,
+    attributes: true,
+    attributeFilter: ['style', 'class']
+  });
 
   const themeObserver = new MutationObserver(schedule);
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
