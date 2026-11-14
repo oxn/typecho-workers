@@ -6,6 +6,39 @@ export const OPTIMIZE_PARAMS_MAX_LENGTH = 100;
 const OPTIMIZE_PARAMS_UNSAFE = /[^a-zA-Z0-9=&%?._~-]/g;
 const UPLOAD_URL_BASE = 'http://typecho.invalid';
 
+export interface ImageFragmentMetadata {
+  blurhash: string;
+  width: string | null;
+  height: string | null;
+}
+
+/**
+ * Parse display metadata from a URL fragment. Decode percent escapes exactly
+ * once and preserve literal plus characters (BlurHash's alphabet includes +).
+ */
+export function parseImageFragment(raw: string): ImageFragmentMetadata {
+  const hashIndex = raw.indexOf('#');
+  const fragment = (hashIndex >= 0 ? raw.slice(hashIndex + 1) : '').replace(/&amp;/gi, '&');
+  const values = new Map<string, string>();
+  for (const part of fragment.split(/[&;]/)) {
+    if (!part) continue;
+    const separator = part.indexOf('=');
+    if (separator < 0) continue;
+    const key = part.slice(0, separator).toLowerCase();
+    const encoded = part.slice(separator + 1).replace(/\+/g, '%2B');
+    try { values.set(key, decodeURIComponent(encoded)); }
+    catch { values.set(key, encoded); }
+  }
+  const candidate = values.get('blurhash') || '';
+  const blurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]+$/.test(candidate)
+    && candidate.length >= 6 && candidate.length <= 200 ? candidate : '';
+  const dimension = (name: 'width' | 'height'): string | null => {
+    const value = Number(values.get(name));
+    return Number.isInteger(value) && value > 0 && value <= 10000 ? String(value) : null;
+  };
+  return { blurhash, width: dimension('width'), height: dimension('height') };
+}
+
 export function normalizeOptimizeParams(value: unknown): string {
   if (typeof value !== 'string') return '';
   const trimmed = value.trim().replace(/^[?&]+/, '');
@@ -27,18 +60,21 @@ function parseOwnUpload(raw: string, siteUrl: string): URL | null {
   return parsed;
 }
 
+/** Strip fragments from image resource URLs; fragments are display metadata. */
 export function optimizeImageUrl(url: string, params: string, siteUrl: string): string {
+  const hash = url.indexOf('#');
+  const imageUrl = hash >= 0 ? url.slice(0, hash) : url;
   const clean = normalizeOptimizeParams(params);
-  if (!clean || !url) return url;
-  const parsed = parseOwnUpload(url, siteUrl);
-  if (!parsed) return url;
-  // Add query parameters before any fragment. Image dimensions may be
-  // encoded in the fragment (for example #width=640&height=360).
-  parsed.search = parsed.search
-    ? `${parsed.search}&${clean}`
-    : `?${clean}`;
-  if (url.startsWith('/')) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-  return parsed.href;
+  if (!clean || !imageUrl) return imageUrl;
+  const parsed = parseOwnUpload(imageUrl, siteUrl);
+  if (!parsed) return imageUrl;
+  const sep = parsed.search ? '&' : '?';
+  if (imageUrl.startsWith('/')) return `${parsed.pathname}${parsed.search}${sep}${clean}`;
+  return `${parsed.href}${sep}${clean}`;
+}
+
+function escapeAttribute(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export function optimizeContentImages(html: string, params: string, siteUrl: string): string {
@@ -48,25 +84,21 @@ export function optimizeContentImages(html: string, params: string, siteUrl: str
     const srcMatch = tag.match(/(\ssrc\s*=\s*)(["'])(.*?)\2/i);
     if (!srcMatch) return tag;
     const src = srcMatch[3];
-    const fragment = (src.split('#', 2)[1] || '').replace(/&amp;/gi, '&');
-
-    const getDimension = (name: 'width' | 'height'): string | null => {
-      const result = fragment.match(new RegExp('(?:^|[&;])' + name + '=(\\d+)(?=[&;]|$)', 'i'));
-      if (!result) return null;
-      const value = Number(result[1]);
-      return Number.isInteger(value) && value > 0 && value <= 10000 ? String(value) : null;
-    };
+    const metadata = parseImageFragment(src);
 
     let updated = tag;
     let attributes = '';
     const recoveredStyles: string[] = [];
     for (const name of ['width', 'height'] as const) {
-      const dimension = getDimension(name);
+      const dimension = metadata[name];
       const hasAttribute = new RegExp('\\s' + name + '\\s*=', 'i').test(updated);
       if (dimension && !hasAttribute) {
         attributes += ' ' + name + '="' + dimension + '"';
         recoveredStyles.push(name + ':' + dimension + 'px');
       }
+    }
+    if (metadata.blurhash && !/\sdata-blurhash\s*=/i.test(updated)) {
+      attributes += ' data-blurhash="' + escapeAttribute(metadata.blurhash) + '"';
     }
     if (attributes) updated = updated.replace(/\/?>$/, (ending: string) => attributes + ending);
 
@@ -87,12 +119,12 @@ export function optimizeContentImages(html: string, params: string, siteUrl: str
       }
     }
 
-    if (clean) {
-      const optimized = optimizeImageUrl(src, clean, siteUrl);
-      if (optimized !== src) {
-        updated = updated.replace(/(\ssrc\s*=\s*)(["'])(.*?)\2/i,
-          (_match: string, prefix: string, quote: string) => prefix + quote + optimized + quote);
-      }
+    // Keep BlurHash in data attributes for the frontend decoder; never leave
+    // fragment metadata in the actual image request URL.
+    const imageUrl = optimizeImageUrl(src, clean, siteUrl);
+    if (imageUrl !== src) {
+      updated = updated.replace(/(\ssrc\s*=\s*)(["'])(.*?)\2/i,
+        (_match: string, prefix: string, quote: string) => prefix + quote + imageUrl + quote);
     }
     return updated;
   });
