@@ -824,10 +824,10 @@ function rehypeMathText() {
  * parse of every Mermaid block.
  */
 function normalizeMermaidSource(value: string): string {
-  const normalized = value.replace(/^\\uFEFF/, '').replace(/\\r\\n?/g, '\\n');
-  const lines = normalized.split('\\n');
+  const normalized = value.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+  const lines = normalized.split('\n');
   const firstContentLine = lines.findIndex(line => line.trim().length > 0);
-  if (firstContentLine < 0 || !/^mindmap\\s*$/i.test(lines[firstContentLine].trim())) {
+  if (firstContentLine < 0 || !/^mindmap\s*$/i.test(lines[firstContentLine].trim())) {
     return normalized;
   }
 
@@ -836,8 +836,8 @@ function normalizeMermaidSource(value: string): string {
   // indentation level in the node lines.
   return lines
     .slice(firstContentLine)
-    .map((line, index) => index === 0 ? line.trimStart() : line.replace(/\\t/g, '    '))
-    .join('\\n');
+    .map((line, index) => index === 0 ? line.trimStart() : line.replace(/\t/g, '    '))
+    .join('\n');
 }
 
 function remarkMermaidVariants() {
