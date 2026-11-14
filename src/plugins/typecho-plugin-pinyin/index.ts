@@ -80,6 +80,12 @@ function normalizeSlug(value: string): string {
  * Claim a unique slug after the core save has created/updated the content row.
  * This mirrors the core compare-and-swap strategy and avoids a SELECT/UPDATE race.
  */
+function appendSlugSuffix(base: string, suffix: string): string {
+  const tail = `-${suffix}`;
+  const head = base.slice(0, Math.max(1, MAX_SLUG_LENGTH - tail.length)).replace(/-+$/g, '');
+  return `${head}${tail}`;
+}
+
 async function claimUniqueSlug(db: any, cid: number, base: string): Promise<string> {
   let candidate = base;
   let suffix = 0;
@@ -96,11 +102,11 @@ async function claimUniqueSlug(db: any, cid: number, base: string): Promise<stri
     if (claimed.length > 0) return candidate;
 
     suffix += 1;
-    candidate = suffix === 1 ? `${base}-${cid}` : `${base}-${cid}-${suffix}`;
+    candidate = appendSlugSuffix(base, suffix === 1 ? String(cid) : `${cid}-${suffix}`);
   }
 
   // Keep the fallback distinct even in the pathological case of many collisions.
-  const fallback = `${base}-${cid}-${Date.now().toString(36)}`;
+  const fallback = appendSlugSuffix(base, `${cid}-${Date.now().toString(36)}`);
   await db.update(schema.contents)
     .set({ slug: fallback })
     .where(eq(schema.contents.cid, cid));
@@ -127,6 +133,7 @@ async function persistSubmittedSlug(content: Record<string, any>, extra?: SaveEx
   const cid = Number(content.cid);
   const base = normalizeSlug(requestedSlug);
   if (!Number.isSafeInteger(cid) || cid <= 0 || !base) return;
+  if (String(content.slug || '') === base) return;
 
   const finalSlug = await claimUniqueSlug(db, cid, base);
   // finishData is the same object the core uses for its subsequent cache work.
@@ -150,6 +157,7 @@ function editorHtml(
   if (!form || !title || !permalinkRow || form.dataset.pinyinSlugReady === '1') return;
   form.dataset.pinyinSlugReady = '1';
 
+  title.maxLength = 500;
   var slug = document.getElementById('slug');
   var initialSlug = ${initialSlug};
   var currentCid = ${cidValue};
@@ -194,6 +202,7 @@ function editorHtml(
     slug.style.minWidth = '48px';
     slug.style.overflow = 'hidden';
   }
+  slug.maxLength = 180;
 
   function updateSlugInputWidth() {
     var mobile = window.matchMedia('(max-width: 767px)').matches;
@@ -274,7 +283,7 @@ function editorHtml(
   title.addEventListener('input', function () {
     if (manual) return;
     window.clearTimeout(timer);
-    timer = window.setTimeout(function () { generate(false); }, 280);
+    timer = window.setTimeout(function () { generate(false); }, 500);
   });
 
   slug.addEventListener('input', function () {
