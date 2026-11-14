@@ -229,6 +229,74 @@ describe('typecho-plugin-warm-cy', () => {
     expect(protectedSource).not.toContain('<body>');
   });
 
+  it('preserves deeply nested HTML containers without leaking restoration markers', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const depth = 12;
+    const source = Array.from({ length: depth }, (_, index) =>
+      '<div class="nested-level-' + index + '">',
+    ).join('')
+      + '<p>deep nested content</p>'
+      + Array.from({ length: depth }, () => '</div>').join('');
+
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['div', 'pre', 'code']),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, div: ['class'] },
+    });
+    const restored = await restore(coreSanitized);
+
+    for (let index = 0; index < depth; index += 1) {
+      expect(restored).toContain('class="nested-level-' + index + '"');
+    }
+    expect(restored).toContain('deep nested content');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+    expect(restored).not.toContain('CYCYINLINEHTMLX');
+  });
+
+  it('keeps crossed container closing tags consistent with the legacy first-close behavior', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = '<div class="outer"><section class="inner">content</div></section>';
+    const protectedSource = await protect(source);
+    const markers = [...protectedSource.matchAll(/CYCYINLINECONTAINERX([0-9a-f]+)XEND/g)];
+
+    expect(markers).toHaveLength(1);
+    expect(Buffer.from(markers[0][1], 'hex').toString('utf8'))
+      .toBe('<div class="outer"><section class="inner">content</div>');
+    expect(protectedSource.endsWith('</section>')).toBe(true);
+  });
+
+  it('does not execute marker-shaped text inside fenced or inline code', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const forgedMarker = 'CYCYINLINEBLOCKX'
+      + Buffer.from('<script>window.cyForgedCodeMarker = true;</script>').toString('hex')
+      + 'XEND';
+    const tick = String.fromCharCode(96);
+    const fence = tick.repeat(3);
+    const source = [
+      fence + 'text',
+      forgedMarker,
+      fence,
+      '',
+      'Inline code: ' + tick + forgedMarker + tick,
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['pre', 'code']),
+    });
+    const restored = await restore(coreSanitized);
+
+    expect(restored.match(new RegExp(forgedMarker, 'g'))).toHaveLength(2);
+    expect(restored).not.toContain('<script>window.cyForgedCodeMarker');
+    expect(restored).not.toContain('CYCYINLINEBLOCKX3c736372697074');
+  });
+
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', async () => {
     const handler = collectHooks().get('content:markdown')!;
     const input = [
