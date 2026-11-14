@@ -846,9 +846,8 @@ function sanitizeInlineHtmlFragment(source: string): string {
 
 function restoreInlineHtmlFragments(content: string): string {
   function restoreNestedFragments(source: string, depth = 0): string {
-    // Bound nested fragment expansion just like encoded-payload restoration.
-    // Deep or malformed user HTML must not create unbounded recursive work.
-    if (depth > 8) return source;
+    // Nested payloads are hex-encoded, so each recursive level operates on
+    // a strictly smaller string. The encoded input itself bounds recursion.
 
     return source.replace(
       /<p>\s*CYCYINLINECONTAINERX([0-9a-f]+)XEND\s*<\/p>|CYCYINLINE(CONTAINER|HTML)X([0-9a-f]+)XEND/gi,
