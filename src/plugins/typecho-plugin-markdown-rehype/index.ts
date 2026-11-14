@@ -818,8 +818,10 @@ function rehypeMathText() {
   };
 }
 /**
- * Mirror Rin's remark transform: each Mermaid fence becomes two independent
- * source <pre> nodes, one for the light theme and one for the dark theme.
+ * Mirror the theme's two color variants without routing Mermaid source through
+ * raw HTML. Building HAST elements from text nodes keeps labels containing
+ * <, >, &, quotes or HTML-looking text literal, and avoids a second rehypeRaw
+ * parse of every Mermaid block.
  */
 function remarkMermaidVariants() {
   return (tree: any): void => {
@@ -830,17 +832,21 @@ function remarkMermaidVariants() {
         const child = children[index];
         if (child?.type === 'code' && child.lang === 'mermaid') {
           const source = typeof child.value === 'string' ? child.value : '';
-          // Mermaid source is inserted into raw HTML and later parsed by rehypeRaw.
-          // Escape it as text first so labels containing HTML syntax cannot become
-          // live nodes or be altered by the sanitizer before Mermaid sees them.
-          const value = source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          children[index] = {
-            type: 'html',
-            value: `
-            <pre class="mermaid_default dark:hidden">${value}</pre>
-            <pre class="mermaid_dark dark:block hidden">${value}</pre>
-            `,
-          };
+          const createVariant = (className: string[]) => ({
+            type: 'paragraph',
+            data: {
+              hName: 'pre',
+              hProperties: { className },
+            },
+            children: [{ type: 'text', value: source }],
+          });
+          children.splice(
+            index,
+            1,
+            createVariant(['mermaid_default', 'dark:hidden']),
+            createVariant(['mermaid_dark', 'dark:block', 'hidden']),
+          );
+          index += 1;
           continue;
         }
         visit(child);
