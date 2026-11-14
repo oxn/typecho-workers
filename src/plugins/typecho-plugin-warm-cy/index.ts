@@ -480,26 +480,33 @@ function protectInlineHtml(source: string): string {
   let content = source.replace(/<(pre|code)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
   let fenceChar = '';
   let fenceLength = 0;
-  const lines = content.split('\n');
-  content = lines.map(line => {
+  const processedLines: string[] = [];
+  let lineStart = 0;
+  while (lineStart <= content.length) {
+    const lineEnd = content.indexOf('\n', lineStart);
+    const line = lineEnd === -1 ? content.slice(lineStart) : content.slice(lineStart, lineEnd);
     const fence = line.match(/^ {0,3}(\x60{3,}|~{3,})/);
+    let processedLine: string;
     if (fenceChar) {
-      const marker = protect(line);
+      processedLine = protect(line);
       if (fence && fence[1][0] === fenceChar && fence[1].length >= fenceLength) {
         fenceChar = '';
         fenceLength = 0;
       }
-      return marker;
-    }
-    if (fence) {
+    } else if (fence) {
       fenceChar = fence[1][0];
       fenceLength = fence[1].length;
-      return protect(line);
+      processedLine = protect(line);
+    } else if (/^(?: {4}|\t)/.test(line)) {
+      processedLine = protect(line);
+    } else {
+      processedLine = line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
     }
-    if (/^(?: {4}|\t)/.test(line)) return protect(line);
-
-    return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
-  }).join('\n');
+    processedLines.push(processedLine);
+    if (lineEnd === -1) break;
+    lineStart = lineEnd + 1;
+  }
+  content = processedLines.join('\n');
 
   // Keep user-authored text from impersonating the private restoration markers.
   // Code examples were already protected above and remain byte-for-byte intact.
