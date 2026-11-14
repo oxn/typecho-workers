@@ -532,6 +532,9 @@ function protectInlineHtml(source: string): string {
   // protected code segments inside those payloads as well as in plain text;
   // otherwise full-document inputs can leak CYCYCODESEGMENT tokens to readers.
   content = restoreProtectedSegmentsInEncodedPayloads(content, protectedSegments);
+  // Encoded HTML payloads have already been isolated. Re-protect top-level
+  // comments so the following attribute pass cannot rewrite example tags.
+  content = content.replace(/<!--[\s\S]*?-->/g, protect);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
