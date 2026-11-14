@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderMarkdown } from 'typecho-plugin-markdown-rehype';
+import { getWarmMermaidConfig } from 'typecho-plugin-markdown-rehype/mermaid-config';
+import { optimizeContentImages, parseImageFragment } from './warm-image';
 import {
   isCurrentPageLink,
   normalizeCommentComponentLoadMode,
@@ -51,8 +53,10 @@ describe('Warm CY theme helpers', () => {
       Object.defineProperty(globalThis, 'window', { configurable: true, value: dom.window });
       Object.defineProperty(globalThis, 'document', { configurable: true, value: dom.window.document });
       const { default: mermaid } = await import('mermaid');
-      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'default' });
-      await expect(mermaid.parse(renderedSource)).resolves.toBeTruthy();
+      for (const config of [getWarmMermaidConfig(false), getWarmMermaidConfig(true)]) {
+        mermaid.initialize({ ...config, securityLevel: 'strict' });
+        await expect(mermaid.parse(renderedSource)).resolves.toBeTruthy();
+      }
     } finally {
       dom.window.close();
       if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow);
@@ -350,8 +354,9 @@ describe('Warm CY Mermaid chart-family compatibility', () => {
       Object.defineProperty(globalThis, 'document', { configurable: true, value: dom.window.document });
       const { default: mermaid } = await import('mermaid');
       mermaid.initialize({ startOnLoad: false, theme: 'default' });
-      for (const [type, lines] of diagrams) {
-        await expect(mermaid.parse(lines.join('\n')), type).resolves.toBeTruthy();
+        for (const [type, lines] of diagrams) {
+          await expect(mermaid.parse(lines.join('\\n')), type).resolves.toBeTruthy();
+        }
       }
     } finally {
       dom.window.close();
@@ -360,5 +365,67 @@ describe('Warm CY Mermaid chart-family compatibility', () => {
       if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument);
       else delete (globalThis as any).document;
     }
+  });
+});
+
+
+describe('Warm CY image fragment compatibility', () => {
+  it('renders the supplied Markdown image syntax as an image and retains BlurHash for display', async () => {
+    const markdown = '![markdown.webp](https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024)';
+    const rendered = await renderMarkdown(markdown);
+    expect(rendered).toContain('<img');
+
+    const output = optimizeContentImages(rendered, '', 'https://site.example');
+    expect(output).toContain('src="https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp"');
+    expect(output).toContain('data-blurhash="LfLp{l%09GXo.T-S%1tSIWj=t7f9"');
+    expect(output).toContain('width="1536"');
+    expect(output).toContain('height="1024"');
+    expect(output).not.toContain('#blurhash=');
+    expect(output).not.toContain('![markdown.webp]');
+  });
+
+  it('decodes BlurHash and valid dimensions from a URL fragment', () => {
+    expect(parseImageFragment(
+      'https://cdn.example/image.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024',
+    )).toEqual({
+      blurhash: 'LfLp{l%09GXo.T-S%1tSIWj=t7f9',
+      width: '1536',
+      height: '1024',
+    });
+  });
+
+  it('keeps BlurHash metadata while removing the fragment from the image request', () => {
+    const html = '<img src="https://cdn.example/image.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&amp;width=1536&amp;height=1024" alt="image">';
+    const result = optimizeContentImages(html, '', 'https://site.example');
+    expect(result).toContain('src="https://cdn.example/image.webp"');
+    expect(result).toContain('data-blurhash="LfLp{l%09GXo.T-S%1tSIWj=t7f9"');
+    expect(result).toContain('width="1536"');
+    expect(result).toContain('height="1024"');
+    expect(result).toContain('width:1536px');
+    expect(result).toContain('height:1024px');
+  });
+
+  it('preserves existing image attributes and leaves legacy image URLs compatible', () => {
+    const html = '<img src="/uploads/legacy.webp" alt="legacy" width="320" loading="lazy">';
+    expect(optimizeContentImages(html, '', 'https://site.example')).toBe(html);
+    const withExistingDimensions = '<img src="https://cdn.example/image.webp#width=640&amp;height=480" width="320" height="240">';
+    const result = optimizeContentImages(withExistingDimensions, '', 'https://site.example');
+    expect(result).toContain('width="320"');
+    expect(result).toContain('height="240"');
+    expect(result).not.toContain('data-blurhash');
+    expect(result).toContain('src="https://cdn.example/image.webp"');
+  });
+
+  it('keeps literal plus characters in BlurHash values', () => {
+    const hash = '1234+5678901234567890123456';
+    expect(parseImageFragment('image.webp#blurhash=' + hash).blurhash).toBe(hash);
+  });
+
+  it('rejects malformed BlurHash values and unsafe dimensions', () => {
+    expect(parseImageFragment('image.webp#blurhash=bad%20hash&width=0&height=20001')).toEqual({
+      blurhash: '',
+      width: null,
+      height: null,
+    });
   });
 });
