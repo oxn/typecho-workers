@@ -28,6 +28,7 @@ import { getOption } from 'typecho/plugin-sdk';
 import { transformGithubAlerts } from '../../lib/markdown-alerts';
 import mathJaxModuleUrl from 'mathjax-full/es5/tex-svg.js?url';
 import katexCss from 'katex/dist/katex.min.css?inline';
+import { getWarmMermaidConfig } from './mermaid-config';
 
 /** Parse a small, safe image-dimension grammar: numeric pixels, percentages and auto. */
 function parseImageDimension(value: string): { attribute?: string; style?: string } | null {
@@ -1376,8 +1377,8 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
 
 function createAdminPreviewScript(): string {
   const mermaidConfigObject = {
-    light: { startOnLoad: false, theme: 'default' },
-    dark: { startOnLoad: false, theme: 'dark' },
+    light: getWarmMermaidConfig(false),
+    dark: getWarmMermaidConfig(true),
   };
   const mermaidConfigs = JSON.stringify(mermaidConfigObject).replace(/</g, '\\u003c');
   const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
