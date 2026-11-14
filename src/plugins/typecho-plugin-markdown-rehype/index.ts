@@ -992,6 +992,7 @@ function createMarkdownProcessor(
   tocEnabled: boolean,
   customIframeAttributes: string[] = [],
   customHtmlTags: string[] = [],
+  containersEnabled = true,
 ) {
   const processor = unified()
     .use(remarkParse)
@@ -1002,14 +1003,18 @@ function createMarkdownProcessor(
     .use(remarkMath)
     .use(remarkEmoji)
     .use(remarkIns)
-    .use(remarkFlexibleCodeTitles, { titleTagName: 'strong', container: false })
-    .use(remarkNormalizeUnicodeContainerTypes)
-    .use(remarkFlexibleContainers, {
-      containerTagName: 'blockquote',
-      titleTagName: 'strong',
-      title: (type, title) => title ?? decodeUnicodeContainerType(type)?.toUpperCase() ?? type?.toUpperCase(),
-    })
-    .use(remarkRestoreUnicodeContainerTypes)
+    .use(remarkFlexibleCodeTitles, { titleTagName: 'strong', container: false });
+  if (containersEnabled) {
+    processor
+      .use(remarkNormalizeUnicodeContainerTypes)
+      .use(remarkFlexibleContainers, {
+        containerTagName: 'blockquote',
+        titleTagName: 'strong',
+        title: (type, title) => title ?? decodeUnicodeContainerType(type)?.toUpperCase() ?? type?.toUpperCase(),
+      })
+      .use(remarkRestoreUnicodeContainerTypes);
+  }
+  processor
     .use(remarkImageSizeAttributes)
     .use(remarkMermaidVariants);
   if (tocEnabled) processor.use(remarkToc, { heading: '目录', prefix: 'user-content-' });
@@ -1045,11 +1050,18 @@ function getMarkdownProcessor(
   tocEnabled: boolean,
   customIframeAttributes: string[] = [],
   customHtmlTags: string[] = [],
+  containersEnabled = true,
 ) {
-  const key = [mathEngine, tocEnabled ? 'toc' : 'no-toc', customIframeAttributes.join(','), customHtmlTags.join(',')].join(':');
+  const key = [
+    mathEngine,
+    tocEnabled ? 'toc' : 'no-toc',
+    customIframeAttributes.join(','),
+    customHtmlTags.join(','),
+    containersEnabled ? 'containers' : 'plain-containers',
+  ].join(':');
   let processor = processorCache.get(key);
   if (!processor) {
-    processor = createMarkdownProcessor(mathEngine, tocEnabled, customIframeAttributes, customHtmlTags);
+    processor = createMarkdownProcessor(mathEngine, tocEnabled, customIframeAttributes, customHtmlTags, containersEnabled);
     processorCache.set(key, processor);
   }
   return processor;
@@ -1059,6 +1071,12 @@ function getMarkdownProcessor(
  * A bounded, isolate-local gate for expensive Markdown processor runs.
  * This protects one Worker isolate; it is not a global limit across Cloudflare isolates.
  */
+function isFlexibleContainerParserFailure(error: unknown): boolean {
+  if (!(error instanceof TypeError)) return false;
+  return /Cannot read properties of null \\(reading ['"]1['"]\\)/.test(error.message)
+    && (error.stack ?? '').includes('parseFenceTypeTitle');
+}
+
 export class MarkdownRenderCapacityError extends Error {
   constructor(message = 'Markdown preview capacity is temporarily full') {
     super(message);
@@ -1303,7 +1321,22 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
   // The cache and in-flight lookup happen before the gate, so cache hits never
   // wait for a render slot and identical concurrent requests still share work.
   const render = runMarkdownRender(async () => {
-    const file = await processor.process(protectMathDelimiters(normalizedSource));
+    let file: any;
+    try {
+      file = await processor.process(protectMathDelimiters(normalizedSource));
+    } catch (error) {
+      // A malformed/unsupported fence must not turn an otherwise readable
+      // article into HTTP 500. Only bypass containers for this known failure.
+      if (!isFlexibleContainerParserFailure(error)) throw error;
+      const fallbackProcessor = getMarkdownProcessor(
+        mathEngine,
+        tocEnabled,
+        customIframeAttributes,
+        customHtmlTags,
+        false,
+      );
+      file = await fallbackProcessor.process(protectMathDelimiters(normalizedSource));
+    }
     const html = addMarkdownAlertIcons(transformGithubAlerts(String(file)));
     if (cacheKey) cacheMarkdownRender(cacheKey, html);
     return html;
