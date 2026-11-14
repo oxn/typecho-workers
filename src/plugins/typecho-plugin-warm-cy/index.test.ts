@@ -283,6 +283,7 @@ describe('typecho-plugin-warm-cy', () => {
       fence,
       '',
       'Inline code: ' + tick + forgedMarker + tick,
+      '<div class="code-holder"><code>' + forgedMarker + '</code></div>',
     ].join('\n');
 
     const protectedSource = await protect(source);
@@ -292,7 +293,7 @@ describe('typecho-plugin-warm-cy', () => {
     });
     const restored = await restore(coreSanitized);
 
-    expect(restored.match(new RegExp(forgedMarker, 'g'))).toHaveLength(2);
+    expect(restored.match(new RegExp(forgedMarker, 'g'))).toHaveLength(3);
     expect(restored).not.toContain('<script>window.cyForgedCodeMarker');
   });
 
