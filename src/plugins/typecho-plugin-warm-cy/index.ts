@@ -384,54 +384,79 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown, rawThe
   `;
 }
 
+const INLINE_TEXT_ENCODER = new TextEncoder();
+const INLINE_TEXT_DECODER = new TextDecoder();
+const HEX_BYTES = Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, '0'));
+
+// Reused by every article body; do not allocate the same tag set per invocation.
+const INLINE_CONTAINER_TAGS = new Set([
+  'main', 'article', 'section', 'aside', 'div', 'header', 'footer', 'nav',
+  'figure', 'form', 'fieldset', 'details', 'table', 'thead', 'tbody', 'tfoot',
+  'tr', 'ul', 'ol', 'dl', 'blockquote',
+]);
+
 function encodeInlinePayload(value: string): string {
-  return Array.from(new TextEncoder().encode(value), byte =>
-    byte.toString(16).padStart(2, '0'),
-  ).join('');
+  const bytes = INLINE_TEXT_ENCODER.encode(value);
+  const hex = new Array<string>(bytes.length);
+  for (let index = 0; index < bytes.length; index += 1) {
+    hex[index] = HEX_BYTES[bytes[index]];
+  }
+  return hex.join('');
 }
 
 function protectCompleteHtmlContainers(content: string, protectedSegments: string[]): string {
-  const containerTags = new Set([
-    'main', 'article', 'section', 'aside', 'div', 'header', 'footer', 'nav',
-    'figure', 'form', 'fieldset', 'details', 'table', 'thead', 'tbody', 'tfoot',
-    'tr', 'ul', 'ol', 'dl', 'blockquote',
-  ]);
-  const openingPattern = /<([a-z][\w:-]*)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
-  let output = '';
-  let cursor = 0;
+
+  // Tokenize opening and closing tags once. The previous implementation ran a
+  // fresh forward regex scan for every opening container; malformed/unclosed
+  // wrappers could therefore make the same suffix get scanned repeatedly.
+  const tagPattern = /<(\/)?([a-z][\w:-]*)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
+  const openTags = new Map<string, number[]>();
+  const completeBlocks: Array<{ start: number; end: number }> = [];
   let match: RegExpExecArray | null;
 
-  while ((match = openingPattern.exec(content))) {
-    const tag = match[1].toLowerCase();
-    if (!containerTags.has(tag) || /\/\s*>$/.test(match[0])) continue;
-    const tagPattern = new RegExp("<\\/?"+tag+"\\b(?:[^\"'<>]|\"[^\"]*\"|'[^']*')*>", 'gi');
-    tagPattern.lastIndex = openingPattern.lastIndex;
-    let depth = 1;
-    let closeEnd = -1;
-    let nested: RegExpExecArray | null;
-    while ((nested = tagPattern.exec(content))) {
-      if (/^<\//.test(nested[0])) depth -= 1;
-      else if (!/\/\s*>$/.test(nested[0])) depth += 1;
-      if (depth === 0) {
-        closeEnd = tagPattern.lastIndex;
-        break;
-      }
-    }
-    if (closeEnd < 0) continue;
+  while ((match = tagPattern.exec(content))) {
+    const tag = match[2].toLowerCase();
+    if (!INLINE_CONTAINER_TAGS.has(tag)) continue;
 
-    const block = content.slice(match.index, closeEnd).replace(
+    if (match[1]) {
+      const positions = openTags.get(tag);
+      const start = positions?.pop();
+      if (start !== undefined) completeBlocks.push({ start, end: tagPattern.lastIndex });
+    } else if (!/\/\s*>$/.test(match[0])) {
+      const positions = openTags.get(tag) ?? [];
+      positions.push(match.index);
+      openTags.set(tag, positions);
+    }
+  }
+
+  if (completeBlocks.length === 0) return content;
+
+  // Prefer the outermost complete fragment. Nested intervals are already
+  // contained by it and should travel inside the same encoded payload.
+  completeBlocks.sort((left, right) =>
+    left.start - right.start || right.end - left.end,
+  );
+
+  let output = '';
+  let cursor = 0;
+  for (const blockRange of completeBlocks) {
+    if (blockRange.start < cursor) continue;
+    const block = content.slice(blockRange.start, blockRange.end).replace(
       /CYCYCODESEGMENT(\d+)TOKEN/g,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
-    output += content.slice(cursor, match.index)
+    output += content.slice(cursor, blockRange.start)
       + 'CYCYINLINECONTAINERX' + encodeInlinePayload(block) + 'XEND';
-    cursor = closeEnd;
-    openingPattern.lastIndex = closeEnd;
+    cursor = blockRange.end;
   }
 
   return output + content.slice(cursor);
 }
 function normalizeFullHtmlDocument(source: string): string {
+  // Most article inputs are fragments. Avoid three document-shell regex scans
+  // unless a doctype/html/head/body wrapper is actually present.
+  if (!/<!doctype\s+html\b|<html\b|<head\b|<body\b/i.test(source)) return source;
+
   // Article content is an HTML fragment, not a nested browsing context. Keep
   // executable/style blocks from <head> and the actual <body> content, while
   // dropping document-only metadata and wrappers that cannot render in an article.
@@ -462,30 +487,46 @@ function protectInlineHtml(source: string): string {
   let content = source.replace(/<(pre|code)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
   let fenceChar = '';
   let fenceLength = 0;
-  const lines = content.split('\n');
-  content = lines.map(line => {
+  const processedLines: string[] = [];
+  let lineStart = 0;
+  while (lineStart <= content.length) {
+    const lineEnd = content.indexOf('\n', lineStart);
+    const line = lineEnd === -1 ? content.slice(lineStart) : content.slice(lineStart, lineEnd);
     const fence = line.match(/^ {0,3}(\x60{3,}|~{3,})/);
+    let processedLine: string;
     if (fenceChar) {
-      const marker = protect(line);
+      processedLine = protect(line);
       if (fence && fence[1][0] === fenceChar && fence[1].length >= fenceLength) {
         fenceChar = '';
         fenceLength = 0;
       }
-      return marker;
-    }
-    if (fence) {
+    } else if (fence) {
       fenceChar = fence[1][0];
       fenceLength = fence[1].length;
-      return protect(line);
+      processedLine = protect(line);
+    } else if (/^(?: {4}|\t)/.test(line)) {
+      processedLine = protect(line);
+    } else {
+      processedLine = line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
     }
-    if (/^(?: {4}|\t)/.test(line)) return protect(line);
-
-    return line.replace(/(\x60+)([\s\S]*?)\1/g, protect);
-  }).join('\n');
+    processedLines.push(processedLine);
+    if (lineEnd === -1) break;
+    lineStart = lineEnd + 1;
+  }
+  content = processedLines.join('\n');
 
   // Keep user-authored text from impersonating the private restoration markers.
   // Code examples were already protected above and remain byte-for-byte intact.
   content = content.replace(/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/g, 'CYCY\u200bINLINE');
+
+  // Keep HTML comments opaque to the container tokenizer. A comment may
+  // contain illustrative tag text (for example, "<div>") that is not markup.
+  content = content.replace(/<!--[\s\S]*?-->/g, protect);
+  // Raw-text elements may contain literal tag examples, not nested markup.
+  content = content.replace(/<(textarea|title|xmp|noembed|noframes|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
+  // HTML's obsolete plaintext element consumes the remainder of the document.
+  // Keep its tag-like examples opaque to the container and attribute scanners.
+  content = content.replace(/<plaintext\b[^>]*>[\s\S]*$/gi, protect);
 
   // Preserve styled download-card anchors as a single fragment so nested SVG markup
   // is not fragmented by Markdown tokenization or the core HTML sanitizer.
@@ -517,37 +558,41 @@ function protectInlineHtml(source: string): string {
   // protected code segments inside those payloads as well as in plain text;
   // otherwise full-document inputs can leak CYCYCODESEGMENT tokens to readers.
   content = restoreProtectedSegmentsInEncodedPayloads(content, protectedSegments);
+  // Encoded HTML payloads have already been isolated. Re-protect top-level
+  // comments so the following attribute pass cannot rewrite example tags.
+  content = content.replace(/<!--[\s\S]*?-->/g, protect);
+  content = content.replace(/<(textarea|title|xmp|noembed|noframes|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
-    let match: RegExpExecArray | null;
-    while ((match = attributePattern.exec(attrs))) {
-      const name = match[1].toLowerCase();
-      if (name === 'style' || name === 'class' || name === 'id' || name === 'title'
-        || name === 'role' || name === 'width' || name === 'height' || name === 'alt'
-        || name === 'loading' || name === 'type' || name === 'name' || name === 'value'
-        || name === 'placeholder' || name === 'datetime' || name === 'open' || name === 'for'
-        || name === 'checked' || name === 'selected' || name === 'rows' || name === 'cols'
-        || name === 'max' || name === 'min' || name === 'action' || name === 'method'
-        || name === 'disabled' || name === 'multiple' || name === 'required' || name === 'step'
-        || (tag.toLowerCase() === 'iframe'
-          && ['src', 'frameborder', 'allow', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing'].includes(name))
-        || name.startsWith('data-') || name.startsWith('aria-')) {
-        preserved[name] = match[2] ?? match[3] ?? match[4] ?? '';
-      }
-    }
-    if (!Object.keys(preserved).length) return full;
-    const cleanAttrs = attrs.replace(attributePattern, (attribute, name: string) =>
-      Object.prototype.hasOwnProperty.call(preserved, name.toLowerCase()) ? '' : attribute,
+    const cleanAttrs = attrs.replace(
+      attributePattern,
+      (attribute, rawName: string, doubleQuoted: string | undefined, singleQuoted: string | undefined, bare: string | undefined) => {
+        const name = rawName.toLowerCase();
+        if (name === 'style' || name === 'class' || name === 'id' || name === 'title'
+          || name === 'role' || name === 'width' || name === 'height' || name === 'alt'
+          || name === 'loading' || name === 'type' || name === 'name' || name === 'value'
+          || name === 'placeholder' || name === 'datetime' || name === 'open' || name === 'for'
+          || name === 'checked' || name === 'selected' || name === 'rows' || name === 'cols'
+          || name === 'max' || name === 'min' || name === 'action' || name === 'method'
+          || name === 'disabled' || name === 'multiple' || name === 'required' || name === 'step'
+          || (tag.toLowerCase() === 'iframe'
+            && ['src', 'frameborder', 'allow', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing'].includes(name))
+          || name.startsWith('data-') || name.startsWith('aria-')) {
+          preserved[name] = doubleQuoted ?? singleQuoted ?? bare ?? '';
+          return '';
+        }
+        return attribute;
+      },
     );
+    if (!Object.keys(preserved).length) return full;
     return '<' + tag + cleanAttrs + '>CYCYINLINEATTRX' + tag.toLowerCase()
       + 'X' + encodeInlinePayload(JSON.stringify(preserved)) + 'XEND';
   });
 
-  for (let index = protectedSegments.length - 1; index >= 0; index--) {
-    content = content.replace('CYCYCODESEGMENT' + index + 'TOKEN', protectedSegments[index]);
-  }
-  return content;
+  // Restore all protected segments in one pass instead of rescanning the
+  // complete article once for every marker.
+  return restoreProtectedSegments(content);
 }
 
 
@@ -726,61 +771,109 @@ const INLINE_FRAGMENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
 };
 function restoreProtectedSegmentsInEncodedPayloads(content: string, protectedSegments: string[]): string {
   const restore = (source: string, depth = 0): string => {
-    if (depth > 8) return source;
-    const withNestedPayloads = source.replace(
-      /CYCYINLINE(BLOCK|CONTAINER|HTML)X([0-9a-f]+)XEND/g,
-      (_marker, kind: string, payload: string) =>
-        'CYCYINLINE' + kind + 'X' + encodeInlinePayload(restore(decodeInlinePayload(payload), depth + 1)) + 'XEND',
-    );
-    return withNestedPayloads.replace(
-      /CYCYCODESEGMENT(\d+)TOKEN/g,
-      (_token, index: string) => protectedSegments[Number(index)] ?? _token,
+    // Hex-encoded nesting shrinks the payload at every recursive level, so the input itself bounds depth.
+
+    // Handle nested payloads and code placeholders in one pass. Avoid
+    // re-encoding payloads whose decoded content did not change.
+    return source.replace(
+      /CYCYINLINE(BLOCK|CONTAINER|HTML)X([0-9a-f]+)XEND|CYCYCODESEGMENT(\d+)TOKEN/g,
+      (marker, kind: string | undefined, payload: string | undefined, segmentIndex: string | undefined) => {
+        if (segmentIndex !== undefined) {
+          return protectedSegments[Number(segmentIndex)] ?? marker;
+        }
+
+        const decoded = decodeInlinePayload(payload || '');
+        const restored = restore(decoded, depth + 1);
+        return restored === decoded
+          ? marker
+          : 'CYCYINLINE' + kind + 'X' + encodeInlinePayload(restored) + 'XEND';
+      },
     );
   };
   return restore(content);
 }
 
 function decodeInlinePayload(hex: string): string {
+  if (hex.length % 2 !== 0) return '';
   const bytes = new Uint8Array(hex.length / 2);
   for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+    const high = hex.charCodeAt(index * 2);
+    const low = hex.charCodeAt(index * 2 + 1);
+    const highValue = high >= 48 && high <= 57 ? high - 48
+      : high >= 97 && high <= 102 ? high - 87
+        : high >= 65 && high <= 70 ? high - 55 : -1;
+    const lowValue = low >= 48 && low <= 57 ? low - 48
+      : low >= 97 && low <= 102 ? low - 87
+        : low >= 65 && low <= 70 ? low - 55
+          : -1;
+    if (highValue < 0 || lowValue < 0) return '';
+    bytes[index] = (highValue << 4) | lowValue;
   }
-  return new TextDecoder().decode(bytes);
-}
-
-function sanitizeInlineSvgReferences(source: string): string {
-  return source.replace(/<(?:svg|g|path|use|symbol|mask|clippath|lineargradient|radialgradient|text|tspan|filter|feGaussianBlur|feOffset|feComponentTransfer|feFuncA|feMerge|feMergeNode)\b[^>]*>/gi, tag => {
-    let safe = tag.replace(/\s+(href|xlink:href)\s*=\s*(["'])(.*?)\2/gi, (attribute, _name, _quote, value) =>
-      /^#[\w:.-]+$/.test(String(value).trim()) ? attribute : '',
-    );
-    safe = safe.replace(/\s+(fill|stroke|clip-path|mask)\s*=\s*(["'])(.*?)\2/gi, (attribute, _name, _quote, value) => {
-      const cssValue = String(value).trim();
-      return /\burl\s*\(/i.test(cssValue) && !/^url\(\s*#[\w:.-]+\s*\)$/i.test(cssValue)
-        ? ''
-        : attribute;
-    });
-    return safe;
-  });
+  return INLINE_TEXT_DECODER.decode(bytes);
 }
 
 function sanitizeInlineHtmlFragment(source: string): string {
-  const safeFormActions = source.replace(
-    /<form\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
-    formTag => formTag.replace(
-      /\saction\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i,
-      (attribute, doubleQuoted: string | undefined, singleQuoted: string | undefined, bare: string | undefined) => {
-        const value = (doubleQuoted ?? singleQuoted ?? bare ?? '').trim();
-        if (!value || value.startsWith('//')) return '';
-        const scheme = value.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
-        return scheme && scheme !== 'http' && scheme !== 'https' ? '' : attribute;
-      },
-    ),
+  // Process form and SVG security-sensitive attributes in one fragment scan.
+  // sanitize-html remains the final allowlist enforcement layer.
+  const protectedSource = source.replace(
+    /<(form|svg|g|path|use|symbol|mask|clippath|lineargradient|radialgradient|text|tspan|filter|feGaussianBlur|feOffset|feComponentTransfer|feFuncA|feMerge|feMergeNode)\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
+    tag => {
+      const tagName = tag.match(/^<([a-z][\w:-]*)/i)?.[1]?.toLowerCase() || '';
+      const isForm = tagName === 'form';
+      return tag.replace(
+        /\s+(action|href|xlink:href|fill|stroke|clip-path|mask)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi,
+        (attribute, rawName: string, doubleQuoted: string | undefined, singleQuoted: string | undefined, bare: string | undefined) => {
+          const name = rawName.toLowerCase();
+          const value = (doubleQuoted ?? singleQuoted ?? bare ?? '').trim();
+          if (isForm && name === 'action') {
+            if (!value || value.startsWith('//')) return '';
+            const scheme = value.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
+            return scheme && scheme !== 'http' && scheme !== 'https' ? '' : attribute;
+          }
+          if (!isForm && (name === 'href' || name === 'xlink:href')) {
+            return /^#[\w:.-]+$/.test(value) ? attribute : '';
+          }
+          if (!isForm && ['fill', 'stroke', 'clip-path', 'mask'].includes(name)
+            && /\burl\s*\(/i.test(value)
+            && !/^url\(\s*#[\w:.-]+\s*\)$/i.test(value)) return '';
+          return attribute;
+        },
+      );
+    },
   );
-  return sanitizeHtml(sanitizeInlineSvgReferences(safeFormActions), INLINE_FRAGMENT_SANITIZE_OPTIONS);
+  return sanitizeHtml(protectedSource, INLINE_FRAGMENT_SANITIZE_OPTIONS);
 }
 
 function restoreInlineHtmlFragments(content: string): string {
-  const restoreContainer = (payload: string): string => {
+  const protectedCodeSegments: string[] = [];
+  const protectCode = (block: string): string => {
+    const index = protectedCodeSegments.push(block) - 1;
+    return '\u0000CYRESTORECODE' + index + '\u0000';
+  };
+  const restoreCode = (source: string): string => source.replace(
+    /\u0000CYRESTORECODE(\d+)\u0000/g,
+    (_marker, index: string) => protectedCodeSegments[Number(index)] ?? '',
+  );
+
+  function restoreNestedFragments(source: string, depth = 0): string {
+    // Nested payloads are hex-encoded, so each recursive level operates on
+    // a strictly smaller string. The encoded input itself bounds recursion.
+    // Code/pre nodes are opaque user text at every nesting level.
+    const protectedSource = source
+      .replace(/<pre\b[^>]*>[\s\S]*?<\/pre\s*>/gi, protectCode)
+      .replace(/<code\b[^>]*>[\s\S]*?<\/code\s*>/gi, protectCode);
+    const restored = protectedSource.replace(
+      /<p>\s*CYCYINLINECONTAINERX([0-9a-f]+)XEND\s*<\/p>|CYCYINLINE(CONTAINER|HTML)X([0-9a-f]+)XEND/gi,
+      (_marker, paragraphPayload: string | undefined, kind: string | undefined, payload: string | undefined) => {
+        if (paragraphPayload) return restoreContainer(paragraphPayload, depth + 1);
+        if (kind?.toUpperCase() === 'CONTAINER') return restoreContainer(payload || '', depth + 1);
+        return restoreInline(payload || '', depth + 1);
+      },
+    );
+    return restoreCode(restored);
+  }
+
+  function restoreContainer(payload: string, depth = 0): string {
     let source = decodeInlinePayload(payload);
 
     // Keep style/script blocks as inert text markers through fragment sanitization.
@@ -821,21 +914,13 @@ function restoreInlineHtmlFragments(content: string): string {
     );
 
     const safe = sanitizeInlineHtmlFragment(source);
-    return safe ? '<div class="cy-inline-html-pending">' + safe + '</div>' : '';
-  };
+    // A container can hold an independently protected styled anchor or another
+    // HTML fragment. Restore those markers within this fragment only, rather
+    // than rescanning the entire article or leaving literal markers behind.
+    return safe ? '<div class="cy-inline-html-pending">' + restoreNestedFragments(safe, depth) + '</div>' : '';
+  }
 
-  // The Markdown parser wraps a standalone placeholder in <p>; replace the
-  // whole paragraph so a restored block-level container is never nested in <p>.
-  let restored = content.replace(
-    /<p>\s*CYCYINLINECONTAINERX([0-9a-f]+)XEND\s*<\/p>/gi,
-    (_marker, payload: string) => restoreContainer(payload),
-  );
-  restored = restored.replace(
-    /CYCYINLINECONTAINERX([0-9a-f]+)XEND/g,
-    (_marker, payload: string) => restoreContainer(payload),
-  );
-
-  restored = restored.replace(/CYCYINLINEHTMLX([0-9a-f]+)XEND/g, (_marker, payload: string) => {
+  function restoreInline(payload: string, depth = 0): string {
     // Preserve nested SVG verbatim through the HTML sanitizer. The browser
     // runtime will rebuild each SVG using its dedicated SVG allowlist.
     const source = decodeInlinePayload(payload).replace(
@@ -843,15 +928,11 @@ function restoreInlineHtmlFragments(content: string): string {
       svg => 'CYCYINLINEBLOCKX' + encodeInlinePayload(svg) + 'XEND',
     );
     const safe = sanitizeInlineHtmlFragment(source);
-    return safe ? '<span class="cy-inline-html-pending">' + safe + '</span>' : '';
-  });
+    return safe ? '<span class="cy-inline-html-pending">' + restoreNestedFragments(safe, depth) + '</span>' : '';
+  }
 
-  // Keep protected blocks inert until the opt-in browser runtime handles them.
-  // Do not pass SVG through sanitize-html: it normalizes SVG attribute names
-  // (for example viewBox -> viewbox), which breaks rendering. The runtime parses
-  // SVG as image/svg+xml and rebuilds it with a strict SVG allowlist.
-  restored = restored.replace(/CYCYINLINEBLOCKX([0-9a-f]+)XEND/g, marker => marker);
-  return restored;
+  // Restore fragments within their independent sanitizer boundaries.
+  return restoreNestedFragments(content);
 }
 
 const INLINE_HTML_RUNTIME = "(() => {\n  const enabled = __CY_ENABLED__;\n  const markerPattern = /CYCYINLINEBLOCKX([0-9a-f]+)XEND|CYCYINLINEATTRX([a-z][\\w:-]*)X([0-9a-f]+)XEND/g;\n  const literalMarkerPattern = /CYCY\\u200bINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/g;\n  const svgTags = new Set(['svg','g','path','circle','rect','line','polyline','polygon','ellipse','text','tspan','filter','fegaussianblur','feoffset','fecomponenttransfer','fefunca','femerge','femergenode','defs','lineargradient','radialgradient','stop','clippath','mask','title','desc','use','symbol']);\n  const svgAttrs = new Set(['id','class','viewbox','width','height','fill','fill-rule','clip-rule','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','cx','cy','r','rx','ry','x','y','x1','x2','y1','y2','d','points','transform','preserveaspectratio','offset','stop-color','stop-opacity','gradientunits','gradienttransform','clippathunits','maskunits','maskcontentunits','clip-path','mask','filter','href','xlink:href','role','focusable','aria-hidden','aria-label','stddeviation','dx','dy','in','type','slope','amplitude','exponent','intercept','tablevalues','font-size','font-weight','text-anchor','result','operator','values','mode','color-interpolation-filters']);\n  const decode = hex => { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16); return new TextDecoder().decode(bytes); };\n  const safeSvgNode = node => {\n    if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || '');\n    if (node.nodeType !== Node.ELEMENT_NODE || !svgTags.has(node.localName.toLowerCase())) return null;\n    const clean = document.createElementNS('http://www.w3.org/2000/svg', node.localName);\n    for (const attr of Array.from(node.attributes)) {\n      const key = attr.name.toLowerCase(), value = attr.value;\n      if (!svgAttrs.has(key) && key !== 'style' && !key.startsWith('aria-')) continue;\n      if (key === 'style') {\n        const allowedStyle = new Set(['fill','stroke','fill-rule','clip-rule','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','stop-color','stop-opacity']);\n        const safeStyle = value.split(';').map(part => part.trim()).filter(Boolean).map(part => {\n          const split = part.indexOf(':');\n          if (split < 1) return '';\n          const property = part.slice(0, split).trim().toLowerCase();\n          const cssValue = part.slice(split + 1).trim();\n          if (!allowedStyle.has(property) || /expression|javascript:|data:|@import|[\\u0000-\\u001f]/i.test(cssValue)) return '';\n          if (/\\burl\\s*\\(/i.test(cssValue) && !/^url\\(\\s*#[\\w:.-]+\\s*\\)$/i.test(cssValue)) return '';\n          return property + ':' + cssValue;\n        }).filter(Boolean).join(';');\n        if (safeStyle) clean.setAttribute('style', safeStyle);\n        continue;\n      }\n      if ((key === 'href' || key === 'xlink:href') && !/^#[\\w:.-]+$/.test(value)) continue;\n      if (/\\burl\\s*\\(/i.test(value) && !/^\\s*url\\(\\s*#[\\w:.-]+\\s*\\)\\s*$/i.test(value)) continue;\n      if (/javascript:|data:text\\/html|[\\u0000-\\u001f]/i.test(value)) continue;\n      if (key === 'xlink:href') clean.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', value); else clean.setAttribute(attr.name, value);\n    }\n    for (const child of Array.from(node.childNodes)) { const safe = safeSvgNode(child); if (safe) clean.appendChild(safe); }\n    return clean;\n  };\n  const addBlock = (raw, enqueueScript) => {\n    const match = raw.match(/^<(style|script|svg)\\b([^>]*)>([\\s\\S]*)<\\/\\1\\s*>$/i);\n    if (!match) return null;\n    const tag = match[1].toLowerCase(), attrs = match[2] || '', body = match[3] || '';\n    if (tag === 'svg') {\n      try { const parsed = new DOMParser().parseFromString(raw, 'image/svg+xml'); if (parsed.querySelector('parsererror') || parsed.documentElement.localName.toLowerCase() !== 'svg') return null; return safeSvgNode(parsed.documentElement); } catch { return null; }\n    }\n    if (tag === 'style') {\n      const style = document.createElement('style');\n      const media = attrs.match(/\\bmedia\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')/i);\n      const mediaValue = media ? media[1] || media[2] || '' : '';\n      const safeCss = body.replace(/\\/\\*[\\s\\S]*?\\*\\//g, '')\n        .replace(/@import\\b[^;]*(?:;|$)/gi, '')\n        .replace(/(?:expression|behavior|-moz-binding)\\s*:[^;}]+;?/gi, '')\n        .replace(/url\\(\\s*(?!['\"]?#)[^)]+\\)/gi, 'none');\n      const scopeRules = (owner, nestedContext = false) => {\n        const rules = owner.cssRules;\n        if (!rules || typeof owner.deleteRule !== 'function') throw new Error('CSSOM rule mutation unavailable');\n        for (let i = rules.length - 1; i >= 0; i--) {\n          const rule = rules[i];\n          if (rule.type === 1 && typeof rule.selectorText === 'string') {\n            try {\n              // A top-level selector receives the article scope. A nested CSS\n              // selector already inherits its scoped parent; prefixing it again\n              // would change CSS Nesting semantics (especially selectors using &).\n              if (!nestedContext) {\n                const selectorText = rule.selectorText;\n                const selectors = [];\n                let start = 0, round = 0, square = 0, quote = '', escaped = false;\n                for (let j = 0; j <= selectorText.length; j++) {\n                  const ch = j === selectorText.length ? ',' : selectorText[j];\n                  if (escaped) { escaped = false; continue; }\n                  if (ch === '\\\\') { escaped = true; continue; }\n                  if (quote) { if (ch === quote) quote = ''; continue; }\n                  if (ch === '\"' || ch === \"'\") { quote = ch; continue; }\n                  if (ch === '(') round++;\n                  else if (ch === ')') round--;\n                  else if (ch === '[') square++;\n                  else if (ch === ']') square--;\n                  else if (ch === ',' && round === 0 && square === 0) {\n                    const selector = selectorText.slice(start, j).trim();\n                    if (!selector || round < 0 || square < 0) throw new Error('Invalid CSS selector');\n                    selectors.push(selector);\n                    start = j + 1;\n                  }\n                }\n                if (round !== 0 || square !== 0 || quote || escaped) throw new Error('Unbalanced CSS selector');\n                rule.selectorText = selectors.map(selector => {\n                  const scope = '.warm-prose:not(.warm-note-prose)';\n                  if (selector === ':root' || selector === 'html' || selector === 'body') return scope;\n                  if (selector.startsWith(':root ')) return scope + ' ' + selector.slice(6);\n                  if (selector.includes(':root')) throw new Error('Unsupported :root selector');\n                  // Document-level html/body selectors now target the article root.\n                  const documentRootSelector = selector.replace(\n                    /^(?:html\s+)?body(?=$|[\s>+~.#:[])/i,\n                    scope,\n                  ).replace(/^html(?=$|[\s>+~.#:[])/i, scope);\n                  if (documentRootSelector !== selector) return documentRootSelector;\n                  return scope + ' ' + selector;\n                }).join(', ');\n              }\n              if (rule.cssRules) {\n                if (typeof rule.deleteRule !== 'function') throw new Error('Nested CSS rule mutation unavailable');\n                scopeRules(rule, true);\n              }\n            } catch {\n              owner.deleteRule(i);\n            }\n          } else if (rule.type === 7 || rule.type === 8) {\n            // Keyframe step selectors are not document selectors.\n          } else if (rule.cssRules && typeof rule.deleteRule === 'function') {\n            // Grouping rules retain their current nesting context.\n            scopeRules(rule, nestedContext);\n          } else if (rule.style && nestedContext) {\n            // CSSNestedDeclarations belong to their enclosing scoped style rule.\n          } else {\n            owner.deleteRule(i);\n          }\n        }\n      };\n      style.media = 'not all';\n      style.textContent = safeCss;\n      document.head.appendChild(style);\n      try {\n        const sheet = style.sheet;\n        if (!sheet || !sheet.cssRules) {\n          style.remove();\n          return null;\n        }\n        scopeRules(sheet);\n        style.media = mediaValue;\n      } catch {\n        style.remove();\n      }\n      return null;\n    }\n    const script = document.createElement('script');\n    const type = attrs.match(/\\btype\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n    const scriptType = (type && (type[1] || type[2]) || '').toLowerCase();\n    if (scriptType && !['module','text/javascript','application/javascript'].includes(scriptType)) return null;\n    if (scriptType) script.type = scriptType;\n    const src = attrs.match(/\\bsrc\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)'|([^\\s>]+))/i);\n    if (src) {\n      try {\n        const url = new URL(src[1] || src[2] || src[3] || '', document.baseURI);\n        if (!['https:', 'http:'].includes(url.protocol)) return null;\n        if (url.protocol === 'http:' && url.origin !== location.origin) return null;\n        script.src = url.href;\n        script.async = false;\n        const integrity = attrs.match(/\\bintegrity\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n        if (integrity) script.integrity = integrity[1] || integrity[2] || '';\n        const crossOrigin = attrs.match(/\\bcrossorigin\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)'|([^\\s>]+))/i);\n        if (crossOrigin) { const value = (crossOrigin[1] || crossOrigin[2] || crossOrigin[3] || 'anonymous').toLowerCase(); if (['anonymous', 'use-credentials'].includes(value)) script.crossOrigin = value; }\n        const referrerPolicy = attrs.match(/\\breferrerpolicy\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)')/i);\n        if (referrerPolicy) { const value = (referrerPolicy[1] || referrerPolicy[2] || '').toLowerCase(); if (['no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url'].includes(value)) script.referrerPolicy = value; }\n      } catch { return null; }\n    } else {\n      script.textContent = body;\n    }\n    enqueueScript(script); return null;\n  };\n  const hydrate = () => {\n    let scriptExecutionQueue = Promise.resolve();\n    const enqueueScript = script => {\n      const appendScript = () => new Promise(resolve => {\n        const waitsForExecution = Boolean(script.src) || script.type === 'module';\n        if (waitsForExecution) {\n          let settled = false;\n          const finish = () => { if (settled) return; settled = true; resolve(); };\n          script.addEventListener('load', finish, { once: true });\n          script.addEventListener('error', finish, { once: true });\n        }\n        document.body.appendChild(script);\n        if (!waitsForExecution) resolve();\n      });\n      scriptExecutionQueue = scriptExecutionQueue.then(appendScript, appendScript);\n    };\n    // Only article and standalone-page bodies are in scope; note bodies are excluded.\n    for (const root of document.querySelectorAll('.warm-prose:not(.warm-note-prose)')) {\n    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) { const p = node.parentElement; if (!p || p.closest('pre,code,textarea,script,style')) return NodeFilter.FILTER_REJECT; markerPattern.lastIndex = 0; literalMarkerPattern.lastIndex = 0; return markerPattern.test(node.nodeValue || '') || literalMarkerPattern.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });\n    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);\n    for (const node of nodes) {\n      const value = node.nodeValue || ''; markerPattern.lastIndex = 0; literalMarkerPattern.lastIndex = 0; const hasLiteralMarkers = literalMarkerPattern.test(value); literalMarkerPattern.lastIndex = 0; let last = 0, match, changed = false; const fragment = document.createDocumentFragment();\n      while ((match = markerPattern.exec(value))) {\n        changed = true; if (match.index > last) fragment.appendChild(document.createTextNode(value.slice(last, match.index)));\n        if (enabled && match[1]) { const element = addBlock(decode(match[1]), enqueueScript); if (element) fragment.appendChild(element); }\n        else if (enabled && match[2] && match[3]) {\n          const parent = node.parentElement, previous = node.previousElementSibling;\n          const target = parent && parent.tagName.toLowerCase() === match[2] ? parent : previous && previous.tagName.toLowerCase() === match[2] ? previous : parent;\n          if (target) {\n            try {\n              const attrs = JSON.parse(decode(match[3]));\n              for (const [name, value] of Object.entries(attrs)) {\n                if (name === 'style') target.style.cssText = String(value);\n                else if (name === 'class' || name === 'id' || name === 'title' || name === 'role'\n                  || name === 'width' || name === 'height' || name === 'alt' || name === 'loading'\n                  || name === 'type' || name === 'name' || name === 'value' || name === 'placeholder'\n                  || name === 'datetime' || name === 'open' || name === 'for' || name === 'checked'\n                  || name === 'selected' || name === 'rows' || name === 'cols' || name === 'max' || name === 'min'\n                  || name === 'action' || name === 'method' || name === 'disabled' || name === 'multiple'\n                  || name === 'required' || name === 'step'\n                  || (match[2] === 'iframe' && ['src', 'frameborder', 'allow', 'allowfullscreen', 'referrerpolicy', 'sandbox', 'scrolling', 'border', 'framespacing'].includes(name))\n                  || name.startsWith('data-') || name.startsWith('aria-')) {\n                  target.setAttribute(name, String(value));\n                }\n              }\n            } catch {}\n          }\n        }\n        last = match.index + match[0].length;\n      }\n      if (changed || hasLiteralMarkers) { if (last < value.length) fragment.appendChild(document.createTextNode(value.slice(last))); for (const child of Array.from(fragment.childNodes)) { if (child.nodeType === Node.TEXT_NODE) child.nodeValue = (child.nodeValue || '').replace(literalMarkerPattern, 'CYCYINLINE'); } node.parentNode && node.parentNode.replaceChild(fragment, node); }\n    }\n    }\n  };\n  hydrate(); window.addEventListener('instantclick:newpage', hydrate);\n})();";
@@ -911,8 +992,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     // Plain Markdown cannot contain an enhancement fragment. Avoid a private
     // options-table D1 read for the common case; only inspect the feature
     // switch when the source actually contains an HTML tag.
-    if (!/<\/?[a-z][\w:-]*(?:\s[^<>]*|\/?)>/i.test(content)
-      && !/CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/.test(content)) return content;
+    if (!/<\/?[a-zA-Z][\w:-]*(?:\s[^<>]*|\/?)>|CYCYINLINE(?=(?:BLOCK|ATTR|CONTAINER|HTML)X)/.test(content)) return content;
     return await isHtmlEnhancementEnabled() ? protectInlineHtml(content) : content;
   }, 1);
 
