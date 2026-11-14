@@ -52,10 +52,9 @@ function applyImageDimension(properties: Record<string, any>, name: 'width' | 'h
 
 /**
  * Rin-compatible Markdown image metadata handling.
- * This runs on remark image nodes (not only on the later HTML tree), matching
- * Rin's parseImageUrlMetadata contract: extract blurhash/width/height from the
- * URL fragment, keep the real resource URL clean, and pass display metadata
- * forward as ordinary img properties for the theme's BlurHash hydrator.
+ * Runs on remark image nodes before remark-rehype, so Markdown images receive
+ * the same clean src + display metadata contract as Rin's MarkdownImage.
+ * Literal '+' is preserved because it is part of the BlurHash alphabet.
  */
 function remarkRinImageMetadata() {
   return (tree: any): void => {
@@ -66,14 +65,30 @@ function remarkRinImageMetadata() {
         if (hashIndex >= 0) {
           const resourceUrl = node.url.slice(0, hashIndex);
           const fragment = node.url.slice(hashIndex + 1).replace(/&amp;/gi, '&');
-          const params = new URLSearchParams(fragment);
-          const blurhash = params.get('blurhash') || '';
+          const metadata = new Map<string, string>();
+          for (const part of fragment.split(/[&;]/)) {
+            if (!part) continue;
+            const separator = part.indexOf('=');
+            if (separator < 0) continue;
+            let key = part.slice(0, separator);
+            let value = part.slice(separator + 1);
+            try { key = decodeURIComponent(key); } catch {}
+            // URLSearchParams treats '+' as a space; BlurHash does not.
+            value = value.replace(/\+/g, '%2B');
+            try { value = decodeURIComponent(value); } catch {}
+            metadata.set(key.toLowerCase(), value);
+          }
+
+          const blurhash = metadata.get('blurhash') || '';
+          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(blurhash)
+            ? blurhash
+            : '';
           const dimensions: Record<'width' | 'height', string | undefined> = {
             width: undefined,
             height: undefined,
           };
           for (const name of ['width', 'height'] as const) {
-            const raw = params.get(name);
+            const raw = metadata.get(name);
             if (!raw) continue;
             const value = Number.parseInt(raw, 10);
             if (Number.isInteger(value) && value > 0 && value <= 10000) {
@@ -81,11 +96,11 @@ function remarkRinImageMetadata() {
             }
           }
 
-          if (blurhash || dimensions.width || dimensions.height) {
+          if (validBlurhash || dimensions.width || dimensions.height) {
             node.url = resourceUrl;
             node.data = node.data ?? {};
             const properties = { ...(node.data.hProperties ?? {}) } as Record<string, any>;
-            if (blurhash) properties.dataBlurhash = blurhash;
+            if (validBlurhash) properties.dataBlurhash = validBlurhash;
             for (const name of ['width', 'height'] as const) {
               const value = dimensions[name];
               if (value && properties[name] == null) applyImageDimension(properties, name, value);
