@@ -402,6 +402,11 @@ describe('Warm CY image fragment compatibility', () => {
     expect(result).toContain('src="https://cdn.example/image.webp"');
   });
 
+  it('keeps literal plus characters in BlurHash values', () => {
+    const hash = '1234+5678901234567890123456';
+    expect(parseImageFragment('image.webp#blurhash=' + hash).blurhash).toBe(hash);
+  });
+
   it('rejects malformed BlurHash values and unsafe dimensions', () => {
     expect(parseImageFragment('image.webp#blurhash=bad%20hash&width=0&height=20001')).toEqual({
       blurhash: '',
