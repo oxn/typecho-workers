@@ -301,7 +301,7 @@ describe('typecho-plugin-warm-cy', () => {
     const source = [
       '<!-- example: <div class="documentation">not a real container</div> -->',
       '<section class="real-container"><p>actual content</p></section>',
-    ].join('\\n');
+    ].join('\n');
 
     const protectedSource = await protect(source);
 
