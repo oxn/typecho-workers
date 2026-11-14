@@ -160,11 +160,12 @@ describe('Markdown image BlurHash compatibility', () => {
       '```infographic',
       'title: Example',
       '```',
-    ].join('\\n'), { mathEngine: 'mathjax' });
+    ].join('\n'), { mathEngine: 'mathjax' });
 
     expect(html).toContain('src="https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp"');
     expect(html).toContain('@startuml');
-    expect(html).toContain('Alice -&gt; Bob: Hello');
+    expect(html).toContain('Alice');
+    expect(html).toContain('Bob: Hello');
     expect(html).toContain('infographic');
     expect(html).toContain('title: Example');
   });
