@@ -280,6 +280,40 @@ describe('typecho-plugin-warm-cy', () => {
     expect(restored).not.toContain('<p><div');
   });
 
+  it('restores styled HTML nested inside a protected container without leaking markers', async () => {
+    const hooks = collectHooks();
+    const protect = hooks.get('content:markdown')!;
+    const restore = hooks.get('content:content')!;
+    const source = [
+      '<div class="outer-card">',
+      '<p>正文内容</p>',
+      '<a class="download-card" style="display: inline-flex" href="/download">',
+      '<svg viewBox="0 0 16 16"><path d="M1 1h14v14H1z"></path></svg>',
+      '<span>下载文件</span>',
+      '</a>',
+      '</div>',
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+    const parsed = marked.parse(protectedSource, { async: false }) as string;
+    const coreSanitized = sanitizeHtml(parsed, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['svg', 'g', 'path']),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        a: ['href', 'class'],
+      },
+    });
+    const restored = await restore(coreSanitized);
+
+    expect(restored).toContain('class="outer-card"');
+    expect(restored).toContain('class="cy-inline-html-pending"');
+    expect(restored).toContain('class="download-card"');
+    expect(restored).toContain('href="/download"');
+    expect(restored).toContain('CYCYINLINEBLOCKX');
+    expect(restored).not.toContain('CYCYINLINEHTMLX');
+    expect(restored).not.toContain('CYCYINLINECONTAINERX');
+  });
+
   it('protects complete inner containers when an outer HTML wrapper is unclosed', async () => {
     const protect = collectHooks().get('content:markdown')!;
     const source = [
