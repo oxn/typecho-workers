@@ -331,12 +331,8 @@ const footerLinks = [
   </script>
   <script>
     import mermaid from 'mermaid';
-    import tidyTreeLayouts from '@mermaid-js/layout-tidy-tree';
     import { getWarmMermaidConfig } from 'typecho-plugin-markdown-rehype/mermaid-config';
 
-    // The extension is registered once; only mindmap blocks opt into it via
-    // their per-diagram frontmatter.
-    mermaid.registerLayoutLoaders(tidyTreeLayouts);
     import 'katex/dist/katex.min.css';
 
     // Mermaid must measure each theme variant while it participates in layout.
