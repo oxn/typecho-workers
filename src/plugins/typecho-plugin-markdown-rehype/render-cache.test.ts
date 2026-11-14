@@ -142,7 +142,7 @@ describe('Markdown Rehype complex-content compatibility', () => {
       'flowchart TD',
       '  A["x < y & y > z"] --> B["<b>普通文本</b>"]',
       '```',
-    ].join('\\n');
+    ].join('\n');
     const html = await renderMarkdown(source, { mathEngine: 'katex' });
 
     expect(html).toContain('x &lt; y &amp; y &gt; z');
