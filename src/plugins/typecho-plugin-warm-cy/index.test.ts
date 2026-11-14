@@ -286,7 +286,7 @@ describe('typecho-plugin-warm-cy', () => {
       '<div class="unclosed-outer">',
       '<section class="complete-section"><p>section content</p></section>',
       '<article class="complete-article"><p>article content</p></article>',
-    ].join('\\n');
+    ].join('\n');
 
     const protectedSource = await protect(source);
 
