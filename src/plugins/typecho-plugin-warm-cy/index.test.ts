@@ -210,6 +210,25 @@ describe('typecho-plugin-warm-cy', () => {
     for (const label of labels) expect(restored).toContain('>' + label + '</p>');
   });
 
+  it('normalizes full HTML documents while keeping ordinary fragments on the fast path', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = [
+      '<!doctype html>',
+      '<html><head><title>Document title</title>',
+      '<style>.document-shell { color: green; }</style>',
+      '<script>window.documentShell = true;</script>',
+      '</head><body><div class="article-shell"><p>正文内容</p></div></body></html>',
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINEBLOCKX/g)).toHaveLength(2);
+    expect(protectedSource).toContain('CYCYINLINECONTAINERX');
+    expect(protectedSource).not.toContain('<!doctype');
+    expect(protectedSource).not.toContain('<title>Document title</title>');
+    expect(protectedSource).not.toContain('<body>');
+  });
+
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', async () => {
     const handler = collectHooks().get('content:markdown')!;
     const input = [
