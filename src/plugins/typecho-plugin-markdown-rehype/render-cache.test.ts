@@ -121,22 +121,22 @@ describe('Markdown preview request protection', () => {
 describe('Markdown Rehype complex-content compatibility', () => {
   it('keeps math, highlighting, Mermaid variants, raw HTML and GFM output in one full render', async () => {
     const codeBlocks = Array.from({ length: 12 }, (_, index) =>
-      '\x60\x60\x60ts\\nconst item' + index + ' = ' + index + ';\\n\x60\x60\x60',
-    ).join('\\n\\n');
+      '\x60\x60\x60ts\nconst item' + index + ' = ' + index + ';\n\x60\x60\x60',
+    ).join('\n\n');
     const formulas = Array.from({ length: 12 }, (_, index) =>
       '公式 ' + index + '：$x_' + index + '^2 + y^2 = z^2$',
-    ).join('\\n\\n');
+    ).join('\n\n');
     const source = [
       '# 复杂内容回归',
       formulas,
       codeBlocks,
-      '\x60\x60\x60mermaid\\nflowchart TD\\n  A[开始] --> B[结束]\\n\x60\x60\x60',
+      '\x60\x60\x60mermaid\nflowchart TD\n  A[开始] --> B[结束]\n\x60\x60\x60',
       '<div class="custom-block" style="color: red"><span>原始 HTML</span></div>',
       '| 名称 | 值 |',
       '| --- | --- |',
       '| alpha | 1 |',
       '| beta | 2 |',
-    ].join('\\n\\n');
+    ].join('\n\n');
 
     const html = await renderMarkdown(source, { mathEngine: 'katex', tocEnabled: true });
 
