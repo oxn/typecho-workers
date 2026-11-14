@@ -3,7 +3,7 @@ import { renderMarkdown } from './index';
 
 describe('Markdown Rehype render cache compatibility', () => {
   it('keeps cached output isolated when the math engine changes for identical source', async () => {
-    const source = String.raw`公式：\\(x^2 + y^2 = z^2\\)`;
+    const source = '公式：$x^2 + y^2 = z^2$';
 
     const katex = await renderMarkdown(source, { mathEngine: 'katex' });
     const mathjax = await renderMarkdown(source, { mathEngine: 'mathjax' });
