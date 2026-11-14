@@ -370,6 +370,20 @@ describe('Warm CY Mermaid chart-family compatibility', () => {
 
 
 describe('Warm CY image fragment compatibility', () => {
+  it('renders the supplied Markdown image syntax as an image and retains BlurHash for display', async () => {
+    const markdown = '![markdown.webp](https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024)';
+    const rendered = await renderMarkdown(markdown);
+    expect(rendered).toContain('<img');
+
+    const output = optimizeContentImages(rendered, '', 'https://site.example');
+    expect(output).toContain('src="https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp"');
+    expect(output).toContain('data-blurhash="LfLp{l%09GXo.T-S%1tSIWj=t7f9"');
+    expect(output).toContain('width="1536"');
+    expect(output).toContain('height="1024"');
+    expect(output).not.toContain('#blurhash=');
+    expect(output).not.toContain('![markdown.webp]');
+  });
+
   it('decodes BlurHash and valid dimensions from a URL fragment', () => {
     expect(parseImageFragment(
       'https://cdn.example/image.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024',
