@@ -136,6 +136,22 @@ describe('Markdown preview request protection', () => {
 });
 
 describe('Markdown Rehype complex-content compatibility', () => {
+  it('preserves Mermaid labels containing HTML-sensitive characters as diagram text', async () => {
+    const source = [
+      '```mermaid',
+      'flowchart TD',
+      '  A["x < y & y > z"] --> B["<b>普通文本</b>"]',
+      '```',
+    ].join('\\n');
+    const html = await renderMarkdown(source, { mathEngine: 'katex' });
+
+    expect(html).toContain('x &lt; y &amp; y &gt; z');
+    expect(html).toContain('&lt;b&gt;普通文本&lt;/b&gt;');
+    expect(html).not.toContain('<b>普通文本</b>');
+    expect(html).toContain('mermaid_default');
+    expect(html).toContain('mermaid_dark');
+  });
+
   it('keeps math, highlighting, Mermaid variants, raw HTML and GFM output in one full render', async () => {
     const codeBlocks = Array.from({ length: 12 }, (_, index) =>
       '\x60\x60\x60ts\nconst item' + index + ' = ' + index + ';\n\x60\x60\x60',
