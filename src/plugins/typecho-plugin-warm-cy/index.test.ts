@@ -310,6 +310,22 @@ describe('typecho-plugin-warm-cy', () => {
     expect(protectedSource).not.toContain('<section class="real-container">');
   });
 
+  it('does not tokenize literal tags inside raw-text HTML elements', async () => {
+    const protect = collectHooks().get('content:markdown')!;
+    const source = [
+      '<textarea><div>this is text, not a nested container</div></textarea>',
+      '<title><section>also text, not a container</section></title>',
+      '<section class="real-container"><p>actual content</p></section>',
+    ].join('\n');
+
+    const protectedSource = await protect(source);
+
+    expect(protectedSource.match(/CYCYINLINECONTAINERX/g)).toHaveLength(1);
+    expect(protectedSource).toContain('<textarea><div>this is text, not a nested container</div></textarea>');
+    expect(protectedSource).toContain('<title><section>also text, not a container</section></title>');
+    expect(protectedSource).not.toContain('<section class="real-container">');
+  });
+
   it('handles dense HTML containers and many protected code spans without leaking markers', async () => {
     const protect = collectHooks().get('content:markdown')!;
     const blocks = Array.from({ length: 120 }, (_, index) =>
