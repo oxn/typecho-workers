@@ -135,6 +135,20 @@ describe('Markdown preview request protection', () => {
   });
 });
 
+describe('Markdown Rehype sanitizer safety', () => {
+  it('removes raw style elements but preserves supported inline style attributes', async () => {
+    const html = await renderMarkdown(
+      '<style>.unsafe-article-rule { display: none }</style>\\n\\n<div style="color: red">保留内联样式</div>',
+      { mathEngine: 'katex' },
+    );
+
+    expect(html).not.toContain('<style');
+    expect(html).not.toContain('.unsafe-article-rule');
+    expect(html).toContain('style="color: red"');
+    expect(html).toContain('保留内联样式');
+  });
+});
+
 describe('Markdown Rehype complex-content compatibility', () => {
   it('preserves Mermaid labels containing HTML-sensitive characters as diagram text', async () => {
     const source = [
