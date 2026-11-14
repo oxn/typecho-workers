@@ -1540,6 +1540,7 @@ function createAdminPreviewScript(): string {
   let renderPending = false;
   let lastRenderedSource = null;
   let requestedVersion = 0;
+  let previewKatexCssPromise = null;
 
   function isPreviewVisible() {
     return !preview.classList.contains('wmd-hidetab');
@@ -1616,10 +1617,20 @@ function createAdminPreviewScript(): string {
     });
   }
 
+  function getPreviewKatexCss() {
+    if (!previewKatexCssPromise) {
+      // KaTeX font assets are immutable for this page lifetime. Share the
+      // first embedding pass across preview updates instead of refetching and
+      // base64-encoding the same fonts after every edit.
+      previewKatexCssPromise = inlineKatexFontAssets(katexCss);
+    }
+    return previewKatexCssPromise;
+  }
+
   async function createPreviewDocument(payload) {
     const dark = isDarkMode();
     const mathEngine = payload.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
-    const previewKatexCss = await inlineKatexFontAssets(katexCss);
+    const previewKatexCss = mathEngine === 'katex' ? await getPreviewKatexCss() : '';
     const bodyClass = 'warm-theme' + (dark ? ' dark' : '');
     const htmlClass = dark ? 'dark' : '';
     const source = typeof payload.html === 'string' ? payload.html : '';
