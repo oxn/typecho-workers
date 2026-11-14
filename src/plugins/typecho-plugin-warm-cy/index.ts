@@ -508,6 +508,8 @@ function protectInlineHtml(source: string): string {
   // Keep HTML comments opaque to the container tokenizer. A comment may
   // contain illustrative tag text (for example, "<div>") that is not markup.
   content = content.replace(/<!--[\s\S]*?-->/g, protect);
+  // Raw-text elements may contain literal tag examples, not nested markup.
+  content = content.replace(/<(textarea|title|xmp|noembed|noframes)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
 
   // Preserve styled download-card anchors as a single fragment so nested SVG markup
   // is not fragmented by Markdown tokenization or the core HTML sanitizer.
@@ -542,6 +544,7 @@ function protectInlineHtml(source: string): string {
   // Encoded HTML payloads have already been isolated. Re-protect top-level
   // comments so the following attribute pass cannot rewrite example tags.
   content = content.replace(/<!--[\s\S]*?-->/g, protect);
+  content = content.replace(/<(textarea|title|xmp|noembed|noframes)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, protect);
   content = content.replace(/<([a-z][\w:-]*)(\s[^<>]*?)>/gi, (full, tag: string, attrs: string) => {
     const preserved: Record<string, string> = {};
     const attributePattern = /([^\s=\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
