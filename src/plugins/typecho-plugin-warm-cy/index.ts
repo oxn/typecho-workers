@@ -399,7 +399,7 @@ function protectCompleteHtmlContainers(content: string, protectedSegments: strin
   // Tokenize opening and closing tags once. The previous implementation ran a
   // fresh forward regex scan for every opening container; malformed/unclosed
   // wrappers could therefore make the same suffix get scanned repeatedly.
-  const tagPattern = /<(\\/)?([a-z][\\w:-]*)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
+  const tagPattern = /<(\/)?([a-z][\w:-]*)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi;
   const openTags = new Map<string, number[]>();
   const completeBlocks: Array<{ start: number; end: number }> = [];
   let match: RegExpExecArray | null;
@@ -412,7 +412,7 @@ function protectCompleteHtmlContainers(content: string, protectedSegments: strin
       const positions = openTags.get(tag);
       const start = positions?.pop();
       if (start !== undefined) completeBlocks.push({ start, end: tagPattern.lastIndex });
-    } else if (!/\\/\\s*>$/.test(match[0])) {
+    } else if (!/\/\s*>$/.test(match[0])) {
       const positions = openTags.get(tag) ?? [];
       positions.push(match.index);
       openTags.set(tag, positions);
@@ -432,7 +432,7 @@ function protectCompleteHtmlContainers(content: string, protectedSegments: strin
   for (const blockRange of completeBlocks) {
     if (blockRange.start < cursor) continue;
     const block = content.slice(blockRange.start, blockRange.end).replace(
-      /CYCYCODESEGMENT(\\d+)TOKEN/g,
+      /CYCYCODESEGMENT(\d+)TOKEN/g,
       (_token, index: string) => protectedSegments[Number(index)] ?? _token,
     );
     output += content.slice(cursor, blockRange.start)
