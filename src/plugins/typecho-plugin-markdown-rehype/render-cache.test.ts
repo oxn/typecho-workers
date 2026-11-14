@@ -135,6 +135,21 @@ describe('Markdown preview request protection', () => {
   });
 });
 
+describe('Markdown image BlurHash compatibility', () => {
+  it('extracts encoded BlurHash and dimensions before sanitizing the image URL', async () => {
+    const html = await renderMarkdown(
+      '![markdown.webp](https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024)',
+      { mathEngine: 'mathjax' },
+    );
+
+    expect(html).toContain('src="https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp"');
+    expect(html).toContain('data-blurhash="LfLp{l%09GXo.T-S%1tSIWj=t7f9"');
+    expect(html).toContain('width="1536"');
+    expect(html).toContain('height="1024"');
+    expect(html).not.toContain('#blurhash=');
+  });
+});
+
 describe('Markdown Rehype sanitizer safety', () => {
   it('removes raw style elements but preserves supported inline style attributes', async () => {
     const html = await renderMarkdown(
