@@ -835,10 +835,14 @@ function normalizeMermaidSource(value: string): string {
   // Mindmap uses indentation as its hierarchy. Start the parser at the
   // diagram header, expand tabs consistently, and preserve every relative
   // indentation level in the node lines.
-  return lines
+  const normalizedMindmap = lines
     .slice(firstContentLine)
     .map((line, index) => index === 0 ? line.trimStart() : line.replace(/\t/g, '    '))
     .join('\n');
+
+  // Select the dedicated tree layout only for mindmaps. Other Mermaid diagram
+  // types keep their existing layout defaults and rendering behavior.
+  return ['---', 'config:', '  layout: tidy-tree', '---', normalizedMindmap].join('\n');
 }
 
 function remarkMermaidVariants() {
