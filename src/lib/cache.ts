@@ -169,8 +169,17 @@ export async function invalidatePublicCache(
  * marker that the page-cache provider honors as a read-write policy.
  * Failures are non-fatal — visitors fall back to render-on-miss.
  */
+const CACHE_WARMUP_MAX_CONCURRENT = 2;
+const CACHE_WARMUP_TIMEOUT_MS = 5_000;
+
 export async function warmPublicCacheUrls(urls: string[]): Promise<void> {
-  await Promise.allSettled(urls.map(async (url) => {
+  // These requests intentionally re-enter the public Worker through the
+  // canonical site URL so the normal page-cache provider can render and store
+  // each page. Keep the fan-out small: warming is best-effort background work,
+  // not a reason to create a burst of concurrent origin renders after a save.
+  const uniqueUrls = [...new Set(urls.filter((url) => typeof url === 'string' && url.trim()))];
+
+  const warmOne = async (url: string): Promise<void> => {
     try {
       const response = await fetchWithTimeout(url, {
         method: 'GET',
@@ -178,7 +187,7 @@ export async function warmPublicCacheUrls(urls: string[]): Promise<void> {
           'Cache-Control': 'no-cache',
           [CACHE_WARMUP_HEADER]: '1',
         },
-      });
+      }, CACHE_WARMUP_TIMEOUT_MS, 'Cache warm-up request timed out');
       if (!response.ok) {
         console.error(`[cache] Warmup fetch for ${url} returned ${response.status}`);
       }
@@ -190,9 +199,17 @@ export async function warmPublicCacheUrls(urls: string[]): Promise<void> {
         }
       }
     } catch (error) {
+      // Do not retry immediately. Visitors can still populate the cache on miss.
       console.error('[cache] Warmup fetch failed:', error);
     }
-  }));
+  };
+
+  // Process small batches rather than Promise.all(urls): category/tag lists can
+  // grow, but no more than two self-requests should render at the same time.
+  for (let offset = 0; offset < uniqueUrls.length; offset += CACHE_WARMUP_MAX_CONCURRENT) {
+    const batch = uniqueUrls.slice(offset, offset + CACHE_WARMUP_MAX_CONCURRENT);
+    await Promise.allSettled(batch.map(warmOne));
+  }
 }
 
 /**
