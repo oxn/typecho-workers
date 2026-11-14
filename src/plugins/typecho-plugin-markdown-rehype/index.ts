@@ -68,9 +68,6 @@ function remarkRinImageMetadata() {
           const fragment = node.url.slice(hashIndex + 1).replace(/&amp;/gi, '&');
           const params = new URLSearchParams(fragment);
           const blurhash = params.get('blurhash') || '';
-          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(blurhash)
-            ? blurhash
-            : '';
           const dimensions: Record<'width' | 'height', string | undefined> = {
             width: undefined,
             height: undefined,
@@ -84,11 +81,11 @@ function remarkRinImageMetadata() {
             }
           }
 
-          if (validBlurhash || dimensions.width || dimensions.height) {
+          if (blurhash || dimensions.width || dimensions.height) {
             node.url = resourceUrl;
             node.data = node.data ?? {};
             const properties = { ...(node.data.hProperties ?? {}) } as Record<string, any>;
-            if (validBlurhash) properties.dataBlurhash = validBlurhash;
+            if (blurhash) properties.dataBlurhash = blurhash;
             for (const name of ['width', 'height'] as const) {
               const value = dimensions[name];
               if (value && properties[name] == null) applyImageDimension(properties, name, value);
