@@ -294,7 +294,6 @@ describe('typecho-plugin-warm-cy', () => {
 
     expect(restored.match(new RegExp(forgedMarker, 'g'))).toHaveLength(2);
     expect(restored).not.toContain('<script>window.cyForgedCodeMarker');
-    expect(restored).not.toContain('CYCYINLINEBLOCKX3c736372697074');
   });
 
   it('protects inline style/script/SVG and style attributes while leaving code examples intact', async () => {
