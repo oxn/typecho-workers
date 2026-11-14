@@ -807,16 +807,15 @@ function decodeInlinePayload(hex: string): string {
 }
 
 function sanitizeInlineHtmlFragment(source: string): string {
-  // Inspect only tags whose attributes need additional handling. Combining
-  // form-action and SVG-reference checks avoids two full-fragment passes while
-  // retaining sanitize-html as the final allowlist enforcement layer.
+  // Process form and SVG security-sensitive attributes in one fragment scan.
+  // sanitize-html remains the final allowlist enforcement layer.
   const protectedSource = source.replace(
-    /<(form|svg|g|path|use|symbol|mask|clippath|lineargradient|radialgradient|text|tspan|filter|feGaussianBlur|feOffset|feComponentTransfer|feFuncA|feMerge|feMergeNode)\\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
+    /<(form|svg|g|path|use|symbol|mask|clippath|lineargradient|radialgradient|text|tspan|filter|feGaussianBlur|feOffset|feComponentTransfer|feFuncA|feMerge|feMergeNode)\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi,
     tag => {
-      const tagName = tag.match(/^<([a-z][\\w:-]*)/i)?.[1]?.toLowerCase() || '';
+      const tagName = tag.match(/^<([a-z][\w:-]*)/i)?.[1]?.toLowerCase() || '';
       const isForm = tagName === 'form';
       return tag.replace(
-        /\\s+(action|href|xlink:href|fill|stroke|clip-path|mask)\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))/gi,
+        /\s+(action|href|xlink:href|fill|stroke|clip-path|mask)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi,
         (attribute, rawName: string, doubleQuoted: string | undefined, singleQuoted: string | undefined, bare: string | undefined) => {
           const name = rawName.toLowerCase();
           const value = (doubleQuoted ?? singleQuoted ?? bare ?? '').trim();
@@ -826,10 +825,11 @@ function sanitizeInlineHtmlFragment(source: string): string {
             return scheme && scheme !== 'http' && scheme !== 'https' ? '' : attribute;
           }
           if (!isForm && (name === 'href' || name === 'xlink:href')) {
-            return /^#[\\w:.-]+$/.test(value) ? attribute : '';
+            return /^#[\w:.-]+$/.test(value) ? attribute : '';
           }
-          if (!isForm && /\\burl\\s*\\(/i.test(value)
-            && !/^url\\(\\s*#[\\w:.-]+\\s*\\)$/i.test(value)) return '';
+          if (!isForm && ['fill', 'stroke', 'clip-path', 'mask'].includes(name)
+            && /\burl\s*\(/i.test(value)
+            && !/^url\(\s*#[\w:.-]+\s*\)$/i.test(value)) return '';
           return attribute;
         },
       );
