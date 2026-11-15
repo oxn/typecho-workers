@@ -11,9 +11,6 @@ import rehypeStringify from 'rehype-stringify';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { registerPluginAdminPath } from '@/lib/plugin';
-import { env } from 'cloudflare:workers';
-import { getDb } from 'typecho/db';
-import { getOption } from 'typecho/plugin-sdk';
 import katexCss from 'katex/dist/katex.min.css?inline';
 import { getWarmMermaidConfig } from './mermaid-config';
 
@@ -196,12 +193,6 @@ export const DEFAULT_CUSTOM_HTML_TAGS = [
   'data', 'output', 'progress', 'meter',
 ] as const;
 
-const FORBIDDEN_CUSTOM_HTML_TAGS = new Set([
-  'script', 'object', 'embed', 'applet', 'frame', 'frameset',
-  'base', 'meta', 'link', 'form', 'template', 'portal',
-]);
-
-
 const ADMIN_PREVIEW_PATH = '/api/admin/markdown-rehype-preview';
 
 const MARKDOWN_BRIDGE_MAX_ENTRIES = 32;
@@ -237,40 +228,6 @@ function restoreMarkdownBridgeHtml(sanitized: string): string {
 }
 
 
-const FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES = new Set([
-  'src', 'srcdoc', 'onload', 'onerror', 'nonce', 'integrity',
-]);
-
-const HTML_TO_HAST_IFRAME_PROPERTIES: Record<string, string> = {
-  class: 'className',
-  frameborder: 'frameBorder',
-  framespacing: 'frameSpacing',
-  allowfullscreen: 'allowFullScreen',
-  allowtransparency: 'allowTransparency',
-  allowpaymentrequest: 'allowPaymentRequest',
-  referrerpolicy: 'referrerPolicy',
-  marginwidth: 'marginWidth',
-  marginheight: 'marginHeight',
-  fetchpriority: 'fetchPriority',
-  longdesc: 'longDesc',
-};
-
-export function normalizeCustomIframeAttributes(value: unknown): string[] {
-  if (typeof value !== 'string') return [];
-  const result = new Set<string>();
-  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
-    const name = raw.trim().toLowerCase();
-    if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
-    if (name.startsWith('on') || FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES.has(name)) continue;
-    const property = HTML_TO_HAST_IFRAME_PROPERTIES[name]
-      ?? (name.startsWith('data-') || name.startsWith('aria-')
-        ? name.replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase())
-        : name);
-    result.add(property);
-  }
-  return [...result];
-}
-
 export function createArticleSanitizeSchema(
   iframeAttributes: string[] = [...DEFAULT_IFRAME_ATTRIBUTES],
   customHtmlTags: string[] = [],
@@ -286,73 +243,6 @@ export function createArticleSanitizeSchema(
       ],
     },
   };
-}
-
-let cachedCustomIframeAttributes: string[] = [];
-let customIframeAttributesExpiresAt = 0;
-let customIframeAttributesLoad: Promise<string[]> | null = null;
-let cachedCustomHtmlTags: string[] = [...DEFAULT_CUSTOM_HTML_TAGS];
-let customHtmlTagsExpiresAt = 0;
-let customHtmlTagsLoad: Promise<string[]> | null = null;
-
-async function loadCustomIframeAttributes(): Promise<string[]> {
-  if (Date.now() < customIframeAttributesExpiresAt) return cachedCustomIframeAttributes;
-  if (customIframeAttributesLoad) return customIframeAttributesLoad;
-  customIframeAttributesLoad = (async () => {
-    try {
-      const db = getDb(env.DB);
-      const raw = await getOption(db, 'plugin:typecho-plugin-markdown-rehype');
-      const config = raw ? JSON.parse(raw) as Record<string, unknown> : {};
-      const configured = normalizeCustomIframeAttributes(config.iframeAttributes);
-      cachedCustomIframeAttributes = configured.length ? configured : [...DEFAULT_IFRAME_ATTRIBUTES];
-    } catch {
-      cachedCustomIframeAttributes = [...DEFAULT_IFRAME_ATTRIBUTES];
-    }
-    customIframeAttributesExpiresAt = Date.now() + 15_000;
-    return cachedCustomIframeAttributes;
-  })();
-  try {
-    return await customIframeAttributesLoad;
-  } finally {
-    customIframeAttributesLoad = null;
-  }
-}
-
-/** Normalize explicit standard HTML tag names while rejecting executable or document-level tags. */
-export function normalizeCustomHtmlTags(value: unknown): string[] {
-  if (typeof value !== 'string') return [];
-  const result = new Set<string>();
-  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
-    const name = raw.trim().toLowerCase();
-    if (/^[a-z][a-z0-9]*$/.test(name) && !FORBIDDEN_CUSTOM_HTML_TAGS.has(name)) result.add(name);
-  }
-  return [...result];
-}
-
-async function loadCustomHtmlTags(): Promise<string[]> {
-  if (Date.now() < customHtmlTagsExpiresAt) return cachedCustomHtmlTags;
-  if (customHtmlTagsLoad) return customHtmlTagsLoad;
-  customHtmlTagsLoad = (async () => {
-    try {
-      const db = getDb(env.DB);
-      const raw = await getOption(db, 'plugin:typecho-plugin-markdown-rehype');
-      const config = raw ? JSON.parse(raw) as Record<string, unknown> : {};
-      // Existing installations without this setting receive the curated defaults.
-      // An explicitly saved empty field disables all optional custom tags.
-      cachedCustomHtmlTags = Object.prototype.hasOwnProperty.call(config, 'htmlTags')
-        ? normalizeCustomHtmlTags(config.htmlTags)
-        : [...DEFAULT_CUSTOM_HTML_TAGS];
-    } catch {
-      cachedCustomHtmlTags = [...DEFAULT_CUSTOM_HTML_TAGS];
-    }
-    customHtmlTagsExpiresAt = Date.now() + 15_000;
-    return cachedCustomHtmlTags;
-  })();
-  try {
-    return await customHtmlTagsLoad;
-  } finally {
-    customHtmlTagsLoad = null;
-  }
 }
 
 const articleSanitizeSchema = {
@@ -764,10 +654,7 @@ function rehypeRinHeadingIds() {
  * processors can process files repeatedly. Reuse avoids rebuilding the plugin
  * chain on every article request while keeping math/TOC options isolated.
  */
-function createMarkdownProcessor(
-  customIframeAttributes: string[] = [],
-  customHtmlTags: string[] = [],
-) {
+function createMarkdownProcessor() {
   return unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -781,26 +668,16 @@ function createMarkdownProcessor(
     .use(rehypeRaw)
     .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
-    .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes, customHtmlTags))
+    .use(rehypeSanitize, createArticleSanitizeSchema())
     .use(rehypeRinIframes)
     .use(rehypeRinCodeBlocks)
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
 }
 
-const processorCache = new Map<string, ReturnType<typeof createMarkdownProcessor>>();
-
-function getMarkdownProcessor(
-  customIframeAttributes: string[] = [],
-  customHtmlTags: string[] = [],
-) {
-  const key = [customIframeAttributes.join(','), customHtmlTags.join(',')].join(':');
-  let processor = processorCache.get(key);
-  if (!processor) {
-    processor = createMarkdownProcessor(customIframeAttributes, customHtmlTags);
-    processorCache.set(key, processor);
-  }
-  return processor;
+const markdownProcessor = createMarkdownProcessor();
+function getMarkdownProcessor() {
+  return markdownProcessor;
 }
 
 export class MarkdownRenderCapacityError extends Error {
@@ -982,19 +859,10 @@ function clearMarkdownRenderCache(): void {
 /** Warm CY article-only Markdown pipeline; raw HTML uses the official sanitizer with a narrow article schema extension. */
 export async function renderMarkdown(source: string): Promise<string> {
   if (!source) return '';
-  const [customIframeAttributes, customHtmlTags] = await Promise.all([
-    loadCustomIframeAttributes(),
-    loadCustomHtmlTags(),
-  ]);
   const normalizedSource = source;
-  // Avoid allocating a second large copy of exceptionally long articles just
-  // to form a cache key. The preview endpoint's existing 100k limit fits here.
+  // Cache the exact source; renderer settings are intentionally not exposed yet.
   const cacheKey = normalizedSource.length <= RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH
-    ? JSON.stringify([
-      customIframeAttributes,
-      customHtmlTags,
-      normalizedSource,
-    ])
+    ? normalizedSource
     : null;
 
   if (cacheKey) {
@@ -1007,7 +875,7 @@ export async function renderMarkdown(source: string): Promise<string> {
     if (inFlight) return inFlight;
   }
 
-  const processor = getMarkdownProcessor(customIframeAttributes, customHtmlTags);
+  const processor = getMarkdownProcessor();
   // The cache and in-flight lookup happen before the gate, so cache hits never
   // wait for a render slot and identical concurrent requests still share work.
   const render = runMarkdownRender(async () => {
@@ -1592,8 +1460,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   addHook('plugin:config:beforeSave', pluginId, (result: any, extra?: { pluginId?: string }) => {
     if (extra?.pluginId === pluginId) {
-      customIframeAttributesExpiresAt = 0;
-      customHtmlTagsExpiresAt = 0;
       clearMarkdownRenderCache();
     }
     return result;
