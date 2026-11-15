@@ -127,6 +127,7 @@ const RIN_CSS = `
 .rin-image-inner.is-rounded{border-radius:.75rem}
 .rin-image-blurhash{position:absolute;inset:0;width:100%;height:100%;transform:scale(1.1);filter:blur(4px);pointer-events:none}
 .rin-image-element{display:block;margin-left:auto;margin-right:auto;max-width:100%;height:auto;cursor:zoom-in;transition:opacity .2s}
+.rin-image-element.is-inline{display:inline}
 .rin-image-element.is-rounded{border-radius:.75rem}
 .rin-image-element.is-loading{opacity:0}
 .rin-image-element.is-hidden{display:none}
