@@ -58,12 +58,17 @@ function enhanceCodeBlocks(root: Element): void {
     const pre = code.parentElement;
     if (!pre || pre.closest('.mermaid_default,.mermaid_dark') || pre.dataset.rinCodeEnhanced === '1') return;
     pre.dataset.rinCodeEnhanced = '1';
+    const copyValue = code.textContent || '';
+    const displayValue = copyValue.replace(/\\n$/, '');
+    if (displayValue !== copyValue) code.textContent = displayValue;
     const wrapper = document.createElement('div');
     wrapper.className = 'rin-code-block relative group';
     pre.before(wrapper);
     wrapper.append(pre);
-    const languageClass = Array.from(code.classList).find(name => name.startsWith('language-'));
-    if (languageClass && languageClass !== 'language-text' && languageClass !== 'language-plain') {
+    const languageMatch = /language-(\\w+)/.exec(code.className || '');
+    const language = languageMatch?.[1] || '';
+    if (language && language !== 'text' && language !== 'plain') {
+      code.className = code.className.replace(/language-[\\w-]+/, 'language-' + language);
       try { Prism.highlightElement(code); }
       catch (error) { console.error('Rin Prism highlighting failed:', error); }
     }
@@ -72,24 +77,8 @@ function enhanceCodeBlocks(root: Element): void {
     button.className = 'rin-code-copy';
     button.textContent = 'Copy';
     button.addEventListener('click', async () => {
-      const value = code.textContent || '';
-      let copied = false;
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(value);
-          copied = true;
-        } else {
-          const textarea = document.createElement('textarea');
-          textarea.value = value;
-          textarea.setAttribute('readonly', '');
-          textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
-          document.body.append(textarea);
-          textarea.select();
-          copied = document.execCommand('copy');
-          textarea.remove();
-        }
-      } catch (error) { console.error('Markdown code copy failed:', error); }
-      button.textContent = copied ? 'Copied!' : 'Copy failed';
+      await navigator.clipboard.writeText(copyValue);
+      button.textContent = 'Copied!';
       window.setTimeout(() => { button.textContent = 'Copy'; }, 2000);
     });
     wrapper.append(button);
