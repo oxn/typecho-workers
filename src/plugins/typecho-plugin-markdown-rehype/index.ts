@@ -2,22 +2,11 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import { remarkAlert } from 'remark-github-blockquote-alert';
-import remarkCjkFriendly from 'remark-cjk-friendly';
-import remarkCjkFriendlyGfmStrikethrough from 'remark-cjk-friendly-gfm-strikethrough';
 import remarkMath from 'remark-math';
-import remarkEmoji from 'remark-emoji';
-import remarkIns from 'remark-ins';
-import remarkToc from 'remark-toc';
-import remarkFlexibleCodeTitles from 'remark-flexible-code-titles';
-import remarkFlexibleContainers from 'remark-flexible-containers';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
-import rehypeHighlight from 'rehype-highlight';
-import rehypeSlug from 'rehype-slug';
-import rehypeAutolinkHeadings from 'rehype-autolink-headings';
-import rehypeExternalLinks from 'rehype-external-links';
 import rehypeStringify from 'rehype-stringify';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
@@ -25,7 +14,6 @@ import { registerPluginAdminPath } from '@/lib/plugin';
 import { env } from 'cloudflare:workers';
 import { getDb } from 'typecho/db';
 import { getOption } from 'typecho/plugin-sdk';
-import { transformGithubAlerts } from '../../lib/markdown-alerts';
 import katexCss from 'katex/dist/katex.min.css?inline';
 import { getWarmMermaidConfig } from './mermaid-config';
 
@@ -990,38 +978,6 @@ function rehypeMathText() {
  * <, >, &, quotes or HTML-looking text literal, and avoids a second rehypeRaw
  * parse of every Mermaid block.
  */
-function normalizeMermaidSource(value: string): string {
-  const normalized = value.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
-  const lines = normalized.split('\n');
-  const firstContentLine = lines.findIndex(line => line.trim().length > 0);
-  if (firstContentLine < 0 || !/^mindmap\s*$/i.test(lines[firstContentLine].trim())) {
-    return normalized;
-  }
-
-  // Mindmap uses indentation as its hierarchy. Start the parser at the
-  // diagram header, expand tabs consistently, and preserve every relative
-  // indentation level in the node lines.
-  const normalizedMindmap = lines
-    .slice(firstContentLine)
-    .map((line, index) => {
-      if (index === 0) return line.trimStart();
-
-      // Mindmap hierarchy is encoded by leading whitespace. Content copied
-      // from editors/Word often uses NBSP, ideographic spaces or narrow
-      // Unicode spaces instead of ASCII spaces; Mermaid's mindmap tokenizer
-      // does not treat those consistently as indentation. Normalize each
-      // such leading character to one four-space indentation unit while
-      // preserving ordinary ASCII indentation and its relative depth.
-      return line
-        .replace(/\t/g, '    ')
-        .replace(/^[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]+/u, (indent) => '    '.repeat([...indent].length));
-    })
-    .join('\n');
-
-  // Keep Mermaid's native Mindmap layout, matching the working master/Rin path.
-  return normalizedMindmap;
-}
-
 function remarkMermaidVariants() {
   return (tree: any): void => {
     const visit = (node: any): void => {
@@ -1030,31 +986,58 @@ function remarkMermaidVariants() {
       for (let index = 0; index < children.length; index++) {
         const child = children[index];
         if (child?.type === 'code' && child.lang === 'mermaid') {
-          const source = typeof child.value === 'string' ? normalizeMermaidSource(child.value) : '';
-          // Emit the same raw <pre> structure used by the working master
-          // renderer, but escape the diagram source before it enters HTML.
-          // The HAST paragraph/hName route can be rewrapped by remark-rehype
-          // and does not reliably produce the direct pre nodes Mermaid scans.
-          const escapedSource = source
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-          const createVariant = (className: string[]) =>
-            ({
-              type: 'html',
-              value: `<pre class="${className.join(' ')}">${escapedSource}</pre>`,
-            });
-          children.splice(
-            index,
-            1,
-            createVariant(['mermaid_default', 'dark:hidden']),
-            createVariant(['mermaid_dark', 'dark:block', 'hidden']),
-          );
-          index += 1;
+          const source = typeof child.value === 'string' ? child.value : '';
+          children.splice(index, 1, {
+            type: 'html',
+            value: `\n<pre class="mermaid_default dark:hidden">${source}</pre>\n<pre class="mermaid_dark dark:block hidden">${source}</pre>\n`,
+          });
           continue;
         }
         visit(child);
       }
+    };
+    visit(tree);
+  };
+}
+
+function remarkRinBreaks() {
+  return (tree: any): void => {
+    const visit = (node: any): void => {
+      if (!node || !Array.isArray(node.children)) return;
+      const next: any[] = [];
+      for (const child of node.children) {
+        if (child?.type === 'text' && typeof child.value === 'string' && child.value.includes('\\n')) {
+          const parts = child.value.split('\\n');
+          parts.forEach((part: string, index: number) => {
+            if (index > 0) next.push({ type: 'break' });
+            if (part) next.push({ ...child, value: part });
+          });
+        } else {
+          visit(child);
+          next.push(child);
+        }
+      }
+      node.children = next;
+    };
+    visit(tree);
+  };
+}
+
+function rehypeRinHeadingIds() {
+  const textContent = (node: any): string => {
+    if (!node || typeof node !== 'object') return '';
+    if (node.type === 'text') return typeof node.value === 'string' ? node.value : '';
+    if (!Array.isArray(node.children)) return '';
+    return node.children.map(textContent).join('');
+  };
+  return (tree: any): void => {
+    const visit = (node: any): void => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'element' && /^h[1-6]$/.test(node.tagName || '')) {
+        node.properties = node.properties || {};
+        node.properties.id = textContent(node);
+      }
+      if (Array.isArray(node.children)) node.children.forEach(visit);
     };
     visit(tree);
   };
@@ -1192,78 +1175,37 @@ function remarkRestoreUnicodeContainerTypes() {
  * chain on every article request while keeping math/TOC options isolated.
  */
 function createMarkdownProcessor(
-  tocEnabled: boolean,
   customIframeAttributes: string[] = [],
   customHtmlTags: string[] = [],
-  containersEnabled = true,
 ) {
-  const processor = unified()
+  return unified()
     .use(remarkParse)
     .use(remarkGfm)
-    .use(remarkAlert)
-    .use(remarkCjkFriendly)
-    .use(remarkCjkFriendlyGfmStrikethrough)
+    .use(remarkMermaidVariants)
     .use(remarkMath)
-    .use(remarkEmoji)
-    .use(remarkIns)
-    .use(remarkFlexibleCodeTitles, { titleTagName: 'strong', container: false });
-  if (containersEnabled) {
-    processor
-      .use(remarkNormalizeUnicodeContainerTypes)
-      .use(remarkFlexibleContainers, {
-        containerTagName: 'blockquote',
-        titleTagName: 'strong',
-        title: (type, title) => title ?? decodeUnicodeContainerType(type)?.toUpperCase() ?? type?.toUpperCase(),
-      })
-      .use(remarkRestoreUnicodeContainerTypes);
-  }
-  processor
+    .use(remarkAlert)
+    .use(remarkRinBreaks)
     .use(remarkRinImageMetadata)
-    .use(remarkImageSizeAttributes)
-    .use(remarkMermaidVariants);
-  if (tocEnabled) processor.use(remarkToc, { heading: '目录', prefix: 'user-content-' });
-  processor
-    .use(remarkRehype, {
-      allowDangerousHtml: true,
-      footnoteLabel: '脚注',
-      footnoteBackLabel: '返回正文',
-    })
+    .use(remarkRehype, { allowDangerousHtml: true })
+    .use(rehypeKatex)
     .use(rehypeRaw)
     .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
-    .use(rehypeRestoreMathDelimiters)
-    .use(rehypeMathText)
     .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes, customHtmlTags))
-    .use(rehypeRestoreLocalReferences)
-    .use(rehypeKatex)
-    .use(rehypeExternalLinks, { rel: ['nofollow'] })
-    .use(rehypeHighlight)
-    .use(rehypeSlug, { prefix: 'user-content-' })
-    .use(rehypeAutolinkHeadings, {
-      behavior: 'append',
-      content: { type: 'text', value: '¶' },
-      properties: { className: ['warm-heading-anchor'], ariaHidden: true, tabIndex: -1 },
-    })
+    .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
 }
 
 const processorCache = new Map<string, ReturnType<typeof createMarkdownProcessor>>();
 
 function getMarkdownProcessor(
-  tocEnabled: boolean,
   customIframeAttributes: string[] = [],
   customHtmlTags: string[] = [],
-  containersEnabled = true,
 ) {
-  const key = [
-    tocEnabled ? 'toc' : 'no-toc',
-    customIframeAttributes.join(','),
-    customHtmlTags.join(','),
-    containersEnabled ? 'containers' : 'plain-containers',
-  ].join(':');
+  const key = [customIframeAttributes.join(','), customHtmlTags.join(',')].join(':');
   let processor = processorCache.get(key);
   if (!processor) {
-    processor = createMarkdownProcessor(tocEnabled, customIframeAttributes, customHtmlTags, containersEnabled);
+    processor = createMarkdownProcessor(customIframeAttributes, customHtmlTags);
     processorCache.set(key, processor);
   }
   return processor;
@@ -1485,17 +1427,15 @@ function addMarkdownAlertIcons(html: string): string {
 /** Warm CY article-only Markdown pipeline; raw HTML uses the official sanitizer with a narrow article schema extension. */
 export async function renderMarkdown(source: string, options: MarkdownRenderOptions = {}): Promise<string> {
   if (!source) return '';
-  const tocEnabled = options.tocEnabled === true;
   const [customIframeAttributes, customHtmlTags] = await Promise.all([
     loadCustomIframeAttributes(),
     loadCustomHtmlTags(),
   ]);
-  const normalizedSource = normalizeIndentedHtmlBlocks(source);
+  const normalizedSource = source;
   // Avoid allocating a second large copy of exceptionally long articles just
   // to form a cache key. The preview endpoint's existing 100k limit fits here.
   const cacheKey = normalizedSource.length <= RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH
     ? JSON.stringify([
-      tocEnabled,
       customIframeAttributes,
       customHtmlTags,
       normalizedSource,
@@ -1512,30 +1452,12 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
     if (inFlight) return inFlight;
   }
 
-  const processor = getMarkdownProcessor(
-    tocEnabled,
-    customIframeAttributes,
-    customHtmlTags,
-  );
+  const processor = getMarkdownProcessor(customIframeAttributes, customHtmlTags);
   // The cache and in-flight lookup happen before the gate, so cache hits never
   // wait for a render slot and identical concurrent requests still share work.
   const render = runMarkdownRender(async () => {
-    let file: any;
-    try {
-      file = await processor.process(protectMathDelimiters(normalizedSource));
-    } catch (error) {
-      // A malformed/unsupported fence must not turn an otherwise readable
-      // article into HTTP 500. Only bypass containers for this known failure.
-      if (!isFlexibleContainerParserFailure(error)) throw error;
-      const fallbackProcessor = getMarkdownProcessor(
-        tocEnabled,
-        customIframeAttributes,
-        customHtmlTags,
-        false,
-      );
-      file = await fallbackProcessor.process(protectMathDelimiters(normalizedSource));
-    }
-    const html = addMarkdownAlertIcons(transformGithubAlerts(String(file)));
+    const file = await processor.process(normalizedSource);
+    const html = String(file);
     if (cacheKey) cacheMarkdownRender(cacheKey, html);
     return html;
   });
