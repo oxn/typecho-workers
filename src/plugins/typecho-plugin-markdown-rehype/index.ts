@@ -243,8 +243,8 @@ const SAFE_CUSTOM_HTML_ATTRIBUTES: Record<string, Record<string, string>> = {
 export function normalizeCustomHtmlAttributes(value: unknown): Record<string, string[]> {
   if (typeof value !== 'string') return {};
   const result: Record<string, Set<string>> = {};
-  for (const line of value.replace(/\\\\[nr]/gi, '\\n').split(/[\\n;；]+/)) {
-    const match = line.trim().match(/^([a-z][a-z0-9]*)\\s*:\\s*(.+)$/i);
+  for (const line of value.replace(/\\[nr]/gi, '\n').split(/[\n;；]+/)) {
+    const match = line.trim().match(/^([a-z][a-z0-9]*)\s*:\s*(.+)$/i);
     if (!match) continue;
     const tag = match[1].toLowerCase();
     const allowed = SAFE_CUSTOM_HTML_ATTRIBUTES[tag];
