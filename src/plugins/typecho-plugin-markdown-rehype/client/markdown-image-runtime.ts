@@ -238,6 +238,12 @@ function createLightbox(): {
 
 let lightbox: ReturnType<typeof createLightbox> | null = null;
 
+// Create the viewer once when the image runtime is loaded. Without this,
+// the delegated image click handler has no viewer instance to open.
+if (typeof document !== 'undefined' && document.body) {
+  lightbox = createLightbox();
+}
+
 function initialize(root: Element): void {
   root.querySelectorAll<HTMLImageElement>('img').forEach(enhanceImage);
   if (root.getAttribute('data-rin-image-click-bound') !== '1') {
