@@ -250,7 +250,7 @@ export function normalizeCustomHtmlAttributes(value: unknown): Record<string, st
     const allowed = SAFE_CUSTOM_HTML_ATTRIBUTES[tag];
     if (!allowed) continue;
     const attrs = result[tag] ?? new Set<string>();
-    for (const raw of match[2].split(/[\\s,，]+/)) {
+    for (const raw of match[2].split(/[\s,，]+/)) {
       const name = raw.trim().toLowerCase();
       if (!name || name.startsWith('on') || !allowed[name]) continue;
       attrs.add(allowed[name]);
