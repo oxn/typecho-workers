@@ -21,7 +21,7 @@ import { getRinMermaidConfig } from './mermaid-config';
 /** Parse a small, safe image-dimension grammar: numeric pixels, percentages and auto. */
 function parseImageDimension(value: string): { attribute?: string; style?: string } | null {
   const normalized = value.trim().toLowerCase();
-  if (!/^(?:\d{1,5}(?:\.\d+)?(?:px|%)?|auto)$/.test(normalized)) return null;
+  if (!/^(?:\d+(?:\.\d+)?(?:px|%)?|auto)$/.test(normalized)) return null;
   if (normalized.endsWith('%') || normalized === 'auto') return { style: normalized };
   return { attribute: normalized.replace(/px$/, '') };
 }
@@ -93,7 +93,7 @@ function remarkRinImageMetadata() {
             const raw = metadata.get(name);
             if (!raw) continue;
             const value = Number.parseInt(raw, 10);
-            if (Number.isInteger(value) && value > 0 && value <= 10000 && properties[name] == null) {
+            if (Number.isFinite(value) && Number.isInteger(value) && value > 0 && properties[name] == null) {
               applyImageDimension(properties, name, String(value));
             }
           }
