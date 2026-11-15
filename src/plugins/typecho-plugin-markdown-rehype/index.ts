@@ -6,7 +6,7 @@ import remarkMath from 'remark-math';
 import remarkBreaks from 'remark-breaks';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { defaultSchema } from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
@@ -156,10 +156,8 @@ function rehypeImageDimensions() {
 
 
 
-// Extend the maintained GitHub-style sanitizer schema rather than implementing
-// a second HTML parser or sanitizer. Preserve inline style attributes and SVG
-// presentation, but do not allow raw <style> elements in article content;
-// executable scripts and event-handler attributes remain outside the allowlist.
+// Baseline attribute and tag vocabulary for the plugin-owned HTML allowlist filter.
+// Administrator-defined tags and attributes are merged at runtime.
 const safeSvgHref = /^#[\p{L}\p{N}\p{M}_:.-]+$/u;
 const safeSvgPaint = /^(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)|url\(\s*(["']?)#[\p{L}\p{N}\p{M}_:.-]+\1\s*\)(?:\s+(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)))?)$/iu;
 const safeSvgOpacity = /^(?:(?:0(?:\.\d+)?|0?\.\d+|1(?:\.0+)?)|(?:(?:100|[1-9]?\d)(?:\.\d+)?)%)$/;
@@ -181,8 +179,7 @@ const commonSvgAttributes = [
   'letterSpacing', 'wordSpacing', 'writingMode', 'direction', 'unicodeBidi',
   'pathLength',
 ];
-export const DEFAULT_IFRAME_ATTRIBUTES = [
-  'width', 'height', 'frameBorder', 'frameSpacing', 'framespacing', 'border',
+e, 'frameSpacing', 'framespacing', 'border',
   'allow', 'allowFullScreen', 'allowTransparency', 'allowPaymentRequest',
   'title', 'name', 'id', 'className', 'style', 'referrerPolicy', 'sandbox',
   'scrolling', 'marginWidth', 'marginHeight', 'loading', 'credentialless',
@@ -201,10 +198,6 @@ export const DEFAULT_CUSTOM_HTML_TAGS = [
 
 
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-markdown-rehype';
-const FORBIDDEN_CUSTOM_HTML_TAGS = new Set([
-  'script', 'object', 'embed', 'applet', 'frame', 'frameset',
-  'base', 'meta', 'link', 'form', 'template', 'portal',
-]);
 const DEFAULT_CUSTOM_HTML_ATTRIBUTES: Record<string, string[]> = {
   abbr: ['title', 'className'],
   q: ['cite', 'className'],
@@ -237,22 +230,17 @@ export function normalizeCustomHtmlAttributes(value: unknown): Record<string, st
     const match = line.trim().match(/^([a-z][a-z0-9]*)\s*:\s*(.+)$/i);
     if (!match) continue;
     const tag = match[1].toLowerCase();
-    const allowed = SAFE_CUSTOM_HTML_ATTRIBUTES[tag];
-    if (!allowed) continue;
     const attrs = result[tag] ?? new Set<string>();
-    for (const raw of match[2].split(/[\s,，]+/)) {
+    for (const raw of match[2].split(/[\\s,，]+/)) {
       const name = raw.trim().toLowerCase();
-      if (!name || name.startsWith('on') || !allowed[name]) continue;
-      attrs.add(allowed[name]);
+      if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
+      attrs.add(HTML_TO_HAST_IFRAME_PROPERTIES[name] ?? name.replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase()));
     }
     result[tag] = attrs;
   }
   return Object.fromEntries(Object.entries(result).map(([tag, attrs]) => [tag, [...attrs]]));
 }
 
-const FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES = new Set([
-  'src', 'srcdoc', 'onload', 'onerror', 'nonce', 'integrity',
-]);
 const HTML_TO_HAST_IFRAME_PROPERTIES: Record<string, string> = {
   class: 'className',
   frameborder: 'frameBorder',
@@ -286,7 +274,6 @@ export function normalizeCustomIframeAttributes(value: unknown): string[] {
   for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
     if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
-    if (name.startsWith('on') || FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES.has(name)) continue;
     const property = HTML_TO_HAST_IFRAME_PROPERTIES[name]
       ?? (name.startsWith('data-') || name.startsWith('aria-')
         ? name.replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase())
@@ -301,7 +288,7 @@ export function normalizeCustomHtmlTags(value: unknown): string[] {
   const result = new Set<string>();
   for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
-    if (/^[a-z][a-z0-9]*$/.test(name) && !FORBIDDEN_CUSTOM_HTML_TAGS.has(name)) result.add(name);
+    if (/^[a-z][a-z0-9:-]*$/.test(name)) result.add(name);
   }
   return [...result];
 }
@@ -446,6 +433,70 @@ export function createArticleSanitizeSchema(
       ],
     },
   };
+}
+
+/**
+ * Plugin-owned HTML allowlist filter. Built-in Markdown/Rin elements retain
+ * their established schema; administrator-defined tags and attributes are
+ * merged at runtime without a second hidden denylist.
+ *
+ * Explicitly configured attributes pass through as authored. This is powerful:
+ * event handlers, srcdoc, and similar active attributes can execute browser-side
+ * behavior and must only be enabled by a trusted administrator.
+ */
+function rehypeRinHtmlAllowlist(
+  iframeAttributes: string[],
+  customHtmlTags: string[],
+  customHtmlAttributes: Record<string, string[]>,
+) {
+  const schema = createArticleSanitizeSchema(iframeAttributes, customHtmlTags, customHtmlAttributes);
+  const tagNames = new Set((schema.tagNames ?? []).map((name: string) => name.toLowerCase()));
+  const attributeSchema = schema.attributes as Record<string, any[]>;
+  const configured = new Map<string, Set<string>>(
+    Object.entries(customHtmlAttributes).map(([tag, attrs]) => [
+      tag.toLowerCase(),
+      new Set(attrs.map((attr) => attr.toLowerCase())),
+    ]),
+  );
+  const normalizeName = (name: string) => name.replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase()).toLowerCase();
+  const matchesRule = (rule: any, name: string, value: any): boolean => {
+    if (typeof rule === 'string') return normalizeName(rule) === name;
+    if (!Array.isArray(rule) || normalizeName(String(rule[0])) !== name) return false;
+    if (rule.length === 1) return true;
+    return rule.slice(1).some((item: any) => item instanceof RegExp
+      ? typeof value === 'string' && item.test(value)
+      : item === value || String(item) === String(value));
+  };
+  const visit = (parent: any): void => {
+    if (!parent || !Array.isArray(parent.children)) return;
+    const output: any[] = [];
+    for (const child of parent.children) {
+      if (!child || child.type !== 'element') {
+        if (child && Array.isArray(child.children)) visit(child);
+        output.push(child);
+        continue;
+      }
+      const tag = String(child.tagName || '').toLowerCase();
+      if (!tagNames.has(tag)) {
+        if (['script', 'style', 'iframe', 'object', 'embed'].includes(tag)) continue;
+        if (Array.isArray(child.children)) output.push(...child.children);
+        continue;
+      }
+      const properties = child.properties && typeof child.properties === 'object' ? child.properties : {};
+      const rules = [...(attributeSchema[tag] ?? []), ...(attributeSchema['*'] ?? [])];
+      const configuredForTag = configured.get(tag) ?? new Set<string>();
+      for (const key of Object.keys(properties)) {
+        const normalized = normalizeName(key);
+        if (configuredForTag.has(normalized)) continue;
+        if (!rules.some((rule: any) => matchesRule(rule, normalized, properties[key]))) delete properties[key];
+      }
+      child.properties = properties;
+      visit(child);
+      output.push(child);
+    }
+    parent.children = output;
+  };
+  return (tree: any): void => visit(tree);
 }
 
 const articleSanitizeSchema = {
@@ -740,19 +791,6 @@ const articleSanitizeSchema = {
  * style element would otherwise be unwrapped into visible article text.
  * Inline style attributes remain available for existing article formatting.
  */
-function rehypeRemoveStyleElements() {
-  return (tree: any): void => {
-    const visit = (node: any): void => {
-      if (!node || !Array.isArray(node.children)) return;
-      node.children = node.children.filter((child: any) =>
-        !(child?.type === 'element' && String(child.tagName).toLowerCase() === 'style'),
-      );
-      node.children.forEach(visit);
-    };
-    visit(tree);
-  };
-}
-
 function remarkMermaidVariants() {
   return (tree: any): void => {
     const visit = (node: any): void => {
@@ -775,7 +813,7 @@ function remarkMermaidVariants() {
   };
 }
 
-function rehypeRinIframes() {
+function rehypeRinIframes(allowedAttributes: string[]) {
   return (tree: any): void => {
     const visit = (parent: any): void => {
       if (!parent || !Array.isArray(parent.children)) return;
@@ -783,14 +821,13 @@ function rehypeRinIframes() {
       for (const child of parent.children) {
         if (child?.type === 'element' && child.tagName === 'iframe') {
           const properties = child.properties || (child.properties = {});
-          properties.title = typeof properties.title === 'string' && properties.title
-            ? properties.title
-            : 'Embedded content';
-          properties.className = ['rin-iframe'];
-          properties.style = 'min-height:400px';
-          properties.loading = 'lazy';
-          properties.referrerPolicy = 'no-referrer';
-          properties.sandbox = 'allow-scripts allow-same-origin allow-popups allow-forms';
+          const allowed = new Set(allowedAttributes.map((name) => name.toLowerCase()));
+          if (allowed.has('title') && !(typeof properties.title === 'string' && properties.title)) properties.title = 'Embedded content';
+          if ((allowed.has('class') || allowed.has('classname')) && properties.className == null) properties.className = ['rin-iframe'];
+          if (allowed.has('style') && properties.style == null) properties.style = 'min-height:400px';
+          if (allowed.has('loading') && properties.loading == null) properties.loading = 'lazy';
+          if (allowed.has('referrerpolicy') && properties.referrerPolicy == null) properties.referrerPolicy = 'no-referrer';
+          if (allowed.has('sandbox') && properties.sandbox == null) properties.sandbox = 'allow-scripts allow-same-origin allow-popups allow-forms';
           next.push({
             type: 'element',
             tagName: 'div',
@@ -908,11 +945,10 @@ function createMarkdownProcessor(iframeAttributes: string[], customHtmlTags: str
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeKatex)
     .use(rehypeRaw)
-    .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
     .use(rehypeRinCodeBlocks)
-    .use(rehypeSanitize, createArticleSanitizeSchema(iframeAttributes, customHtmlTags, customHtmlAttributes))
-    .use(rehypeRinIframes)
+    .use(rehypeRinHtmlAllowlist, iframeAttributes, customHtmlTags, customHtmlAttributes)
+    .use(rehypeRinIframes, iframeAttributes)
     .use(rehypeRinSemanticComponents)
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
