@@ -806,6 +806,40 @@ function rehypeRinCodeBlocks() {
   };
 }
 
+function rehypeRinSemanticComponents() {
+  return (tree: any): void => {
+    const addClasses = (node: any, classes: string[]): void => {
+      node.properties = node.properties || {};
+      const current = Array.isArray(node.properties.className)
+        ? node.properties.className
+        : typeof node.properties.className === 'string'
+          ? node.properties.className.split(/\\s+/).filter(Boolean)
+          : [];
+      node.properties.className = [...new Set([...current, ...classes])];
+    };
+    const visit = (node: any): void => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'element') {
+        if (node.tagName === 'table') addClasses(node, ['table', 'block', 'max-w-full', 'overflow-x-auto']);
+        if (node.tagName === 'th') addClasses(node, ['px-4', 'py-2', 'border', 'bg-gray-600']);
+        if (node.tagName === 'td') addClasses(node, ['px-4', 'py-2', 'border']);
+        if (node.tagName === 'sup' || node.tagName === 'sub') addClasses(node, ['text-xs', 'mr-[4px]']);
+        if (node.tagName === 'section' && Object.prototype.hasOwnProperty.call(node.properties || {}, 'dataFootnotes')) {
+          addClasses(node, ['mt-8']);
+          for (const child of node.children || []) {
+            if (child?.type === 'element' && child.tagName === 'ol') {
+              child.properties = child.properties || {};
+              child.properties.className = ['list-decimal', 'px-10', 'text-sm', 'text-[#6B7280]'];
+            }
+          }
+        }
+      }
+      if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
+
 function rehypeRinHeadingIds() {
   const childToString = (child: any): string => child?.type === 'text' && typeof child.value === 'string'
     ? child.value
@@ -857,6 +891,7 @@ function createMarkdownProcessor(iframeAttributes: string[], customHtmlTags: str
     .use(rehypeRinCodeBlocks)
     .use(rehypeSanitize, createArticleSanitizeSchema(iframeAttributes, customHtmlTags, customHtmlAttributes))
     .use(rehypeRinIframes)
+    .use(rehypeRinSemanticComponents)
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
 }
