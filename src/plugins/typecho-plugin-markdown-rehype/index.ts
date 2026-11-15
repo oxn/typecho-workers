@@ -1787,7 +1787,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    htmlTagsReset.dataset.htmlTagsReset = \'1\';',
       '    htmlTagsReset.textContent = \'恢复常用标签默认值\';',
       '    htmlTagsReset.style.marginTop = \'8px\';',
-      '    htmlTagsReset.addEventListener(\'click\', function () { htmlTags.value = \'u, s, kbd, abbr, small, cite, q, time, del, ins, ruby, rt, rp, wbr, bdi, bdo, data, output, progress, meter\'; normalizeHtmlTags(); htmlTags.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
+      '    htmlTagsReset.addEventListener(\'click\', function () { htmlTags.value = \'u, s, kbd, abbr, small, cite, q, time, del, ins, ruby, rt, rp, wbr, bdi, bdo, data, output, progress, meter, address, article, aside, footer, header, nav, hgroup, search, dl, dt, dd, samp, var, dfn\'; normalizeHtmlTags(); htmlTags.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
       '    htmlTags.after(htmlTagsReset);',
       '  }',
       '  var iframeAttributes = form.querySelector(\'textarea[name="iframeAttributes"]\');',
