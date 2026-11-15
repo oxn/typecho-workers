@@ -44,19 +44,19 @@
         "tocEnabled": {
           "type": "checkbox",
           "label": "启用 Rehype 目录生成",
-          "description": "默认关闭。仅在 Markdown 中存在“## 目录”标题时生成目录；若使用主题自带目录，请保持关闭，避免重复。",
+          "description": "暂时保留设置界面。当前文章渲染固定按 Rin 的处理规则运行，不读取此选项；完整复刻完成后再接入设置功能。",
           "default": false
         },
         "htmlTags": {
           "type": "textarea",
           "label": "原始 HTML 标签白名单",
-          "description": "无需重复填写插件已经内置的标签：button、figure、figcaption、style、mark、sup、sub、details、summary、video、audio、source、iframe，以及 SVG 图形标签（svg、g、path、rect、circle、ellipse、image、line、polyline、polygon、title、desc、defs、use、symbol、linearGradient、radialGradient、stop、clipPath、mask、filter、marker、pattern、fe* 滤镜元素、text、tspan）。此外还继承 rehype-sanitize 的默认安全标签集，包含常见 Markdown/HTML 结构标签。下方默认预置的 u、s、kbd、abbr、small、cite、q、time、del、ins、ruby、rt、rp、wbr、bdi、bdo、data、output、progress、meter 是额外补充标签。只需填写插件尚未内置、且确实需要使用的标签；重复填写不会增加功能。输入时可使用空格、中英文逗号、中英文分号或回车换行分隔；离开输入框或点击保存时会自动去重，并统一显示为“空格 + 英文逗号 + 空格”的格式。留空则关闭本项额外补充的标签，但不会关闭上面已经内置的标签。仅放行标签本身，不会自动放行其属性；属性仍受原有安全规则限制。script、object、embed、form、iframe 等危险或受专门控制的标签不能通过此项开放。恢复默认按钮后需保存设置。",
+          "description": "暂时保留设置界面。当前文章渲染固定使用插件内置的安全 HTML 规则，不读取此选项；完整复刻完成后再接入设置功能。",
           "default": "u, s, kbd, abbr, small, cite, q, time, del, ins, ruby, rt, rp, wbr, bdi, bdo, data, output, progress, meter"
         },
         "iframeAttributes": {
           "type": "textarea",
           "label": "iframe 属性白名单",
-          "description": "输入时可使用空格、中英文逗号、中英文分号或回车换行分隔；离开输入框或点击保存时会自动去重，并统一显示为“空格 + 英文逗号 + 空格”的格式。每行填写一个允许保留的 iframe 属性名。此项只控制属性过滤，不会自动给 iframe 添加属性；文章中的 iframe 标签必须原本就写有该属性。src 不在此处配置，iframe 来源仍受插件固定域名白名单限制；srcdoc 和所有 on* 事件属性始终禁止。部分属性属于旧式或非标准属性（frameborder、framespacing、border、scrolling、marginwidth、marginheight、align、longdesc、allowtransparency、allowpaymentrequest），即使被保留，现代浏览器也可能忽略或不再支持；credentialless、fetchpriority 等则取决于浏览器版本。allow、sandbox 等属性的实际效果还取决于属性值、浏览器安全策略及嵌入服务提供方。新增属性名称只有在浏览器或嵌入页面确实识别时才会产生效果。留空或输入无效内容时恢复内置默认白名单；点击恢复默认值后仍需保存设置。",
+          "description": "暂时保留设置界面。当前 iframe 处理固定按 Rin 的组件行为及插件安全规则运行，不读取此选项；完整复刻完成后再接入设置功能。",
           "default": "width\nheight\nframeborder\nframespacing\nborder\nallow\nallowfullscreen\nallowtransparency\nallowpaymentrequest\ntitle\nname\nid\nclass\nstyle\nreferrerpolicy\nsandbox\nscrolling\nmarginwidth\nmarginheight\nloading\ncredentialless\nfetchpriority\nalign\nlongdesc\naria-label\naria-hidden\ndata-diag-id"
         }
       }
