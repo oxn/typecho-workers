@@ -1647,19 +1647,43 @@ function createPublicContentRuntimeScript(): string {
     const light = [...document.querySelectorAll('pre.rin-mermaid_default:not([data-processed])')];
     const dark = [...document.querySelectorAll('pre.rin-mermaid_dark:not([data-processed])')];
     if (!light.length && !dark.length) return;
-    try {
-      const mermaid = await loadMermaid();
-      await renderMermaidVariant(mermaid, light, mermaidConfigs.light);
-      await renderMermaidVariant(mermaid, dark, mermaidConfigs.dark);
-    } catch (error) {
-      console.error('Markdown Mermaid rendering failed:', error);
-    }
+    const mermaid = await loadMermaid();
+    await renderMermaidVariant(mermaid, light, mermaidConfigs.light);
+    await renderMermaidVariant(mermaid, dark, mermaidConfigs.dark);
   };
+
+  // Mermaid has global configuration and shared runtime state. Serialize every
+  // batch so a navigation cannot interleave light/dark rendering from two pages.
+  let mermaidRenderQueue = Promise.resolve();
+  const queueMermaidRender = () => {
+    mermaidRenderQueue = mermaidRenderQueue
+      .then(renderMermaid)
+      .catch(error => {
+        console.error('Markdown Mermaid rendering failed:', error);
+      });
+    return mermaidRenderQueue;
+  };
+
+  const hasUnprocessedMermaid = node => {
+    if (!node || node.nodeType !== 1) return false;
+    const selector = 'pre.rin-mermaid_default:not([data-processed]), pre.rin-mermaid_dark:not([data-processed])';
+    return node.matches(selector) || Boolean(node.querySelector(selector));
+  };
+
+  // InstantClick replaces the body and re-executes its scripts before emitting
+  // newpage. Observe actual DOM insertion as a second, lifecycle-independent
+  // signal; this also covers content roots populated after the event.
+  const mermaidObserver = new MutationObserver(records => {
+    if (records.some(record => [...record.addedNodes].some(hasUnprocessedMermaid))) {
+      void queueMermaidRender();
+    }
+  });
+  mermaidObserver.observe(document.documentElement, { childList: true, subtree: true });
 
   const renderContent = () => {
     ensureKatexCss();
     loadRinRuntime();
-    renderMermaid().then(() => {
+    void queueMermaidRender().then(() => {
       if (typeof window.__rinMarkdownContentRendered === 'function') {
         window.__rinMarkdownContentRendered();
       }
