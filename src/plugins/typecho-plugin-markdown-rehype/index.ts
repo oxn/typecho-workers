@@ -669,9 +669,9 @@ function createMarkdownProcessor() {
     .use(rehypeRaw)
     .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
+    .use(rehypeRinCodeBlocks)
     .use(rehypeSanitize, createArticleSanitizeSchema([...DEFAULT_IFRAME_ATTRIBUTES], [...DEFAULT_CUSTOM_HTML_TAGS]))
     .use(rehypeRinIframes)
-    .use(rehypeRinCodeBlocks)
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
 }
