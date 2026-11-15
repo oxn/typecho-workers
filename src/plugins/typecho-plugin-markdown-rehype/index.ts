@@ -499,7 +499,7 @@ const articleSanitizeSchema = {
       'src', 'type', 'media', 'sizes', 'width', 'height',
       // Responsive <picture> sources are forwarded by Rin's raw-HTML renderer.
       // Restrict srcset candidates to HTTP(S), protocol-relative, or relative URLs.
-      ['srcSet', /^(?:(?:https?:)?\\/\\/|\\/|\\.\\.?\\/)[^\\s,]+(?:\\s+(?:\\d+(?:\\.\\d+)?x|\\d+w))?(?:\\s*,\\s*(?:(?:https?:)?\\/\\/|\\/|\\.\\.?\\/)[^\\s,]+(?:\\s+(?:\\d+(?:\\.\\d+)?x|\\d+w))?)*$/i],
+      ['srcSet', /^(?:(?:https?:)?\/\/|\/|\.{1,2}\/)[^\s,]+(?:\s+(?:\d+(?:\.\d+)?x|\d+w))?(?:\s*,\s*(?:(?:https?:)?\/\/|\/|\.{1,2}\/)[^\s,]+(?:\s+(?:\d+(?:\.\d+)?x|\d+w))?)*$/i],
     ],
     track: [
       'src', ['kind', 'subtitles', 'captions', 'descriptions', 'chapters', 'metadata'],
