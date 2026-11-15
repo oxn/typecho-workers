@@ -11,7 +11,7 @@
 - 文章组件：标题、段落、链接、引用、列表、任务列表、表格、脚注、上下标和 iframe。
 - 图片：URL 元数据、宽高、BlurHash 占位、加载状态、失败占位、行内/块级尺寸。
 - 图片查看：灯箱、下载、缩放和计数。
-- 代码：Prism 语法高亮、Ateliersulphurpool Light / VS Code Dark Plus 配色、长行换行和复制。
+- 代码：完整 Prism 语言注册表、Ateliersulphurpool Light / VS Code Dark Plus 配色、长行换行和复制；仅在文章存在代码块时加载高亮运行时。
 - Mermaid：亮色和暗色两套图表容器，随页面颜色模式切换。
 
 ## 插件边界
