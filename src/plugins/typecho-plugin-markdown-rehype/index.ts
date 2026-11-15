@@ -201,7 +201,6 @@ const FORBIDDEN_CUSTOM_HTML_TAGS = new Set([
   'base', 'meta', 'link', 'form', 'template', 'portal',
 ]);
 
-const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-markdown-rehype';
 
 const ADMIN_PREVIEW_PATH = '/api/admin/markdown-rehype-preview';
 
@@ -237,19 +236,6 @@ function restoreMarkdownBridgeHtml(sanitized: string): string {
   return sanitized.replace(match[0], entry.html);
 }
 
-
-function parsePluginConfig(value: unknown): Record<string, unknown> {
-  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
-  if (typeof value !== 'string' || !value.trim()) return {};
-  try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : {};
-  } catch {
-    return {};
-  }
-}
 
 const FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES = new Set([
   'src', 'srcdoc', 'onload', 'onerror', 'nonce', 'integrity',
@@ -635,11 +621,6 @@ const articleSanitizeSchema = {
     button: { type: 'button' },
   },
 };
-
-export interface MarkdownRenderOptions {
-  /** Generate a TOC only at an explicit "目录" heading in the Markdown source. */
-  tocEnabled?: boolean;
-}
 
 /**
  * Remove raw style blocks before sanitization. CSS text inside a disallowed
