@@ -418,10 +418,7 @@ export function createArticleSanitizeSchema(
     attributes: {
       ...articleSanitizeSchema.attributes,
       ...configuredAttributes,
-      iframe: [
-        ...(articleSanitizeSchema.attributes.iframe ?? []).filter((attribute: any) => Array.isArray(attribute) && attribute[0] === 'src'),
-        ...iframeAttributes,
-      ],
+      iframe: [...iframeAttributes],
     },
   };
 }
