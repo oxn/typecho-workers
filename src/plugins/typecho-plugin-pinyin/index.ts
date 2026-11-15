@@ -7,8 +7,8 @@ import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 
 const ADMIN_PATH = '/api/admin/pinyin-slug';
 const SAVE_SLUG_PARAM = '__pinyinSlug';
-const MAX_SLUG_LENGTH = 180;
 const DEFAULT_TITLE_LENGTH = 100;
+const DEFAULT_SLUG_LENGTH = 300;
 const DEFAULT_SLUG_ATTEMPTS = 50;
 
 type EditorExtra = {
@@ -23,7 +23,7 @@ type SaveExtra = {
   options?: Record<string, unknown>;
 };
 
-type PinyinConfig = { titleLength: number; slugAttempts: number };
+type PinyinConfig = { titleLength: number; slugLength: number; slugAttempts: number };
 
 function boundedInteger(value: unknown, fallback: number, min: number, max: number): number {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -34,6 +34,7 @@ function getConfig(options?: Record<string, unknown>): PinyinConfig {
   const raw = parsePluginOption(options?.['plugin:typecho-plugin-pinyin']);
   return {
     titleLength: boundedInteger(raw.titleLength, DEFAULT_TITLE_LENGTH, 1, 500),
+    slugLength: boundedInteger(raw.slugLength, DEFAULT_SLUG_LENGTH, 1, 1000),
     slugAttempts: boundedInteger(raw.slugAttempts, DEFAULT_SLUG_ATTEMPTS, 1, 200),
   };
 }
@@ -52,7 +53,7 @@ function json(data: unknown, status = 200): Response {
  * Convert a title to a URL-safe ASCII slug.
  * Pinyin conversion stays in the Worker; the editor only sends the title.
  */
-export function titleToPinyinSlug(title: string): string {
+export function titleToPinyinSlug(title: string, maxLength = DEFAULT_SLUG_LENGTH): string {
   const source = title.trim();
   if (!source) return '';
 
@@ -76,11 +77,11 @@ export function titleToPinyinSlug(title: string): string {
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  return slug.slice(0, MAX_SLUG_LENGTH).replace(/-+$/g, '');
+  return slug.slice(0, maxLength).replace(/-+$/g, '');
 }
 
 /** Normalize a manually edited slug using the same URL-safe character set. */
-function normalizeSlug(value: string): string {
+function normalizeSlug(value: string, maxLength: number): string {
   return value
     .trim()
     .normalize('NFKD')
@@ -89,7 +90,7 @@ function normalizeSlug(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, MAX_SLUG_LENGTH)
+    .slice(0, maxLength)
     .replace(/-+$/g, '');
 }
 
@@ -97,19 +98,19 @@ function normalizeSlug(value: string): string {
  * Claim a unique slug after the core save has created/updated the content row.
  * This mirrors the core compare-and-swap strategy and avoids a SELECT/UPDATE race.
  */
-function appendSlugSuffix(base: string, suffix: string): string {
+function appendSlugSuffix(base: string, suffix: string, maxLength: number): string {
   const tail = `-${suffix}`;
-  const head = base.slice(0, Math.max(1, MAX_SLUG_LENGTH - tail.length)).replace(/-+$/g, '');
+  const head = base.slice(0, Math.max(1, maxLength - tail.length)).replace(/-+$/g, '');
   return `${head}${tail}`;
 }
 
-async function claimUniqueSlug(db: any, cid: number, base: string, maxAttempts: number): Promise<string> {
+async function claimUniqueSlug(db: any, cid: number, base: string, maxAttempts: number, maxLength: number): Promise<string> {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const candidate = attempt === 0
       ? base
       : attempt === maxAttempts - 1
-        ? appendSlugSuffix(base, `${cid}-${Date.now().toString(36)}`)
-        : appendSlugSuffix(base, attempt === 1 ? String(cid) : `${cid}-${attempt}`);
+        ? appendSlugSuffix(base, `${cid}-${Date.now().toString(36)}`, maxLength)
+        : appendSlugSuffix(base, attempt === 1 ? String(cid) : `${cid}-${attempt}`, maxLength);
     const claimed = await db.update(schema.contents)
       .set({ slug: candidate })
       .where(and(
@@ -142,11 +143,12 @@ async function persistSubmittedSlug(content: Record<string, any>, extra?: SaveEx
   if (!requestedSlug) return;
 
   const cid = Number(content.cid);
-  const base = normalizeSlug(requestedSlug);
+  const config = getConfig(extra?.options);
+  const base = normalizeSlug(requestedSlug, config.slugLength);
   if (!Number.isSafeInteger(cid) || cid <= 0 || !base) return;
   if (String(content.slug || '') === base) return;
 
-  const finalSlug = await claimUniqueSlug(db, cid, base, getConfig(extra?.options).slugAttempts);
+  const finalSlug = await claimUniqueSlug(db, cid, base, config.slugAttempts, config.slugLength);
   // finishData is the same object the core uses for its subsequent cache work.
   content.slug = finalSlug;
 }
@@ -157,6 +159,7 @@ function editorHtml(
   currentSlug: string,
   currentCid: number,
   titleMaxLength: number,
+  slugMaxLength: number,
 ): string {
   const initialSlug = JSON.stringify(currentSlug).replace(/</g, '\\u003c');
   const cidValue = Number.isSafeInteger(currentCid) && currentCid > 0 ? String(currentCid) : '0';
@@ -214,7 +217,10 @@ function editorHtml(
     slug.style.minWidth = '48px';
     slug.style.overflow = 'hidden';
   }
-  slug.maxLength = 180;
+  slug.maxLength = ${slugMaxLength};
+  if (String(slug.value || '').length > ${slugMaxLength}) {
+    slug.value = String(slug.value || '').slice(0, ${slugMaxLength});
+  }
 
   function updateSlugInputWidth() {
     var mobile = window.matchMedia('(max-width: 767px)').matches;
@@ -414,6 +420,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       String(post?.slug || ''),
       Number(post?.cid) || 0,
       getConfig(extra?.options).titleLength,
+      getConfig(extra?.options).slugLength,
     );
   });
 
@@ -426,6 +433,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       String(page?.slug || ''),
       Number(page?.cid) || 0,
       getConfig(extra?.options).titleLength,
+      getConfig(extra?.options).slugLength,
     );
   });
 
@@ -475,7 +483,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
     return {
       handled: true,
-      response: json({ success: true, slug: titleToPinyinSlug(title) }),
+      response: json({ success: true, slug: titleToPinyinSlug(title, getConfig(extra?.options).slugLength) }),
     };
   }, 20);
 }
