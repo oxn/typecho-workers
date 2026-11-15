@@ -1,7 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { pinyin } from 'pinyin-pro';
 import { parsePluginOption, registerPluginAdminPath } from 'typecho/plugin-sdk';
-import adminCss from './admin.css?raw';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
@@ -361,12 +360,49 @@ function editorHtml(
 </script>`;
 }
 
+/** Plugin-owned settings presentation; embedded so disabling this plugin removes it. */
+const pinyinAdminCss = [
+  '.pinyin-settings-page .typecho-option { margin: 0 0 16px !important; padding: 18px 20px !important; border: 1px solid #e5e9ed !important; border-radius: 8px !important; background: #fff !important; }',
+  '.pinyin-settings-page .typecho-option > li { padding: 0 !important; }',
+  '.pinyin-settings-page .typecho-option input[type="text"], .pinyin-settings-page .typecho-option input[type="number"] { box-sizing: border-box; width: min(100%, 420px); min-height: 36px; padding: 7px 10px; border: 1px solid #c9cdd2; border-radius: 5px; background: #fff; color: #30343b; font: inherit; }',
+  '.pinyin-settings-page .typecho-option input[type="text"]:focus, .pinyin-settings-page .typecho-option input[type="number"]:focus { border-color: #668fc4; outline: 0; box-shadow: 0 0 0 3px rgb(80 130 190 / 14%); }',
+  '.pinyin-settings-page .typecho-option p.description, .pinyin-settings-page .typecho-option .description { margin: 8px 0 0 !important; color: #737b85; font-size: 13px; line-height: 1.7; }',
+  '.pinyin-settings-page .typecho-option-submit { padding: 0 !important; border: 0 !important; background: transparent !important; }',
+  '.pinyin-settings-page .typecho-option-submit > li { padding: 0 !important; }',
+  '.pinyin-settings-page .typecho-option-submit .btn { min-height: 36px; padding: 7px 16px; border-radius: 6px; }',
+  '.pinyin-settings-page .pinyin-toolbar { display: flex; justify-content: flex-end; margin: 0 0 14px; }',
+  '.pinyin-settings-page .pinyin-toolbar a { display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid #dce2e8; border-radius: 7px; background: #fff; color: #456f9f !important; text-decoration: none; font-size: 13px; }',
+  '.pinyin-settings-page .pinyin-toolbar a:hover { border-color: #668fc4; background: #f5f8fc; }',
+  '@media (max-width: 767px) { .pinyin-settings-page .typecho-option { padding: 15px !important; } .pinyin-settings-page .typecho-option input[type="text"], .pinyin-settings-page .typecho-option input[type="number"] { width: 100%; max-width: 100%; } }',
+].join('\\n');
+
 export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
 
   addHook('admin:header', pluginId, (html: string, extra?: { title?: string }) => {
-    if (extra?.title !== '拼音别名') return html;
-    return `${html}<style data-typecho-pinyin-admin>${adminCss}</style>`;
+    if (extra?.title !== '设置插件 拼音别名') return html;
+    return `${html}<style data-typecho-pinyin-admin>${pinyinAdminCss}</style>`;
+  }, 20);
+
+  addHook('admin:footer', pluginId, (html: string) => {
+    const script = [
+      '<script data-typecho-pinyin-admin-navigation>',
+      '(function () {',
+      "  if (window.location.pathname !== '/admin/plugin-config' || new URLSearchParams(window.location.search).get('id') !== 'typecho-plugin-pinyin') return;",
+      "  document.body.classList.add('pinyin-settings-page');",
+      "  var form = document.querySelector('form[action^=\"/admin/plugin-config\"]');",
+      "  if (!form || (form.previousElementSibling && form.previousElementSibling.classList.contains('pinyin-toolbar'))) return;",
+      "  var toolbar = document.createElement('div');",
+      "  toolbar.className = 'pinyin-toolbar';",
+      "  var link = document.createElement('a');",
+      "  link.href = '/admin/plugins';",
+      "  link.textContent = '返回插件列表';",
+      "  toolbar.append(link);",
+      "  form.before(toolbar);",
+      '})();',
+      '</script>',
+    ].join('\\n');
+    return html + script;
   }, 20);
 
   addHook('admin:writePost:bottom', pluginId, (html: string, extra?: EditorExtra) => {
