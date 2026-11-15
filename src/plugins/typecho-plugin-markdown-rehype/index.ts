@@ -856,7 +856,7 @@ function clearMarkdownRenderCache(): void {
   renderedMarkdownCacheWeight = 0;
 }
 
-/** Warm CY article-only Markdown pipeline; raw HTML uses the official sanitizer with a narrow article schema extension. */
+/** Rin-compatible Markdown article pipeline with a fixed safe HTML schema. */
 export async function renderMarkdown(source: string): Promise<string> {
   if (!source) return '';
   const normalizedSource = source;
