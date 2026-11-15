@@ -1820,7 +1820,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '  if (htmlAttributes) {',
       '    var normalizeHtmlAttributes = function () {',
       '      var rows = htmlAttributes.value.replace(/\\\\[nr]/gi, \'\\n\').split(/[\\n;；]+/).map(function (line) {',
-      '        var match = line.trim().match(/^([a-z][a-z0-9]*)\\s*:\\s*(.+)$/i);',
+      '        var match = line.trim().match(/^([a-z][a-z0-9:-]*)\\s*:\\s*(.+)$/i);',
       '        if (!match) return \'\';',
       '        var attrs = Array.from(new Set(match[2].split(/[\\s,，]+/).map(function (attr) { return attr.trim().toLowerCase(); }).filter(Boolean)));',
       '        return attrs.length ? match[1].toLowerCase() + \': \' + attrs.join(\', \') : \'\';',
