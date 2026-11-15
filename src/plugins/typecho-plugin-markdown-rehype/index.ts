@@ -489,14 +489,19 @@ const articleSanitizeSchema = {
       ['preload', 'none', 'metadata', 'auto'],
       ['playsInline', true],
       ['disablePictureInPicture', true],
+      ['disableRemotePlayback', true],
+      ['crossOrigin', 'anonymous', 'use-credentials'],
       ['controlsList', /^(?:nodownload|nofullscreen|noremoteplayback)(?:\s+(?:nodownload|nofullscreen|noremoteplayback))*$/i],
     ],
     audio: [
       'src', 'controls', 'autoplay', 'muted', 'loop',
       ['preload', 'none', 'metadata', 'auto'],
+      ['disableRemotePlayback', true],
+      ['crossOrigin', 'anonymous', 'use-credentials'],
+      ['controlsList', /^(?:nodownload|nofullscreen|noremoteplayback)(?:\s+(?:nodownload|nofullscreen|noremoteplayback))*$/i],
     ],
     source: [
-      'src', 'type', 'media', 'sizes', 'width', 'height',
+      'src', 'type', 'media', 'sizes', 'width', 'height', ['crossOrigin', 'anonymous', 'use-credentials'],
       // Responsive <picture> sources are forwarded by Rin's raw-HTML renderer.
       // Restrict srcset candidates to HTTP(S), protocol-relative, or relative URLs.
       ['srcSet', /^(?:(?:(?:https?:)?\/\/|\/|\.{1,2}\/|(?![a-z][a-z0-9+.-]*:)[^,\s]+)(?:\s+(?:\d+(?:\.\d+)?x|\d+w))?)(?:\s*,\s*(?:(?:https?:)?\/\/|\/|\.{1,2}\/|(?![a-z][a-z0-9+.-]*:)[^,\s]+)(?:\s+(?:\d+(?:\.\d+)?x|\d+w))?)*$/i],
