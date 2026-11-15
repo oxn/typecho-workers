@@ -2018,10 +2018,10 @@ function createPublicContentRuntimeScript(): string {
   };
 
   const renderMathJax = async () => {
-    const bodies = [...document.querySelectorAll('[data-math-engine="mathjax"]')];
-    const blocks = bodies.flatMap(body =>
-      [...body.querySelectorAll('code.language-math:not([data-mathjax-processed])')]
-    );
+    // In MathJax mode the processor leaves math as language-math code nodes;
+    // KaTeX mode has already replaced them with .katex markup. No theme wrapper
+    // or theme-specific data attribute is required here.
+    const blocks = [...document.querySelectorAll('code.language-math:not([data-mathjax-processed])')];
     if (!blocks.length) return;
     if (mathJaxRendering) {
       mathJaxQueued = true;
@@ -2062,7 +2062,7 @@ function createPublicContentRuntimeScript(): string {
   };
 
   const addCodeCopyButtons = () => {
-    document.querySelectorAll('.warm-prose pre > code').forEach(code => {
+    document.querySelectorAll('main pre > code, article pre > code, .warm-prose pre > code').forEach(code => {
       const pre = code.parentElement;
       if (!pre || pre.matches('.mermaid_default, .mermaid_dark') ||
           pre.querySelector(':scope > .warm-code-copy')) return;
