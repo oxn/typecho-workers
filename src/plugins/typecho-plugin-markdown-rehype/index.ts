@@ -1121,7 +1121,7 @@ function createAdminPreviewScript(): string {
       '<script>(function(){' +
         'function notify(){var root=document.documentElement,body=document.body,rect=body.getBoundingClientRect();var h=Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight,rect.bottom+window.scrollY));window.parent.postMessage({type:"markdown-rehype-preview-height",height:h},"*");}' +
         'if(window.ResizeObserver){var ro=new ResizeObserver(notify);ro.observe(document.documentElement);ro.observe(document.body);}' +
-        'window.addEventListener("load",notify);window.addEventListener("resize",notify);setTimeout(notify,80);setTimeout(notify,350);window.__warmMarkdownContentRendered=notify;' +
+        'window.addEventListener("load",notify);window.addEventListener("resize",notify);setTimeout(notify,80);setTimeout(notify,350);window.__rinMarkdownContentRendered=notify;' +
 
       '})();' + '</scr' + 'ipt>' +
       createPublicContentRuntimeScript() +
@@ -1263,8 +1263,8 @@ function createPublicContentRuntimeScript(): string {
 
   return `<script data-markdown-rehype-content-runtime>
 (() => {
-  if (window.__warmMarkdownContentRuntime) return;
-  window.__warmMarkdownContentRuntime = true;
+  if (window.__rinMarkdownContentRuntime) return;
+  window.__rinMarkdownContentRuntime = true;
   const mermaidConfigs = ${mermaidConfigs};
   const katexCss = ${katexCssValue};
   let mermaidLoad = null;
@@ -1305,14 +1305,14 @@ function createPublicContentRuntimeScript(): string {
   };
 
   const loadMermaid = () => {
-    if (window.__warmCyMermaid) return Promise.resolve(window.__warmCyMermaid);
+    if (window.__rinMermaidRuntime) return Promise.resolve(window.__rinMermaidRuntime);
     if (mermaidLoad) return mermaidLoad;
     mermaidLoad = new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = '/plugin-assets/typecho-plugin-markdown-rehype/mermaid-runtime.js';
       script.async = true;
-      script.onload = () => window.__warmCyMermaid
-        ? resolve(window.__warmCyMermaid)
+      script.onload = () => window.__rinMermaidRuntime
+        ? resolve(window.__rinMermaidRuntime)
         : reject(new Error('Mermaid runtime did not expose its renderer'));
       script.onerror = () => reject(new Error('Mermaid runtime failed to load'));
       document.head.append(script);
@@ -1365,8 +1365,8 @@ function createPublicContentRuntimeScript(): string {
     ensureKatexCss();
     loadRinRuntime();
     renderMermaid().then(() => {
-      if (typeof window.__warmMarkdownContentRendered === 'function') {
-        window.__warmMarkdownContentRendered();
+      if (typeof window.__rinMarkdownContentRendered === 'function') {
+        window.__rinMarkdownContentRendered();
       }
     });
   };
