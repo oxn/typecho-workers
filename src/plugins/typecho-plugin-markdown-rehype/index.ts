@@ -815,7 +815,7 @@ function rehypeRinCodeBlocks() {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'element' && node.tagName === 'pre' && Array.isArray(node.children)) {
         const offset = Number(node.position?.start?.offset ?? -1);
-        const startsWithFence = offset >= 0 && source.slice(offset).trimStart().startsWith('```');
+        const startsWithFence = offset >= 0 && /^ {0,3}(?:`{3,}|~{3,})/.test(source.slice(offset));
         const code = node.children.find((child: any) => child?.type === 'element' && child.tagName === 'code');
         if (startsWithFence && code) {
           node.tagName = 'div';
