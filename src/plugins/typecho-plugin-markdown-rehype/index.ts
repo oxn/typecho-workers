@@ -351,6 +351,16 @@ const articleSanitizeSchema = {
     // Preserve that target ID or the visible superscript link has nowhere to jump.
     li: [...(defaultSchema.attributes.li ?? []), 'id', 'className'],
     sub: ['id', 'title', 'ariaLabel', 'ariaDescribedBy', 'className', 'style'],
+    abbr: [...(defaultSchema.attributes.abbr ?? []), 'title', 'className'],
+    q: [...(defaultSchema.attributes.q ?? []), 'cite', 'className'],
+    time: [...(defaultSchema.attributes.time ?? []), 'dateTime', 'className'],
+    del: [...(defaultSchema.attributes.del ?? []), 'cite', 'dateTime', 'className'],
+    ins: [...(defaultSchema.attributes.ins ?? []), 'cite', 'dateTime', 'className'],
+    bdo: [...(defaultSchema.attributes.bdo ?? []), ['dir', 'ltr', 'rtl'], 'className'],
+    data: [...(defaultSchema.attributes.data ?? []), 'value', 'className'],
+    output: [...(defaultSchema.attributes.output ?? []), 'htmlFor', 'form', 'name', 'className'],
+    progress: [...(defaultSchema.attributes.progress ?? []), 'max', 'value', 'className'],
+    meter: [...(defaultSchema.attributes.meter ?? []), 'min', 'max', 'low', 'high', 'optimum', 'value', 'className'],
 
     img: [
       ...(defaultSchema.attributes.img ?? []),
