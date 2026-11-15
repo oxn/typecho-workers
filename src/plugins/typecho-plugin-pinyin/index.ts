@@ -357,13 +357,14 @@ function editorHtml(
       return;
     }
 
-    if (!allowsSlugEdit) {
-      var value = String(slug.value || '').trim();
-      var target = new URL(form.getAttribute('action') || '/api/admin/content', window.location.href);
-      if (value) target.searchParams.set('${SAVE_SLUG_PARAM}', value);
-      else target.searchParams.delete('${SAVE_SLUG_PARAM}');
-      form.setAttribute('action', target.pathname + target.search + target.hash);
-    }
+    // Pass the requested value to the finishSave hook in both permalink modes.
+    // The native slug field still serves the core save flow when it is editable;
+    // this extra parameter lets the plugin enforce its configured limit afterward.
+    var value = String(slug.value || '').trim();
+    var target = new URL(form.getAttribute('action') || '/api/admin/content', window.location.href);
+    if (value) target.searchParams.set('${SAVE_SLUG_PARAM}', value);
+    else target.searchParams.delete('${SAVE_SLUG_PARAM}');
+    form.setAttribute('action', target.pathname + target.search + target.hash);
   });
 
   if (!manual && !String(slug.value || '').trim()) {
