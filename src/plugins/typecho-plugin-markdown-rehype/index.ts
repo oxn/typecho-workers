@@ -628,18 +628,20 @@ function rehypeRinCodeBlocks() {
 }
 
 function rehypeRinHeadingIds() {
-  const textContent = (node: any): string => {
-    if (!node || typeof node !== 'object') return '';
-    if (node.type === 'text') return typeof node.value === 'string' ? node.value : '';
-    if (!Array.isArray(node.children)) return '';
-    return node.children.map(textContent).join('');
-  };
+  const childToString = (child: any): string => child?.type === 'text' && typeof child.value === 'string'
+    ? child.value
+    : '[object Object]';
   return (tree: any): void => {
     const visit = (node: any): void => {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'element' && /^h[1-6]$/.test(node.tagName || '')) {
         node.properties = node.properties || {};
-        node.properties.id = textContent(node);
+        if (node.properties.id == null) {
+          const children = Array.isArray(node.children) ? node.children : [];
+          node.properties.id = children.length === 1
+            ? childToString(children[0])
+            : children.map(childToString).join(',');
+        }
       }
       if (Array.isArray(node.children)) node.children.forEach(visit);
     };
