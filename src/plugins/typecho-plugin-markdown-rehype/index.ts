@@ -1931,6 +1931,206 @@ const markdownRehypeAdminCss = [
   '@media (max-width: 767px) { .markdown-rehype-settings-page .typecho-option { padding: 16px !important; } }',
 ].join('\n');
 
+
+function createPublicContentRuntimeScript(): string {
+  const mermaidConfigs = JSON.stringify({
+    light: getWarmMermaidConfig(false),
+    dark: getWarmMermaidConfig(true),
+  }).replace(/</g, '\\u003c');
+  const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
+  const mathJaxUrlValue = JSON.stringify(mathJaxModuleUrl).replace(/</g, '\\u003c');
+
+  return \`<script data-markdown-rehype-content-runtime>
+(() => {
+  if (window.__warmMarkdownContentRuntime) return;
+  window.__warmMarkdownContentRuntime = true;
+  const mermaidConfigs = \${mermaidConfigs};
+  const katexCss = \${katexCssValue};
+  const mathJaxUrl = \${mathJaxUrlValue};
+  let mermaidLoad = null;
+  let mathJaxLoad = null;
+  let mathJaxRendering = false;
+  let mathJaxQueued = false;
+
+  const ensureKatexCss = () => {
+    if (!document.querySelector('.katex') || document.querySelector('[data-markdown-rehype-katex]')) return;
+    const style = document.createElement('style');
+    style.dataset.markdownRehypeKatex = '1';
+    style.textContent = katexCss;
+    document.head.append(style);
+  };
+
+  const loadMermaid = () => {
+    if (window.__warmCyMermaid) return Promise.resolve(window.__warmCyMermaid);
+    if (mermaidLoad) return mermaidLoad;
+    mermaidLoad = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '/plugin-assets/typecho-plugin-markdown-rehype/mermaid-runtime.js';
+      script.async = true;
+      script.onload = () => window.__warmCyMermaid
+        ? resolve(window.__warmCyMermaid)
+        : reject(new Error('Mermaid runtime did not expose its renderer'));
+      script.onerror = () => reject(new Error('Mermaid runtime failed to load'));
+      document.head.append(script);
+    });
+    return mermaidLoad;
+  };
+
+  const renderMermaidVariant = async (mermaid, nodes, config) => {
+    if (!nodes.length) return;
+    const restore = [];
+    nodes.forEach(node => {
+      if (getComputedStyle(node).display !== 'none') return;
+      restore.push({
+        node,
+        display: node.style.getPropertyValue('display'),
+        displayPriority: node.style.getPropertyPriority('display'),
+        visibility: node.style.getPropertyValue('visibility'),
+        visibilityPriority: node.style.getPropertyPriority('visibility'),
+      });
+      node.style.setProperty('display', 'block', 'important');
+      node.style.setProperty('visibility', 'hidden', 'important');
+    });
+    try {
+      mermaid.initialize(config);
+      await mermaid.run({ nodes });
+    } finally {
+      restore.forEach(item => {
+        if (item.display) item.node.style.setProperty('display', item.display, item.displayPriority);
+        else item.node.style.removeProperty('display');
+        if (item.visibility) item.node.style.setProperty('visibility', item.visibility, item.visibilityPriority);
+        else item.node.style.removeProperty('visibility');
+      });
+    }
+  };
+
+  const renderMermaid = async () => {
+    const light = [...document.querySelectorAll('pre.mermaid_default:not([data-processed])')];
+    const dark = [...document.querySelectorAll('pre.mermaid_dark:not([data-processed])')];
+    if (!light.length && !dark.length) return;
+    try {
+      const mermaid = await loadMermaid();
+      await renderMermaidVariant(mermaid, light, mermaidConfigs.light);
+      await renderMermaidVariant(mermaid, dark, mermaidConfigs.dark);
+    } catch (error) {
+      console.error('Markdown Mermaid rendering failed:', error);
+    }
+  };
+
+  const renderMathJax = async () => {
+    const bodies = [...document.querySelectorAll('[data-math-engine="mathjax"]')];
+    const blocks = bodies.flatMap(body =>
+      [...body.querySelectorAll('code.language-math:not([data-mathjax-processed])')]
+    );
+    if (!blocks.length) return;
+    if (mathJaxRendering) {
+      mathJaxQueued = true;
+      return;
+    }
+    mathJaxRendering = true;
+    try {
+      window.MathJax = window.MathJax || {
+        startup: { typeset: false },
+        tex: { inlineMath: [['\\\\(', '\\\\)']], displayMath: [['\\\\[', '\\\\]']] }
+      };
+      mathJaxLoad ||= import(mathJaxUrl);
+      await mathJaxLoad;
+      const replacements = [];
+      for (const code of blocks) {
+        if (!code.isConnected) continue;
+        const pre = code.closest('pre');
+        const replacement = document.createElement(pre ? 'div' : 'span');
+        replacement.className = pre ? 'mathjax-display' : 'mathjax-inline';
+        replacement.textContent = pre ? '\\\\[\\n' + code.textContent + '\\n\\\\]' : '\\\\(' + code.textContent + '\\\\)';
+        (pre || code).replaceWith(replacement);
+        replacements.push(replacement);
+      }
+      const mathJax = window.MathJax;
+      if (mathJax?.startup?.promise && replacements.length) {
+        await mathJax.startup.promise;
+        await mathJax.typesetPromise(replacements);
+      }
+    } catch (error) {
+      console.error('Markdown MathJax rendering failed:', error);
+    } finally {
+      mathJaxRendering = false;
+      if (mathJaxQueued) {
+        mathJaxQueued = false;
+        queueMicrotask(() => void renderMathJax());
+      }
+    }
+  };
+
+  const addCodeCopyButtons = () => {
+    document.querySelectorAll('.warm-prose pre > code').forEach(code => {
+      const pre = code.parentElement;
+      if (!pre || pre.matches('.mermaid_default, .mermaid_dark') ||
+          pre.querySelector(':scope > .warm-code-copy')) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'warm-code-copy';
+      button.textContent = '复制';
+      button.title = '复制代码';
+      button.setAttribute('aria-label', '复制代码');
+      button.style.cssText = 'position:absolute;top:4px;right:4px;z-index:2;padding:2px 6px;border:0;border-radius:4px;background:var(--warm-surface-strong);color:var(--warm-muted);font:inherit;font-size:12px;line-height:1.4;cursor:pointer;user-select:none;visibility:hidden;opacity:0;transition:opacity 140ms ease;';
+      if (getComputedStyle(pre).position === 'static') pre.style.position = 'relative';
+      const canHover = window.matchMedia('(hover: hover)').matches;
+      const show = () => { button.style.visibility = 'visible'; button.style.opacity = '1'; };
+      const hide = () => { button.style.visibility = 'hidden'; button.style.opacity = '0'; };
+      if (canHover) {
+        pre.addEventListener('mouseenter', show);
+        pre.addEventListener('mouseleave', hide);
+        button.addEventListener('blur', hide);
+      } else show();
+      button.addEventListener('click', async () => {
+        show();
+        let copied = false;
+        const value = code.textContent || '';
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(value);
+            copied = true;
+          } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = value;
+            textarea.setAttribute('readonly', '');
+            textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+            document.body.append(textarea);
+            textarea.select();
+            copied = document.execCommand('copy');
+            textarea.remove();
+          }
+        } catch (error) {
+          console.error('Markdown code copy failed:', error);
+        }
+        const label = copied ? '已复制 ✓' : '复制失败';
+        button.textContent = label;
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        window.setTimeout(() => {
+          button.textContent = '复制';
+          button.title = '复制代码';
+          button.setAttribute('aria-label', '复制代码');
+          if (canHover && !pre.matches(':hover')) hide();
+        }, 2000);
+      });
+      pre.append(button);
+    });
+  };
+
+  const renderContent = () => {
+    ensureKatexCss();
+    addCodeCopyButtons();
+    void renderMermaid();
+    void renderMathJax();
+  };
+
+  renderContent();
+  window.addEventListener('instantclick:newpage', renderContent);
+})();
+</script>\`;
+}
+
 export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   // Let the plugin own Markdown rendering for every theme that uses the shared
@@ -1943,6 +2143,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   addHook('content:content', pluginId, (html: string) => {
     return typeof html === 'string' ? restoreMarkdownBridgeHtml(html) : html;
+  }, 1000);
+
+  // Public content enhancements belong to the renderer plugin, not a theme.
+  // Mermaid and MathJax assets are loaded only when matching content exists.
+  addHook('archive:footer', pluginId, (html: string) => {
+    return html + createPublicContentRuntimeScript();
   }, 1000);
 
   // This preview endpoint is plugin-owned; explicitly allow it through the admin route guard.
