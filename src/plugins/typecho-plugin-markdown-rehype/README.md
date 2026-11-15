@@ -1,14 +1,14 @@
 # Markdown Rehype
 
-本插件正在将 [Rin](https://github.com/oxn/Rin) 的文章 Markdown 渲染实现移植到 Typecho。当前阶段只处理文章内容渲染，不扩展额外 Markdown 语法，也不接管主题页面布局。
+本插件将 [Rin](https://github.com/oxn/Rin) 的 Markdown 内容输出实现移植到 Typecho，统一负责文章与独立页面的 Markdown 解析、HTML 输出及浏览器交互。主题继续负责页面框架和布局，正文内容由插件渲染。
 
 ## 渲染基准
 
-文章解析以 Rin 的 `client/src/components/markdown.tsx` 为基准：
+文章与独立页面的正文解析以 Rin 的 `client/src/components/markdown.tsx` 为基准：
 
 - remark：GFM、Mermaid 双主题结构、数学公式、GitHub Blockquote Alerts、软换行。
 - rehype：KaTeX、原始 HTML 解析。
-- 文章组件：标题、段落、链接、引用、列表、任务列表、表格、脚注、上下标和 iframe。
+- 正文组件：标题、段落、链接、引用、列表、任务列表、表格、脚注、上下标和 iframe。
 - 图片：URL 元数据、宽高、BlurHash 占位、加载状态、失败占位、行内/块级尺寸。
 - 图片查看：灯箱、下载、缩放和计数。
 - 代码：完整 Prism 语言注册表、Ateliersulphurpool Light / VS Code Dark Plus 配色、长行换行和复制；仅在文章存在代码块时加载高亮运行时。
@@ -16,9 +16,9 @@
 
 ## 插件边界
 
-- Markdown 解析和文章交互由本插件完成，文章根节点为 `.toc-content`。
+- 文章与独立页面均通过共享内容过滤入口调用本插件；插件也导出 `renderMarkdown(source)`，可直接渲染正文 HTML。输出根节点为 `.toc-content`。
 - 主题只提供页面框架以及当前主题的颜色模式；不调用主题自己的 Markdown 渲染器。
-- 前台文章与后台预览共用同一份 Markdown 解析输出和浏览器运行时。
+- 前台文章、独立页面与后台预览共用同一份 Markdown 解析输出和浏览器运行时。
 - 插件保留 HTML 安全过滤，不开放脚本、事件处理器等可执行内容。
 - 后台设置由插件直接读取 `plugin:typecho-plugin-markdown-rehype` 配置，并参与文章渲染；前台文章与后台预览使用相同配置。
 
