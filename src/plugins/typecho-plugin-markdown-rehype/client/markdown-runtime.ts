@@ -179,7 +179,7 @@ const RIN_CSS = `
 .rin-image-placeholder.is-inline{width:2rem;height:2rem}
 .rin-lightbox{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.94);color:#fff}
 .rin-lightbox.is-open{display:flex}
-.rin-lightbox-image{max-width:calc(100vw - 64px);max-height:calc(100vh - 100px);object-fit:contain;transform-origin:center;transition:transform .12s};cursor:grab;touch-action:none}.rin-lightbox-image.is-dragging{cursor:grabbing}
+.rin-lightbox-image{max-width:calc(100vw - 64px);max-height:calc(100vh - 100px);object-fit:contain;transform-origin:center;transition:transform .12s;cursor:grab;touch-action:none}.rin-lightbox-image.is-dragging{cursor:grabbing}
 .rin-lightbox-toolbar{position:absolute;top:12px;right:12px;left:12px;display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .rin-lightbox-toolbar button,.rin-lightbox-toolbar a,.rin-lightbox-nav{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.35);border-radius:6px;background:rgba(30,30,30,.65);color:#fff;text-decoration:none;cursor:pointer}
 .rin-lightbox-counter{margin-right:auto;font-size:13px}
