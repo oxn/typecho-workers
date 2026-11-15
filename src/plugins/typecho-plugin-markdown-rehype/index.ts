@@ -1940,13 +1940,13 @@ function createPublicContentRuntimeScript(): string {
   const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
   const mathJaxUrlValue = JSON.stringify(mathJaxModuleUrl).replace(/</g, '\\u003c');
 
-  return \`<script data-markdown-rehype-content-runtime>
+  return `<script data-markdown-rehype-content-runtime>
 (() => {
   if (window.__warmMarkdownContentRuntime) return;
   window.__warmMarkdownContentRuntime = true;
-  const mermaidConfigs = \${mermaidConfigs};
-  const katexCss = \${katexCssValue};
-  const mathJaxUrl = \${mathJaxUrlValue};
+  const mermaidConfigs = ${mermaidConfigs};
+  const katexCss = ${katexCssValue};
+  const mathJaxUrl = ${mathJaxUrlValue};
   let mermaidLoad = null;
   let mathJaxLoad = null;
   let mathJaxRendering = false;
@@ -2128,7 +2128,7 @@ function createPublicContentRuntimeScript(): string {
   renderContent();
   window.addEventListener('instantclick:newpage', renderContent);
 })();
-</script>\`;
+</script>`;
 }
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
