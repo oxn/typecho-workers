@@ -53,7 +53,7 @@ describe('typecho-plugin-pinyin', () => {
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith('/api/admin/pinyin-slug');
   });
 
-  it('only injects editor helpers when the permalink pattern contains {slug}', () => {
+  it('supports both slug-based and ID-based permalink editors', () => {
     const hooks = setup();
     const post = hooks.get('admin:writePost:bottom')!;
     const page = hooks.get('admin:writePage:bottom')!;
