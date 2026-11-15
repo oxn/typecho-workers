@@ -424,7 +424,7 @@ const articleSanitizeSchema = {
       'dataCountdownMinutes', 'dataCountdownSeconds',
     ],
     p: [...(defaultSchema.attributes.p ?? []), 'className', 'style', ['dir', 'ltr', 'rtl', 'auto']],
-    section: [...(defaultSchema.attributes.section ?? []), 'className', 'style'],
+    section: [...(defaultSchema.attributes.section ?? []), 'className', 'style', 'dataFootnotes'],
     article: [...(defaultSchema.attributes.article ?? []), 'className', 'style'],
     aside: [...(defaultSchema.attributes.aside ?? []), 'className', 'style'],
     header: [...(defaultSchema.attributes.header ?? []), 'className', 'style'],
@@ -685,6 +685,39 @@ function remarkRinBreaks() {
   };
 }
 
+function rehypeRinIframes() {
+  return (tree: any): void => {
+    const visit = (parent: any): void => {
+      if (!parent || !Array.isArray(parent.children)) return;
+      const next: any[] = [];
+      for (const child of parent.children) {
+        if (child?.type === 'element' && child.tagName === 'iframe') {
+          const properties = child.properties || (child.properties = {});
+          properties.title = typeof properties.title === 'string' && properties.title
+            ? properties.title
+            : 'Embedded content';
+          properties.className = ['rin-iframe'];
+          properties.style = 'min-height:400px';
+          properties.loading = 'lazy';
+          properties.referrerPolicy = 'no-referrer';
+          properties.sandbox = 'allow-scripts allow-same-origin allow-popups allow-forms';
+          next.push({
+            type: 'element',
+            tagName: 'div',
+            properties: { className: ['rin-iframe-wrapper'] },
+            children: [child],
+          });
+        } else {
+          visit(child);
+          next.push(child);
+        }
+      }
+      parent.children = next;
+    };
+    visit(tree);
+  };
+}
+
 function rehypeRinCodeBlocks() {
   return (tree: any, file: any): void => {
     const source = typeof file?.value === 'string' ? file.value : '';
@@ -749,6 +782,7 @@ function createMarkdownProcessor(
     .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
     .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes, customHtmlTags))
+    .use(rehypeRinIframes)
     .use(rehypeRinCodeBlocks)
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
