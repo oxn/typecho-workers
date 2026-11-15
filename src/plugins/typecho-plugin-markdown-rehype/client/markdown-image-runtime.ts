@@ -89,6 +89,7 @@ function createLightbox(): {
   let pointerDrag: { x: number; y: number; originX: number; originY: number } | null = null;
   let touchStart: { x: number; y: number; originX: number; originY: number } | null = null;
   let pinchStart: { distance: number; zoom: number } | null = null;
+  let previouslyFocusedElement: HTMLElement | null = null;
   const slides = () => activeRoot ? Array.from(activeRoot.querySelectorAll<HTMLImageElement>('img')).filter(item => item.getAttribute('src')) : [];
   const resetZoom = () => { zoom = 1; offsetX = 0; offsetY = 0; };
   const render = () => {
@@ -123,6 +124,9 @@ function createLightbox(): {
     root!.classList.remove('is-open');
     image.removeAttribute('src');
     document.body.style.removeProperty('overflow');
+    const focusTarget = previouslyFocusedElement;
+    previouslyFocusedElement = null;
+    focusTarget?.focus();
   };
   root.addEventListener('click', event => {
     const target = event.target as HTMLElement;
@@ -211,6 +215,26 @@ function createLightbox(): {
   });
   document.addEventListener('keydown', event => {
     if (!root!.classList.contains('is-open')) return;
+    if (event.key === 'Tab') {
+      const focusable = Array.from(root!.querySelectorAll<HTMLElement>(
+        'button:not([disabled]),a[href], [tabindex]:not([tabindex="-1"])',
+      )).filter(element => element.offsetParent !== null);
+      if (!focusable.length) {
+        event.preventDefault();
+        root!.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !root!.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !root!.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+      return;
+    }
     if (event.key === 'Escape') close();
     else if (event.key === 'ArrowRight') move(1);
     else if (event.key === 'ArrowLeft') move(-1);
@@ -219,6 +243,11 @@ function createLightbox(): {
   });
   return {
     open: selected => {
+      if (!root!.classList.contains('is-open')) {
+        previouslyFocusedElement = document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      }
       activeRoot = selected.closest('.toc-content');
       const list = slides();
       const selectedSrc = selected.currentSrc || selected.src;
@@ -228,6 +257,7 @@ function createLightbox(): {
       render();
       root!.classList.add('is-open');
       document.body.style.overflow = 'hidden';
+      root!.querySelector<HTMLButtonElement>('[data-action="close"]')?.focus();
     },
     close,
   };
