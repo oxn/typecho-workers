@@ -52,7 +52,6 @@
       "version": "1.0.0",
       "dependencies": {
         "katex": "^0.16.22",
-        "mathjax-full": "^3.2.2",
         "mermaid": "11.12.2",
         "rehype-autolink-headings": "^7.1.0",
         "rehype-external-links": "^3.0.0",
