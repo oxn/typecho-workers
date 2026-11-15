@@ -816,7 +816,7 @@ function rehypeRinSemanticComponents() {
       const current = Array.isArray(node.properties.className)
         ? node.properties.className
         : typeof node.properties.className === 'string'
-          ? node.properties.className.split(/\\s+/).filter(Boolean)
+          ? node.properties.className.split(/\s+/).filter(Boolean)
           : [];
       node.properties.className = [...new Set([...current, ...classes])];
     };
