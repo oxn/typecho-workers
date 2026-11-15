@@ -1,10 +1,5 @@
 import { drawBlurhashToCanvas } from './lib/blurhash';
 
-function currentImages(): HTMLImageElement[] {
-  const root = document.querySelector('.toc-content');
-  return root ? Array.from(root.querySelectorAll('img')) : [];
-}
-
 function showImagePlaceholder(inner: HTMLElement, alt: string, block: boolean): void {
   if (inner.querySelector('.rin-image-placeholder')) return;
   const placeholder = document.createElement('span');
@@ -88,13 +83,14 @@ function createLightbox(): {
   const caption = root.querySelector<HTMLElement>('.rin-lightbox-caption')!;
   const download = root.querySelector<HTMLAnchorElement>('[data-action="download"]')!;
   let activeIndex = -1;
+  let activeRoot: Element | null = null;
   let zoom = 1;
   let offsetX = 0;
   let offsetY = 0;
   let pointerDrag: { x: number; y: number; originX: number; originY: number } | null = null;
   let touchStart: { x: number; y: number; originX: number; originY: number } | null = null;
   let pinchStart: { distance: number; zoom: number } | null = null;
-  const slides = () => currentImages().filter(item => item.getAttribute('src'));
+  const slides = () => activeRoot ? Array.from(activeRoot.querySelectorAll<HTMLImageElement>('img')).filter(item => item.getAttribute('src')) : [];
   const resetZoom = () => { zoom = 1; offsetX = 0; offsetY = 0; };
   const render = () => {
     const list = slides();
@@ -121,6 +117,7 @@ function createLightbox(): {
   };
   const close = () => {
     activeIndex = -1;
+    activeRoot = null;
     pointerDrag = null;
     touchStart = null;
     pinchStart = null;
@@ -224,6 +221,7 @@ function createLightbox(): {
   });
   return {
     open: selected => {
+      activeRoot = selected.closest('.toc-content');
       const list = slides();
       const selectedSrc = selected.currentSrc || selected.src;
       activeIndex = list.findIndex(item => (item.currentSrc || item.src) === selectedSrc);
