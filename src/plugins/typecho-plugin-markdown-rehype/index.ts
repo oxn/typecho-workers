@@ -194,6 +194,9 @@ export const DEFAULT_CUSTOM_HTML_TAGS = [
   'u', 's', 'kbd', 'abbr', 'small', 'cite', 'q', 'time',
   'del', 'ins', 'ruby', 'rt', 'rp', 'wbr', 'bdi', 'bdo',
   'data', 'output', 'progress', 'meter',
+  // Preserve common semantic HTML elements accepted by Rin's rehypeRaw path.
+  'address', 'article', 'aside', 'footer', 'header', 'nav', 'hgroup', 'search',
+  'dl', 'dt', 'dd', 'samp', 'var', 'dfn',
 ] as const;
 
 
