@@ -262,6 +262,61 @@ const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-markdown-rehype';
 
 const ADMIN_PREVIEW_PATH = '/api/admin/markdown-rehype-preview';
 
+const MARKDOWN_BRIDGE_MAX_ENTRIES = 32;
+const MARKDOWN_BRIDGE_TTL_MS = 60_000;
+const markdownBridge = new Map<string, { html: string; createdAt: number }>();
+
+function pruneMarkdownBridge(now = Date.now()): void {
+  for (const [token, entry] of markdownBridge) {
+    if (now - entry.createdAt > MARKDOWN_BRIDGE_TTL_MS) markdownBridge.delete(token);
+  }
+  while (markdownBridge.size >= MARKDOWN_BRIDGE_MAX_ENTRIES) {
+    const oldest = markdownBridge.keys().next().value;
+    if (!oldest) break;
+    markdownBridge.delete(oldest);
+  }
+}
+
+async function loadPluginMarkdownRenderOptions(): Promise<MarkdownRenderOptions> {
+  try {
+    const db = getDb(env.DB);
+    const raw = await getOption(db, PLUGIN_OPTION_KEY);
+    const config = parsePluginConfig(raw);
+    return {
+      mathEngine: config.mathEngine === 'mathjax' ? 'mathjax' : 'katex',
+      tocEnabled: config.tocEnabled === true || config.tocEnabled === '1',
+    };
+  } catch {
+    return { mathEngine: 'katex', tocEnabled: false };
+  }
+}
+
+/**
+ * Bridge the plugin's fully sanitized HTML through the legacy core Markdown
+ * pipeline without asking the core sanitizer to understand plugin-specific
+ * SVG, math, iframe or custom-tag output. The random marker is generated per
+ * render and carried in the Markdown itself, so concurrent requests never
+ * share mutable "current article" state.
+ */
+async function renderMarkdownBridgeSource(source: string): Promise<string> {
+  const token = 'TYPECHOMARKDOWNREHYPE' + crypto.randomUUID().replace(/-/g, '');
+  const options = await loadPluginMarkdownRenderOptions();
+  const html = await renderMarkdown(source, options);
+  pruneMarkdownBridge();
+  markdownBridge.set(token, { html, createdAt: Date.now() });
+  return token;
+}
+
+function restoreMarkdownBridgeHtml(sanitized: string): string {
+  const match = sanitized.match(/<p>\\s*(TYPECHOMARKDOWNREHYPE[a-f0-9]{32})\\s*<\\/p>/i);
+  if (!match) return sanitized;
+  const entry = markdownBridge.get(match[1]);
+  markdownBridge.delete(match[1]);
+  if (!entry || Date.now() - entry.createdAt > MARKDOWN_BRIDGE_TTL_MS) return sanitized;
+  return sanitized.replace(match[0], entry.html);
+}
+
+
 function parsePluginConfig(value: unknown): Record<string, unknown> {
   if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
   if (typeof value !== 'string' || !value.trim()) return {};
@@ -1860,6 +1915,19 @@ const markdownRehypeAdminCss = [
 ].join('\n');
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
+
+  // Let the plugin own Markdown rendering for every theme that uses the shared
+  // content renderer. The final replacement runs after the core sanitizer;
+  // the HTML inserted here has already passed this plugin's rehype sanitizer.
+  addHook('content:markdown', pluginId, async (source: string) => {
+    if (typeof source !== 'string' || !source) return source;
+    return renderMarkdownBridgeSource(source);
+  }, 1000);
+
+  addHook('content:content', pluginId, (html: string) => {
+    return typeof html === 'string' ? restoreMarkdownBridgeHtml(html) : html;
+  }, 1000);
+
   // This preview endpoint is plugin-owned; explicitly allow it through the admin route guard.
   registerPluginAdminPath(ADMIN_PREVIEW_PATH);
 
