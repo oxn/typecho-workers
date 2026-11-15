@@ -1096,11 +1096,16 @@ export async function renderMarkdown(source: string): Promise<string> {
 
 function createAdminPreviewScript(): string {
   const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
+  // Embed the shared public-content initializer into the iframe document.
+  // The editor script runs in the admin page, so its server-side helper is
+  // not available as a browser global inside the generated preview document.
+  const contentRuntimeScriptValue = JSON.stringify(createPublicContentRuntimeScript()).replace(/</g, '\\u003c');
   // The editor preview uses the same browser runtime as public content.
 
   return `<script type="module" data-markdown-rehype-live-preview>
 (() => {
   const katexCss = ${katexCssValue};
+  const contentRuntimeScript = ${contentRuntimeScriptValue};
   // The editor creates #wmd-preview inside its jQuery ready callback.
   // A module script can run before that callback, so wait for the complete
   // editor DOM instead of permanently abandoning preview initialization.
@@ -1320,7 +1325,7 @@ function createAdminPreviewScript(): string {
         'window.addEventListener("load",notify);window.addEventListener("resize",notify);setTimeout(notify,80);setTimeout(notify,350);window.__rinMarkdownContentRendered=notify;' +
 
       '})();' + '</scr' + 'ipt>' +
-      createPublicContentRuntimeScript() +
+      contentRuntimeScript +
       '</body></html>';
   }
 
