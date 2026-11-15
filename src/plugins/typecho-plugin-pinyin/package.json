@@ -38,6 +38,12 @@
           "default": "100",
           "description": "拼音自动生成允许的标题最大字数，默认 100；范围 1–500。"
         },
+        "slugLength": {
+          "type": "text",
+          "label": "拼音别名最大长度",
+          "default": "300",
+          "description": "拼音别名输入和自动生成的最大字符数，默认 300；范围 1–1000。"
+        },
         "slugAttempts": {
           "type": "text",
           "label": "别名重复测试次数",
