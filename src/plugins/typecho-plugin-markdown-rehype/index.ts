@@ -482,6 +482,8 @@ const articleSanitizeSchema = {
     pre: [...(defaultSchema.attributes.pre ?? []), 'className', 'style'],
     th: [...(defaultSchema.attributes.th ?? []), 'className', 'style', ['align', 'left', 'center', 'right'], ['valign', 'top', 'middle', 'bottom']],
     td: [...(defaultSchema.attributes.td ?? []), 'className', 'style', ['align', 'left', 'center', 'right'], ['valign', 'top', 'middle', 'bottom']],
+    details: ['open', 'name', 'className', 'style', 'id'],
+    summary: ['className', 'style', 'id'],
     video: [
       'src', 'controls', 'width', 'height', 'poster', 'autoplay', 'muted', 'loop',
       ['preload', 'none', 'metadata', 'auto'],
