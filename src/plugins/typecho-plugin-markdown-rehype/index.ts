@@ -45,18 +45,19 @@ function applyImageDimension(properties: Record<string, any>, name: 'width' | 'h
  */
 function countRinNewlinesBeforeNode(text: string, offset: number): number {
   let count = 0;
-  for (let index = offset - 1; index >= 0 && text[index] === '\\n'; index--) count++;
+  for (let index = offset - 1; index >= 0 && text[index] === '\n'; index--) count++;
   return count;
 }
 function isRinMarkdownImageLinkAtEnd(text: string): boolean {
   const trimmed = text.trim();
-  const match = trimmed.match(/(.*)(!\\[.*?\\]\\(.*?\\))$/s);
+  const match = trimmed.match(/(.*)(!\[.*?\]\(.*?\))$/s);
   if (!match) return false;
   const beforeImage = match[1];
-  return beforeImage.trim().length === 0 || beforeImage.endsWith('\\n');
+  return beforeImage.trim().length === 0 || beforeImage.endsWith('\n');
 }
-function remarkRinImageMetadata(source: string) {
-  return (tree: any): void => {
+function remarkRinImageMetadata() {
+  return (tree: any, file: any): void => {
+    const source = typeof file?.value === 'string' ? file.value : '';
     const visit = (node: any): void => {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'image' && typeof node.url === 'string') {
@@ -80,12 +81,12 @@ function remarkRinImageMetadata(source: string) {
             let key = part.slice(0, separator);
             let value = part.slice(separator + 1);
             try { key = decodeURIComponent(key); } catch {}
-            value = value.replace(/\\+/g, '%2B');
+            value = value.replace(/\+/g, '%2B');
             try { value = decodeURIComponent(value); } catch {}
             metadata.set(key.toLowerCase(), value);
           }
           const blurhash = metadata.get('blurhash') || '';
-          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(blurhash) ? blurhash : '';
+          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(blurhash) ? blurhash : '';
           if (validBlurhash) properties.dataBlurhash = validBlurhash;
           for (const name of ['width', 'height'] as const) {
             const raw = metadata.get(name);
@@ -95,7 +96,6 @@ function remarkRinImageMetadata(source: string) {
               applyImageDimension(properties, name, String(value));
             }
           }
-          // Rin's parseImageUrlMetadata always separates the fragment from src.
           node.url = resourceUrl;
         }
         node.data.hProperties = properties;
@@ -106,51 +106,10 @@ function remarkRinImageMetadata(source: string) {
   };
 }
 
-/** Support ![alt](url){width=48 height=48} without interpreting arbitrary attributes. */
-function remarkImageSizeAttributes() {
-  return (tree: any): void => {
-    const visit = (node: any): void => {
-      if (!node || !Array.isArray(node.children)) return;
-      const children = node.children;
-      for (let index = 0; index < children.length; index++) {
-        const image = children[index];
-        const following = children[index + 1];
-        if (image?.type === 'image' && following?.type === 'text' && typeof following.value === 'string') {
-          const match = following.value.match(/^\s*\{([^{}]+)\}/);
-          if (match) {
-            const tokens = match[1].trim().split(/\s+/);
-            const dimensions: Record<string, string> = {};
-            let valid = tokens.length > 0;
-            for (const token of tokens) {
-              const attribute = token.match(/^(width|height)=(?:"([^"]*)"|'([^']*)'|([^\s]+))$/i);
-              if (!attribute) { valid = false; break; }
-              const name = attribute[1].toLowerCase();
-              const value = attribute[2] ?? attribute[3] ?? attribute[4] ?? '';
-              if (!parseImageDimension(value)) { valid = false; break; }
-              dimensions[name] = value;
-            }
-            if (valid && Object.keys(dimensions).length > 0) {
-              image.data = image.data ?? {};
-              const imageProperties = { ...(image.data.hProperties ?? {}) } as Record<string, any>;
-              for (const [name, value] of Object.entries(dimensions)) {
-                applyImageDimension(imageProperties, name as 'width' | 'height', value);
-              }
-              image.data.hProperties = imageProperties;
-              following.value = following.value.slice(match[0].length);
-              if (!following.value.trim()) children.splice(index + 1, 1);
-            }
-          }
-        }
-      }
-      children.forEach(visit);
-    };
-    visit(tree);
-  };
-}
-
 /** Extract image display metadata before sanitization and keep resource URLs clean. */
-function rehypeImageDimensions(source: string) {
-  return (tree: any): void => {
+function rehypeImageDimensions() {
+  return (tree: any, file: any): void => {
+    const source = typeof file?.value === 'string' ? file.value : '';
     const visit = (node: any): void => {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'element' && node.tagName === 'img' && node.properties) {
@@ -173,11 +132,11 @@ function rehypeImageDimensions(source: string) {
               let key = part.slice(0, separator);
               let value = part.slice(separator + 1);
               try { key = decodeURIComponent(key); } catch {}
-              try { value = decodeURIComponent(value.replace(/\\+/g, '%2B')); } catch {}
+              try { value = decodeURIComponent(value.replace(/\+/g, '%2B')); } catch {}
               metadata.set(key.toLowerCase(), value);
             }
             const blurhash = metadata.get('blurhash') || '';
-            if (/^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(blurhash)) {
+            if (/^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(blurhash)) {
               properties.dataBlurhash = blurhash;
             }
             for (const name of ['width', 'height'] as const) {
@@ -1182,12 +1141,12 @@ function createMarkdownProcessor(
     .use(remarkMath)
     .use(remarkAlert)
     .use(remarkRinBreaks)
-    .use(remarkRinImageMetadata, source)
+    .use(remarkRinImageMetadata)
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeKatex)
     .use(rehypeRaw)
     .use(rehypeRemoveStyleElements)
-    .use(rehypeImageDimensions, source)
+    .use(rehypeImageDimensions)
     .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes, customHtmlTags))
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
