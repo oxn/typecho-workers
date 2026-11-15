@@ -1327,7 +1327,6 @@ const markdownRehypeAdminCss = [
   '.markdown-rehype-settings-page .markdown-rehype-toolbar { display: flex; justify-content: flex-end; margin: 0 0 14px; }',
   '.markdown-rehype-settings-page .markdown-rehype-toolbar a { display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid #dce4df; border-radius: 7px; background: #fff; color: #269b63 !important; text-decoration: none; font-size: 13px; }',
   '.markdown-rehype-settings-page .markdown-rehype-toolbar a:hover { border-color: #269b63; background: #f5fbf7; }',
-  '.markdown-rehype-settings-page .markdown-rehype-conflict-warning { margin: 0 0 14px; color: #c62828; font-weight: 700; line-height: 1.7; }',
   '@media (max-width: 767px) { .markdown-rehype-settings-page .typecho-option { padding: 16px !important; } }',
 ].join('\n');
 
@@ -1572,12 +1571,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    link.textContent = \'返回插件列表\';',
       '    toolbar.append(link);',
       '    form.before(toolbar);',
-      '  }',
-      '  if (!form.previousElementSibling || !form.previousElementSibling.classList.contains(\'markdown-rehype-conflict-warning\')) {',
-      '    var warning = document.createElement(\'p\');',
-      '    warning.className = \'markdown-rehype-conflict-warning\';',
-      '    warning.textContent = \'注：运行此插件不要打开CY服务插件中的【正文 HTML / CSS / JavaScript 增强】选项，与之冲突。\';',
-      '    form.before(warning);',
       '  }',
       '  var htmlTags = form.querySelector(\'textarea[name="htmlTags"]\');',
       '  var htmlTagsCard = htmlTags && htmlTags.closest(\'.typecho-option\');',
