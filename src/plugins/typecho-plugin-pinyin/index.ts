@@ -99,9 +99,15 @@ function normalizeSlug(value: string, maxLength: number): string {
  * This mirrors the core compare-and-swap strategy and avoids a SELECT/UPDATE race.
  */
 function appendSlugSuffix(base: string, suffix: string, maxLength: number): string {
-  const tail = `-${suffix}`;
-  const head = base.slice(0, Math.max(1, maxLength - tail.length)).replace(/-+$/g, '');
-  return `${head}${tail}`;
+  // Keep the configured limit even when it is shorter than the CID suffix.
+  // For limits >= 2, reserve one character for the separator; for 1, keep
+  // only the final suffix character because a separator would consume all space.
+  const suffixText = String(suffix).replace(/[^a-z0-9-]/gi, '');
+  const tail = maxLength >= 2
+    ? `-${suffixText.slice(-(maxLength - 1))}`
+    : suffixText.slice(-1);
+  const head = base.slice(0, Math.max(0, maxLength - tail.length)).replace(/-+$/g, '');
+  return `${head}${tail}`.slice(0, maxLength);
 }
 
 async function claimUniqueSlug(db: any, cid: number, base: string, maxAttempts: number, maxLength: number): Promise<string> {
