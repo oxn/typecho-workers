@@ -80,6 +80,10 @@ const RIN_CSS = `
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.string,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.char,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.builtin,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.deleted,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule{color:#ce9178}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.operator.arrow,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.entity{color:#569cd6}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.rule,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.keyword.module,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.keyword.control-flow{color:#c586c0}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.url{color:#9cdcfe}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.url.function{color:#dcdcaa}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.url.punctuation{color:#d4d4d4}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .language-html .language-css .token.punctuation,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .language-html .language-javascript .token.punctuation{color:#d4d4d4}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.function{color:#dcdcaa}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.regex{color:#d16969}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.class-name{color:#4ec9b0}
