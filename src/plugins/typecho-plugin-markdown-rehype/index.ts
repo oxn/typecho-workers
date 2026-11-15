@@ -3,6 +3,7 @@ import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import { remarkAlert } from 'remark-github-blockquote-alert';
 import remarkMath from 'remark-math';
+import remarkBreaks from 'remark-breaks';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -551,29 +552,6 @@ function remarkMermaidVariants() {
   };
 }
 
-function remarkRinBreaks() {
-  return (tree: any): void => {
-    const visit = (node: any): void => {
-      if (!node || !Array.isArray(node.children)) return;
-      const next: any[] = [];
-      for (const child of node.children) {
-        if (child?.type === 'text' && typeof child.value === 'string' && child.value.includes('\\n')) {
-          const parts = child.value.split('\\n');
-          parts.forEach((part: string, index: number) => {
-            if (index > 0) next.push({ type: 'break' });
-            if (part) next.push({ ...child, value: part });
-          });
-        } else {
-          visit(child);
-          next.push(child);
-        }
-      }
-      node.children = next;
-    };
-    visit(tree);
-  };
-}
-
 function rehypeRinIframes() {
   return (tree: any): void => {
     const visit = (parent: any): void => {
@@ -666,7 +644,7 @@ function createMarkdownProcessor() {
     .use(remarkMermaidVariants)
     .use(remarkMath)
     .use(remarkAlert)
-    .use(remarkRinBreaks)
+    .use(remarkBreaks)
     .use(remarkRinImageMetadata)
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeKatex)
