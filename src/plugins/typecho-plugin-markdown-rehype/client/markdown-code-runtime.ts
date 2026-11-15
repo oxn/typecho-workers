@@ -14,10 +14,12 @@ function enhanceCodeBlocks(root: Element): void {
     wrapper.className = 'rin-code-block relative group';
     pre.before(wrapper);
     wrapper.append(pre);
-    const languageMatch = /language-(\w+)/.exec(code.className || '');
+    // Prism language identifiers include hyphens (for example shell-session,
+    // markup-templating and web-idl); keep the complete identifier intact.
+    const languageMatch = /language-([\w+-]+)/.exec(code.className || '');
     const language = languageMatch?.[1] || '';
     if (language && language !== 'text' && language !== 'plain') {
-      code.className = code.className.replace(/language-[\w-]+/, 'language-' + language);
+      code.className = code.className.replace(/language-[\w+-]+/, 'language-' + language);
       try { Prism.highlightElement(code); }
       catch (error) { console.error('Rin Prism highlighting failed:', error); }
     }
