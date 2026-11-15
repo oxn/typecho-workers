@@ -43,8 +43,8 @@ const RIN_CSS = `
 .markdown-rehype-preview .toc-content td{padding:.5rem 1rem;border:1px solid currentColor}
 .markdown-rehype-preview .toc-content sup,.markdown-rehype-preview .toc-content sub{font-size:.75rem;margin-right:4px}
 .markdown-rehype-preview .toc-content .katex{overflow-x:auto;overflow-y:hidden}
-.toc-content section[data-footnotes]{margin-top:2rem}
-.toc-content section[data-footnotes] ol{list-style:decimal;padding-left:2.5rem;padding-right:2.5rem;font-size:.875rem;color:#6b7280}
+.markdown-rehype-preview .toc-content section[data-footnotes]{margin-top:2rem}
+.markdown-rehype-preview .toc-content section[data-footnotes] ol{list-style:decimal;padding-left:2.5rem;padding-right:2.5rem;font-size:.875rem;color:#6b7280}
 .rin-iframe-wrapper{width:100%;margin:1rem 0}.rin-iframe{display:block;width:100%;min-height:400px;border-radius:.75rem;border:1px solid rgba(0,0,0,.1)}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-iframe{border-color:rgba(255,255,255,.1)}
 .markdown-rehype-preview .toc-content :not(.rin-code-pre)>code{background:#eff1f3;height:24px;padding:2px 4px;border-radius:6px;margin:0 2px;color:#262626;font:13px ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;font-variant-ligatures:normal;-webkit-font-feature-settings:"liga" 1;font-feature-settings:"liga" 1}
