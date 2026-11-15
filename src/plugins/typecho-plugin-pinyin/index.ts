@@ -1,6 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { pinyin } from 'pinyin-pro';
-import { registerPluginAdminPath } from 'typecho/plugin-sdk';
+import { parsePluginOption, registerPluginAdminPath } from 'typecho/plugin-sdk';
+import adminCss from './admin.css?raw';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
@@ -8,7 +9,8 @@ import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 const ADMIN_PATH = '/api/admin/pinyin-slug';
 const SAVE_SLUG_PARAM = '__pinyinSlug';
 const MAX_SLUG_LENGTH = 180;
-const MAX_SLUG_ATTEMPTS = 10;
+const DEFAULT_TITLE_LENGTH = 100;
+const DEFAULT_SLUG_ATTEMPTS = 50;
 
 type EditorExtra = {
   options?: Record<string, unknown>;
@@ -19,7 +21,23 @@ type EditorExtra = {
 type SaveExtra = {
   request?: Request;
   db?: any;
+  options?: Record<string, unknown>;
 };
+
+type PinyinConfig = { titleLength: number; slugAttempts: number };
+
+function boundedInteger(value: unknown, fallback: number, min: number, max: number): number {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+}
+
+function getConfig(options?: Record<string, unknown>): PinyinConfig {
+  const raw = parsePluginOption(options?.['plugin:typecho-plugin-pinyin']);
+  return {
+    titleLength: boundedInteger(raw.titleLength, DEFAULT_TITLE_LENGTH, 1, 500),
+    slugAttempts: boundedInteger(raw.slugAttempts, DEFAULT_SLUG_ATTEMPTS, 1, 200),
+  };
+}
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -86,11 +104,11 @@ function appendSlugSuffix(base: string, suffix: string): string {
   return `${head}${tail}`;
 }
 
-async function claimUniqueSlug(db: any, cid: number, base: string): Promise<string> {
-  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt += 1) {
+async function claimUniqueSlug(db: any, cid: number, base: string, maxAttempts: number): Promise<string> {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const candidate = attempt === 0
       ? base
-      : attempt === MAX_SLUG_ATTEMPTS - 1
+      : attempt === maxAttempts - 1
         ? appendSlugSuffix(base, `${cid}-${Date.now().toString(36)}`)
         : appendSlugSuffix(base, attempt === 1 ? String(cid) : `${cid}-${attempt}`);
     const claimed = await db.update(schema.contents)
@@ -104,7 +122,7 @@ async function claimUniqueSlug(db: any, cid: number, base: string): Promise<stri
     if (claimed.length > 0) return candidate;
   }
 
-  throw new Error('别名冲突重试已达 10 次，请修改别名后重试');
+  throw new Error(`别名冲突重试已达 ${maxAttempts} 次，请修改别名后重试`);
 }
 
 /**
@@ -129,7 +147,7 @@ async function persistSubmittedSlug(content: Record<string, any>, extra?: SaveEx
   if (!Number.isSafeInteger(cid) || cid <= 0 || !base) return;
   if (String(content.slug || '') === base) return;
 
-  const finalSlug = await claimUniqueSlug(db, cid, base);
+  const finalSlug = await claimUniqueSlug(db, cid, base, getConfig(extra?.options).slugAttempts);
   // finishData is the same object the core uses for its subsequent cache work.
   content.slug = finalSlug;
 }
@@ -139,6 +157,7 @@ function editorHtml(
   allowsSlugEdit: boolean,
   currentSlug: string,
   currentCid: number,
+  titleMaxLength: number,
 ): string {
   const initialSlug = JSON.stringify(currentSlug).replace(/</g, '\\u003c');
   const cidValue = Number.isSafeInteger(currentCid) && currentCid > 0 ? String(currentCid) : '0';
@@ -151,7 +170,7 @@ function editorHtml(
   if (!form || !title || !permalinkRow || form.dataset.pinyinSlugReady === '1') return;
   form.dataset.pinyinSlugReady = '1';
 
-  title.maxLength = 500;
+  title.maxLength = ${titleMaxLength};
   var slug = document.getElementById('slug');
   var initialSlug = ${initialSlug};
   var currentCid = ${cidValue};
@@ -345,6 +364,11 @@ function editorHtml(
 export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
 
+  addHook('admin:header', pluginId, (html: string, extra?: { title?: string }) => {
+    if (extra?.title !== '拼音别名') return html;
+    return `${html}<style data-typecho-pinyin-admin>${adminCss}</style>`;
+  }, 20);
+
   addHook('admin:writePost:bottom', pluginId, (html: string, extra?: EditorExtra) => {
     const pattern = String(extra?.options?.permalinkPattern || '/archives/{cid}/');
     const post = extra?.post;
@@ -353,6 +377,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       pattern.includes('{slug}'),
       String(post?.slug || ''),
       Number(post?.cid) || 0,
+      getConfig(extra?.options).titleLength,
     );
   });
 
@@ -364,6 +389,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       pattern.includes('{slug}'),
       String(page?.slug || ''),
       Number(page?.cid) || 0,
+      getConfig(extra?.options).titleLength,
     );
   });
 
@@ -377,7 +403,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   addHook('route:request', pluginId, async (
     result: PluginRouteResult,
-    extra?: { request?: Request; path?: string },
+    extra?: { request?: Request; path?: string; options?: Record<string, unknown> }, 
   ) => {
     if (result?.handled || !extra?.request || extra.path !== ADMIN_PATH) return result;
     const request = extra.request;
@@ -406,8 +432,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     }
 
     const title = (body as { title?: unknown }).title;
-    if (typeof title !== 'string' || !title.trim() || title.length > 500) {
-      return { handled: true, response: json({ error: 'Invalid title' }, 400) };
+    const titleLength = getConfig(extra?.options).titleLength;
+    if (typeof title !== 'string' || !title.trim() || title.length > titleLength) {
+      return { handled: true, response: json({ error: `标题不能为空且不能超过 ${titleLength} 字` }, 400) };
     }
 
     return {
