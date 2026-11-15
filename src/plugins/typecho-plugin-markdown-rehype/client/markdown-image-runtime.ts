@@ -27,7 +27,7 @@ function enhanceImage(image: HTMLImageElement): void {
   const height = Number.parseInt(image.getAttribute('height') || '', 10);
   if (width > 0 && height > 0) inner.style.aspectRatio = width + ' / ' + height;
 
-  const blurhash = image.dataset.blurhash || '';
+  const blurhash = image.dataset.rinBlurhash || '';
   let canvas: HTMLCanvasElement | null = null;
   if (blurhash) {
     canvas = document.createElement('canvas');
