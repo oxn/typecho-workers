@@ -59,7 +59,7 @@ import 'prismjs/components/prism-ini';
 import { drawBlurhashToCanvas } from './lib/blurhash';
 
 const STYLE_ID = 'rin-markdown-renderer-styles';
-const ROOT_SELECTOR = '.toc-content, .toc-content, .toc-content, article';
+const ROOT_SELECTOR = '.toc-content';
 
 const RIN_CSS = `
 .toc-content,.toc-content,.toc-content{min-width:0;overflow-wrap:anywhere}
