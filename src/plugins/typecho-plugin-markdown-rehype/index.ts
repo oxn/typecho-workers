@@ -1941,15 +1941,13 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     title?: string;
     options?: Record<string, unknown>;
   }) => {
-    if (extra?.options?.theme !== 'typecho-theme-warm-cy'
-      || extra?.title !== '设置插件 Markdown Rehype') return html;
+    if (extra?.title !== '设置插件 Markdown Rehype') return html;
     return html + '<style data-markdown-rehype-admin>' + markdownRehypeAdminCss + '</style>';
   }, 20);
 
   addHook('admin:footer', pluginId, (html: string, extra?: {
     options?: Record<string, unknown>;
   }) => {
-    if (extra?.options?.theme !== 'typecho-theme-warm-cy') return html;
     const pluginConfig = parsePluginConfig(extra.options?.[PLUGIN_OPTION_KEY]);
     const script = [
       '<script data-markdown-rehype-admin-navigation>',
@@ -1963,8 +1961,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    var toolbar = document.createElement(\'div\');',
       '    toolbar.className = \'markdown-rehype-toolbar\';',
       '    var link = document.createElement(\'a\');',
-      '    link.href = \'/admin/options-theme\';',
-      '    link.textContent = \'返回主题设置\';',
+      '    link.href = \'/admin/plugins\';',
+      '    link.textContent = \'返回插件列表\';',
       '    toolbar.append(link);',
       '    form.before(toolbar);',
       '  }',
