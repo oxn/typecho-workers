@@ -8,6 +8,7 @@ import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
+import { renderMarkdownFiltered } from '@/lib/markdown';
 import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, renderArticleDeclaration, warmArticleSummary, warmSettings } from './warm';
 
 type Props = ThemePostProps;
@@ -31,14 +32,10 @@ const rawArticleSource = !isNote && !passwordLocked
     .where(eq(schema.contents.cid, post.cid))
     .limit(1))[0]?.text || ''
   : '';
-// Keep published articles on the exact same Markdown renderer used by the
-// editor's live preview. Do not switch parsers based on plugin activation:
-// that made identical Markdown render differently between preview and frontend.
+// Use the shared renderer entry point. The Markdown plugin owns the renderer
+// through content filters when active; other themes use this same integration.
 const renderedArticleHtml = !isNote && !passwordLocked
-  ? await (await import('typecho-plugin-markdown-rehype')).renderMarkdown(rawArticleSource, {
-    mathEngine: settings.markdownMathEngine,
-    tocEnabled: settings.markdownTocEnabled,
-  })
+  ? await renderMarkdownFiltered(pluginCtx, rawArticleSource)
   : post.content;
 const articleHtml = !isNote && !passwordLocked ? renderedArticleHtml : post.content;
 const optimizedContent = optimizeContentImages(
