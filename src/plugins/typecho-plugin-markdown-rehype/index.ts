@@ -202,6 +202,64 @@ const FORBIDDEN_CUSTOM_HTML_TAGS = new Set([
   'script', 'object', 'embed', 'applet', 'frame', 'frameset',
   'base', 'meta', 'link', 'form', 'template', 'portal',
 ]);
+const DEFAULT_CUSTOM_HTML_ATTRIBUTES: Record<string, string[]> = {
+  abbr: ['title', 'className'],
+  q: ['cite', 'className'],
+  time: ['dateTime', 'className'],
+  del: ['cite', 'dateTime', 'className'],
+  ins: ['cite', 'dateTime', 'className'],
+  bdo: ['dir', 'className'],
+  data: ['value', 'className'],
+  output: ['htmlFor', 'form', 'name', 'className'],
+  progress: ['max', 'value', 'className'],
+  meter: ['min', 'max', 'low', 'high', 'optimum', 'value', 'className'],
+};
+const DEFAULT_CUSTOM_HTML_ATTRIBUTES_TEXT = [
+  'abbr: title, class',
+  'q: cite, class',
+  'time: datetime, class',
+  'del: cite, datetime, class',
+  'ins: cite, datetime, class',
+  'bdo: dir, class',
+  'data: value, class',
+  'output: for, form, name, class',
+  'progress: max, value, class',
+  'meter: min, max, low, high, optimum, value, class',
+].join('\\n');
+
+const SAFE_CUSTOM_HTML_ATTRIBUTES: Record<string, Record<string, string>> = {
+  abbr: { title: 'title', class: 'className' },
+  q: { cite: 'cite', class: 'className' },
+  time: { datetime: 'dateTime', class: 'className' },
+  del: { cite: 'cite', datetime: 'dateTime', class: 'className' },
+  ins: { cite: 'cite', datetime: 'dateTime', class: 'className' },
+  bdo: { dir: 'dir', class: 'className' },
+  data: { value: 'value', class: 'className' },
+  output: { for: 'htmlFor', form: 'form', name: 'name', class: 'className' },
+  progress: { max: 'max', value: 'value', class: 'className' },
+  meter: { min: 'min', max: 'max', low: 'low', high: 'high', optimum: 'optimum', value: 'value', class: 'className' },
+};
+
+export function normalizeCustomHtmlAttributes(value: unknown): Record<string, string[]> {
+  if (typeof value !== 'string') return {};
+  const result: Record<string, Set<string>> = {};
+  for (const line of value.replace(/\\\\[nr]/gi, '\\n').split(/[\\n;；]+/)) {
+    const match = line.trim().match(/^([a-z][a-z0-9]*)\\s*:\\s*(.+)$/i);
+    if (!match) continue;
+    const tag = match[1].toLowerCase();
+    const allowed = SAFE_CUSTOM_HTML_ATTRIBUTES[tag];
+    if (!allowed) continue;
+    const attrs = result[tag] ?? new Set<string>();
+    for (const raw of match[2].split(/[\\s,，]+/)) {
+      const name = raw.trim().toLowerCase();
+      if (!name || name.startsWith('on') || !allowed[name]) continue;
+      attrs.add(allowed[name]);
+    }
+    result[tag] = attrs;
+  }
+  return Object.fromEntries(Object.entries(result).map(([tag, attrs]) => [tag, [...attrs]]));
+}
+
 const FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES = new Set([
   'src', 'srcdoc', 'onload', 'onerror', 'nonce', 'integrity',
 ]);
@@ -264,6 +322,9 @@ let customIframeAttributesLoad: Promise<string[]> | null = null;
 let cachedCustomHtmlTags: string[] = [...DEFAULT_CUSTOM_HTML_TAGS];
 let customHtmlTagsExpiresAt = 0;
 let customHtmlTagsLoad: Promise<string[]> | null = null;
+let cachedCustomHtmlAttributes: Record<string, string[]> = DEFAULT_CUSTOM_HTML_ATTRIBUTES;
+let customHtmlAttributesExpiresAt = 0;
+let customHtmlAttributesLoad: Promise<Record<string, string[]>> | null = null;
 
 async function loadCustomIframeAttributes(): Promise<string[]> {
   if (Date.now() < customIframeAttributesExpiresAt) return cachedCustomIframeAttributes;
@@ -310,6 +371,29 @@ async function loadCustomHtmlTags(): Promise<string[]> {
   }
 }
 
+async function loadCustomHtmlAttributes(): Promise<Record<string, string[]>> {
+  if (Date.now() < customHtmlAttributesExpiresAt) return cachedCustomHtmlAttributes;
+  if (customHtmlAttributesLoad) return customHtmlAttributesLoad;
+  customHtmlAttributesLoad = (async () => {
+    try {
+      const db = getDb(env.DB);
+      const config = parsePluginConfig(await getOption(db, PLUGIN_OPTION_KEY));
+      cachedCustomHtmlAttributes = Object.prototype.hasOwnProperty.call(config, 'htmlAttributes')
+        ? normalizeCustomHtmlAttributes(config.htmlAttributes)
+        : DEFAULT_CUSTOM_HTML_ATTRIBUTES;
+    } catch {
+      cachedCustomHtmlAttributes = DEFAULT_CUSTOM_HTML_ATTRIBUTES;
+    }
+    customHtmlAttributesExpiresAt = Date.now() + 15_000;
+    return cachedCustomHtmlAttributes;
+  })();
+  try {
+    return await customHtmlAttributesLoad;
+  } finally {
+    customHtmlAttributesLoad = null;
+  }
+}
+
 const ADMIN_PREVIEW_PATH = '/api/admin/markdown-rehype-preview';
 
 const MARKDOWN_BRIDGE_MAX_ENTRIES = 32;
@@ -349,12 +433,21 @@ function restoreMarkdownBridgeHtml(sanitized: string): string {
 export function createArticleSanitizeSchema(
   iframeAttributes: string[] = [...DEFAULT_IFRAME_ATTRIBUTES],
   customHtmlTags: string[] = [],
+  customHtmlAttributes: Record<string, string[]> = DEFAULT_CUSTOM_HTML_ATTRIBUTES,
 ) {
+  const configuredAttributes: Record<string, any[]> = {};
+  for (const [tag, attributes] of Object.entries(customHtmlAttributes)) {
+    const base = (defaultSchema.attributes as Record<string, any[]>)[tag] ?? [];
+    configuredAttributes[tag] = [...base, ...attributes.map(attribute =>
+      tag === 'bdo' && attribute === 'dir' ? ['dir', 'ltr', 'rtl'] : attribute
+    )];
+  }
   return {
     ...articleSanitizeSchema,
     tagNames: [...articleSanitizeSchema.tagNames, ...customHtmlTags],
     attributes: {
       ...articleSanitizeSchema.attributes,
+      ...configuredAttributes,
       iframe: [
         ...(articleSanitizeSchema.attributes.iframe ?? []).filter((attribute: any) => Array.isArray(attribute) && attribute[0] === 'src'),
         ...iframeAttributes,
@@ -468,16 +561,7 @@ const articleSanitizeSchema = {
     // Preserve that target ID or the visible superscript link has nowhere to jump.
     li: [...(defaultSchema.attributes.li ?? []), 'id', 'className'],
     sub: ['id', 'title', 'ariaLabel', 'ariaDescribedBy', 'className', 'style'],
-    abbr: [...(defaultSchema.attributes.abbr ?? []), 'title', 'className'],
-    q: [...(defaultSchema.attributes.q ?? []), 'cite', 'className'],
-    time: [...(defaultSchema.attributes.time ?? []), 'dateTime', 'className'],
-    del: [...(defaultSchema.attributes.del ?? []), 'cite', 'dateTime', 'className'],
-    ins: [...(defaultSchema.attributes.ins ?? []), 'cite', 'dateTime', 'className'],
-    bdo: [...(defaultSchema.attributes.bdo ?? []), ['dir', 'ltr', 'rtl'], 'className'],
-    data: [...(defaultSchema.attributes.data ?? []), 'value', 'className'],
-    output: [...(defaultSchema.attributes.output ?? []), 'htmlFor', 'form', 'name', 'className'],
-    progress: [...(defaultSchema.attributes.progress ?? []), 'max', 'value', 'className'],
-    meter: [...(defaultSchema.attributes.meter ?? []), 'min', 'max', 'low', 'high', 'optimum', 'value', 'className'],
+
 
     img: [
       ...(defaultSchema.attributes.img ?? []),
@@ -765,7 +849,7 @@ function rehypeRinHeadingIds() {
  * processors can process files repeatedly. Reuse avoids rebuilding the plugin
  * chain on every article request while keeping math/TOC options isolated.
  */
-function createMarkdownProcessor(iframeAttributes: string[], customHtmlTags: string[]) {
+function createMarkdownProcessor(iframeAttributes: string[], customHtmlTags: string[], customHtmlAttributes: Record<string, string[]>) {
   return unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -780,18 +864,18 @@ function createMarkdownProcessor(iframeAttributes: string[], customHtmlTags: str
     .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
     .use(rehypeRinCodeBlocks)
-    .use(rehypeSanitize, createArticleSanitizeSchema(iframeAttributes, customHtmlTags))
+    .use(rehypeSanitize, createArticleSanitizeSchema(iframeAttributes, customHtmlTags, customHtmlAttributes))
     .use(rehypeRinIframes)
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
 }
 
 const markdownProcessorCache = new Map<string, ReturnType<typeof createMarkdownProcessor>>();
-function getMarkdownProcessor(iframeAttributes: string[], customHtmlTags: string[]) {
-  const key = JSON.stringify([iframeAttributes, customHtmlTags]);
+function getMarkdownProcessor(iframeAttributes: string[], customHtmlTags: string[], customHtmlAttributes: Record<string, string[]>) {
+  const key = JSON.stringify([iframeAttributes, customHtmlTags, customHtmlAttributes]);
   let processor = markdownProcessorCache.get(key);
   if (!processor) {
-    processor = createMarkdownProcessor(iframeAttributes, customHtmlTags);
+    processor = createMarkdownProcessor(iframeAttributes, customHtmlTags, customHtmlAttributes);
     markdownProcessorCache.set(key, processor);
   }
   return processor;
@@ -977,12 +1061,13 @@ function clearMarkdownRenderCache(): void {
 export async function renderMarkdown(source: string): Promise<string> {
   if (!source) return '';
   const normalizedSource = source;
-  const [iframeAttributes, customHtmlTags] = await Promise.all([
+  const [iframeAttributes, customHtmlTags, customHtmlAttributes] = await Promise.all([
     loadCustomIframeAttributes(),
     loadCustomHtmlTags(),
+    loadCustomHtmlAttributes(),
   ]);
   const cacheKey = normalizedSource.length <= RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH
-    ? JSON.stringify([iframeAttributes, customHtmlTags, normalizedSource])
+    ? JSON.stringify([iframeAttributes, customHtmlTags, customHtmlAttributes, normalizedSource])
     : null;
 
   if (cacheKey) {
@@ -995,7 +1080,7 @@ export async function renderMarkdown(source: string): Promise<string> {
     if (inFlight) return inFlight;
   }
 
-  const processor = getMarkdownProcessor(iframeAttributes, customHtmlTags);
+  const processor = getMarkdownProcessor(iframeAttributes, customHtmlTags, customHtmlAttributes);
   // The cache and in-flight lookup happen before the gate, so cache hits never
   // wait for a render slot and identical concurrent requests still share work.
   const render = runMarkdownRender(async () => {
@@ -1583,6 +1668,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       clearMarkdownRenderCache();
       customIframeAttributesExpiresAt = 0;
       customHtmlTagsExpiresAt = 0;
+      customHtmlAttributesExpiresAt = 0;
     }
     return result;
   }, 20);
