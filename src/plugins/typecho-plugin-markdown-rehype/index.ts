@@ -554,7 +554,7 @@ const articleSanitizeSchema = {
 
     img: [
       ...(defaultSchema.attributes.img ?? []),
-      'alt', 'title', 'width', 'height', 'loading', 'className', 'style', 'dataBlurhash', 'dataRinImageLayout',
+      'alt', 'title', 'width', 'height', 'loading', 'className', 'style', 'dataBlurhash', 'dataRinBlurhash', 'dataRinImageLayout',
     ],
     svg: [
       'id', 'className', 'width', 'height', 'viewBox', 'xmlns', 'xmlnsXLink', 'version', 'preserveAspectRatio', 'style',
