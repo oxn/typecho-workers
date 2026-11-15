@@ -1049,7 +1049,12 @@ function clearMarkdownRenderCache(): void {
 /** Rin-compatible Markdown article pipeline with a fixed safe HTML schema. */
 export async function renderMarkdown(source: string): Promise<string> {
   if (!source) return '';
-  const normalizedSource = source;
+  // Keep the public renderer and the editor preview on the same Typecho input
+  // contract. The shared frontend hook strips these markers before invoking
+  // this renderer; preview requests call it directly, so normalize here too.
+  const normalizedSource = source
+    .replace(/^<!--markdown-->/, '')
+    .replace(/<!--more-->/g, '');
   const [iframeAttributes, customHtmlTags, customHtmlAttributes] = await Promise.all([
     loadCustomIframeAttributes(),
     loadCustomHtmlTags(),
