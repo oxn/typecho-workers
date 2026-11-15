@@ -59,16 +59,16 @@ function enhanceCodeBlocks(root: Element): void {
     if (!pre || pre.closest('.mermaid_default,.mermaid_dark') || pre.dataset.rinCodeEnhanced === '1') return;
     pre.dataset.rinCodeEnhanced = '1';
     const copyValue = code.textContent || '';
-    const displayValue = copyValue.replace(/\\n$/, '');
+    const displayValue = copyValue.replace(/\n$/, '');
     if (displayValue !== copyValue) code.textContent = displayValue;
     const wrapper = document.createElement('div');
     wrapper.className = 'rin-code-block relative group';
     pre.before(wrapper);
     wrapper.append(pre);
-    const languageMatch = /language-(\\w+)/.exec(code.className || '');
+    const languageMatch = /language-(\w+)/.exec(code.className || '');
     const language = languageMatch?.[1] || '';
     if (language && language !== 'text' && language !== 'plain') {
-      code.className = code.className.replace(/language-[\\w-]+/, 'language-' + language);
+      code.className = code.className.replace(/language-[\w-]+/, 'language-' + language);
       try { Prism.highlightElement(code); }
       catch (error) { console.error('Rin Prism highlighting failed:', error); }
     }
