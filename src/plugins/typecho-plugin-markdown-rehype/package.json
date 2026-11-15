@@ -75,6 +75,7 @@
     "rehype-stringify": "^10.0.1",
     "katex": "^0.16.22",
     "mermaid": "11.12.2",
-    "prismjs": "^1.30.0"
+    "prismjs": "^1.30.0",
+    "remark-breaks": "^4.0.0"
   }
 }
