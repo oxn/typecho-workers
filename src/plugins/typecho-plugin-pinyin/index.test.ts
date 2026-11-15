@@ -42,22 +42,39 @@ describe('typecho-plugin-pinyin', () => {
     expect(titleToPinyinSlug('  ')).toBe('');
   });
 
+  it('respects the configured slug length and the 300-character default', () => {
+    expect(titleToPinyinSlug('a'.repeat(400))).toHaveLength(300);
+    expect(titleToPinyinSlug('a'.repeat(20), 5)).toBe('aaaaa');
+    expect(titleToPinyinSlug('你好', 3).length).toBeLessThanOrEqual(3);
+  });
+
   it('registers a dedicated admin route', () => {
     setup();
     expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith('/api/admin/pinyin-slug');
   });
 
-  it('only injects editor helpers when the permalink pattern contains {slug}', () => {
+  it('supports both slug-based and ID-based permalink editors', () => {
     const hooks = setup();
     const post = hooks.get('admin:writePost:bottom')!;
     const page = hooks.get('admin:writePage:bottom')!;
 
-    expect(post('', { options: { permalinkPattern: '/archives/{cid}/' } })).toBe('');
-    expect(page('', { options: { pagePattern: '/archives/{cid}/' } })).toBe('');
-    expect(page('', { options: { pagePattern: '/{slug}.html' } })).toContain('重新生成拼音');
-    expect(post('', { options: { permalinkPattern: '/{slug}/' }, isEdit: true })).toContain('var manual = true');
-    expect(post('', { options: { permalinkPattern: '/{slug}/' }, isEdit: false })).toContain('var manual = String(slug.value || "").trim() !== ""');
-    expect(post('', { options: { permalinkPattern: '/{slug}/' } })).toContain("X-CSRF-Token");
+    expect(post('', { options: { permalinkPattern: '/archives/{cid}/' } }))
+      .toContain('var allowsSlugEdit = false;');
+    expect(page('', { options: { pagePattern: '/archives/{cid}/' } }))
+      .toContain('var allowsSlugEdit = false;');
+    expect(page('', { options: { pagePattern: '/{slug}.html' } }))
+      .toContain('var allowsSlugEdit = true;');
+    expect(page('', { options: { pagePattern: '/{slug}.html' } }))
+      .toContain("textContent = '重新生成'");
+    expect(post('', { options: { permalinkPattern: '/{slug}/' }, post: { slug: 'existing-slug' } }))
+      .toContain('var initialSlug = "existing-slug";');
+    expect(post('', { options: { permalinkPattern: '/{slug}/' }, post: { slug: '' } }))
+      .toContain("var manual = String(initialSlug || '').trim() !== '';");
+    const editorHtml = post('', { options: { permalinkPattern: '/{slug}/' } });
+    expect(editorHtml).toContain("X-CSRF-Token");
+    expect(editorHtml).toContain('title.maxLength = 100;');
+    expect(editorHtml).toContain('slug.maxLength = 300;');
+    expect(editorHtml).toContain("target.searchParams.set('__pinyinSlug', value)");
   });
 
   it('rejects non-POST requests without invoking the auth handler', async () => {

@@ -4,7 +4,12 @@
   "description": "Automatic pinyin slug suggestions for Typecho post and page editors.",
   "author": "怸歪",
   "homepage": "https://347777.xyz",
-  "keywords": ["typecho", "plugin", "pinyin", "slug"],
+  "keywords": [
+    "typecho",
+    "plugin",
+    "pinyin",
+    "slug"
+  ],
   "license": "MIT",
   "type": "module",
   "main": "index.ts",
@@ -21,7 +26,31 @@
       "homepage": "https://347777.xyz",
       "version": "1.0.1",
       "license": "MIT",
-      "tags": ["pinyin", "slug", "editor"]
+      "tags": [
+        "pinyin",
+        "slug",
+        "editor"
+      ],
+      "config": {
+        "titleLength": {
+          "type": "text",
+          "label": "文章、页面标题长度",
+          "default": "100",
+          "description": "拼音自动生成允许的标题最大字数，默认 100；范围 1–500。"
+        },
+        "slugLength": {
+          "type": "text",
+          "label": "拼音别名最大长度",
+          "default": "300",
+          "description": "拼音别名输入和自动生成的最大字符数，默认 300；范围 1–1000。"
+        },
+        "slugAttempts": {
+          "type": "text",
+          "label": "别名重复测试次数",
+          "default": "50",
+          "description": "保存别名时遇到重名的最大重试次数，默认 50；范围 1–200。"
+        }
+      }
     }
   }
 }
