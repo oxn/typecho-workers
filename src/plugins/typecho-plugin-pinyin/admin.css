@@ -1,0 +1,41 @@
+/* 拼音别名插件设置页专属样式；仅在本插件设置页注入。 */
+.typecho-page-main form {
+  max-width: 820px;
+}
+.typecho-page-main form input[type="text"],
+.typecho-page-main form input[type="number"] {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid #c9cdd2;
+  border-radius: 5px;
+  background: #fff;
+  color: #30343b;
+  font: inherit;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.typecho-page-main form input[type="text"]:focus,
+.typecho-page-main form input[type="number"]:focus {
+  border-color: #668fc4;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgb(80 130 190 / 14%);
+}
+.typecho-page-main form .description,
+.typecho-page-main form small {
+  color: #737b85;
+  line-height: 1.65;
+}
+.typecho-page-main form button,
+.typecho-page-main form input[type="submit"] {
+  min-height: 34px;
+  padding: 6px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+@media (max-width: 767px) {
+  .typecho-page-main form input[type="text"],
+  .typecho-page-main form input[type="number"] {
+    width: 100%;
+  }
+}
