@@ -58,14 +58,22 @@ describe('typecho-plugin-pinyin', () => {
     const post = hooks.get('admin:writePost:bottom')!;
     const page = hooks.get('admin:writePage:bottom')!;
 
-    expect(post('', { options: { permalinkPattern: '/archives/{cid}/' } })).toBe('');
-    expect(page('', { options: { pagePattern: '/archives/{cid}/' } })).toBe('');
-    expect(page('', { options: { pagePattern: '/{slug}.html' } })).toContain("textContent = '重新生成'");
+    expect(post('', { options: { permalinkPattern: '/archives/{cid}/' } }))
+      .toContain('var allowsSlugEdit = false;');
+    expect(page('', { options: { pagePattern: '/archives/{cid}/' } }))
+      .toContain('var allowsSlugEdit = false;');
+    expect(page('', { options: { pagePattern: '/{slug}.html' } }))
+      .toContain('var allowsSlugEdit = true;');
+    expect(page('', { options: { pagePattern: '/{slug}.html' } }))
+      .toContain("textContent = '重新生成'");
     expect(post('', { options: { permalinkPattern: '/{slug}/' }, post: { slug: 'existing-slug' } }))
       .toContain('var initialSlug = "existing-slug";');
     expect(post('', { options: { permalinkPattern: '/{slug}/' }, post: { slug: '' } }))
       .toContain("var manual = String(initialSlug || '').trim() !== '';");
-    expect(post('', { options: { permalinkPattern: '/{slug}/' } })).toContain("X-CSRF-Token");
+    const editorHtml = post('', { options: { permalinkPattern: '/{slug}/' } });
+    expect(editorHtml).toContain("X-CSRF-Token");
+    expect(editorHtml).toContain('title.maxLength = 100;');
+    expect(editorHtml).toContain('slug.maxLength = 300;');
   });
 
   it('rejects non-POST requests without invoking the auth handler', async () => {
