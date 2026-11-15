@@ -2025,7 +2025,14 @@ function createPublicContentRuntimeScript(): string {
         startup: { typeset: false },
         tex: { inlineMath: [['\\\\(', '\\\\)']], displayMath: [['\\\\[', '\\\\]']] }
       };
-      mathJaxLoad ||= import(mathJaxUrl);
+      mathJaxLoad ||= new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = mathJaxUrl;
+        script.async = true;
+        script.onload = () => resolve(window.MathJax);
+        script.onerror = () => reject(new Error('MathJax runtime failed to load'));
+        document.head.append(script);
+      });
       await mathJaxLoad;
       const replacements = [];
       for (const code of blocks) {
