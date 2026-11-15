@@ -1313,7 +1313,7 @@ function createAdminPreviewScript(): string {
       '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<style data-markdown-rehype-katex>' + previewCss + previewKatexCss + '</style>' +
       '</head><body class="' + bodyClass + '">' +
-      '<main class="markdown-rehype-content toc-content">' + source + '</main>' +
+      '<main class="markdown-rehype-content">' + source + '</main>' +
       '<script>(function(){' +
         'function notify(){var root=document.documentElement,body=document.body,rect=body.getBoundingClientRect();var h=Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight,rect.bottom+window.scrollY));window.parent.postMessage({type:"markdown-rehype-preview-height",height:h},"*");}' +
         'if(window.ResizeObserver){var ro=new ResizeObserver(notify);ro.observe(document.documentElement);ro.observe(document.body);}' +
