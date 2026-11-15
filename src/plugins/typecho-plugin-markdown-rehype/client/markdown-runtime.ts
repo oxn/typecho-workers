@@ -488,7 +488,7 @@ function initialize(): void {
   const root = contentRoot();
   if (!root) return;
   installStyles();
-  lightbox = lightbox || createLightbox();
+  if (!lightbox || !document.querySelector('.rin-lightbox')) lightbox = createLightbox();
   root.querySelectorAll<HTMLImageElement>('img').forEach(enhanceImage);
   enhanceCodeBlocks(root);
   if (root.dataset.rinImageClickBound !== '1') {
