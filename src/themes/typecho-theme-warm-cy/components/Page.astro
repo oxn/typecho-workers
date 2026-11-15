@@ -28,12 +28,7 @@ const rawPageSource = !passwordLocked
   : '';
 const rehypeEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-markdown-rehype');
 const renderedPageHtml = !passwordLocked
-  ? rehypeEnabled
-    ? await (await import('typecho-plugin-markdown-rehype')).renderMarkdown(rawPageSource, {
-      mathEngine: settings.markdownMathEngine,
-      tocEnabled: settings.markdownTocEnabled,
-    })
-    : await renderMarkdownFiltered(pluginCtx, rawPageSource)
+  ? await renderMarkdownFiltered(pluginCtx, rawPageSource)
   : page.content;
 // Use the same Markdown renderer selection as Post. Keep the locked-page HTML
 // supplied by the request pipeline untouched until the password is verified.
