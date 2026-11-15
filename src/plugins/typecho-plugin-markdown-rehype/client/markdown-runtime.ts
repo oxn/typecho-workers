@@ -97,7 +97,7 @@ const RIN_CSS = `
 .rin-code-block{position:relative;min-width:0;max-width:100%;overflow:hidden}
 .rin-code-block .rin-code-pre{box-sizing:border-box;margin:.5em 0;padding:1em;max-width:100%;overflow:auto;border-radius:.25rem;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#f5f7ff;color:#5e6687;font:14px/1.375 Consolas,Menlo,Monaco,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L","Courier New",Courier,monospace;tab-size:4}
 .rin-code-block .rin-code-pre>code{font:14px/1.375 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;font-variant-ligatures:normal;font-feature-settings:"liga" 1}
-:is(.dark,[data-color-mode="dark"]) .rin-code-block pre,:is(.dark,[data-color-mode="dark"]) .rin-code-block code,[data-color-mode="dark"] .rin-code-block pre,[data-color-mode="dark"] .rin-code-block code{background:#1e1e1e;color:#d4d4d4;font-size:14px;line-height:1.5}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .rin-code-pre,:is(.dark,[data-color-mode="dark"]) .rin-code-block .rin-code-pre>code{background:#1e1e1e;color:#d4d4d4;font-size:14px;line-height:1.5}
 .rin-code-block .token.comment,.rin-code-block .token.prolog,.rin-code-block .token.doctype,.rin-code-block .token.cdata{color:#898ea4}
 .rin-code-block .token.punctuation{color:#5e6687}
 .rin-code-block .token.operator,.rin-code-block .token.boolean,.rin-code-block .token.number{color:#c76b29}
