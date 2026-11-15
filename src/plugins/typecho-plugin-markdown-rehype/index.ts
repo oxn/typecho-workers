@@ -461,6 +461,9 @@ const articleSanitizeSchema = {
   ],
   attributes: {
     ...defaultSchema.attributes,
+    // Rin's rehypeRaw renderer forwards inline styles on arbitrary allowed raw-HTML elements.
+    // Keep style globally available while the sanitizer continues to reject event handlers.
+    '*': [...((defaultSchema.attributes as Record<string, any[]>)['*'] ?? []), 'style'],
     a: [
       ...(defaultSchema.attributes.a ?? []),
       'id', 'ariaLabel', 'ariaDescribedBy', 'dataFootnoteRef', 'dataFootnoteBackref',
