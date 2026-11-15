@@ -374,7 +374,7 @@ const pinyinAdminCss = [
   '.pinyin-settings-page .pinyin-toolbar a { display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid #dce2e8; border-radius: 7px; background: #fff; color: #456f9f !important; text-decoration: none; font-size: 13px; }',
   '.pinyin-settings-page .pinyin-toolbar a:hover { border-color: #668fc4; background: #f5f8fc; }',
   '@media (max-width: 767px) { .pinyin-settings-page .typecho-option { padding: 15px !important; } .pinyin-settings-page .typecho-option input[type="text"], .pinyin-settings-page .typecho-option input[type="number"] { width: 100%; max-width: 100%; } }',
-].join('\\n');
+].join('\n');
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(ADMIN_PATH);
@@ -401,7 +401,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       "  form.before(toolbar);",
       '})();',
       '</script>',
-    ].join('\\n');
+    ].join('\n');
     return html + script;
   }, 20);
 
