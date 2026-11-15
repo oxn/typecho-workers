@@ -26,7 +26,6 @@ import { env } from 'cloudflare:workers';
 import { getDb } from 'typecho/db';
 import { getOption } from 'typecho/plugin-sdk';
 import { transformGithubAlerts } from '../../lib/markdown-alerts';
-import mathJaxModuleUrl from 'mathjax-full/es5/tex-svg.js?url';
 import katexCss from 'katex/dist/katex.min.css?inline';
 import { getWarmMermaidConfig } from './mermaid-config';
 
@@ -277,7 +276,7 @@ function pruneMarkdownBridge(now = Date.now()): void {
   }
 }
 
-let cachedPluginMarkdownRenderOptions: MarkdownRenderOptions = { mathEngine: 'katex', tocEnabled: false };
+let cachedPluginMarkdownRenderOptions: MarkdownRenderOptions = { tocEnabled: false };
 let pluginMarkdownRenderOptionsExpiresAt = 0;
 let pluginMarkdownRenderOptionsLoad: Promise<MarkdownRenderOptions> | null = null;
 
@@ -290,11 +289,10 @@ async function loadPluginMarkdownRenderOptions(): Promise<MarkdownRenderOptions>
       const raw = await getOption(db, PLUGIN_OPTION_KEY);
       const config = parsePluginConfig(raw);
       cachedPluginMarkdownRenderOptions = {
-        mathEngine: config.mathEngine === 'mathjax' ? 'mathjax' : 'katex',
         tocEnabled: config.tocEnabled === true || config.tocEnabled === '1',
       };
     } catch {
-      cachedPluginMarkdownRenderOptions = { mathEngine: 'katex', tocEnabled: false };
+      cachedPluginMarkdownRenderOptions = { tocEnabled: false };
     }
     pluginMarkdownRenderOptionsExpiresAt = Date.now() + 15_000;
     return cachedPluginMarkdownRenderOptions;
@@ -730,9 +728,7 @@ const articleSanitizeSchema = {
   },
 };
 
-export type MarkdownMathEngine = 'katex' | 'mathjax';
 export interface MarkdownRenderOptions {
-  mathEngine?: MarkdownMathEngine;
   /** Generate a TOC only at an explicit "目录" heading in the Markdown source. */
   tocEnabled?: boolean;
 }
@@ -745,7 +741,7 @@ export interface MarkdownRenderOptions {
  * delimiters can otherwise survive as literal text in a styled article.
  * Convert only text nodes (never code, SVG, scripts, or styles) into the same
  * language-math nodes used by remark-math. The normal sanitizer and the
- * selected KaTeX/MathJax renderer then handle them through the existing path.
+ * KaTeX renderer then handles them through the existing path.
  */
 const protectedMathDelimiters = [
   ['\\(', '\uE000WARM_MATH_INLINE_OPEN\uE001'],
@@ -1196,7 +1192,6 @@ function remarkRestoreUnicodeContainerTypes() {
  * chain on every article request while keeping math/TOC options isolated.
  */
 function createMarkdownProcessor(
-  mathEngine: MarkdownMathEngine,
   tocEnabled: boolean,
   customIframeAttributes: string[] = [],
   customHtmlTags: string[] = [],
@@ -1239,9 +1234,8 @@ function createMarkdownProcessor(
     .use(rehypeRestoreMathDelimiters)
     .use(rehypeMathText)
     .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes, customHtmlTags))
-    .use(rehypeRestoreLocalReferences);
-  if (mathEngine === 'katex') processor.use(rehypeKatex);
-  return processor
+    .use(rehypeRestoreLocalReferences)
+    .use(rehypeKatex)
     .use(rehypeExternalLinks, { rel: ['nofollow'] })
     .use(rehypeHighlight)
     .use(rehypeSlug, { prefix: 'user-content-' })
@@ -1256,14 +1250,12 @@ function createMarkdownProcessor(
 const processorCache = new Map<string, ReturnType<typeof createMarkdownProcessor>>();
 
 function getMarkdownProcessor(
-  mathEngine: MarkdownMathEngine,
   tocEnabled: boolean,
   customIframeAttributes: string[] = [],
   customHtmlTags: string[] = [],
   containersEnabled = true,
 ) {
   const key = [
-    mathEngine,
     tocEnabled ? 'toc' : 'no-toc',
     customIframeAttributes.join(','),
     customHtmlTags.join(','),
@@ -1271,7 +1263,7 @@ function getMarkdownProcessor(
   ].join(':');
   let processor = processorCache.get(key);
   if (!processor) {
-    processor = createMarkdownProcessor(mathEngine, tocEnabled, customIframeAttributes, customHtmlTags, containersEnabled);
+    processor = createMarkdownProcessor(tocEnabled, customIframeAttributes, customHtmlTags, containersEnabled);
     processorCache.set(key, processor);
   }
   return processor;
@@ -1493,7 +1485,6 @@ function addMarkdownAlertIcons(html: string): string {
 /** Warm CY article-only Markdown pipeline; raw HTML uses the official sanitizer with a narrow article schema extension. */
 export async function renderMarkdown(source: string, options: MarkdownRenderOptions = {}): Promise<string> {
   if (!source) return '';
-  const mathEngine = options.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
   const tocEnabled = options.tocEnabled === true;
   const [customIframeAttributes, customHtmlTags] = await Promise.all([
     loadCustomIframeAttributes(),
@@ -1504,7 +1495,6 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
   // to form a cache key. The preview endpoint's existing 100k limit fits here.
   const cacheKey = normalizedSource.length <= RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH
     ? JSON.stringify([
-      mathEngine,
       tocEnabled,
       customIframeAttributes,
       customHtmlTags,
@@ -1523,7 +1513,6 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
   }
 
   const processor = getMarkdownProcessor(
-    mathEngine,
     tocEnabled,
     customIframeAttributes,
     customHtmlTags,
@@ -1539,7 +1528,6 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
       // article into HTTP 500. Only bypass containers for this known failure.
       if (!isFlexibleContainerParserFailure(error)) throw error;
       const fallbackProcessor = getMarkdownProcessor(
-        mathEngine,
         tocEnabled,
         customIframeAttributes,
         customHtmlTags,
@@ -1775,18 +1763,16 @@ function createAdminPreviewScript(): string {
 
   async function createPreviewDocument(payload) {
     const dark = isDarkMode();
-    const mathEngine = payload.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
-    const previewKatexCss = mathEngine === 'katex' ? await getPreviewKatexCss() : '';
+    const previewKatexCss = await getPreviewKatexCss();
     const bodyClass = 'markdown-rehype-preview' + (dark ? ' is-dark' : '');
     const htmlClass = dark ? 'dark' : '';
     const source = typeof payload.html === 'string' ? payload.html : '';
-    const previewCss = 'html,body{margin:0!important;padding:0!important;min-height:0!important;}body.markdown-rehype-preview{box-sizing:border-box;min-width:0;overflow-x:hidden;padding:14px 16px;color:#24292f;background:#fff;font:15px/1.75 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}body.markdown-rehype-preview.is-dark{color:#e6edf3;background:#0d1117;color-scheme:dark;} .markdown-rehype-content{min-width:0;overflow-wrap:anywhere;} .markdown-rehype-content>:first-child{margin-top:0!important;} .markdown-rehype-content h1,.markdown-rehype-content h2,.markdown-rehype-content h3,.markdown-rehype-content h4,.markdown-rehype-content h5,.markdown-rehype-content h6{margin:1.35em 0 .65em;font-weight:650;line-height:1.3;} .markdown-rehype-content h1,.markdown-rehype-content h2{padding-bottom:.3em;border-bottom:1px solid #d8dee4;} .is-dark .markdown-rehype-content h1,.is-dark .markdown-rehype-content h2{border-color:#30363d;} .markdown-rehype-content p,.markdown-rehype-content ul,.markdown-rehype-content ol,.markdown-rehype-content blockquote,.markdown-rehype-content table{margin:0 0 1em;} .markdown-rehype-content a{color:#0969da;text-decoration:underline;text-underline-offset:2px;} .is-dark .markdown-rehype-content a{color:#58a6ff;} .markdown-rehype-content img,.markdown-rehype-content video{max-width:100%;height:auto;} .markdown-rehype-content pre{max-width:100%;overflow:auto;padding:14px 16px;border-radius:7px;background:#f6f8fa;color:#24292f;line-height:1.55;} .is-dark .markdown-rehype-content pre{background:#161b22;color:#e6edf3;} .markdown-rehype-content :not(pre)>code{padding:.15em .35em;border-radius:4px;background:rgba(175,184,193,.22);font-size:.9em;} .markdown-rehype-content pre code{padding:0;background:transparent;} .markdown-rehype-content blockquote{padding:.15em 1em;border-left:3px solid #d0d7de;color:#656d76;} .is-dark .markdown-rehype-content blockquote{border-color:#3d444d;color:#8b949e;} .markdown-rehype-content table{display:block;max-width:100%;overflow:auto;border-collapse:collapse;} .markdown-rehype-content th,.markdown-rehype-content td{padding:6px 12px;border:1px solid #d0d7de;} .is-dark .markdown-rehype-content th,.is-dark .markdown-rehype-content td{border-color:#30363d;} .markdown-rehype-content th{font-weight:600;background:rgba(175,184,193,.15);} .markdown-rehype-content hr{height:1px;border:0;background:#d8dee4;} .markdown-rehype-content .mathjax-display{max-width:100%;overflow:visible;} .markdown-rehype-content .mathjax-display__scroll{max-width:100%;overflow-x:auto;overflow-y:hidden;padding-block:1.5em;} .markdown-rehype-content .mathjax-display__scroll mjx-container[display="true"]{margin:0!important;} .markdown-rehype-content .mermaid_dark{display:none;} .is-dark .markdown-rehype-content .mermaid_default{display:none;} .is-dark .markdown-rehype-content .mermaid_dark{display:block;}';
+    const previewCss = 'html,body{margin:0!important;padding:0!important;min-height:0!important;}body.markdown-rehype-preview{box-sizing:border-box;min-width:0;overflow-x:hidden;padding:14px 16px;color:#24292f;background:#fff;font:15px/1.75 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}body.markdown-rehype-preview.is-dark{color:#e6edf3;background:#0d1117;color-scheme:dark;} .markdown-rehype-content{min-width:0;overflow-wrap:anywhere;} .markdown-rehype-content>:first-child{margin-top:0!important;} .markdown-rehype-content h1,.markdown-rehype-content h2,.markdown-rehype-content h3,.markdown-rehype-content h4,.markdown-rehype-content h5,.markdown-rehype-content h6{margin:1.35em 0 .65em;font-weight:650;line-height:1.3;} .markdown-rehype-content h1,.markdown-rehype-content h2{padding-bottom:.3em;border-bottom:1px solid #d8dee4;} .is-dark .markdown-rehype-content h1,.is-dark .markdown-rehype-content h2{border-color:#30363d;} .markdown-rehype-content p,.markdown-rehype-content ul,.markdown-rehype-content ol,.markdown-rehype-content blockquote,.markdown-rehype-content table{margin:0 0 1em;} .markdown-rehype-content a{color:#0969da;text-decoration:underline;text-underline-offset:2px;} .is-dark .markdown-rehype-content a{color:#58a6ff;} .markdown-rehype-content img,.markdown-rehype-content video{max-width:100%;height:auto;} .markdown-rehype-content pre{max-width:100%;overflow:auto;padding:14px 16px;border-radius:7px;background:#f6f8fa;color:#24292f;line-height:1.55;} .is-dark .markdown-rehype-content pre{background:#161b22;color:#e6edf3;} .markdown-rehype-content :not(pre)>code{padding:.15em .35em;border-radius:4px;background:rgba(175,184,193,.22);font-size:.9em;} .markdown-rehype-content pre code{padding:0;background:transparent;} .markdown-rehype-content blockquote{padding:.15em 1em;border-left:3px solid #d0d7de;color:#656d76;} .is-dark .markdown-rehype-content blockquote{border-color:#3d444d;color:#8b949e;} .markdown-rehype-content table{display:block;max-width:100%;overflow:auto;border-collapse:collapse;} .markdown-rehype-content th,.markdown-rehype-content td{padding:6px 12px;border:1px solid #d0d7de;} .is-dark .markdown-rehype-content th,.is-dark .markdown-rehype-content td{border-color:#30363d;} .markdown-rehype-content th{font-weight:600;background:rgba(175,184,193,.15);} .markdown-rehype-content hr{height:1px;border:0;background:#d8dee4;} .markdown-rehype-content .mermaid_dark{display:none;} .is-dark .markdown-rehype-content .mermaid_default{display:none;} .is-dark .markdown-rehype-content .mermaid_dark{display:block;}';
     return '<!doctype html><html lang="zh-CN" class="' + htmlClass + '"><head>' +
       '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<style data-markdown-rehype-katex>' + previewCss + previewKatexCss + '</style>' +
-      '<script>(function(){try{window.localStorage;}catch(e){var values=Object.create(null);var storage={get length(){return Object.keys(values).length;},clear:function(){values=Object.create(null);},getItem:function(key){key=String(key);return Object.prototype.hasOwnProperty.call(values,key)?values[key]:null;},key:function(index){return Object.keys(values)[index]||null;},removeItem:function(key){delete values[String(key)];},setItem:function(key,value){values[String(key)]=String(value);}};try{Object.defineProperty(window,"localStorage",{configurable:true,value:storage});}catch(ignore){}}})();window.MathJax={startup:{typeset:false},options:{enableMenu:false,renderActions:{addMenu:[],checkLoading:[]}},tex:{inlineMath:[["\\\\(","\\\\)"]],displayMath:[["\\\\[","\\\\]"]]}};' + '</scr' + 'ipt>' +
       '</head><body class="' + bodyClass + '">' +
-      '<main class="markdown-rehype-content" data-math-engine="' + mathEngine + '">' + source + '</main>' +
+      '<main class="markdown-rehype-content">' + source + '</main>' +
       '<script>(function(){' +
         'function notify(){var root=document.documentElement,body=document.body,rect=body.getBoundingClientRect();var h=Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight,rect.bottom+window.scrollY));window.parent.postMessage({type:"markdown-rehype-preview-height",height:h},"*");}' +
         'if(window.ResizeObserver){var ro=new ResizeObserver(notify);ro.observe(document.documentElement);ro.observe(document.body);}' +
@@ -1930,7 +1916,6 @@ function createPublicContentRuntimeScript(): string {
     dark: getWarmMermaidConfig(true),
   }).replace(/</g, '\\u003c');
   const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
-  const mathJaxUrlValue = JSON.stringify(mathJaxModuleUrl).replace(/</g, '\\u003c');
 
   return `<script data-markdown-rehype-content-runtime>
 (() => {
@@ -1938,11 +1923,7 @@ function createPublicContentRuntimeScript(): string {
   window.__warmMarkdownContentRuntime = true;
   const mermaidConfigs = ${mermaidConfigs};
   const katexCss = ${katexCssValue};
-  const mathJaxUrl = ${mathJaxUrlValue};
   let mermaidLoad = null;
-  let mathJaxLoad = null;
-  let mathJaxRendering = false;
-  let mathJaxQueued = false;
 
   const ensureKatexCss = () => {
     if (!document.querySelector('.katex') || document.querySelector('[data-markdown-rehype-katex]')) return;
@@ -2009,57 +1990,6 @@ function createPublicContentRuntimeScript(): string {
     }
   };
 
-  const renderMathJax = async () => {
-    // In MathJax mode the processor leaves math as language-math code nodes;
-    // KaTeX mode has already replaced them with .katex markup. No theme wrapper
-    // or theme-specific data attribute is required here.
-    const blocks = [...document.querySelectorAll('code.language-math:not([data-mathjax-processed])')];
-    if (!blocks.length) return;
-    if (mathJaxRendering) {
-      mathJaxQueued = true;
-      return;
-    }
-    mathJaxRendering = true;
-    try {
-      window.MathJax = window.MathJax || {
-        startup: { typeset: false },
-        tex: { inlineMath: [['\\\\(', '\\\\)']], displayMath: [['\\\\[', '\\\\]']] }
-      };
-      mathJaxLoad ||= new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = mathJaxUrl;
-        script.async = true;
-        script.onload = () => resolve(window.MathJax);
-        script.onerror = () => reject(new Error('MathJax runtime failed to load'));
-        document.head.append(script);
-      });
-      await mathJaxLoad;
-      const replacements = [];
-      for (const code of blocks) {
-        if (!code.isConnected) continue;
-        const pre = code.closest('pre');
-        const replacement = document.createElement(pre ? 'div' : 'span');
-        replacement.className = pre ? 'mathjax-display' : 'mathjax-inline';
-        replacement.textContent = pre ? '\\\\[\\n' + code.textContent + '\\n\\\\]' : '\\\\(' + code.textContent + '\\\\)';
-        (pre || code).replaceWith(replacement);
-        replacements.push(replacement);
-      }
-      const mathJax = window.MathJax;
-      if (mathJax?.startup?.promise && replacements.length) {
-        await mathJax.startup.promise;
-        await mathJax.typesetPromise(replacements);
-      }
-    } catch (error) {
-      console.error('Markdown MathJax rendering failed:', error);
-    } finally {
-      mathJaxRendering = false;
-      if (mathJaxQueued) {
-        mathJaxQueued = false;
-        queueMicrotask(() => void renderMathJax());
-      }
-    }
-  };
-
   const addCodeCopyButtons = () => {
     document.querySelectorAll('main pre > code, article pre > code, .warm-prose pre > code').forEach(code => {
       const pre = code.parentElement;
@@ -2120,7 +2050,7 @@ function createPublicContentRuntimeScript(): string {
   const renderContent = () => {
     ensureKatexCss();
     addCodeCopyButtons();
-    Promise.all([renderMermaid(), renderMathJax()]).then(() => {
+    renderMermaid().then(() => {
       if (typeof window.__warmMarkdownContentRendered === 'function') {
         window.__warmMarkdownContentRendered();
       }
@@ -2148,7 +2078,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   }, 1000);
 
   // Public content enhancements belong to the renderer plugin, not a theme.
-  // Mermaid and MathJax assets are loaded only when matching content exists.
+  // Mermaid is loaded only when matching content exists.
   addHook('archive:footer', pluginId, (html: string, extra?: {
     options?: Record<string, unknown>;
   }) => {
@@ -2197,14 +2127,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
     try {
       const config = parsePluginConfig(auth.options[PLUGIN_OPTION_KEY]);
-      const mathEngine = config.mathEngine === 'mathjax' ? 'mathjax' : 'katex';
       const html = await renderMarkdown(source, {
-        mathEngine,
         tocEnabled: config.tocEnabled === true || config.tocEnabled === '1',
       });
       return {
         handled: true,
-        response: new Response(JSON.stringify({ html, mathEngine }), {
+        response: new Response(JSON.stringify({ html }), {
           headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
         }),
       };
