@@ -1,7 +1,7 @@
 {
   "name": "typecho-plugin-markdown-rehype",
   "version": "1.0.0",
-  "description": "Rin-compatible Markdown article renderer with GFM, Mermaid, KaTeX, Prism highlighting, image placeholders and lightbox.",
+  "description": "Rin-compatible Markdown article and page renderer with GFM, Mermaid, KaTeX, Prism highlighting, image placeholders and lightbox.",
   "author": "怸歪",
   "homepage": "https://347777.xyz",
   "main": "index.ts",
@@ -30,7 +30,7 @@
     "plugin": {
       "id": "typecho-plugin-markdown-rehype",
       "name": "Markdown Rehype",
-      "description": "Rin-compatible Markdown article renderer with GFM, Mermaid, KaTeX, Prism highlighting, image placeholders and lightbox.",
+      "description": "Rin-compatible Markdown article and page renderer with GFM, Mermaid, KaTeX, Prism highlighting, image placeholders and lightbox.",
       "version": "2026.11.13.21.10",
       "author": "怸歪",
       "authorUrl": "https://347777.xyz",
@@ -51,7 +51,7 @@
           "type": "textarea",
           "label": "原始 HTML 标签白名单",
           "description": "控制文章渲染时允许通过的额外原始 HTML 标签。支持换行、空格、逗号或分号分隔；留空则不额外放行标签。脚本、嵌入对象及文档级危险标签始终禁止。",
-          "default": "u, s, kbd, abbr, small, cite, q, time, del, ins, ruby, rt, rp, wbr, bdi, bdo, data, output, progress, meter"
+          "default": "u, s, kbd, abbr, small, cite, q, time, del, ins, ruby, rt, rp, wbr, bdi, bdo, data, output, progress, meter, address, article, aside, footer, header, nav, hgroup, search, dl, dt, dd, samp, var, dfn"
         },
         "iframeAttributes": {
           "type": "textarea",
