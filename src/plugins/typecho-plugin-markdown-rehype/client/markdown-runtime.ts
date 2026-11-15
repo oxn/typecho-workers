@@ -139,17 +139,17 @@ function installStyles(): void {
   document.head.append(style);
 }
 
-function contentRoot(): Element | null {
-  return document.querySelector(ROOT_SELECTOR);
+function contentRoots(): Element[] {
+  return Array.from(document.querySelectorAll(ROOT_SELECTOR));
 }
 
 const runtimeLoads = new Map<string, Promise<void>>();
 function loadRuntime(filename: string, globalName: string): Promise<void> {
-  const root = contentRoot();
-  if (!root) return Promise.resolve();
+  const roots = contentRoots();
+  if (!roots.length) return Promise.resolve();
   const existing = (window as any)[globalName];
   if (existing) {
-    existing.initialize(root);
+    roots.forEach(root => existing.initialize(root));
     return Promise.resolve();
   }
   const current = runtimeLoads.get(filename);
@@ -164,8 +164,7 @@ function loadRuntime(filename: string, globalName: string): Promise<void> {
         reject(new Error(filename + ' did not expose its runtime'));
         return;
       }
-      const latestRoot = contentRoot();
-      if (latestRoot) runtime.initialize(latestRoot);
+      contentRoots().forEach(latestRoot => runtime.initialize(latestRoot));
       resolve();
     };
     script.onerror = () => reject(new Error(filename + ' failed to load'));
@@ -179,13 +178,13 @@ function loadRuntime(filename: string, globalName: string): Promise<void> {
 }
 
 function initialize(): void {
-  const root = contentRoot();
-  if (!root) return;
+  const roots = contentRoots();
+  if (!roots.length) return;
   installStyles();
-  if (root.querySelector('img')) {
+  if (roots.some(root => root.querySelector('img'))) {
     void loadRuntime('markdown-image-runtime.js', '__rinMarkdownImageRuntime');
   }
-  if (root.querySelector('.rin-code-pre > code')) {
+  if (roots.some(root => root.querySelector('.rin-code-pre > code'))) {
     void loadRuntime('markdown-code-runtime.js', '__rinMarkdownCodeRuntime');
   }
 }
