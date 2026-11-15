@@ -90,8 +90,8 @@ const RIN_CSS = `
 .toc-content sup,.markdown-rehype-content sup,.warm-prose sup,.toc-content sub,.markdown-rehype-content sub,.warm-prose sub{font-size:.75rem;margin-right:4px}
 .toc-content section[data-footnotes],.markdown-rehype-content section[data-footnotes],.warm-prose section[data-footnotes]{margin-top:2rem}
 .toc-content section[data-footnotes] ol,.markdown-rehype-content section[data-footnotes] ol,.warm-prose section[data-footnotes] ol{list-style:decimal;padding-left:2.5rem;font-size:.875rem;color:#6b7280}
-.toc-content iframe,.markdown-rehype-content iframe,.warm-prose iframe{width:100%;min-height:400px;border-radius:.75rem;border:1px solid rgba(0,0,0,.1)}
-.dark .toc-content iframe,.dark .markdown-rehype-content iframe,.dark .warm-prose iframe,[data-color-mode="dark"] .toc-content iframe,[data-color-mode="dark"] .markdown-rehype-content iframe,[data-color-mode="dark"] .warm-prose iframe{border-color:rgba(255,255,255,.1)}
+.rin-iframe-wrapper{width:100%;margin:1rem 0}.rin-iframe{display:block;width:100%;min-height:400px;border-radius:.75rem;border:1px solid rgba(0,0,0,.1)}
+:is(.dark,[data-color-mode="dark"]) .rin-iframe{border-color:rgba(255,255,255,.1)}
 .toc-content :not(pre)>code,.markdown-rehype-content :not(pre)>code,.warm-prose :not(pre)>code{background:#eff1f3;height:24px;padding:2px 4px;border-radius:6px;margin:0 2px;color:#262626;font:13px ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace}
 .dark .toc-content :not(pre)>code,.dark .markdown-rehype-content :not(pre)>code,.dark .warm-prose :not(pre)>code,[data-color-mode="dark"] .toc-content :not(pre)>code,[data-color-mode="dark"] .markdown-rehype-content :not(pre)>code,[data-color-mode="dark"] .warm-prose :not(pre)>code{background:#4a5061;color:#d4d4d4}
 .rin-code-block{position:relative;min-width:0;max-width:100%;overflow:hidden}
