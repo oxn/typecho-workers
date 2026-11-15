@@ -643,8 +643,8 @@ function rehypeRinHeadingIds() {
             : children.map(childToString).join(',');
         }
         const existingStyle = typeof node.properties.style === 'string' ? node.properties.style : '';
-        const withoutScrollMargin = existingStyle.replace(/(?:^|;)\\s*scroll-margin-top\\s*:[^;]*/gi, '');
-        node.properties.style = (withoutScrollMargin ? withoutScrollMargin.replace(/;?\\s*$/, ';') : '') +
+        const withoutScrollMargin = existingStyle.replace(/(?:^|;)\s*scroll-margin-top\s*:[^;]*/gi, '');
+        node.properties.style = (withoutScrollMargin ? withoutScrollMargin.replace(/;?\s*$/, ';') : '') +
           'scroll-margin-top:var(--header-scroll-offset, 7rem)';
       }
       if (Array.isArray(node.children)) node.children.forEach(visit);
