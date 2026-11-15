@@ -1948,7 +1948,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('admin:footer', pluginId, (html: string, extra?: {
     options?: Record<string, unknown>;
   }) => {
-    const pluginConfig = parsePluginConfig(extra.options?.[PLUGIN_OPTION_KEY]);
     const script = [
       '<script data-markdown-rehype-admin-navigation>',
       '(function () {',
