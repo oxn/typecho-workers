@@ -144,6 +144,22 @@ const RIN_CSS = `
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.class-name{color:#4ec9b0}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.escape{color:#d7ba7d}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value{color:#ce9178}
+
+.rin-code-block .token.namespace{opacity:.7}
+.rin-code-block .token.entity{cursor:help}
+.rin-code-block .token.inserted{text-decoration:none}
+.rin-code-block pre>code.highlight{outline:.4em solid #c94922;outline-offset:.4em}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.namespace{opacity:.7}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.constant,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.console,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.parameter,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.interpolation{color:#9cdcfe}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.symbol,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.inserted{color:#b5cea8}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.rule,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.keyword.module,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.keyword.control-flow{color:#c586c0}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.function,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.function.maybe-class-name{color:#dcdcaa}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.tag.punctuation,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.cdata{color:#808080}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value.punctuation{color:#ce9178}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value.punctuation.attr-equals,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.punctuation.interpolation-punctuation{color:#d4d4d4}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-javascript"],:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-jsx"],:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-typescript"],:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-tsx"]{color:#9cdcfe}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-css"]{color:#ce9178}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-html"]{color:#d4d4d4}
 .rin-code-copy{position:absolute;top:4px;right:4px;padding:4px 8px;border:0;border-radius:6px;background:rgba(127,127,127,.16);color:inherit;font-size:14px;user-select:none;cursor:pointer;visibility:hidden}
 .rin-code-block:hover .rin-code-copy,.rin-code-copy:focus{visibility:visible}
 .rin-image-block{display:block;width:100%;text-align:center;margin:1rem 0}
