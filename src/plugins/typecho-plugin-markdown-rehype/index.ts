@@ -228,7 +228,7 @@ async function renderMarkdownBridgeSource(source: string): Promise<string> {
 }
 
 function restoreMarkdownBridgeHtml(sanitized: string): string {
-  const match = sanitized.match(/<p>\\s*(TYPECHOMARKDOWNREHYPE[a-f0-9]{32})\\s*<\\/p>/i);
+  const match = sanitized.match(/<p>\s*(TYPECHOMARKDOWNREHYPE[a-f0-9]{32})\s*<\/p>/i);
   if (!match) return sanitized;
   const entry = markdownBridge.get(match[1]);
   markdownBridge.delete(match[1]);
