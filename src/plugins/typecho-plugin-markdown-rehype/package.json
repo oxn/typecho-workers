@@ -58,6 +58,12 @@
           "label": "iframe 属性白名单",
           "description": "控制文章 iframe 可保留的额外属性；默认值覆盖常用嵌入属性。支持换行、空格、逗号或分号分隔。此项只允许属性通过，不会自动添加属性；src 仍由安全 URL 规则控制，srcdoc、nonce、integrity 及所有 on* 事件属性始终禁止。留空时恢复内置默认属性。",
           "default": "width\nheight\nframeborder\nframespacing\nborder\nallow\nallowfullscreen\nallowtransparency\nallowpaymentrequest\ntitle\nname\nid\nclass\nstyle\nreferrerpolicy\nsandbox\nscrolling\nmarginwidth\nmarginheight\nloading\ncredentialless\nfetchpriority\nalign\nlongdesc\naria-label\naria-hidden\ndata-diag-id"
+        },
+        "htmlAttributes": {
+          "type": "textarea",
+          "label": "原始 HTML 属性白名单",
+          "description": "按标签配置额外允许保留的安全属性，每行一项，格式为“标签名: 属性名, 属性名”。目前管理 abbr、q、time、del、ins、bdo、data、output、progress、meter 的语义属性及 class。仅允许内置安全属性；on* 事件属性和危险属性不能放行。留空则不额外放行这些属性。",
+          "default": "abbr: title, class\nq: cite, class\ntime: datetime, class\ndel: cite, datetime, class\nins: cite, datetime, class\nbdo: dir, class\ndata: value, class\noutput: for, form, name, class\nprogress: max, value, class\nmeter: min, max, low, high, optimum, value, class"
         }
       }
     }
