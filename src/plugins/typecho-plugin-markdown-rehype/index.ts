@@ -1279,7 +1279,7 @@ function createPublicContentRuntimeScript(): string {
 
   let rinRuntimeLoad = null;
   const loadRinRuntime = () => {
-    if (!document.querySelector('.toc-content, .markdown-rehype-content, .warm-prose, article')) return Promise.resolve();
+    if (!document.querySelector('.toc-content')) return Promise.resolve();
     if (window.__rinMarkdownRuntime) {
       window.__rinMarkdownRuntime.initialize();
       return Promise.resolve();
