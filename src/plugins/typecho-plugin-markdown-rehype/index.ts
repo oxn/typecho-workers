@@ -214,19 +214,6 @@ const DEFAULT_CUSTOM_HTML_ATTRIBUTES: Record<string, string[]> = {
   progress: ['max', 'value', 'className'],
   meter: ['min', 'max', 'low', 'high', 'optimum', 'value', 'className'],
 };
-const DEFAULT_CUSTOM_HTML_ATTRIBUTES_TEXT = [
-  'abbr: title, class',
-  'q: cite, class',
-  'time: datetime, class',
-  'del: cite, datetime, class',
-  'ins: cite, datetime, class',
-  'bdo: dir, class',
-  'data: value, class',
-  'output: for, form, name, class',
-  'progress: max, value, class',
-  'meter: min, max, low, high, optimum, value, class',
-].join('\\n');
-
 const SAFE_CUSTOM_HTML_ATTRIBUTES: Record<string, Record<string, string>> = {
   abbr: { title: 'title', class: 'className' },
   q: { cite: 'cite', class: 'className' },
