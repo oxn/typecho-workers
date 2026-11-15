@@ -1568,13 +1568,12 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
 
 
 function createAdminPreviewScript(): string {
+  const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
   // The editor preview uses the same browser runtime as public content.
 
   return `<script type="module" data-markdown-rehype-live-preview>
 (() => {
-  const mermaidConfigs = ${mermaidConfigs};
   const katexCss = ${katexCssValue};
-  const mathJaxUrl = ${mathJaxUrlValue};
   // The editor creates #wmd-preview inside its jQuery ready callback.
   // A module script can run before that callback, so wait for the complete
   // editor DOM instead of permanently abandoning preview initialization.
