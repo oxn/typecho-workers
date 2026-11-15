@@ -1,6 +1,7 @@
 // Rin-compatible article presentation runtime. This is intentionally a small,
 // plugin-owned browser layer: parsing remains server-side and no theme renderer
 // or long-lived DOM observer is required.
+// @ts-ignore PrismJS is consumed as a browser bundle; its runtime package has no bundled types.
 import Prism from 'prismjs';
 // Prism grammars used by common Rin articles.
 // @ts-ignore Prism language modules are JavaScript side-effect modules.
@@ -62,6 +63,7 @@ const ROOT_SELECTOR = '.toc-content, .markdown-rehype-content, .warm-prose, arti
 
 const RIN_CSS = `
 .toc-content,.markdown-rehype-content,.warm-prose{min-width:0;overflow-wrap:anywhere}
+:is(.dark,[data-color-mode="dark"]) .toc-content,:is(.dark,[data-color-mode="dark"]) .markdown-rehype-content,:is(.dark,[data-color-mode="dark"]) .warm-prose{color:#d4d4d4}
 .toc-content p,.markdown-rehype-content p,.warm-prose p{margin-top:.5rem;padding-top:.25rem;padding-bottom:.25rem;overflow-wrap:anywhere}
 .toc-content h1,.toc-content h2,.toc-content h3,.toc-content h4,.toc-content h5,.toc-content h6,.markdown-rehype-content h1,.markdown-rehype-content h2,.markdown-rehype-content h3,.markdown-rehype-content h4,.markdown-rehype-content h5,.markdown-rehype-content h6,.warm-prose h1,.warm-prose h2,.warm-prose h3,.warm-prose h4,.warm-prose h5,.warm-prose h6{margin-top:1rem;font-weight:700;overflow-wrap:anywhere;scroll-margin-top:var(--header-scroll-offset,7rem)}
 .toc-content h1,.markdown-rehype-content h1,.warm-prose h1{font-size:1.875rem;line-height:2.25rem}
@@ -95,7 +97,7 @@ const RIN_CSS = `
 .rin-code-block{position:relative;min-width:0;max-width:100%;overflow:hidden}
 .rin-code-block pre{box-sizing:border-box;margin:.5em 0;padding:1em;max-width:100%;overflow:auto;border-radius:.25rem;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#f5f7ff;color:#5e6687;font:14px/1.375 Consolas,Menlo,Monaco,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L","Courier New",Courier,monospace;tab-size:4}
 .rin-code-block code{font:14px/1.375 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;font-variant-ligatures:normal;font-feature-settings:"liga" 1}
-.dark .rin-code-block pre,.dark .rin-code-block code,[data-color-mode="dark"] .rin-code-block pre,[data-color-mode="dark"] .rin-code-block code{background:#1e1e1e;color:#d4d4d4;font-size:14px;line-height:1.5}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block pre,:is(.dark,[data-color-mode="dark"]) .rin-code-block code,[data-color-mode="dark"] .rin-code-block pre,[data-color-mode="dark"] .rin-code-block code{background:#1e1e1e;color:#d4d4d4;font-size:14px;line-height:1.5}
 .rin-code-block .token.comment,.rin-code-block .token.prolog,.rin-code-block .token.doctype,.rin-code-block .token.cdata{color:#898ea4}
 .rin-code-block .token.punctuation{color:#5e6687}
 .rin-code-block .token.operator,.rin-code-block .token.boolean,.rin-code-block .token.number{color:#c76b29}
@@ -112,22 +114,22 @@ const RIN_CSS = `
 .rin-code-block .token.italic{font-style:italic}
 .rin-code-block .token.important{font-weight:bold;color:#c94922}
 .rin-code-block .token.bold{font-weight:bold}
-.dark .rin-code-block .token.comment,.dark .rin-code-block .token.prolog{color:#6a9955}
-.dark .rin-code-block .token.punctuation,.dark .rin-code-block .token.operator{color:#d4d4d4}
-.dark .rin-code-block .token.doctype .token.doctype-tag{color:#569cd6}
-.dark .rin-code-block .token.doctype .token.name,.dark .rin-code-block .token.property,.dark .rin-code-block .token.constant,.dark .rin-code-block .token.parameter,.dark .rin-code-block .token.variable{color:#9cdcfe}
-.dark .rin-code-block .token.tag,.dark .rin-code-block .token.boolean,.dark .rin-code-block .token.entity,.dark .rin-code-block .token.keyword,.dark .rin-code-block .token.important{color:#569cd6}
-.dark .rin-code-block .token.number,.dark .rin-code-block .token.symbol,.dark .rin-code-block .token.inserted,.dark .rin-code-block .token.unit{color:#b5cea8}
-.dark .rin-code-block .token.selector{color:#d7ba7d}
-.dark .rin-code-block .token.attr-name{color:#9cdcfe}
-.dark .rin-code-block .token.string,.dark .rin-code-block .token.char,.dark .rin-code-block .token.builtin,.dark .rin-code-block .token.deleted,.dark .rin-code-block .token.atrule{color:#ce9178}
-.dark .rin-code-block .token.operator.arrow,.dark .rin-code-block .token.entity{color:#569cd6}
-.dark .rin-code-block .token.atrule.rule,.dark .rin-code-block .token.keyword.module,.dark .rin-code-block .token.keyword.control-flow{color:#c586c0}
-.dark .rin-code-block .token.function{color:#dcdcaa}
-.dark .rin-code-block .token.regex{color:#d16969}
-.dark .rin-code-block .token.class-name{color:#4ec9b0}
-.dark .rin-code-block .token.escape{color:#d7ba7d}
-.dark .rin-code-block .token.attr-value{color:#ce9178}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.comment,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.prolog{color:#6a9955}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.punctuation,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.operator{color:#d4d4d4}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.doctype .token.doctype-tag{color:#569cd6}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.doctype .token.name,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.property,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.constant,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.parameter,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.variable{color:#9cdcfe}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.tag,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.boolean,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.entity,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.keyword,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.important{color:#569cd6}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.number,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.symbol,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.inserted,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.unit{color:#b5cea8}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.selector{color:#d7ba7d}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.attr-name{color:#9cdcfe}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.string,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.char,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.builtin,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.deleted,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.atrule{color:#ce9178}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.operator.arrow,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.entity{color:#569cd6}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.atrule.rule,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.keyword.module,:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.keyword.control-flow{color:#c586c0}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.function{color:#dcdcaa}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.regex{color:#d16969}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.class-name{color:#4ec9b0}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.escape{color:#d7ba7d}
+:is(.dark,[data-color-mode="dark"]) .rin-code-block .token.attr-value{color:#ce9178}
 .rin-code-copy{position:absolute;top:4px;right:4px;padding:4px 8px;border:0;border-radius:6px;background:rgba(127,127,127,.16);color:inherit;font-size:14px;user-select:none;cursor:pointer;visibility:hidden}
 .rin-code-block:hover .rin-code-copy,.rin-code-copy:focus{visibility:visible}
 .rin-image-block{display:block;width:100%;text-align:center;margin:1rem 0}
