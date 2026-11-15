@@ -43,11 +43,31 @@ function applyImageDimension(properties: Record<string, any>, name: 'width' | 'h
  * the same clean src + display metadata contract as Rin's MarkdownImage.
  * Literal '+' is preserved because it is part of the BlurHash alphabet.
  */
-function remarkRinImageMetadata() {
+function countRinNewlinesBeforeNode(text: string, offset: number): number {
+  let count = 0;
+  for (let index = offset - 1; index >= 0 && text[index] === '\\n'; index--) count++;
+  return count;
+}
+function isRinMarkdownImageLinkAtEnd(text: string): boolean {
+  const trimmed = text.trim();
+  const match = trimmed.match(/(.*)(!\\[.*?\\]\\(.*?\\))$/s);
+  if (!match) return false;
+  const beforeImage = match[1];
+  return beforeImage.trim().length === 0 || beforeImage.endsWith('\\n');
+}
+function remarkRinImageMetadata(source: string) {
   return (tree: any): void => {
     const visit = (node: any): void => {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'image' && typeof node.url === 'string') {
+        const offset = Number(node.position?.start?.offset ?? 0);
+        const previousContent = source.slice(0, offset);
+        const block = countRinNewlinesBeforeNode(previousContent, offset) >= 1
+          || previousContent.trim().length === 0
+          || isRinMarkdownImageLinkAtEnd(previousContent);
+        node.data = node.data ?? {};
+        const properties = { ...(node.data.hProperties ?? {}) } as Record<string, any>;
+        properties.dataRinImageLayout = block ? 'block' : 'inline';
         const hashIndex = node.url.indexOf('#');
         if (hashIndex >= 0) {
           const resourceUrl = node.url.slice(0, hashIndex);
@@ -60,41 +80,25 @@ function remarkRinImageMetadata() {
             let key = part.slice(0, separator);
             let value = part.slice(separator + 1);
             try { key = decodeURIComponent(key); } catch {}
-            // URLSearchParams treats '+' as a space; BlurHash does not.
-            value = value.replace(/\+/g, '%2B');
+            value = value.replace(/\\+/g, '%2B');
             try { value = decodeURIComponent(value); } catch {}
             metadata.set(key.toLowerCase(), value);
           }
-
           const blurhash = metadata.get('blurhash') || '';
-          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(blurhash)
-            ? blurhash
-            : '';
-          const dimensions: Record<'width' | 'height', string | undefined> = {
-            width: undefined,
-            height: undefined,
-          };
+          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(blurhash) ? blurhash : '';
+          if (validBlurhash) properties.dataBlurhash = validBlurhash;
           for (const name of ['width', 'height'] as const) {
             const raw = metadata.get(name);
             if (!raw) continue;
             const value = Number.parseInt(raw, 10);
-            if (Number.isInteger(value) && value > 0 && value <= 10000) {
-              dimensions[name] = String(value);
+            if (Number.isInteger(value) && value > 0 && value <= 10000 && properties[name] == null) {
+              applyImageDimension(properties, name, String(value));
             }
           }
-
-          if (validBlurhash || dimensions.width || dimensions.height) {
-            node.url = resourceUrl;
-            node.data = node.data ?? {};
-            const properties = { ...(node.data.hProperties ?? {}) } as Record<string, any>;
-            if (validBlurhash) properties.dataBlurhash = validBlurhash;
-            for (const name of ['width', 'height'] as const) {
-              const value = dimensions[name];
-              if (value && properties[name] == null) applyImageDimension(properties, name, value);
-            }
-            node.data.hProperties = properties;
-          }
+          // Rin's parseImageUrlMetadata always separates the fragment from src.
+          node.url = resourceUrl;
         }
+        node.data.hProperties = properties;
       }
       if (Array.isArray(node.children)) node.children.forEach(visit);
     };
@@ -145,49 +149,42 @@ function remarkImageSizeAttributes() {
 }
 
 /** Extract image display metadata before sanitization and keep resource URLs clean. */
-function rehypeImageDimensions() {
+function rehypeImageDimensions(source: string) {
   return (tree: any): void => {
     const visit = (node: any): void => {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'element' && node.tagName === 'img' && node.properties) {
         const properties = node.properties as Record<string, any>;
+        const offset = Number(node.position?.start?.offset ?? 0);
+        const previousContent = source.slice(0, offset);
+        const block = countRinNewlinesBeforeNode(previousContent, offset) >= 1
+          || previousContent.trim().length === 0
+          || isRinMarkdownImageLinkAtEnd(previousContent);
+        if (properties.dataRinImageLayout == null) properties.dataRinImageLayout = block ? 'block' : 'inline';
         const src = properties.src;
         if (typeof src === 'string') {
           const hash = src.indexOf('#');
           if (hash >= 0) {
-            const remaining: string[] = [];
-            let recognized = false;
-            for (const part of src.slice(hash + 1).replace(/&amp;/gi, '&').split('&')) {
+            const metadata = new Map<string, string>();
+            for (const part of src.slice(hash + 1).replace(/&amp;/gi, '&').split(/[&;]/)) {
               if (!part) continue;
               const separator = part.indexOf('=');
-              if (separator < 0) { remaining.push(part); continue; }
+              if (separator < 0) continue;
               let key = part.slice(0, separator);
               let value = part.slice(separator + 1);
               try { key = decodeURIComponent(key); } catch {}
-              const normalizedKey = key.toLowerCase();
-              if (normalizedKey === 'blurhash') {
-                let decoded = value;
-                try { decoded = decodeURIComponent(value); } catch {}
-                if (/^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(decoded)) {
-                  properties.dataBlurhash = decoded;
-                  recognized = true;
-                  continue;
-                }
-              }
-              if (normalizedKey === 'width' || normalizedKey === 'height') {
-                try { value = decodeURIComponent(value); } catch {}
-                const name = normalizedKey as 'width' | 'height';
-                if (parseImageDimension(value)) {
-                  if (properties[name] == null) applyImageDimension(properties, name, value);
-                  recognized = true;
-                  continue;
-                }
-              }
-              remaining.push(part);
+              try { value = decodeURIComponent(value.replace(/\\+/g, '%2B')); } catch {}
+              metadata.set(key.toLowerCase(), value);
             }
-            if (recognized) {
-              properties.src = src.slice(0, hash) + (remaining.length ? `#${remaining.join('&')}` : '');
+            const blurhash = metadata.get('blurhash') || '';
+            if (/^[0-9A-Za-z#$%*+,-.:;=?@\\[\\]^_{|}~]{6,200}$/.test(blurhash)) {
+              properties.dataBlurhash = blurhash;
             }
+            for (const name of ['width', 'height'] as const) {
+              const value = metadata.get(name);
+              if (value && properties[name] == null) applyImageDimension(properties, name, value);
+            }
+            properties.src = src.slice(0, hash);
           }
         }
       }
@@ -557,7 +554,7 @@ const articleSanitizeSchema = {
 
     img: [
       ...(defaultSchema.attributes.img ?? []),
-      'alt', 'title', 'width', 'height', 'loading', 'className', 'style', 'dataBlurhash',
+      'alt', 'title', 'width', 'height', 'loading', 'className', 'style', 'dataBlurhash', 'dataRinImageLayout',
     ],
     svg: [
       'id', 'className', 'width', 'height', 'viewBox', 'xmlns', 'xmlnsXLink', 'version', 'preserveAspectRatio', 'style',
@@ -1185,12 +1182,12 @@ function createMarkdownProcessor(
     .use(remarkMath)
     .use(remarkAlert)
     .use(remarkRinBreaks)
-    .use(remarkRinImageMetadata)
+    .use(remarkRinImageMetadata, source)
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeKatex)
     .use(rehypeRaw)
     .use(rehypeRemoveStyleElements)
-    .use(rehypeImageDimensions)
+    .use(rehypeImageDimensions, source)
     .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes, customHtmlTags))
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
@@ -1457,7 +1454,7 @@ export async function renderMarkdown(source: string, options: MarkdownRenderOpti
   // wait for a render slot and identical concurrent requests still share work.
   const render = runMarkdownRender(async () => {
     const file = await processor.process(normalizedSource);
-    const html = String(file);
+    const html = '<div class="toc-content min-w-0">' + String(file) + '</div>';
     if (cacheKey) cacheMarkdownRender(cacheKey, html);
     return html;
   });
