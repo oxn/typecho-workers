@@ -156,7 +156,6 @@ function rehypeImageDimensions() {
 // a second HTML parser or sanitizer. Preserve inline style attributes and SVG
 // presentation, but do not allow raw <style> elements in article content;
 // executable scripts and event-handler attributes remain outside the allowlist.
-const safeSvgId = /^[\p{L}\p{N}\p{M}_:.-]+$/u;
 const safeSvgHref = /^#[\p{L}\p{N}\p{M}_:.-]+$/u;
 const safeSvgPaint = /^(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)|url\(\s*(["']?)#[\p{L}\p{N}\p{M}_:.-]+\1\s*\)(?:\s+(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)))?)$/iu;
 const safeSvgOpacity = /^(?:(?:0(?:\.\d+)?|0?\.\d+|1(?:\.0+)?)|(?:(?:100|[1-9]?\d)(?:\.\d+)?)%)$/;
@@ -804,9 +803,9 @@ export async function readPreviewRequestBodyText(
 
 /**
  * Reuse completed renders across requests in the same Worker isolate.
- * Keys contain the exact normalized source and every setting that affects
- * output; no probabilistic hash is used, so a collision cannot return another
- * article's HTML. Both entry count and retained string size are bounded.
+ * The exact source is the cache key; no probabilistic hash is used, so a
+ * collision cannot return another article's HTML. Entry count and retained
+ * string size are bounded.
  */
 const RENDERED_MARKDOWN_CACHE_MAX_ENTRIES = 12;
 const RENDERED_MARKDOWN_CACHE_MAX_WEIGHT = 1_500_000;
