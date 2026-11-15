@@ -685,6 +685,26 @@ function remarkRinBreaks() {
   };
 }
 
+function rehypeRinCodeBlocks() {
+  return (tree: any, file: any): void => {
+    const source = typeof file?.value === 'string' ? file.value : '';
+    const visit = (node: any): void => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'element' && node.tagName === 'pre' && Array.isArray(node.children)) {
+        const offset = Number(node.position?.start?.offset ?? -1);
+        const startsWithFence = offset >= 0 && source.slice(offset).trimStart().startsWith('```');
+        const code = node.children.find((child: any) => child?.type === 'element' && child.tagName === 'code');
+        if (startsWithFence && code) {
+          node.tagName = 'div';
+          node.properties = { className: ['rin-code-pre', 'rounded'] };
+        }
+      }
+      if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    visit(tree);
+  };
+}
+
 function rehypeRinHeadingIds() {
   const textContent = (node: any): string => {
     if (!node || typeof node !== 'object') return '';
@@ -729,6 +749,7 @@ function createMarkdownProcessor(
     .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
     .use(rehypeSanitize, createArticleSanitizeSchema(customIframeAttributes, customHtmlTags))
+    .use(rehypeRinCodeBlocks)
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
 }
