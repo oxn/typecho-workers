@@ -74,6 +74,7 @@ describe('typecho-plugin-pinyin', () => {
     expect(editorHtml).toContain("X-CSRF-Token");
     expect(editorHtml).toContain('title.maxLength = 100;');
     expect(editorHtml).toContain('slug.maxLength = 300;');
+    expect(editorHtml).toContain("target.searchParams.set('__pinyinSlug', value)");
   });
 
   it('rejects non-POST requests without invoking the auth handler', async () => {
