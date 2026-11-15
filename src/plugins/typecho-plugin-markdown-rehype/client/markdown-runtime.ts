@@ -143,9 +143,9 @@ const RIN_CSS = `
 .rin-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);font-size:24px}
 .rin-lightbox-prev{left:12px}.rin-lightbox-next{right:12px}
 .rin-lightbox-caption{position:absolute;bottom:16px;left:16px;right:16px;text-align:center;font-size:14px;color:#ddd}
-.toc-content .mermaid_dark{display:none}
-:is(.dark,.is-dark) .toc-content .mermaid_default,[data-color-mode="dark"] .toc-content .mermaid_default{display:none}
-:is(.dark,.is-dark) .toc-content .mermaid_dark,[data-color-mode="dark"] .toc-content .mermaid_dark{display:block}
+.toc-content .rin-mermaid_dark{display:none}
+:is(.dark,.is-dark) .toc-content .rin-mermaid_default,[data-color-mode="dark"] .toc-content .rin-mermaid_default{display:none}
+:is(.dark,.is-dark) .toc-content .rin-mermaid_dark,[data-color-mode="dark"] .toc-content .rin-mermaid_dark{display:block}
 `;
 
 function installStyles(): void {
