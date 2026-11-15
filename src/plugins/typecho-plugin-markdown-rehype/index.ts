@@ -210,28 +210,16 @@ const DEFAULT_CUSTOM_HTML_ATTRIBUTES: Record<string, string[]> = {
   progress: ['max', 'value', 'className'],
   meter: ['min', 'max', 'low', 'high', 'optimum', 'value', 'className'],
 };
-const SAFE_CUSTOM_HTML_ATTRIBUTES: Record<string, Record<string, string>> = {
-  abbr: { title: 'title', class: 'className' },
-  q: { cite: 'cite', class: 'className' },
-  time: { datetime: 'dateTime', class: 'className' },
-  del: { cite: 'cite', datetime: 'dateTime', class: 'className' },
-  ins: { cite: 'cite', datetime: 'dateTime', class: 'className' },
-  bdo: { dir: 'dir', class: 'className' },
-  data: { value: 'value', class: 'className' },
-  output: { for: 'htmlFor', form: 'form', name: 'name', class: 'className' },
-  progress: { max: 'max', value: 'value', class: 'className' },
-  meter: { min: 'min', max: 'max', low: 'low', high: 'high', optimum: 'optimum', value: 'value', class: 'className' },
-};
-
 export function normalizeCustomHtmlAttributes(value: unknown): Record<string, string[]> {
   if (typeof value !== 'string') return {};
+  if (value.length > 16_384) value = value.slice(0, 16_384);
   const result: Record<string, Set<string>> = {};
   for (const line of value.replace(/\\[nr]/gi, '\n').split(/[\n;；]+/)) {
-    const match = line.trim().match(/^([a-z][a-z0-9]*)\s*:\s*(.+)$/i);
+    const match = line.trim().match(/^([a-z][a-z0-9:-]*)\s*:\s*(.+)$/i);
     if (!match) continue;
     const tag = match[1].toLowerCase();
     const attrs = result[tag] ?? new Set<string>();
-    for (const raw of match[2].split(/[\\s,，]+/)) {
+    for (const raw of match[2].split(/[\s,，]+/)) {
       const name = raw.trim().toLowerCase();
       if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
       attrs.add(HTML_TO_HAST_IFRAME_PROPERTIES[name] ?? name.replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase()));
@@ -270,6 +258,7 @@ function parsePluginConfig(value: unknown): Record<string, unknown> {
 
 export function normalizeCustomIframeAttributes(value: unknown): string[] {
   if (typeof value !== 'string') return [];
+  if (value.length > 16_384) value = value.slice(0, 16_384);
   const result = new Set<string>();
   for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
@@ -285,6 +274,7 @@ export function normalizeCustomIframeAttributes(value: unknown): string[] {
 
 export function normalizeCustomHtmlTags(value: unknown): string[] {
   if (typeof value !== 'string') return [];
+  if (value.length > 16_384) value = value.slice(0, 16_384);
   const result = new Set<string>();
   for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
@@ -1807,6 +1797,16 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '  var htmlAttributesCard = htmlAttributes && htmlAttributes.closest(\'.typecho-option\');',
       '  var iframeAttributesCard = form.querySelector(\'textarea[name="iframeAttributes"]\')?.closest(\'.typecho-option\');',
       '  if (htmlTagsCard) htmlTagsCard.classList.add(\'markdown-rehype-allowlist-card\');',
+      "  var setAllowlistDescription = function (field, message) {",
+      "    if (!field) return;",
+      "    var card = field.closest('.typecho-option');",
+      "    if (!card) return;",
+      "    var description = card.querySelector('p.description, .description');",
+      "    if (description) description.textContent = message;",
+      "  };",
+      "  setAllowlistDescription(htmlTags, '填写允许出现在文章原始 HTML 中的标签名。普通结构标签风险较低；script 会执行脚本，style 会影响页面样式，iframe 会加载外部页面，object/embed 可能加载活动内容，form 可提交数据。只有信任文章作者和内容来源时才开放这些标签。');",
+      "  setAllowlistDescription(htmlAttributes, '每行格式：标签名: 属性1, 属性2。明确列出的属性会原样放行，不再由插件隐藏名单二次拦截。class、title、width、height、alt 通常风险较低；href/src 会触发链接或资源加载；style 可改变页面外观；on* 事件属性可执行 JavaScript；srcdoc、formaction 等可能带来更高风险。仅开放确实需要的属性。');",
+      "  setAllowlistDescription(form.querySelector('textarea[name=\"iframeAttributes\"]'), '仅控制 iframe 可输出的属性；src 指定嵌入地址，外部域名仍沿用基础设置中的 CSP frame-src 策略。width/height/title/loading 通常风险较低；allow、allowfullscreen、allowpaymentrequest 会授予嵌入内容更多浏览器能力；sandbox 决定嵌入页面的执行和交互权限；srcdoc 可直接嵌入 HTML；on* 事件属性可执行 JavaScript。按视频平台要求开放必要属性，并谨慎评估高风险属性。');",
       '  if (htmlAttributesCard) htmlAttributesCard.classList.add(\'markdown-rehype-allowlist-card\');',
       '  if (htmlTags) {',
       '    var normalizeHtmlTags = function () {',
@@ -1893,7 +1893,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    reset.dataset.iframeAllowlistReset = \'1\';',
       '    reset.textContent = \'恢复默认白名单\';',
       '    reset.style.marginTop = \'8px\';',
-      '    reset.addEventListener(\'click\', function () { iframeAttributes.value = \'width, height, frameborder, framespacing, border, allow, allowfullscreen, allowtransparency, allowpaymentrequest, title, name, id, class, style, referrerpolicy, sandbox, scrolling, marginwidth, marginheight, loading, credentialless, fetchpriority, align, longdesc, aria-label, aria-hidden, data-diag-id\'; normalizeIframeAttributes(); iframeAttributes.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
+      '    reset.addEventListener(\'click\', function () { iframeAttributes.value = \'src, width, height, frameborder, framespacing, border, allow, allowfullscreen, allowtransparency, allowpaymentrequest, title, name, id, class, style, referrerpolicy, sandbox, scrolling, marginwidth, marginheight, loading, credentialless, fetchpriority, align, longdesc, aria-label, aria-hidden, data-diag-id\'; normalizeIframeAttributes(); iframeAttributes.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
       '    iframeAttributes.after(reset);',
       '  }',
       '})();',
