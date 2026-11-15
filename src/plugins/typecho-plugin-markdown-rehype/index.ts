@@ -453,7 +453,7 @@ const articleSanitizeSchema = {
   tagNames: [
     ...defaultSchema.tagNames,
     'button', 'figure', 'figcaption', 'mark', 'sup', 'sub',
-    'main', 'label', 'picture', 'details', 'summary', 'video', 'audio', 'source', 'iframe',
+    'main', 'label', 'picture', 'details', 'summary', 'video', 'audio', 'source', 'track', 'iframe',
     'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'image',
     'line', 'polyline', 'polygon', 'title', 'desc', 'defs', 'use', 'symbol',
     'linearGradient', 'radialGradient', 'stop', 'clipPath', 'mask', 'filter', 'marker', 'pattern',
@@ -495,7 +495,16 @@ const articleSanitizeSchema = {
       'src', 'controls', 'autoplay', 'muted', 'loop',
       ['preload', 'none', 'metadata', 'auto'],
     ],
-    source: ['src', 'type', 'media'],
+    source: [
+      'src', 'type', 'media', 'sizes', 'width', 'height',
+      // Responsive <picture> sources are forwarded by Rin's raw-HTML renderer.
+      // Restrict srcset candidates to HTTP(S), protocol-relative, or relative URLs.
+      ['srcSet', /^(?:(?:https?:)?\\/\\/|\\/|\\.\\.?\\/)[^\\s,]+(?:\\s+(?:\\d+(?:\\.\\d+)?x|\\d+w))?(?:\\s*,\\s*(?:(?:https?:)?\\/\\/|\\/|\\.\\.?\\/)[^\\s,]+(?:\\s+(?:\\d+(?:\\.\\d+)?x|\\d+w))?)*$/i],
+    ],
+    track: [
+      'src', ['kind', 'subtitles', 'captions', 'descriptions', 'chapters', 'metadata'],
+      'srcLang', 'label', 'default',
+    ],
     iframe: [
       ['src', /^(?:https?:)?\/\/[^\s]+$/i],
       ...DEFAULT_IFRAME_ATTRIBUTES,
