@@ -287,10 +287,7 @@ console.log('Hello World');
 
 ## 七、数学公式
 
-插件支持两种数学公式引擎：
-
-- **KaTeX**：默认方案，服务端生成公式 HTML。
-- **MathJax**：浏览器端运行时处理公式，支持更广泛的 TeX 语法。
+插件按照 Rin 的实现固定使用 **KaTeX**（`rehype-katex`）处理数学公式，前后台共用同一套公式输出，不再提供 MathJax 引擎切换。
 
 ### 1. 行内公式
 
@@ -316,21 +313,12 @@ E=mc^2
 \]
 ```
 
-### 3. 两种引擎的区别
+### 3. 公式处理规则
 
-| 对比 | KaTeX | MathJax |
-|---|---|---|
-| 处理方式 | 服务端渲染 | 浏览器端渲染 |
-| 默认状态 | 默认启用 | 需要主动选择 |
-| 语法覆盖 | 常用数学公式 | 更广泛的 TeX 语法 |
-| 浏览器运行时 | 不需要额外执行 MathJax | 需要 MathJax 运行时 |
-| 主题配合 | 需要相应 CSS | 需要主题配合 |
-
-一般文章建议保持默认 KaTeX。
-
-如果文章中存在 KaTeX 无法满足的 TeX 语法需求，可以尝试切换 MathJax。
-
-代码块中的公式内容会保留为代码，不会被公式引擎误处理。
+- 行内公式和独立公式均由 KaTeX 处理。
+- 原始 HTML 中的公式文本也会进入统一的公式处理流程。
+- 代码块中的公式内容保留为代码，不会被公式引擎误处理。
+- 公式 CSS 与字体资源由 Markdown 插件统一提供，不依赖 CY 主题。
 
 ---
 
@@ -831,24 +819,9 @@ user-content-三十测试总结
 
 ## 十七、后台设置选项详解
 
-目前插件主要提供四个配置项。
+目前插件主要提供三个配置项。
 
-### 1. 数学公式引擎
-
-**默认值：KaTeX**
-
-用于选择 Markdown 数学公式的渲染方式。
-
-可选：
-
-- KaTeX（推荐）。
-- MathJax。
-
-一般文章建议保持 KaTeX。
-
-遇到 KaTeX 无法满足的 TeX 语法需求时，可以尝试 MathJax。
-
-### 2. 启用 Rehype 目录生成
+### 1. 启用 Rehype 目录生成
 
 **默认值：关闭**
 
@@ -880,7 +853,7 @@ user-content-三十测试总结
 
 如果 Warm CY 主题已经使用自己的目录功能，建议保持此选项关闭，避免出现重复目录。
 
-### 3. 原始 HTML 标签白名单
+### 2. 原始 HTML 标签白名单
 
 用于管理额外允许的 HTML 标签。
 
@@ -890,7 +863,7 @@ user-content-三十测试总结
 
 留空只关闭本设置额外管理的标签，不会关闭插件已经内置的标签。
 
-### 4. iframe 属性白名单
+### 3. iframe 属性白名单
 
 用于控制文章中的 iframe 可以保留哪些普通属性。
 
@@ -914,15 +887,15 @@ Markdown Rehype 与 Warm CY 主题是配套关系，但两者负责的工作不�
 | HTML 安全过滤 | Markdown Rehype |
 | SVG 兼容处理 | Markdown Rehype |
 | iframe 属性过滤 | Markdown Rehype |
-| KaTeX 公式输出 | Markdown Rehype |
-| MathJax 浏览器端排版 | Warm CY 配合 |
-| Mermaid 代码块结构 | Markdown Rehype |
-| Mermaid 浏览器端渲染 | Warm CY 配合 |
-| Mermaid 明暗主题切换 | Warm CY 配合 |
-| 公式、代码和提示框外观 | 主题 CSS |
-| 后台文章实时预览 | Markdown Rehype 与 Warm CY 配合 |
+| KaTeX 公式解析与输出 | Markdown Rehype |
+| Mermaid 双主题结构与浏览器渲染 | Markdown Rehype |
+| 图片元数据、BlurHash 占位和图片查看 | Markdown Rehype |
+| 代码高亮与复制交互 | Markdown Rehype |
+| 标题、段落、列表、表格、引用等文章组件 | Markdown Rehype |
+| 文章视觉主题变量 | 当前启用主题 |
+| 后台文章实时预览 | Markdown Rehype |
 
-其他主题可以复用插件生成的 HTML，但如果需要完整使用 Mermaid、MathJax 和配套样式，需要主题自行接入相应运行时和 CSS。
+文章解析、前台渲染和后台预览由插件统一接管；主题只提供页面框架与必要的主题变量，不再承担另一套 Markdown 运行时。
 
 ---
 
@@ -1004,11 +977,9 @@ Markdown Rehype 负责生成流程图结构，Warm CY 负责加载 Mermaid 运�
 
 如果页面仍然显示原始代码，需要检查主题对应的 Mermaid 运行时是否正常加载。
 
-### 5. 为什么 MathJax 没有正常显示？
+### 5. 为什么数学公式没有正常显示？
 
-MathJax 需要浏览器端运行时。
-
-除了插件选择 MathJax 外，还需要主题配合加载对应运行时。
+检查插件前台运行时是否成功注入 KaTeX 样式，以及 KaTeX 字体资源是否能正常加载。后台预览和前台文章使用同一套 KaTeX 解析规则。
 
 ### 6. 为什么开启目录后没有生成目录？
 
@@ -1070,7 +1041,7 @@ MathJax 需要浏览器端运行时。
 
 | 配置项 | 建议 |
 |---|---|
-| 数学公式引擎 | KaTeX |
+| 数学公式处理 | 固定 KaTeX |
 | Rehype 目录生成 | 关闭（主题已有目录时） |
 | 原始 HTML 标签白名单 | 保持默认 |
 | iframe 属性白名单 | 保持默认 |
@@ -1082,7 +1053,7 @@ MathJax 需要浏览器端运行时。
 
 一般情况下保持默认设置即可。
 
-只有在确实需要额外 HTML 标签、特殊 iframe 属性、MathJax 或独立目录时，才需要调整对应选项。
+只有在确实需要额外 HTML 标签、特殊 iframe 属性或独立目录时，才需要调整对应选项。
 
 ---
 
