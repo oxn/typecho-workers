@@ -220,45 +220,9 @@ function pruneMarkdownBridge(now = Date.now()): void {
   }
 }
 
-let cachedPluginMarkdownRenderOptions: MarkdownRenderOptions = { tocEnabled: false };
-let pluginMarkdownRenderOptionsExpiresAt = 0;
-let pluginMarkdownRenderOptionsLoad: Promise<MarkdownRenderOptions> | null = null;
-
-async function loadPluginMarkdownRenderOptions(): Promise<MarkdownRenderOptions> {
-  if (Date.now() < pluginMarkdownRenderOptionsExpiresAt) return cachedPluginMarkdownRenderOptions;
-  if (pluginMarkdownRenderOptionsLoad) return pluginMarkdownRenderOptionsLoad;
-  pluginMarkdownRenderOptionsLoad = (async () => {
-    try {
-      const db = getDb(env.DB);
-      const raw = await getOption(db, PLUGIN_OPTION_KEY);
-      const config = parsePluginConfig(raw);
-      cachedPluginMarkdownRenderOptions = {
-        tocEnabled: config.tocEnabled === true || config.tocEnabled === '1',
-      };
-    } catch {
-      cachedPluginMarkdownRenderOptions = { tocEnabled: false };
-    }
-    pluginMarkdownRenderOptionsExpiresAt = Date.now() + 15_000;
-    return cachedPluginMarkdownRenderOptions;
-  })();
-  try {
-    return await pluginMarkdownRenderOptionsLoad;
-  } finally {
-    pluginMarkdownRenderOptionsLoad = null;
-  }
-}
-
-/**
- * Bridge the plugin's fully sanitized HTML through the legacy core Markdown
- * pipeline without asking the core sanitizer to understand plugin-specific
- * SVG, math, iframe or custom-tag output. The random marker is generated per
- * render and carried in the Markdown itself, so concurrent requests never
- * share mutable "current article" state.
- */
 async function renderMarkdownBridgeSource(source: string): Promise<string> {
   const token = 'TYPECHOMARKDOWNREHYPE' + crypto.randomUUID().replace(/-/g, '');
-  const options = await loadPluginMarkdownRenderOptions();
-  const html = await renderMarkdown(source, options);
+  const html = await renderMarkdown(source);
   pruneMarkdownBridge();
   markdownBridge.set(token, { html, createdAt: Date.now() });
   return token;
@@ -678,128 +642,6 @@ export interface MarkdownRenderOptions {
 }
 
 /**
- * Recognize TeX delimiters inside text nodes created from raw HTML.
- *
- * remark-math handles ordinary Markdown text before raw HTML is parsed. Text
- * inside an HTML block is opaque to remark-math, however, so the same TeX
- * delimiters can otherwise survive as literal text in a styled article.
- * Convert only text nodes (never code, SVG, scripts, or styles) into the same
- * language-math nodes used by remark-math. The normal sanitizer and the
- * KaTeX renderer then handles them through the existing path.
- */
-const protectedMathDelimiters = [
-  ['\\(', '\uE000WARM_MATH_INLINE_OPEN\uE001'],
-  ['\\)', '\uE000WARM_MATH_INLINE_CLOSE\uE001'],
-  ['\\[', '\uE000WARM_MATH_DISPLAY_OPEN\uE001'],
-  ['\\]', '\uE000WARM_MATH_DISPLAY_CLOSE\uE001'],
-] as const;
-
-/**
- * Normalize indentation on HTML tag lines inside an already-started HTML
- * fragment. CommonMark ends a raw HTML block at a blank line; a later tag
- * indented by four spaces is then parsed as an indented code block. WordPress
- * exports often retain that indentation inside a still-open wrapper element.
- *
- * Only tag lines inside a fragment that began as an ordinary (0-3 space)
- * HTML block are touched. Fenced code blocks are always left byte-for-byte
- * unchanged, and an indented code block cannot start an HTML fragment.
- */
-function normalizeIndentedHtmlBlocks(source: string): string {
-  const voidElements = new Set([
-    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
-    'meta', 'param', 'source', 'track', 'wbr',
-  ]);
-  const lines = source.split('\n');
-  const elementStack: string[] = [];
-  let fenceCharacter = '';
-  let fenceLength = 0;
-
-  const updateHtmlStack = (line: string): void => {
-    const tags = line.matchAll(/<\/?([A-Za-z][A-Za-z0-9:-]*)\b[^>]*>/g);
-    for (const match of tags) {
-      const token = match[0];
-      const name = match[1].toLowerCase();
-      if (token.startsWith('</')) {
-        const index = elementStack.lastIndexOf(name);
-        if (index >= 0) elementStack.length = index;
-      } else if (!voidElements.has(name) && !/\/\s*>$/.test(token)) {
-        elementStack.push(name);
-      }
-    }
-  };
-
-  for (let index = 0; index < lines.length; index++) {
-    let line = lines[index];
-    const fence = line.match(/^ {0,3}([\x60~]{3,})/);
-    if (fenceCharacter) {
-      const marker = fenceCharacter === String.fromCharCode(96) ? '\\x60' : '~';
-      const closing = new RegExp('^ {0,3}' + marker + '{' + fenceLength + ',}\\s*$');
-      if (closing.test(line)) {
-        fenceCharacter = '';
-        fenceLength = 0;
-      }
-      continue;
-    }
-    if (fence) {
-      fenceCharacter = fence[1][0];
-      fenceLength = fence[1].length;
-      continue;
-    }
-
-    const trimmed = line.trimStart();
-    const startsWithTag = /^<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s|\/?>)/.test(trimmed);
-    const indentation = line.length - trimmed.length;
-
-    if (elementStack.length > 0 && startsWithTag && indentation > 0) {
-      line = trimmed;
-      lines[index] = line;
-    } else if (elementStack.length === 0 && indentation > 3) {
-      continue;
-    }
-
-    if (startsWithTag && (elementStack.length > 0 || indentation <= 3)) {
-      updateHtmlStack(line);
-    }
-  }
-
-  return lines.join('\n');
-}
-
-/**
- * Markdown treats backslash-parenthesis/bracket sequences as escapes before
- * remark-math can see them. Shield those delimiters before parsing, then
- * restore them in HAST text nodes so the shared math-text pass can recognize
- * them in ordinary Markdown and raw HTML alike. Code nodes are restored too,
- * but remain excluded by rehypeMathText.
- */
-function protectMathDelimiters(source: string): string {
-  return protectedMathDelimiters.reduce((value, [delimiter, placeholder]) => {
-    let result = '';
-    let cursor = 0;
-    while (cursor < value.length) {
-      const index = value.indexOf(delimiter, cursor);
-      if (index < 0) break;
-
-      // A doubled backslash is a Markdown-escaped literal backslash. Leave
-      // that pair for remark-parse to collapse; shielding the second slash
-      // would preserve two slashes and prevent the later TeX pass matching it.
-      let precedingSlashes = 0;
-      for (let offset = index - 1; offset >= 0 && value[offset] === '\\'; offset--) {
-        precedingSlashes++;
-      }
-      if (precedingSlashes % 2 === 0) {
-        result += value.slice(cursor, index) + placeholder;
-        cursor = index + delimiter.length;
-      } else {
-        result += value.slice(cursor, index + 1);
-        cursor = index + 1;
-      }
-    }
-    return result + value.slice(cursor);
-  }, source);
-}
-
-/**
  * Remove raw style blocks before sanitization. CSS text inside a disallowed
  * style element would otherwise be unwrapped into visible article text.
  * Inline style attributes remain available for existing article formatting.
@@ -817,123 +659,6 @@ function rehypeRemoveStyleElements() {
   };
 }
 
-function rehypeRestoreMathDelimiters() {
-  const replacements = new Map(protectedMathDelimiters.map(([delimiter, placeholder]) => [placeholder, delimiter]));
-  return (tree: any): void => {
-    const visit = (node: any): void => {
-      if (!node || typeof node !== 'object') return;
-      if (node.type === 'text' && typeof node.value === 'string') {
-        for (const [placeholder, delimiter] of replacements) {
-          node.value = node.value.replaceAll(placeholder, delimiter);
-        }
-      }
-      if (Array.isArray(node.children)) node.children.forEach(visit);
-    };
-    visit(tree);
-  };
-}
-
-function rehypeMathText() {
-  const ignoredParents = new Set(['pre', 'code', 'script', 'style', 'textarea', 'svg', 'math', 'kbd', 'samp']);
-  const isEscaped = (value: string, index: number): boolean => {
-    let slashes = 0;
-    for (let cursor = index - 1; cursor >= 0 && value[cursor] === '\\'; cursor--) slashes++;
-    return slashes % 2 === 1;
-  };
-
-  return (tree: any): void => {
-    const visit = (node: any, ancestors: string[] = []): void => {
-      if (!node || typeof node !== 'object' || !Array.isArray(node.children)) return;
-      const tagName = node.type === 'element' ? node.tagName : '';
-      const nextAncestors = tagName ? [...ancestors, tagName] : ancestors;
-      if (nextAncestors.some((name) => ignoredParents.has(name))) return;
-      const children: any[] = [];
-      for (const child of node.children) {
-        if (child?.type !== 'text' || typeof child.value !== 'string'
-          || (!child.value.includes('$') && !child.value.includes('\\(') && !child.value.includes('\\['))) {
-          children.push(child);
-          if (child?.type === 'element') visit(child, nextAncestors);
-          continue;
-        }
-
-        const value = child.value;
-        let cursor = 0;
-        let textStart = 0;
-        let matched = false;
-        while (cursor < value.length) {
-          if (isEscaped(value, cursor)) { cursor++; continue; }
-
-          let open = '';
-          let close = '';
-          let display = false;
-          if (value[cursor] === '$') {
-            display = value[cursor + 1] === '$';
-            open = display ? '$$' : '$';
-            close = open;
-          } else if (value[cursor] === '\\' && (value[cursor + 1] === '(' || value[cursor + 1] === '[')) {
-            display = value[cursor + 1] === '[';
-            open = display ? '\\[' : '\\(';
-            close = display ? '\\]' : '\\)';
-          } else {
-            cursor++;
-            continue;
-          }
-
-          let closing = -1;
-          for (let probe = cursor + open.length; probe < value.length; probe++) {
-            if (close === '$$') {
-              if (value[probe] === '$' && value[probe + 1] === '$' && !isEscaped(value, probe)) {
-                closing = probe;
-                break;
-              }
-            } else if (close === '$') {
-              if (value[probe] === '$' && value[probe - 1] !== '$' && value[probe + 1] !== '$'
-                && !isEscaped(value, probe) && !value.slice(cursor + open.length, probe).includes('\n')) {
-                closing = probe;
-                break;
-              }
-            } else if (value.startsWith(close, probe) && !isEscaped(value, probe)
-              && (display || !value.slice(cursor + open.length, probe).includes('\n'))) {
-              closing = probe;
-              break;
-            }
-          }
-
-          if (closing < 0) { cursor += open.length; continue; }
-          const formula = value.slice(cursor + open.length, closing);
-          if (!formula.trim() || (open.startsWith('$') && /^\s|\s$/.test(formula))) {
-            cursor += open.length;
-            continue;
-          }
-
-          if (cursor > textStart) children.push({ type: 'text', value: value.slice(textStart, cursor) });
-          const code = {
-            type: 'element',
-            tagName: 'code',
-            properties: { className: ['language-math', display ? 'math-display' : 'math-inline'] },
-            children: [{ type: 'text', value: formula }],
-          };
-          if (display) children.push({ type: 'element', tagName: 'pre', properties: { className: ['math'] }, children: [code] });
-          else children.push(code);
-          matched = true;
-          cursor = closing + close.length;
-          textStart = cursor;
-        }
-
-        if (!matched) children.push(child);
-        else if (textStart < value.length) children.push({ type: 'text', value: value.slice(textStart) });
-      }
-      node.children = children;
-    };
-    visit(tree);
-  };
-}
-/**
- * Mirror the theme's two color variants without routing Mermaid source through
- * raw HTML. Building HAST elements from text nodes keeps labels containing
- * <, >, &, quotes or HTML-looking text literal, and avoids a second rehypeRaw
- * parse of every Mermaid block.
- */
 function remarkMermaidVariants() {
   return (tree: any): void => {
     const visit = (node: any): void => {
@@ -1000,131 +725,6 @@ function rehypeRinHeadingIds() {
 }
 
 /**
- * Keep sanitizer-generated ID prefixes and local references synchronized.
- * rehype-sanitize intentionally prefixes clobberable IDs; SVG paint servers,
- * SVG use references and article fragment links must point at those final IDs.
- */
-function rehypeRestoreLocalReferences() {
-  return (tree: any): void => {
-    const ids = new Set<string>();
-    const visit = (node: any, callback: (element: any) => void): void => {
-      if (!node || typeof node !== 'object') return;
-      if (node.type === 'element') callback(node);
-      if (Array.isArray(node.children)) node.children.forEach((child: any) => visit(child, callback));
-    };
-
-    visit(tree, (node) => {
-      const id = node.properties?.id;
-      if (typeof id === 'string' && id) ids.add(id);
-    });
-
-    const rewriteUrlReferences = (value: string): string => value.replace(
-      /url\(\s*(["']?)#([\p{L}\p{N}\p{M}_:.-]+)\1\s*\)/giu,
-      (match, quote: string, id: string) => {
-        if (ids.has(id)) return match;
-        const prefixedId = `user-content-${id}`;
-        return ids.has(prefixedId) ? `url(${quote}#${prefixedId}${quote})` : match;
-      },
-    );
-
-    visit(tree, (node) => {
-      const properties = node.properties;
-      if (!properties || typeof properties !== 'object') return;
-      for (const [name, value] of Object.entries(properties)) {
-        if (typeof value === 'string' && (name === 'style'
-          || ['fill', 'stroke', 'clipPath', 'mask', 'filter', 'marker', 'markerStart', 'markerMid', 'markerEnd',
-            'cursor', 'color', 'floodColor', 'lightingColor'].includes(name))) {
-          properties[name] = rewriteUrlReferences(value);
-        }
-      }
-
-      for (const name of ['href', 'xLinkHref', 'xlinkHref']) {
-        const value = properties[name];
-        if (typeof value !== 'string' || !value.startsWith('#')) continue;
-        const id = value.slice(1);
-        if (!safeSvgId.test(id)) continue;
-        if (!ids.has(id) && ids.has(`user-content-${id}`)) {
-          properties[name] = `#user-content-${id}`;
-        }
-      }
-
-      for (const name of ['ariaLabelledBy', 'ariaDescribedBy']) {
-        const value = properties[name];
-        if (typeof value !== 'string') continue;
-        properties[name] = value.split(/\s+/).map((id) =>
-          !ids.has(id) && ids.has(`user-content-${id}`) ? `user-content-${id}` : id,
-        ).join(' ');
-      }
-    });
-  };
-}
-
-/**
- * remark-flexible-containers currently parses multiline container types with
- * an ASCII-only \\w expression, then dereferences the match without checking
- * it. A Unicode type such as "推论" therefore crashes the entire Markdown
- * render. Encode non-ASCII type tokens before that plugin runs, then restore
- * their original class names and title fallback afterwards.
- */
-const UNICODE_CONTAINER_TYPE_PREFIX = 'warmunicode-';
-
-function encodeUnicodeContainerType(type: string): string {
-  return UNICODE_CONTAINER_TYPE_PREFIX
-    + Array.from(type).map((character) => character.codePointAt(0)!.toString(16)).join('-');
-}
-
-function decodeUnicodeContainerType(type?: string): string | undefined {
-  if (!type?.startsWith(UNICODE_CONTAINER_TYPE_PREFIX)) return undefined;
-  const encoded = type.slice(UNICODE_CONTAINER_TYPE_PREFIX.length);
-  if (!/^[a-f0-9]+(?:-[a-f0-9]+)*$/i.test(encoded)) return undefined;
-  try {
-    return String.fromCodePoint(...encoded.split('-').map((point) => Number.parseInt(point, 16))).toLowerCase();
-  } catch {
-    return undefined;
-  }
-}
-
-/** Make Unicode container type tokens safe for the dependency's ASCII parser. */
-function remarkNormalizeUnicodeContainerTypes() {
-  return (tree: any): void => {
-    const visit = (node: any): void => {
-      if (!node || typeof node !== 'object') return;
-      if (node.type === 'paragraph' && Array.isArray(node.children)) {
-        const first = node.children[0];
-        if (first?.type === 'text' && typeof first.value === 'string') {
-          const match = first.value.match(/^(:{3,})([ \t]*)([^\s]+)(?=[ \t\r\n]|$)/u);
-          if (match && !/^[A-Za-z0-9_-]+$/.test(match[3]) && !match[3].startsWith('{')) {
-            const alias = encodeUnicodeContainerType(match[3]);
-            first.value = match[1] + match[2] + alias + first.value.slice(match[0].length);
-          }
-        }
-      }
-      if (Array.isArray(node.children)) node.children.forEach(visit);
-    };
-    visit(tree);
-  };
-}
-
-/** Restore the author-facing Unicode type after flexible-containers has parsed it. */
-function remarkRestoreUnicodeContainerTypes() {
-  return (tree: any): void => {
-    const visit = (node: any): void => {
-      if (!node || typeof node !== 'object') return;
-      if (node.type === 'container') {
-        const classNames = node.data?.hProperties?.className;
-        if (Array.isArray(classNames)) {
-          node.data.hProperties.className = classNames.map((name: unknown) =>
-            typeof name === 'string' ? decodeUnicodeContainerType(name) ?? name : name,
-          );
-        }
-      }
-      if (Array.isArray(node.children)) node.children.forEach(visit);
-    };
-    visit(tree);
-  };
-}
-
-/**
  * Build one immutable processor for each supported render configuration.
  * Unified freezes a processor on first process() and documents that frozen
  * processors can process files repeatedly. Reuse avoids rebuilding the plugin
@@ -1165,16 +765,6 @@ function getMarkdownProcessor(
     processorCache.set(key, processor);
   }
   return processor;
-}
-
-/**
- * A bounded, isolate-local gate for expensive Markdown processor runs.
- * This protects one Worker isolate; it is not a global limit across Cloudflare isolates.
- */
-function isFlexibleContainerParserFailure(error: unknown): boolean {
-  if (!(error instanceof TypeError)) return false;
-  return /Cannot read properties of null \(reading ['"]1['"]\)/.test(error.message)
-    && (error.stack ?? '').includes('parseFenceTypeTitle');
 }
 
 export class MarkdownRenderCapacityError extends Error {
@@ -1353,35 +943,8 @@ function clearMarkdownRenderCache(): void {
   renderedMarkdownCacheWeight = 0;
 }
 
-const MARKDOWN_ALERT_SVGS: Record<string, string> = {
-  NOTE: '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>',
-  TIP: '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"/></svg>',
-  IMPORTANT: '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>',
-  WARNING: '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>',
-  CAUTION: '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>',
-};
-
-function addMarkdownAlertIcons(html: string): string {
-  // Replace the renderer's text fallback with the matching inline SVG.
-  // This runs after rehype-sanitize, so only the fixed, source-owned SVG strings are inserted.
-  return html.replace(
-    /(<p\b(?=[^>]*\bclass=(["'])[^"']*\bmarkdown-alert-title\b[^"']*\2)[^>]*>)([\s\S]*?)(<\/p>)/gi,
-    (_full, opening: string, _quote: string, originalInner: string, closing: string) => {
-      const withoutPreviousIcon = originalInner
-        .replace(/<svg\b(?=[^>]*\bclass=(['"])[^'"]*\bocticon\b[^'"]*\1)[^>]*>[\s\S]*?<\/svg>/gi, '')
-        .replace(/<span\b(?=[^>]*\bclass=(["'])[^"']*\bocticon\b[^"']*\1)[^>]*>[\s\S]*?<\/span>/gi, '')
-        .replace(/<span\b(?=[^>]*\bclass=(["'])[^"']*\bmarkdown-alert-icon\b[^"']*\1)[^>]*>[\s\S]*?<\/span>/gi, '')
-        .replace(/<svg\b(?=[^>]*\bclass=(["'])[^"']*\bmarkdown-alert-icon\b[^"']*\1)[^>]*>[\s\S]*?<\/svg>/gi, '')
-        .replace(/^\s*(?:ⓘ|✦|❗|⚠|⛔)\s*/u, '');
-      const label = withoutPreviousIcon.replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/gi, ' ').trim().toUpperCase();
-      const icon = MARKDOWN_ALERT_SVGS[label] ?? MARKDOWN_ALERT_SVGS.NOTE;
-      return opening + icon + withoutPreviousIcon + closing;
-    },
-  );
-}
-
 /** Warm CY article-only Markdown pipeline; raw HTML uses the official sanitizer with a narrow article schema extension. */
-export async function renderMarkdown(source: string, options: MarkdownRenderOptions = {}): Promise<string> {
+export async function renderMarkdown(source: string): Promise<string> {
   if (!source) return '';
   const [customIframeAttributes, customHtmlTags] = await Promise.all([
     loadCustomIframeAttributes(),
@@ -1971,10 +1534,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     }
 
     try {
-      const config = parsePluginConfig(auth.options[PLUGIN_OPTION_KEY]);
-      const html = await renderMarkdown(source, {
-        tocEnabled: config.tocEnabled === true || config.tocEnabled === '1',
-      });
+      const html = await renderMarkdown(source);
       return {
         handled: true,
         response: new Response(JSON.stringify({ html }), {
@@ -1999,7 +1559,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     if (extra?.pluginId === pluginId) {
       customIframeAttributesExpiresAt = 0;
       customHtmlTagsExpiresAt = 0;
-      pluginMarkdownRenderOptionsExpiresAt = 0;
       clearMarkdownRenderCache();
     }
     return result;
