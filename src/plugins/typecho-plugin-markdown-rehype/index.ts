@@ -1562,6 +1562,12 @@ function createPublicContentRuntimeScript(): string {
         : reject(new Error('Mermaid runtime did not expose its renderer'));
       script.onerror = () => reject(new Error('Mermaid runtime failed to load'));
       document.head.append(script);
+    }).catch(error => {
+      // A transient asset/network failure must not poison every later render
+      // attempt with the same permanently rejected promise.
+      mermaidLoad = null;
+      console.error('Rin Mermaid runtime failed to load:', error);
+      throw error;
     });
     return mermaidLoad;
   };
