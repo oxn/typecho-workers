@@ -290,7 +290,7 @@ const articleSanitizeSchema = {
     ],
     source: ['src', 'type', 'media'],
     iframe: [
-      ['src', /^(?:https?:)?\/\/(?:www\.youtube\.com|www\.youtube-nocookie\.com|player\.bilibili\.com|player\.vimeo\.com)(?:\/|$)/i],
+      ['src', /^(?:https?:)?\/\/[^\s]+$/i],
       ...DEFAULT_IFRAME_ATTRIBUTES,
     ],
     button: [
