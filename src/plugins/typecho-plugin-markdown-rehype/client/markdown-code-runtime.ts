@@ -5,7 +5,7 @@ import './lib/prism-languages';
 function enhanceCodeBlocks(root: Element): void {
   root.querySelectorAll<HTMLElement>('.rin-code-pre > code').forEach(code => {
     const pre = code.parentElement;
-    if (!pre || pre.closest('.mermaid_default,.mermaid_dark') || pre.dataset.rinCodeEnhanced === '1') return;
+    if (!pre || pre.closest('.rin-mermaid_default,.rin-mermaid_dark') || pre.dataset.rinCodeEnhanced === '1') return;
     pre.dataset.rinCodeEnhanced = '1';
     const copyValue = code.textContent || '';
     const displayValue = copyValue.replace(/\n$/, '');
