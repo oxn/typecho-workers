@@ -59,24 +59,24 @@ import 'prismjs/components/prism-ini';
 import { drawBlurhashToCanvas } from './lib/blurhash';
 
 const STYLE_ID = 'rin-markdown-renderer-styles';
-const ROOT_SELECTOR = '.toc-content, .markdown-rehype-content, .warm-prose, article';
+const ROOT_SELECTOR = '.toc-content, .toc-content, .toc-content, article';
 
 const RIN_CSS = `
-.toc-content,.markdown-rehype-content,.warm-prose{min-width:0;overflow-wrap:anywhere}
-:is(.dark,[data-color-mode="dark"]) .toc-content,:is(.dark,[data-color-mode="dark"]) .markdown-rehype-content,:is(.dark,[data-color-mode="dark"]) .warm-prose{color:#d4d4d4}
-.toc-content p,.markdown-rehype-content p,.warm-prose p{margin-top:.5rem;padding-top:.25rem;padding-bottom:.25rem;overflow-wrap:anywhere}
-.toc-content h1,.toc-content h2,.toc-content h3,.toc-content h4,.toc-content h5,.toc-content h6,.markdown-rehype-content h1,.markdown-rehype-content h2,.markdown-rehype-content h3,.markdown-rehype-content h4,.markdown-rehype-content h5,.markdown-rehype-content h6,.warm-prose h1,.warm-prose h2,.warm-prose h3,.warm-prose h4,.warm-prose h5,.warm-prose h6{margin-top:1rem;font-weight:700;overflow-wrap:anywhere;scroll-margin-top:var(--header-scroll-offset,7rem)}
-.toc-content h1,.markdown-rehype-content h1,.warm-prose h1{font-size:1.875rem;line-height:2.25rem}
-.toc-content h2,.markdown-rehype-content h2,.warm-prose h2{font-size:1.5rem;line-height:2rem}
-.toc-content h3,.markdown-rehype-content h3,.warm-prose h3{font-size:1.25rem;line-height:1.75rem}
-.toc-content h4,.markdown-rehype-content h4,.warm-prose h4{font-size:1.125rem;line-height:1.75rem}
-.toc-content h5,.markdown-rehype-content h5,.warm-prose h5{font-size:1rem;line-height:1.5rem}
-.toc-content h6,.markdown-rehype-content h6,.warm-prose h6{font-size:.875rem;line-height:1.25rem}
-.toc-content a,.markdown-rehype-content a,.warm-prose a{overflow-wrap:anywhere;color:#0686c8}
-.dark .toc-content a,.dark .markdown-rehype-content a,.dark .warm-prose a,[data-color-mode="dark"] .toc-content a,[data-color-mode="dark"] .markdown-rehype-content a,[data-color-mode="dark"] .warm-prose a{color:#2590f1}
-.toc-content a:hover,.markdown-rehype-content a:hover,.warm-prose a:hover{text-decoration:underline}
-.toc-content blockquote:not(.markdown-alert),.markdown-rehype-content blockquote:not(.markdown-alert),.warm-prose blockquote:not(.markdown-alert){padding-left:1rem;border-left:4px solid #d1d5db;font-style:italic;color:#6b7280}
-:is(.dark,[data-color-mode="dark"]) .toc-content blockquote:not(.markdown-alert),:is(.dark,[data-color-mode="dark"]) .markdown-rehype-content blockquote:not(.markdown-alert),:is(.dark,[data-color-mode="dark"]) .warm-prose blockquote:not(.markdown-alert){border-color:#6b7280;color:#9ca3af}
+.toc-content,.toc-content,.toc-content{min-width:0;overflow-wrap:anywhere}
+:is(.dark,[data-color-mode="dark"]) .toc-content,:is(.dark,[data-color-mode="dark"]) .toc-content,:is(.dark,[data-color-mode="dark"]) .toc-content{color:#d4d4d4}
+.toc-content p,.toc-content p,.toc-content p{margin-top:.5rem;padding-top:.25rem;padding-bottom:.25rem;overflow-wrap:anywhere}
+.toc-content h1,.toc-content h2,.toc-content h3,.toc-content h4,.toc-content h5,.toc-content h6,.toc-content h1,.toc-content h2,.toc-content h3,.toc-content h4,.toc-content h5,.toc-content h6,.toc-content h1,.toc-content h2,.toc-content h3,.toc-content h4,.toc-content h5,.toc-content h6{margin-top:1rem;font-weight:700;overflow-wrap:anywhere;scroll-margin-top:var(--header-scroll-offset,7rem)}
+.toc-content h1,.toc-content h1,.toc-content h1{font-size:1.875rem;line-height:2.25rem}
+.toc-content h2,.toc-content h2,.toc-content h2{font-size:1.5rem;line-height:2rem}
+.toc-content h3,.toc-content h3,.toc-content h3{font-size:1.25rem;line-height:1.75rem}
+.toc-content h4,.toc-content h4,.toc-content h4{font-size:1.125rem;line-height:1.75rem}
+.toc-content h5,.toc-content h5,.toc-content h5{font-size:1rem;line-height:1.5rem}
+.toc-content h6,.toc-content h6,.toc-content h6{font-size:.875rem;line-height:1.25rem}
+.toc-content a,.toc-content a,.toc-content a{overflow-wrap:anywhere;color:#0686c8}
+.dark .toc-content a,.dark .toc-content a,.dark .toc-content a,[data-color-mode="dark"] .toc-content a,[data-color-mode="dark"] .toc-content a,[data-color-mode="dark"] .toc-content a{color:#2590f1}
+.toc-content a:hover,.toc-content a:hover,.toc-content a:hover{text-decoration:underline}
+.toc-content blockquote:not(.markdown-alert),.toc-content blockquote:not(.markdown-alert),.toc-content blockquote:not(.markdown-alert){padding-left:1rem;border-left:4px solid #d1d5db;font-style:italic;color:#6b7280}
+:is(.dark,[data-color-mode="dark"]) .toc-content blockquote:not(.markdown-alert),:is(.dark,[data-color-mode="dark"]) .toc-content blockquote:not(.markdown-alert),:is(.dark,[data-color-mode="dark"]) .toc-content blockquote:not(.markdown-alert){border-color:#6b7280;color:#9ca3af}
 .markdown-alert{box-sizing:border-box;border-left:2px solid;border-width:2px;border-radius:.5rem;padding:1rem;margin:1rem 0;line-height:1.375}
 .markdown-alert-title{display:flex;align-items:center;gap:.25rem;margin:0!important;font-weight:700;color:inherit;fill:currentColor}
 .markdown-alert .octicon{width:.75rem;margin-right:.25rem;flex:none}
@@ -91,23 +91,23 @@ const RIN_CSS = `
 :is(.dark,[data-color-mode="dark"]) .markdown-alert-important{border-color:#581c87;background:#581c87;color:#d8b4fe}
 :is(.dark,[data-color-mode="dark"]) .markdown-alert-caution{border-color:#7f1d1d;background:#7f1d1d;color:#fca5a5}
 .markdown-alert-title{margin-top:0!important;padding:0!important}
-.toc-content em,.markdown-rehype-content em,.warm-prose em{margin-left:1px;margin-right:4px}
-.toc-content strong,.markdown-rehype-content strong,.warm-prose strong{margin-left:1px;margin-right:1px}
-.toc-content ul,.markdown-rehype-content ul,.warm-prose ul{list-style:disc;padding-left:1.25rem;margin-top:.5rem}
-.toc-content ul.contains-task-list,.markdown-rehype-content ul.contains-task-list,.warm-prose ul.contains-task-list{list-style:none;padding-left:1.25rem}
-.toc-content ol,.markdown-rehype-content ol,.warm-prose ol{list-style:decimal;padding-left:1.25rem}
-.toc-content li,.markdown-rehype-content li,.warm-prose li{padding-left:.5rem;padding-top:.25rem;padding-bottom:.25rem}
-.toc-content hr,.markdown-rehype-content hr,.warm-prose hr{margin:1rem 0}
-.toc-content table,.markdown-rehype-content table,.warm-prose table{display:block;max-width:100%;overflow-x:auto}
-.toc-content th,.markdown-rehype-content th,.warm-prose th{padding:.5rem 1rem;border:1px solid #6b7280;background:#4b5563}
-.toc-content td,.markdown-rehype-content td,.warm-prose td{padding:.5rem 1rem;border:1px solid currentColor}
-.toc-content sup,.markdown-rehype-content sup,.warm-prose sup,.toc-content sub,.markdown-rehype-content sub,.warm-prose sub{font-size:.75rem;margin-right:4px}
-.toc-content section[data-footnotes],.markdown-rehype-content section[data-footnotes],.warm-prose section[data-footnotes]{margin-top:2rem}
-.toc-content section[data-footnotes] ol,.markdown-rehype-content section[data-footnotes] ol,.warm-prose section[data-footnotes] ol{list-style:decimal;padding-left:2.5rem;font-size:.875rem;color:#6b7280}
+.toc-content em,.toc-content em,.toc-content em{margin-left:1px;margin-right:4px}
+.toc-content strong,.toc-content strong,.toc-content strong{margin-left:1px;margin-right:1px}
+.toc-content ul,.toc-content ul,.toc-content ul{list-style:disc;padding-left:1.25rem;margin-top:.5rem}
+.toc-content ul.contains-task-list,.toc-content ul.contains-task-list,.toc-content ul.contains-task-list{list-style:none;padding-left:1.25rem}
+.toc-content ol,.toc-content ol,.toc-content ol{list-style:decimal;padding-left:1.25rem}
+.toc-content li,.toc-content li,.toc-content li{padding-left:.5rem;padding-top:.25rem;padding-bottom:.25rem}
+.toc-content hr,.toc-content hr,.toc-content hr{margin:1rem 0}
+.toc-content table,.toc-content table,.toc-content table{display:block;max-width:100%;overflow-x:auto}
+.toc-content th,.toc-content th,.toc-content th{padding:.5rem 1rem;border:1px solid #6b7280;background:#4b5563}
+.toc-content td,.toc-content td,.toc-content td{padding:.5rem 1rem;border:1px solid currentColor}
+.toc-content sup,.toc-content sup,.toc-content sup,.toc-content sub,.toc-content sub,.toc-content sub{font-size:.75rem;margin-right:4px}
+.toc-content section[data-footnotes],.toc-content section[data-footnotes],.toc-content section[data-footnotes]{margin-top:2rem}
+.toc-content section[data-footnotes] ol,.toc-content section[data-footnotes] ol,.toc-content section[data-footnotes] ol{list-style:decimal;padding-left:2.5rem;font-size:.875rem;color:#6b7280}
 .rin-iframe-wrapper{width:100%;margin:1rem 0}.rin-iframe{display:block;width:100%;min-height:400px;border-radius:.75rem;border:1px solid rgba(0,0,0,.1)}
 :is(.dark,[data-color-mode="dark"]) .rin-iframe{border-color:rgba(255,255,255,.1)}
-.toc-content :not(pre)>code,.markdown-rehype-content :not(pre)>code,.warm-prose :not(pre)>code{background:#eff1f3;height:24px;padding:2px 4px;border-radius:6px;margin:0 2px;color:#262626;font:13px ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace}
-.dark .toc-content :not(pre)>code,.dark .markdown-rehype-content :not(pre)>code,.dark .warm-prose :not(pre)>code,[data-color-mode="dark"] .toc-content :not(pre)>code,[data-color-mode="dark"] .markdown-rehype-content :not(pre)>code,[data-color-mode="dark"] .warm-prose :not(pre)>code{background:#4a5061;color:#d4d4d4}
+.toc-content :not(pre)>code,.toc-content :not(pre)>code,.toc-content :not(pre)>code{background:#eff1f3;height:24px;padding:2px 4px;border-radius:6px;margin:0 2px;color:#262626;font:13px ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace}
+.dark .toc-content :not(pre)>code,.dark .toc-content :not(pre)>code,.dark .toc-content :not(pre)>code,[data-color-mode="dark"] .toc-content :not(pre)>code,[data-color-mode="dark"] .toc-content :not(pre)>code,[data-color-mode="dark"] .toc-content :not(pre)>code{background:#4a5061;color:#d4d4d4}
 .rin-code-block{position:relative;min-width:0;max-width:100%;overflow:hidden}
 .rin-code-block .rin-code-pre{box-sizing:border-box;margin:.5em 0;padding:1em;max-width:100%;overflow:auto;border-radius:.25rem;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#f5f7ff;color:#5e6687;font:14px/1.375 Consolas,Menlo,Monaco,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L","Courier New",Courier,monospace;tab-size:4}
 .rin-code-block .rin-code-pre>code{font:14px/1.375 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;font-variant-ligatures:normal;font-feature-settings:"liga" 1}
@@ -168,9 +168,9 @@ const RIN_CSS = `
 .rin-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);font-size:24px}
 .rin-lightbox-prev{left:12px}.rin-lightbox-next{right:12px}
 .rin-lightbox-caption{position:absolute;bottom:16px;left:16px;right:16px;text-align:center;font-size:14px;color:#ddd}
-.toc-content .mermaid_dark,.markdown-rehype-content .mermaid_dark,.warm-prose .mermaid_dark{display:none}
-.dark .toc-content .mermaid_default,.dark .markdown-rehype-content .mermaid_default,.dark .warm-prose .mermaid_default,[data-color-mode="dark"] .toc-content .mermaid_default,[data-color-mode="dark"] .markdown-rehype-content .mermaid_default,[data-color-mode="dark"] .warm-prose .mermaid_default{display:none}
-.dark .toc-content .mermaid_dark,.dark .markdown-rehype-content .mermaid_dark,.dark .warm-prose .mermaid_dark,[data-color-mode="dark"] .toc-content .mermaid_dark,[data-color-mode="dark"] .markdown-rehype-content .mermaid_dark,[data-color-mode="dark"] .warm-prose .mermaid_dark{display:block}
+.toc-content .mermaid_dark,.toc-content .mermaid_dark,.toc-content .mermaid_dark{display:none}
+.dark .toc-content .mermaid_default,.dark .toc-content .mermaid_default,.dark .toc-content .mermaid_default,[data-color-mode="dark"] .toc-content .mermaid_default,[data-color-mode="dark"] .toc-content .mermaid_default,[data-color-mode="dark"] .toc-content .mermaid_default{display:none}
+.dark .toc-content .mermaid_dark,.dark .toc-content .mermaid_dark,.dark .toc-content .mermaid_dark,[data-color-mode="dark"] .toc-content .mermaid_dark,[data-color-mode="dark"] .toc-content .mermaid_dark,[data-color-mode="dark"] .toc-content .mermaid_dark{display:block}
 `;
 
 function installStyles(): void {
