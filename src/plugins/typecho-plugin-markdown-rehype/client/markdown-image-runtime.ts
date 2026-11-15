@@ -39,6 +39,9 @@ function enhanceImage(image: HTMLImageElement): void {
   }
 
   image.classList.add('rin-image-element');
+  // Rin keeps inline Markdown images inline inside their inline-block wrapper;
+  // block images remain block-level so the centered full-width layout is preserved.
+  image.style.display = block ? 'block' : 'inline';
   if (rounded) image.classList.add('is-rounded');
   inner.append(image);
   outer.append(inner);
