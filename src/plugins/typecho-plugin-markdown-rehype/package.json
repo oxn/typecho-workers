@@ -23,7 +23,8 @@
     "mermaid-config.ts",
     "client/",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "typecho": {
     "plugin": {
@@ -40,16 +41,6 @@
         "rehype"
       ],
       "config": {
-        "mathEngine": {
-          "type": "select",
-          "label": "数学公式引擎",
-          "description": "选择 Markdown 数学公式的渲染引擎。KaTeX 使用服务端渲染；MathJax 使用浏览器端渲染，支持更广泛的 TeX 语法。",
-          "default": "katex",
-          "options": {
-            "katex": "KaTeX（推荐）",
-            "mathjax": "MathJax"
-          }
-        },
         "tocEnabled": {
           "type": "checkbox",
           "label": "启用 Rehype 目录生成",
@@ -94,7 +85,6 @@
     "remark-flexible-containers": "^1.5.6",
     "remark-ins": "^1.2.6",
     "katex": "^0.16.22",
-    "mermaid": "11.12.2",
-    "mathjax-full": "^3.2.2"
+    "mermaid": "11.12.2"
   }
 }
