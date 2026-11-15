@@ -277,17 +277,32 @@ function pruneMarkdownBridge(now = Date.now()): void {
   }
 }
 
+let cachedPluginMarkdownRenderOptions: MarkdownRenderOptions = { mathEngine: 'katex', tocEnabled: false };
+let pluginMarkdownRenderOptionsExpiresAt = 0;
+let pluginMarkdownRenderOptionsLoad: Promise<MarkdownRenderOptions> | null = null;
+
 async function loadPluginMarkdownRenderOptions(): Promise<MarkdownRenderOptions> {
+  if (Date.now() < pluginMarkdownRenderOptionsExpiresAt) return cachedPluginMarkdownRenderOptions;
+  if (pluginMarkdownRenderOptionsLoad) return pluginMarkdownRenderOptionsLoad;
+  pluginMarkdownRenderOptionsLoad = (async () => {
+    try {
+      const db = getDb(env.DB);
+      const raw = await getOption(db, PLUGIN_OPTION_KEY);
+      const config = parsePluginConfig(raw);
+      cachedPluginMarkdownRenderOptions = {
+        mathEngine: config.mathEngine === 'mathjax' ? 'mathjax' : 'katex',
+        tocEnabled: config.tocEnabled === true || config.tocEnabled === '1',
+      };
+    } catch {
+      cachedPluginMarkdownRenderOptions = { mathEngine: 'katex', tocEnabled: false };
+    }
+    pluginMarkdownRenderOptionsExpiresAt = Date.now() + 15_000;
+    return cachedPluginMarkdownRenderOptions;
+  })();
   try {
-    const db = getDb(env.DB);
-    const raw = await getOption(db, PLUGIN_OPTION_KEY);
-    const config = parsePluginConfig(raw);
-    return {
-      mathEngine: config.mathEngine === 'mathjax' ? 'mathjax' : 'katex',
-      tocEnabled: config.tocEnabled === true || config.tocEnabled === '1',
-    };
-  } catch {
-    return { mathEngine: 'katex', tocEnabled: false };
+    return await pluginMarkdownRenderOptionsLoad;
+  } finally {
+    pluginMarkdownRenderOptionsLoad = null;
   }
 }
 
@@ -1995,6 +2010,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     if (extra?.pluginId === pluginId) {
       customIframeAttributesExpiresAt = 0;
       customHtmlTagsExpiresAt = 0;
+      pluginMarkdownRenderOptionsExpiresAt = 0;
       clearMarkdownRenderCache();
     }
     return result;
