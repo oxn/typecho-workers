@@ -468,7 +468,7 @@ const articleSanitizeSchema = {
   tagNames: [
     ...defaultSchema.tagNames,
     'button', 'figure', 'figcaption', 'mark', 'sup', 'sub',
-    'details', 'summary', 'video', 'audio', 'source', 'iframe',
+    'main', 'label', 'picture', 'details', 'summary', 'video', 'audio', 'source', 'iframe',
     'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'image',
     'line', 'polyline', 'polygon', 'title', 'desc', 'defs', 'use', 'symbol',
     'linearGradient', 'radialGradient', 'stop', 'clipPath', 'mask', 'filter', 'marker', 'pattern',
@@ -515,6 +515,9 @@ const articleSanitizeSchema = {
       ['disabled', true],
       'className', 'title', 'ariaLabel', 'dataDisclaimerToggle', 'ariaExpanded', 'style',
     ],
+    main: ['className', 'style', 'id', 'ariaLabel', 'ariaLabelledBy', 'ariaDescribedBy'],
+    label: ['htmlFor', 'className', 'style', 'id', 'title', 'ariaLabel'],
+    picture: ['className', 'style', 'id'],
     div: [
       ...(defaultSchema.attributes.div ?? []),
       ['dir', 'ltr', 'rtl', 'auto'],
