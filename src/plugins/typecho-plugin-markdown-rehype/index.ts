@@ -224,7 +224,8 @@ function restoreMarkdownBridgeHtml(sanitized: string): string {
   const entry = markdownBridge.get(match[1]);
   markdownBridge.delete(match[1]);
   if (!entry || Date.now() - entry.createdAt > MARKDOWN_BRIDGE_TTL_MS) return sanitized;
-  return sanitized.replace(match[0], entry.html);
+  // Rin's Markdown component owns this root element; do not rely on a theme wrapper.
+  return sanitized.replace(match[0], '<div class="toc-content">' + entry.html + '</div>');
 }
 
 
