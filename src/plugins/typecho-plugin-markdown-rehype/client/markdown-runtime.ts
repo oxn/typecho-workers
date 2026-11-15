@@ -121,7 +121,7 @@ const RIN_CSS = `
 .rin-lightbox.is-open{display:flex}
 .rin-lightbox-image{max-width:calc(100vw - 64px);max-height:calc(100vh - 100px);object-fit:contain;transform-origin:center;transition:transform .12s;cursor:grab;touch-action:none}.rin-lightbox-image.is-dragging{cursor:grabbing}
 .rin-lightbox-toolbar{position:absolute;top:12px;right:12px;left:12px;display:flex;align-items:center;justify-content:flex-end;gap:8px}
-.rin-lightbox-toolbar button,.rin-lightbox-toolbar a,.rin-lightbox-nav{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.35);border-radius:6px;background:rgba(30,30,30,.65);color:#fff;text-decoration:none;cursor:pointer}
+.rin-lightbox-toolbar svg,.rin-lightbox-nav svg{width:20px;height:20px;flex:none}.rin-lightbox-toolbar button,.rin-lightbox-toolbar a,.rin-lightbox-nav{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.35);border-radius:6px;background:rgba(30,30,30,.65);color:#fff;text-decoration:none;cursor:pointer}
 .rin-lightbox-counter{margin-right:auto;font-size:13px}
 .rin-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);font-size:24px}
 .rin-lightbox-prev{left:12px}.rin-lightbox-next{right:12px}
