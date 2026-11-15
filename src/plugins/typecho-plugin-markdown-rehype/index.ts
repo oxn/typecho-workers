@@ -1852,6 +1852,33 @@ function createPublicContentRuntimeScript(): string {
     document.head.append(style);
   };
 
+  let rinRuntimeLoad = null;
+  const loadRinRuntime = () => {
+    if (!document.querySelector('.toc-content, .markdown-rehype-content, .warm-prose, article')) return Promise.resolve();
+    if (window.__rinMarkdownRuntime) {
+      window.__rinMarkdownRuntime.initialize();
+      return Promise.resolve();
+    }
+    if (rinRuntimeLoad) return rinRuntimeLoad;
+    rinRuntimeLoad = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '/plugin-assets/typecho-plugin-markdown-rehype/markdown-runtime.js';
+      script.async = true;
+      script.onload = () => {
+        if (window.__rinMarkdownRuntime) {
+          window.__rinMarkdownRuntime.initialize();
+          resolve();
+        } else reject(new Error('Rin Markdown runtime did not initialize'));
+      };
+      script.onerror = () => reject(new Error('Rin Markdown runtime failed to load'));
+      document.head.append(script);
+    }).catch(error => {
+      rinRuntimeLoad = null;
+      console.error('Rin Markdown runtime failed:', error);
+    });
+    return rinRuntimeLoad;
+  };
+
   const loadMermaid = () => {
     if (window.__warmCyMermaid) return Promise.resolve(window.__warmCyMermaid);
     if (mermaidLoad) return mermaidLoad;
@@ -1909,66 +1936,9 @@ function createPublicContentRuntimeScript(): string {
     }
   };
 
-  const addCodeCopyButtons = () => {
-    document.querySelectorAll('main pre > code, article pre > code, .warm-prose pre > code').forEach(code => {
-      const pre = code.parentElement;
-      if (!pre || pre.matches('.mermaid_default, .mermaid_dark') ||
-          pre.querySelector(':scope > .warm-code-copy')) return;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'warm-code-copy';
-      button.textContent = '复制';
-      button.title = '复制代码';
-      button.setAttribute('aria-label', '复制代码');
-      button.style.cssText = 'position:absolute;top:4px;right:4px;z-index:2;padding:2px 6px;border:0;border-radius:4px;background:var(--warm-surface-strong);color:var(--warm-muted);font:inherit;font-size:12px;line-height:1.4;cursor:pointer;user-select:none;visibility:hidden;opacity:0;transition:opacity 140ms ease;';
-      if (getComputedStyle(pre).position === 'static') pre.style.position = 'relative';
-      const canHover = window.matchMedia('(hover: hover)').matches;
-      const show = () => { button.style.visibility = 'visible'; button.style.opacity = '1'; };
-      const hide = () => { button.style.visibility = 'hidden'; button.style.opacity = '0'; };
-      if (canHover) {
-        pre.addEventListener('mouseenter', show);
-        pre.addEventListener('mouseleave', hide);
-        button.addEventListener('blur', hide);
-      } else show();
-      button.addEventListener('click', async () => {
-        show();
-        let copied = false;
-        const value = code.textContent || '';
-        try {
-          if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(value);
-            copied = true;
-          } else {
-            const textarea = document.createElement('textarea');
-            textarea.value = value;
-            textarea.setAttribute('readonly', '');
-            textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
-            document.body.append(textarea);
-            textarea.select();
-            copied = document.execCommand('copy');
-            textarea.remove();
-          }
-        } catch (error) {
-          console.error('Markdown code copy failed:', error);
-        }
-        const label = copied ? '已复制 ✓' : '复制失败';
-        button.textContent = label;
-        button.title = label;
-        button.setAttribute('aria-label', label);
-        window.setTimeout(() => {
-          button.textContent = '复制';
-          button.title = '复制代码';
-          button.setAttribute('aria-label', '复制代码');
-          if (canHover && !pre.matches(':hover')) hide();
-        }, 2000);
-      });
-      pre.append(button);
-    });
-  };
-
   const renderContent = () => {
     ensureKatexCss();
-    addCodeCopyButtons();
+    loadRinRuntime();
     renderMermaid().then(() => {
       if (typeof window.__warmMarkdownContentRendered === 'function') {
         window.__warmMarkdownContentRendered();
@@ -2001,9 +1971,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('archive:footer', pluginId, (html: string, extra?: {
     options?: Record<string, unknown>;
   }) => {
-    // The legacy CY theme still owns this runtime during the migration phase.
-    // Avoid double-initializing Mermaid until that theme is retired.
-    if (extra?.options?.theme === 'typecho-theme-warm-cy') return html;
     return html + createPublicContentRuntimeScript();
   }, 1000);
 
