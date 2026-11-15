@@ -2147,7 +2147,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   // Public content enhancements belong to the renderer plugin, not a theme.
   // Mermaid and MathJax assets are loaded only when matching content exists.
-  addHook('archive:footer', pluginId, (html: string) => {
+  addHook('archive:footer', pluginId, (html: string, extra?: {
+    options?: Record<string, unknown>;
+  }) => {
+    // The legacy CY theme still owns this runtime during the migration phase.
+    // Avoid double-initializing Mermaid until that theme is retired.
+    if (extra?.options?.theme === 'typecho-theme-warm-cy') return html;
     return html + createPublicContentRuntimeScript();
   }, 1000);
 
