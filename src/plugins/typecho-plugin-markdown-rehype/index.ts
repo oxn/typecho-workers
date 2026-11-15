@@ -742,7 +742,7 @@ function remarkMermaidVariants() {
           const source = typeof child.value === 'string' ? child.value : '';
           children.splice(index, 1, {
             type: 'html',
-            value: `\n<pre class="mermaid_default dark:hidden">${source}</pre>\n<pre class="mermaid_dark dark:block hidden">${source}</pre>\n`,
+            value: `\n<pre class="rin-mermaid_default dark:hidden">${source}</pre>\n<pre class="rin-mermaid_dark dark:block hidden">${source}</pre>\n`,
           });
           continue;
         }
@@ -1550,8 +1550,8 @@ function createPublicContentRuntimeScript(): string {
   };
 
   const renderMermaid = async () => {
-    const light = [...document.querySelectorAll('pre.mermaid_default:not([data-processed])')];
-    const dark = [...document.querySelectorAll('pre.mermaid_dark:not([data-processed])')];
+    const light = [...document.querySelectorAll('pre.rin-mermaid_default:not([data-processed])')];
+    const dark = [...document.querySelectorAll('pre.rin-mermaid_dark:not([data-processed])')];
     if (!light.length && !dark.length) return;
     try {
       const mermaid = await loadMermaid();
