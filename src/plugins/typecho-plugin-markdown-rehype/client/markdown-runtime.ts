@@ -5,13 +5,13 @@ const RIN_CSS = `
 .markdown-rehype-preview .toc-content{min-width:0;overflow-wrap:anywhere}
 .markdown-rehype-preview:is(.dark,.is-dark) .toc-content,.markdown-rehype-preview [data-color-mode="dark"] .toc-content{color:#d4d4d4}
 .markdown-rehype-preview .toc-content p{margin-top:.5rem;padding-top:.25rem;padding-bottom:.25rem;overflow-wrap:anywhere}
-.markdown-rehype-preview .toc-content h1,.markdown-rehype-preview .toc-content h2,.markdown-rehype-preview .toc-content h3,.markdown-rehype-preview .toc-content h4,.markdown-rehype-preview .toc-content h5,.markdown-rehype-preview .markdown-rehype-preview .toc-content h6{margin-top:1rem;font-weight:700;overflow-wrap:anywhere;scroll-margin-top:var(--header-scroll-offset,7rem)}
+.markdown-rehype-preview .toc-content h1,.markdown-rehype-preview .toc-content h2,.markdown-rehype-preview .toc-content h3,.markdown-rehype-preview .toc-content h4,.markdown-rehype-preview .toc-content h5,.markdown-rehype-preview .toc-content h6{margin-top:1rem;font-weight:700;overflow-wrap:anywhere;scroll-margin-top:var(--header-scroll-offset,7rem)}
 .markdown-rehype-preview .toc-content h1{font-size:1.875rem;line-height:2.25rem}
 .markdown-rehype-preview .toc-content h2{font-size:1.5rem;line-height:2rem}
 .markdown-rehype-preview .toc-content h3{font-size:1.25rem;line-height:1.75rem}
 .markdown-rehype-preview .toc-content h4{font-size:1.125rem;line-height:1.75rem}
 .markdown-rehype-preview .toc-content h5{font-size:1rem;line-height:1.5rem}
-.toc-content h6{font-size:.875rem;line-height:1.25rem}
+.markdown-rehype-preview .toc-content h6{font-size:.875rem;line-height:1.25rem}
 .markdown-rehype-preview .toc-content a{overflow-wrap:anywhere;color:#0686c8}
 .markdown-rehype-preview:is(.dark,.is-dark) .toc-content a,.markdown-rehype-preview [data-color-mode="dark"] .toc-content a{color:#2590f1}
 .markdown-rehype-preview .toc-content a:hover{text-decoration:underline}
