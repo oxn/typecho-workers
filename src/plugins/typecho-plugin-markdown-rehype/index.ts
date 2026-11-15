@@ -1010,7 +1010,9 @@ function createAdminPreviewScript(): string {
   frame.srcdoc = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><body style="box-sizing:border-box;margin:0;padding:0 15px;font:14px/1.7 system-ui,sans-serif;color:#77817b;background:#fff">正在加载 Markdown 预览…</body></html>';
   const isDarkMode = () =>
     document.documentElement.classList.contains('dark') ||
-    document.body.classList.contains('dark');
+    document.body.classList.contains('dark') ||
+    document.documentElement.getAttribute('data-color-mode') === 'dark' ||
+    document.body.getAttribute('data-color-mode') === 'dark';
 
   async function inlineKatexFontAssets(css) {
     // Vite's inline CSS can contain an extra pair of parentheses around
@@ -1100,7 +1102,7 @@ function createAdminPreviewScript(): string {
       '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<style data-markdown-rehype-katex>' + previewCss + previewKatexCss + '</style>' +
       '</head><body class="' + bodyClass + '">' +
-      '<main class="markdown-rehype-content">' + source + '</main>' +
+      '<main class="markdown-rehype-content toc-content">' + source + '</main>' +
       '<script>(function(){' +
         'function notify(){var root=document.documentElement,body=document.body,rect=body.getBoundingClientRect();var h=Math.ceil(Math.max(root.scrollHeight,body.scrollHeight,root.offsetHeight,body.offsetHeight,rect.bottom+window.scrollY));window.parent.postMessage({type:"markdown-rehype-preview-height",height:h},"*");}' +
         'if(window.ResizeObserver){var ro=new ResizeObserver(notify);ro.observe(document.documentElement);ro.observe(document.body);}' +
@@ -1203,8 +1205,8 @@ function createAdminPreviewScript(): string {
   });
 
   const themeObserver = new MutationObserver(schedule);
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-  themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-color-mode'] });
+  themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-color-mode'] });
   schedule();
     return true;
   }
