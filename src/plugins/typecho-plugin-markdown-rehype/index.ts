@@ -12,7 +12,7 @@ import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { registerPluginAdminPath } from '@/lib/plugin';
 import katexCss from 'katex/dist/katex.min.css?inline';
-import { getWarmMermaidConfig } from './mermaid-config';
+import { getRinMermaidConfig } from './mermaid-config';
 
 /** Parse a small, safe image-dimension grammar: numeric pixels, percentages and auto. */
 function parseImageDimension(value: string): { attribute?: string; style?: string } | null {
@@ -1256,8 +1256,8 @@ const markdownRehypeAdminCss = [
 
 function createPublicContentRuntimeScript(): string {
   const mermaidConfigs = JSON.stringify({
-    light: getWarmMermaidConfig(false),
-    dark: getWarmMermaidConfig(true),
+    light: getRinMermaidConfig(false),
+    dark: getRinMermaidConfig(true),
   }).replace(/</g, '\\u003c');
   const katexCssValue = JSON.stringify(katexCss).replace(/</g, '\\u003c');
 
