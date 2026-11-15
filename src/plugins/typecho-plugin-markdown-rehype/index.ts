@@ -88,7 +88,7 @@ function remarkRinImageMetadata() {
           }
           const blurhash = metadata.get('blurhash') || '';
           const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(blurhash) ? blurhash : '';
-          if (validBlurhash) properties.dataBlurhash = validBlurhash;
+          if (validBlurhash) properties.dataRinBlurhash = validBlurhash;
           for (const name of ['width', 'height'] as const) {
             const raw = metadata.get(name);
             if (!raw) continue;
@@ -138,7 +138,7 @@ function rehypeImageDimensions() {
             }
             const blurhash = metadata.get('blurhash') || '';
             if (/^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(blurhash)) {
-              properties.dataBlurhash = blurhash;
+              properties.dataRinBlurhash = blurhash;
             }
             for (const name of ['width', 'height'] as const) {
               const value = metadata.get(name);
