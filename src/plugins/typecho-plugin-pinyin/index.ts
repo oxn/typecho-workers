@@ -100,13 +100,14 @@ function normalizeSlug(value: string, maxLength: number): string {
  */
 function appendSlugSuffix(base: string, suffix: string, maxLength: number): string {
   // Keep the configured limit even when it is shorter than the CID suffix.
-  // For limits >= 2, reserve one character for the separator; for 1, keep
-  // only the final suffix character because a separator would consume all space.
-  const suffixText = String(suffix).replace(/[^a-z0-9-]/gi, '');
-  const tail = maxLength >= 2
-    ? `-${suffixText.slice(-(maxLength - 1))}`
-    : suffixText.slice(-1);
-  const head = base.slice(0, Math.max(0, maxLength - tail.length)).replace(/-+$/g, '');
+  // Very short limits cannot fit both a separator and the full suffix, so
+  // preserve the suffix characters without creating a leading hyphen.
+  const suffixText = String(suffix).replace(/[^a-z0-9]/gi, '');
+  if (maxLength < 3) return suffixText.slice(-maxLength);
+
+  const suffixPart = suffixText.slice(-Math.max(1, maxLength - 2));
+  const tail = `-${suffixPart}`;
+  const head = base.slice(0, Math.max(1, maxLength - tail.length)).replace(/-+$/g, '');
   return `${head}${tail}`.slice(0, maxLength);
 }
 
