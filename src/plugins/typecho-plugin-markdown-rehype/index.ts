@@ -280,7 +280,7 @@ function parsePluginConfig(value: unknown): Record<string, unknown> {
 export function normalizeCustomIframeAttributes(value: unknown): string[] {
   if (typeof value !== 'string') return [];
   const result = new Set<string>();
-  for (const raw of value.replace(/\\\\[nr]/gi, ' ').split(/[\\s,，;；]+/)) {
+  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
     if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
     if (name.startsWith('on') || FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES.has(name)) continue;
@@ -296,7 +296,7 @@ export function normalizeCustomIframeAttributes(value: unknown): string[] {
 export function normalizeCustomHtmlTags(value: unknown): string[] {
   if (typeof value !== 'string') return [];
   const result = new Set<string>();
-  for (const raw of value.replace(/\\\\[nr]/gi, ' ').split(/[\\s,，;；]+/)) {
+  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
     const name = raw.trim().toLowerCase();
     if (/^[a-z][a-z0-9]*$/.test(name) && !FORBIDDEN_CUSTOM_HTML_TAGS.has(name)) result.add(name);
   }
