@@ -44,6 +44,7 @@ const RIN_CSS = `
 :is(.dark,[data-color-mode="dark"],.is-dark) .toc-content th,:is(.dark,[data-color-mode="dark"],.is-dark) .toc-content td{border-color:#cbd5e1}
 :is(.dark,[data-color-mode="dark"],.is-dark) .toc-content th{background:#334155}
 .toc-content sup,.toc-content sub{font-size:.75rem;margin-right:4px}
+.toc-content .katex{overflow-x:auto;overflow-y:hidden}
 .toc-content section[data-footnotes]{margin-top:2rem}
 .toc-content section[data-footnotes] ol{list-style:decimal;padding-left:2.5rem;padding-right:2.5rem;font-size:.875rem;color:#6b7280}
 .rin-iframe-wrapper{width:100%;margin:1rem 0}.rin-iframe{display:block;width:100%;min-height:400px;border-radius:.75rem;border:1px solid rgba(0,0,0,.1)}
