@@ -1398,9 +1398,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   // Public content enhancements belong to the renderer plugin, not a theme.
   // Mermaid is loaded only when matching content exists.
-  addHook('archive:footer', pluginId, (html: string, extra?: {
-    options?: Record<string, unknown>;
-  }) => {
+  addHook('archive:footer', pluginId, (html: string) => {
     return html + createPublicContentRuntimeScript();
   }, 1000);
 
