@@ -95,8 +95,8 @@ const RIN_CSS = `
 .toc-content :not(pre)>code,.markdown-rehype-content :not(pre)>code,.warm-prose :not(pre)>code{background:#eff1f3;height:24px;padding:2px 4px;border-radius:6px;margin:0 2px;color:#262626;font:13px ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace}
 .dark .toc-content :not(pre)>code,.dark .markdown-rehype-content :not(pre)>code,.dark .warm-prose :not(pre)>code,[data-color-mode="dark"] .toc-content :not(pre)>code,[data-color-mode="dark"] .markdown-rehype-content :not(pre)>code,[data-color-mode="dark"] .warm-prose :not(pre)>code{background:#4a5061;color:#d4d4d4}
 .rin-code-block{position:relative;min-width:0;max-width:100%;overflow:hidden}
-.rin-code-block pre{box-sizing:border-box;margin:.5em 0;padding:1em;max-width:100%;overflow:auto;border-radius:.25rem;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#f5f7ff;color:#5e6687;font:14px/1.375 Consolas,Menlo,Monaco,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L","Courier New",Courier,monospace;tab-size:4}
-.rin-code-block code{font:14px/1.375 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;font-variant-ligatures:normal;font-feature-settings:"liga" 1}
+.rin-code-block .rin-code-pre{box-sizing:border-box;margin:.5em 0;padding:1em;max-width:100%;overflow:auto;border-radius:.25rem;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#f5f7ff;color:#5e6687;font:14px/1.375 Consolas,Menlo,Monaco,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L","Courier New",Courier,monospace;tab-size:4}
+.rin-code-block .rin-code-pre>code{font:14px/1.375 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;font-variant-ligatures:normal;font-feature-settings:"liga" 1}
 :is(.dark,[data-color-mode="dark"]) .rin-code-block pre,:is(.dark,[data-color-mode="dark"]) .rin-code-block code,[data-color-mode="dark"] .rin-code-block pre,[data-color-mode="dark"] .rin-code-block code{background:#1e1e1e;color:#d4d4d4;font-size:14px;line-height:1.5}
 .rin-code-block .token.comment,.rin-code-block .token.prolog,.rin-code-block .token.doctype,.rin-code-block .token.cdata{color:#898ea4}
 .rin-code-block .token.punctuation{color:#5e6687}
@@ -319,7 +319,7 @@ function createLightbox(): {
 }
 
 function enhanceCodeBlocks(root: Element): void {
-  root.querySelectorAll<HTMLElement>('pre > code').forEach(code => {
+  root.querySelectorAll<HTMLElement>('.rin-code-pre > code').forEach(code => {
     const pre = code.parentElement;
     if (!pre || pre.closest('.mermaid_default,.mermaid_dark') || pre.dataset.rinCodeEnhanced === '1') return;
     pre.dataset.rinCodeEnhanced = '1';
