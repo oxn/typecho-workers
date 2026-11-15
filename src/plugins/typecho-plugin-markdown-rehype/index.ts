@@ -1195,7 +1195,7 @@ function createAdminPreviewScript(): string {
 
   textarea.addEventListener('input', schedule);
   textarea.addEventListener('change', schedule);
-  window.__warmCyMarkdownRehypePreviewRefresh = schedule;
+  window.__rinMarkdownRehypePreviewRefresh = schedule;
 
   const previewObserver = new MutationObserver(() => {
     enforcePreviewLayout();
