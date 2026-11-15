@@ -179,7 +179,8 @@ const commonSvgAttributes = [
   'letterSpacing', 'wordSpacing', 'writingMode', 'direction', 'unicodeBidi',
   'pathLength',
 ];
-e, 'frameSpacing', 'framespacing', 'border',
+export const DEFAULT_IFRAME_ATTRIBUTES = [
+  'src', 'width', 'height', 'frameBorder', 'frameSpacing', 'framespacing', 'border',
   'allow', 'allowFullScreen', 'allowTransparency', 'allowPaymentRequest',
   'title', 'name', 'id', 'className', 'style', 'referrerPolicy', 'sandbox',
   'scrolling', 'marginWidth', 'marginHeight', 'loading', 'credentialless',
