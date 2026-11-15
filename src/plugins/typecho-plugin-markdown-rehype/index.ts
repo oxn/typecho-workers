@@ -12,6 +12,9 @@ import rehypeStringify from 'rehype-stringify';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { registerPluginAdminPath } from '@/lib/plugin';
+import { env } from 'cloudflare:workers';
+import { getDb } from 'typecho/db';
+import { getOption } from 'typecho/plugin-sdk';
 import katexCss from 'katex/dist/katex.min.css?inline';
 import { getRinMermaidConfig } from './mermaid-config';
 
@@ -192,6 +195,120 @@ export const DEFAULT_CUSTOM_HTML_TAGS = [
   'del', 'ins', 'ruby', 'rt', 'rp', 'wbr', 'bdi', 'bdo',
   'data', 'output', 'progress', 'meter',
 ] as const;
+
+
+const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-markdown-rehype';
+const FORBIDDEN_CUSTOM_HTML_TAGS = new Set([
+  'script', 'object', 'embed', 'applet', 'frame', 'frameset',
+  'base', 'meta', 'link', 'form', 'template', 'portal',
+]);
+const FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES = new Set([
+  'src', 'srcdoc', 'onload', 'onerror', 'nonce', 'integrity',
+]);
+const HTML_TO_HAST_IFRAME_PROPERTIES: Record<string, string> = {
+  class: 'className',
+  frameborder: 'frameBorder',
+  framespacing: 'frameSpacing',
+  allowfullscreen: 'allowFullScreen',
+  allowtransparency: 'allowTransparency',
+  allowpaymentrequest: 'allowPaymentRequest',
+  referrerpolicy: 'referrerPolicy',
+  marginwidth: 'marginWidth',
+  marginheight: 'marginHeight',
+  fetchpriority: 'fetchPriority',
+  longdesc: 'longDesc',
+};
+
+function parsePluginConfig(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value !== 'string' || !value.trim()) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+export function normalizeCustomIframeAttributes(value: unknown): string[] {
+  if (typeof value !== 'string') return [];
+  const result = new Set<string>();
+  for (const raw of value.replace(/\\\\[nr]/gi, ' ').split(/[\\s,，;；]+/)) {
+    const name = raw.trim().toLowerCase();
+    if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
+    if (name.startsWith('on') || FORBIDDEN_CUSTOM_IFRAME_ATTRIBUTES.has(name)) continue;
+    const property = HTML_TO_HAST_IFRAME_PROPERTIES[name]
+      ?? (name.startsWith('data-') || name.startsWith('aria-')
+        ? name.replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase())
+        : name);
+    result.add(property);
+  }
+  return [...result];
+}
+
+export function normalizeCustomHtmlTags(value: unknown): string[] {
+  if (typeof value !== 'string') return [];
+  const result = new Set<string>();
+  for (const raw of value.replace(/\\\\[nr]/gi, ' ').split(/[\\s,，;；]+/)) {
+    const name = raw.trim().toLowerCase();
+    if (/^[a-z][a-z0-9]*$/.test(name) && !FORBIDDEN_CUSTOM_HTML_TAGS.has(name)) result.add(name);
+  }
+  return [...result];
+}
+
+let cachedCustomIframeAttributes: string[] = [...DEFAULT_IFRAME_ATTRIBUTES];
+let customIframeAttributesExpiresAt = 0;
+let customIframeAttributesLoad: Promise<string[]> | null = null;
+let cachedCustomHtmlTags: string[] = [...DEFAULT_CUSTOM_HTML_TAGS];
+let customHtmlTagsExpiresAt = 0;
+let customHtmlTagsLoad: Promise<string[]> | null = null;
+
+async function loadCustomIframeAttributes(): Promise<string[]> {
+  if (Date.now() < customIframeAttributesExpiresAt) return cachedCustomIframeAttributes;
+  if (customIframeAttributesLoad) return customIframeAttributesLoad;
+  customIframeAttributesLoad = (async () => {
+    try {
+      const db = getDb(env.DB);
+      const config = parsePluginConfig(await getOption(db, PLUGIN_OPTION_KEY));
+      const configured = normalizeCustomIframeAttributes(config.iframeAttributes);
+      cachedCustomIframeAttributes = configured.length ? configured : [...DEFAULT_IFRAME_ATTRIBUTES];
+    } catch {
+      cachedCustomIframeAttributes = [...DEFAULT_IFRAME_ATTRIBUTES];
+    }
+    customIframeAttributesExpiresAt = Date.now() + 15_000;
+    return cachedCustomIframeAttributes;
+  })();
+  try {
+    return await customIframeAttributesLoad;
+  } finally {
+    customIframeAttributesLoad = null;
+  }
+}
+
+async function loadCustomHtmlTags(): Promise<string[]> {
+  if (Date.now() < customHtmlTagsExpiresAt) return cachedCustomHtmlTags;
+  if (customHtmlTagsLoad) return customHtmlTagsLoad;
+  customHtmlTagsLoad = (async () => {
+    try {
+      const db = getDb(env.DB);
+      const config = parsePluginConfig(await getOption(db, PLUGIN_OPTION_KEY));
+      cachedCustomHtmlTags = Object.prototype.hasOwnProperty.call(config, 'htmlTags')
+        ? normalizeCustomHtmlTags(config.htmlTags)
+        : [...DEFAULT_CUSTOM_HTML_TAGS];
+    } catch {
+      cachedCustomHtmlTags = [...DEFAULT_CUSTOM_HTML_TAGS];
+    }
+    customHtmlTagsExpiresAt = Date.now() + 15_000;
+    return cachedCustomHtmlTags;
+  })();
+  try {
+    return await customHtmlTagsLoad;
+  } finally {
+    customHtmlTagsLoad = null;
+  }
+}
 
 const ADMIN_PREVIEW_PATH = '/api/admin/markdown-rehype-preview';
 
@@ -648,7 +765,7 @@ function rehypeRinHeadingIds() {
  * processors can process files repeatedly. Reuse avoids rebuilding the plugin
  * chain on every article request while keeping math/TOC options isolated.
  */
-function createMarkdownProcessor() {
+function createMarkdownProcessor(iframeAttributes: string[], customHtmlTags: string[]) {
   return unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -663,15 +780,21 @@ function createMarkdownProcessor() {
     .use(rehypeRemoveStyleElements)
     .use(rehypeImageDimensions)
     .use(rehypeRinCodeBlocks)
-    .use(rehypeSanitize, createArticleSanitizeSchema([...DEFAULT_IFRAME_ATTRIBUTES], [...DEFAULT_CUSTOM_HTML_TAGS]))
+    .use(rehypeSanitize, createArticleSanitizeSchema(iframeAttributes, customHtmlTags))
     .use(rehypeRinIframes)
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
 }
 
-const markdownProcessor = createMarkdownProcessor();
-function getMarkdownProcessor() {
-  return markdownProcessor;
+const markdownProcessorCache = new Map<string, ReturnType<typeof createMarkdownProcessor>>();
+function getMarkdownProcessor(iframeAttributes: string[], customHtmlTags: string[]) {
+  const key = JSON.stringify([iframeAttributes, customHtmlTags]);
+  let processor = markdownProcessorCache.get(key);
+  if (!processor) {
+    processor = createMarkdownProcessor(iframeAttributes, customHtmlTags);
+    markdownProcessorCache.set(key, processor);
+  }
+  return processor;
 }
 
 export class MarkdownRenderCapacityError extends Error {
@@ -854,9 +977,12 @@ function clearMarkdownRenderCache(): void {
 export async function renderMarkdown(source: string): Promise<string> {
   if (!source) return '';
   const normalizedSource = source;
-  // Cache the exact source; renderer settings are intentionally not exposed yet.
+  const [iframeAttributes, customHtmlTags] = await Promise.all([
+    loadCustomIframeAttributes(),
+    loadCustomHtmlTags(),
+  ]);
   const cacheKey = normalizedSource.length <= RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH
-    ? normalizedSource
+    ? JSON.stringify([iframeAttributes, customHtmlTags, normalizedSource])
     : null;
 
   if (cacheKey) {
@@ -869,7 +995,7 @@ export async function renderMarkdown(source: string): Promise<string> {
     if (inFlight) return inFlight;
   }
 
-  const processor = getMarkdownProcessor();
+  const processor = getMarkdownProcessor(iframeAttributes, customHtmlTags);
   // The cache and in-flight lookup happen before the gate, so cache hits never
   // wait for a render slot and identical concurrent requests still share work.
   const render = runMarkdownRender(async () => {
@@ -1455,6 +1581,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('plugin:config:beforeSave', pluginId, (result: any, extra?: { pluginId?: string }) => {
     if (extra?.pluginId === pluginId) {
       clearMarkdownRenderCache();
+      customIframeAttributesExpiresAt = 0;
+      customHtmlTagsExpiresAt = 0;
     }
     return result;
   }, 20);
