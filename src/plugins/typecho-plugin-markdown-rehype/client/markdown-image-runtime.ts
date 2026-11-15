@@ -75,12 +75,11 @@ function createLightbox(): {
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-modal', 'true');
     root.setAttribute('aria-label', 'Image viewer');
-    root.innerHTML = '<div class="rin-lightbox-toolbar"><span class="rin-lightbox-counter"></span><button type="button" data-action="zoom-out" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button><button type="button" data-action="zoom-in" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><a data-action="download" href="#" download aria-label="Download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg></a><button type="button" data-action="close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m18 6-12 12M6 6l12 12"/></svg></button></div><button type="button" class="rin-lightbox-nav rin-lightbox-prev" data-action="prev" aria-label="Previous image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button><img class="rin-lightbox-image" alt=""><button type="button" class="rin-lightbox-nav rin-lightbox-next" data-action="next" aria-label="Next image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button><div class="rin-lightbox-caption"></div>';
+    root.innerHTML = '<div class="rin-lightbox-toolbar"><span class="rin-lightbox-counter"></span><button type="button" data-action="zoom-out" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button><button type="button" data-action="zoom-in" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><a data-action="download" href="#" download aria-label="Download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg></a><button type="button" data-action="close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m18 6-12 12M6 6l12 12"/></svg></button></div><button type="button" class="rin-lightbox-nav rin-lightbox-prev" data-action="prev" aria-label="Previous image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button><img class="rin-lightbox-image" alt=""><button type="button" class="rin-lightbox-nav rin-lightbox-next" data-action="next" aria-label="Next image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
     document.body.append(root);
   }
   const image = root.querySelector<HTMLImageElement>('.rin-lightbox-image')!;
   const counter = root.querySelector<HTMLElement>('.rin-lightbox-counter')!;
-  const caption = root.querySelector<HTMLElement>('.rin-lightbox-caption')!;
   const download = root.querySelector<HTMLAnchorElement>('[data-action="download"]')!;
   let activeIndex = -1;
   let activeRoot: Element | null = null;
@@ -101,7 +100,6 @@ function createLightbox(): {
     image.style.transform = 'translate3d(' + offsetX + 'px,' + offsetY + 'px,0) scale(' + zoom + ')';
     image.classList.toggle('is-zoomed', zoom > 1);
     counter.textContent = (activeIndex + 1) + ' / ' + list.length;
-    caption.textContent = active.alt || '';
     const src = active.currentSrc || active.src;
     download.href = src;
     download.download = src.split('/').pop() || '';
