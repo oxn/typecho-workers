@@ -179,7 +179,7 @@ const RIN_CSS = `
 .rin-image-placeholder.is-inline{width:2rem;height:2rem}
 .rin-lightbox{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.94);color:#fff}
 .rin-lightbox.is-open{display:flex}
-.rin-lightbox-image{max-width:calc(100vw - 64px);max-height:calc(100vh - 100px);object-fit:contain;transform-origin:center;transition:transform .12s}
+.rin-lightbox-image{max-width:calc(100vw - 64px);max-height:calc(100vh - 100px);object-fit:contain;transform-origin:center;transition:transform .12s};cursor:grab;touch-action:none}.rin-lightbox-image.is-dragging{cursor:grabbing}
 .rin-lightbox-toolbar{position:absolute;top:12px;right:12px;left:12px;display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .rin-lightbox-toolbar button,.rin-lightbox-toolbar a,.rin-lightbox-nav{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.35);border-radius:6px;background:rgba(30,30,30,.65);color:#fff;text-decoration:none;cursor:pointer}
 .rin-lightbox-counter{margin-right:auto;font-size:13px}
@@ -292,24 +292,42 @@ function createLightbox(): {
   const download = root.querySelector<HTMLAnchorElement>('[data-action="download"]')!;
   let activeIndex = -1;
   let zoom = 1;
+  let offsetX = 0;
+  let offsetY = 0;
+  let pointerDrag: { x: number; y: number; originX: number; originY: number } | null = null;
+  let touchStart: { x: number; y: number; originX: number; originY: number } | null = null;
+  let pinchStart: { distance: number; zoom: number } | null = null;
   const slides = () => currentImages().filter(item => item.getAttribute('src'));
+  const resetZoom = () => { zoom = 1; offsetX = 0; offsetY = 0; };
   const render = () => {
     const list = slides();
     if (activeIndex < 0 || activeIndex >= list.length) return;
     const active = list[activeIndex];
     image.src = active.currentSrc || active.src;
     image.alt = active.alt || '';
-    image.style.transform = 'scale(' + zoom + ')';
+    image.style.transform = 'translate3d(' + offsetX + 'px,' + offsetY + 'px,0) scale(' + zoom + ')';
+    image.classList.toggle('is-zoomed', zoom > 1);
     counter.textContent = (activeIndex + 1) + ' / ' + list.length;
     caption.textContent = active.alt || '';
     const src = active.currentSrc || active.src;
     download.href = src;
-    download.download = src.split('/').pop()?.split('?')[0] || 'image';
+    download.download = src.split('/').pop() || '';
     root!.querySelector<HTMLElement>('.rin-lightbox-prev')!.style.visibility = list.length > 1 ? 'visible' : 'hidden';
     root!.querySelector<HTMLElement>('.rin-lightbox-next')!.style.visibility = list.length > 1 ? 'visible' : 'hidden';
   };
+  const move = (direction: number) => {
+    const count = slides().length;
+    if (count < 2) return;
+    activeIndex = (activeIndex + direction + count) % count;
+    resetZoom();
+    render();
+  };
   const close = () => {
     activeIndex = -1;
+    pointerDrag = null;
+    touchStart = null;
+    pinchStart = null;
+    resetZoom();
     root!.classList.remove('is-open');
     image.removeAttribute('src');
     document.body.style.removeProperty('overflow');
@@ -320,28 +338,100 @@ function createLightbox(): {
     if (target === root) { close(); return; }
     if (action === 'close') close();
     else if (action === 'zoom-in') { zoom = Math.min(zoom + .25, 4); render(); }
-    else if (action === 'zoom-out') { zoom = Math.max(zoom - .25, 1); render(); }
-    else if (action === 'next') { activeIndex = (activeIndex + 1) % slides().length; zoom = 1; render(); }
-    else if (action === 'prev') { activeIndex = (activeIndex - 1 + slides().length) % slides().length; zoom = 1; render(); }
+    else if (action === 'zoom-out') { zoom = Math.max(zoom - .25, 1); if (zoom === 1) { offsetX = 0; offsetY = 0; } render(); }
+    else if (action === 'next') move(1);
+    else if (action === 'prev') move(-1);
+  });
+  image.addEventListener('dblclick', event => {
+    event.preventDefault();
+    zoom = zoom > 1 ? 1 : 2;
+    if (zoom === 1) { offsetX = 0; offsetY = 0; }
+    render();
   });
   root.addEventListener('wheel', event => {
     if (!root!.classList.contains('is-open')) return;
+    event.preventDefault();
     if (event.deltaY < 0) zoom = Math.min(zoom + .1, 4);
     else zoom = Math.max(zoom - .1, 1);
+    if (zoom === 1) { offsetX = 0; offsetY = 0; }
     render();
-  }, { passive: true });
+  }, { passive: false });
+  root.addEventListener('pointerdown', event => {
+    if (event.pointerType === 'touch' || zoom <= 1 || event.target !== image) return;
+    pointerDrag = { x: event.clientX, y: event.clientY, originX: offsetX, originY: offsetY };
+    image.setPointerCapture?.(event.pointerId);
+    image.classList.add('is-dragging');
+  });
+  root.addEventListener('pointermove', event => {
+    if (!pointerDrag) return;
+    offsetX = pointerDrag.originX + event.clientX - pointerDrag.x;
+    offsetY = pointerDrag.originY + event.clientY - pointerDrag.y;
+    render();
+  });
+  const endPointerDrag = () => {
+    pointerDrag = null;
+    image.classList.remove('is-dragging');
+  };
+  root.addEventListener('pointerup', endPointerDrag);
+  root.addEventListener('pointercancel', endPointerDrag);
+  const touchDistance = (touches: TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  };
+  root.addEventListener('touchstart', event => {
+    if (!root!.classList.contains('is-open')) return;
+    if (event.touches.length >= 2) {
+      pinchStart = { distance: touchDistance(event.touches), zoom };
+      touchStart = null;
+      event.preventDefault();
+    } else if (event.touches.length === 1) {
+      touchStart = {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY,
+        originX: offsetX,
+        originY: offsetY,
+      };
+    }
+  }, { passive: false });
+  root.addEventListener('touchmove', event => {
+    if (pinchStart && event.touches.length >= 2) {
+      zoom = Math.max(1, Math.min(4, pinchStart.zoom * touchDistance(event.touches) / Math.max(1, pinchStart.distance)));
+      if (zoom === 1) { offsetX = 0; offsetY = 0; }
+      render();
+      event.preventDefault();
+      return;
+    }
+    if (touchStart && event.touches.length === 1 && zoom > 1) {
+      offsetX = touchStart.originX + event.touches[0].clientX - touchStart.x;
+      offsetY = touchStart.originY + event.touches[0].clientY - touchStart.y;
+      render();
+      event.preventDefault();
+    }
+  }, { passive: false });
+  root.addEventListener('touchend', event => {
+    if (pinchStart) { pinchStart = null; touchStart = null; return; }
+    if (!touchStart) return;
+    const end = event.changedTouches[0];
+    const deltaX = end ? end.clientX - touchStart.x : 0;
+    if (zoom <= 1 && Math.abs(deltaX) > 55) move(deltaX < 0 ? 1 : -1);
+    touchStart = null;
+  });
   document.addEventListener('keydown', event => {
     if (!root!.classList.contains('is-open')) return;
     if (event.key === 'Escape') close();
-    else if (event.key === 'ArrowRight' && slides().length > 1) { activeIndex = (activeIndex + 1) % slides().length; zoom = 1; render(); }
-    else if (event.key === 'ArrowLeft' && slides().length > 1) { activeIndex = (activeIndex - 1 + slides().length) % slides().length; zoom = 1; render(); }
+    else if (event.key === 'ArrowRight') move(1);
+    else if (event.key === 'ArrowLeft') move(-1);
+    else if (event.key === '+' || event.key === '=') { zoom = Math.min(zoom + .25, 4); render(); }
+    else if (event.key === '-') { zoom = Math.max(zoom - .25, 1); if (zoom === 1) { offsetX = 0; offsetY = 0; } render(); }
   });
   return {
     open: selected => {
       const list = slides();
-      activeIndex = list.indexOf(selected);
+      const selectedSrc = selected.currentSrc || selected.src;
+      activeIndex = list.findIndex(item => (item.currentSrc || item.src) === selectedSrc);
       if (activeIndex < 0) return;
-      zoom = 1;
+      resetZoom();
       render();
       root!.classList.add('is-open');
       document.body.style.overflow = 'hidden';
