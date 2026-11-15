@@ -815,12 +815,13 @@ function rehypeRinHeadingIds() {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'element' && /^h[1-6]$/.test(node.tagName || '')) {
         node.properties = node.properties || {};
-        if (node.properties.id == null) {
-          const children = Array.isArray(node.children) ? node.children : [];
-          node.properties.id = children.length === 1
-            ? childToString(children[0])
-            : children.map(childToString).join(',');
-        }
+        // Rin's heading component derives the id from rendered children and
+        // places that value after the incoming heading props, so it replaces
+        // any id supplied by raw HTML instead of preserving the author's id.
+        const children = Array.isArray(node.children) ? node.children : [];
+        node.properties.id = children.length === 1
+          ? childToString(children[0])
+          : children.map(childToString).join(',');
         const existingStyle = typeof node.properties.style === 'string' ? node.properties.style : '';
         const withoutScrollMargin = existingStyle.replace(/(?:^|;)\s*scroll-margin-top\s*:[^;]*/gi, '');
         node.properties.style = (withoutScrollMargin ? withoutScrollMargin.replace(/;?\s*$/, ';') : '') +
