@@ -101,7 +101,8 @@ const RIN_CSS = `
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.function,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.function.maybe-class-name{color:#dcdcaa}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.tag.punctuation,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.cdata{color:#808080}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value.punctuation{color:#ce9178}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value.punctuation.attr-equals,:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.punctuation.interpolation-punctuation{color:#d4d4d4}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value.punctuation.attr-equals{color:#d4d4d4}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.punctuation.interpolation-punctuation{color:#569cd6}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-javascript"],:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-jsx"],:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-typescript"],:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-tsx"]{color:#9cdcfe}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-css"]{color:#ce9178}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code[class*="language-html"]{color:#d4d4d4}
