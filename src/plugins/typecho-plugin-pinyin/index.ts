@@ -383,9 +383,9 @@ const pinyinAdminCss = [
   '.pinyin-settings-page .typecho-option p.description, .pinyin-settings-page .typecho-option .description { margin: 8px 0 0 !important; color: #737b85; font-size: 13px; line-height: 1.7; }',
   '.pinyin-settings-page .typecho-option-submit { padding: 0 !important; border: 0 !important; background: transparent !important; }',
   '.pinyin-settings-page .typecho-option-submit > li { padding: 0 !important; }',
-  '.pinyin-settings-page .typecho-option-submit .btn { min-height: 36px; padding: 7px 16px; border-radius: 6px; }',
-  '.pinyin-settings-page .pinyin-toolbar { display: flex; justify-content: flex-end; margin: 0 0 14px; }',
-  '.pinyin-settings-page .pinyin-toolbar a { display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid #dce2e8; border-radius: 7px; background: #fff; color: #456f9f !important; text-decoration: none; font-size: 13px; }',
+  '.pinyin-settings-page .typecho-option-submit .btn { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: 40px; min-height: 40px; margin: 0; padding: 0 16px; border-radius: 6px; line-height: 1.4; }',
+  '.pinyin-settings-page .pinyin-toolbar { display: flex; align-items: center; justify-content: flex-end; margin: 0 0 14px; }',
+  '.pinyin-settings-page .pinyin-toolbar a { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: 40px; min-height: 40px; margin: 0; padding: 0 16px; border: 1px solid #dce2e8; border-radius: 6px; background: #fff; color: #456f9f !important; text-decoration: none; font-size: 13px; line-height: 1.4; }',
   '.pinyin-settings-page .pinyin-toolbar a:hover { border-color: #668fc4; background: #f5f8fc; }',
   '@media (max-width: 767px) { .pinyin-settings-page .typecho-option { padding: 15px !important; } .pinyin-settings-page .typecho-option input[type="text"], .pinyin-settings-page .typecho-option input[type="number"] { width: 100%; max-width: 100%; } }',
 ].join('\n');
