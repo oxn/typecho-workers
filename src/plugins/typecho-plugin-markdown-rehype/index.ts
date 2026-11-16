@@ -61,7 +61,7 @@ function parseRinImageUrlMetadata(url: string): {
  * Rin-compatible Markdown image metadata handling.
  * Runs on remark image nodes before remark-rehype, so Markdown images receive
  * the same clean src + display metadata contract as Rin's MarkdownImage.
- * Literal '+' is preserved because it is part of the BlurHash alphabet.
+ * Uses URLSearchParams like Rin, including its standard percent/plus decoding semantics.
  */
 function countRinNewlinesBeforeNode(text: string, offset: number): number {
   let count = 0;
