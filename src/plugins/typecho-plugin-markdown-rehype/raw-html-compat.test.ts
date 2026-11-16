@@ -23,4 +23,26 @@ describe('Typecho-compatible raw HTML rendering', () => {
     expect(html).toContain('onload="window.frameReady = true"');
     expect(html).toContain('srcdoc=');
   });
+  it('renders Rin image URL dimensions from the original Markdown fragment', async () => {
+    const html = await renderMarkdown(
+      '![logo.ico](https://cycy.fun/CYlogo.ico#&width=48&height=48)',
+    );
+
+    expect(html).toContain('src="https://cycy.fun/CYlogo.ico"');
+    expect(html).toContain('width="48"');
+    expect(html).toContain('height="48"');
+    expect(html).not.toContain('#&width=48&height=48');
+  });
+
+  it('preserves image blurhash while extracting dimensions', async () => {
+    const html = await renderMarkdown(
+      '![logo.ico](https://cycy.fun/CYlogo.ico#&blurhash=LEHV6nWB2yk8pyo0adR*.7kCMdnj&width=48&height=48)',
+    );
+
+    expect(html).toContain('src="https://cycy.fun/CYlogo.ico"');
+    expect(html).toContain('width="48"');
+    expect(html).toContain('height="48"');
+    expect(html).toContain('data-rin-blurhash=');
+  });
+
 });

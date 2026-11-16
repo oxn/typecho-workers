@@ -52,53 +52,24 @@ function parseRinImageUrlMetadata(url: string): {
 }
 
 /**
- * Rin-compatible Markdown image metadata handling.
- * Runs on remark image nodes before remark-rehype, so Markdown images receive
- * the same clean src + display metadata contract as Rin's MarkdownImage.
- * Uses URLSearchParams like Rin, including its standard percent/plus decoding semantics.
+ * Preserve the original Markdown image URL through remark-rehype.
+ * Parse image metadata once from the final HAST img src after rehypeRaw,
+ * avoiding loss of fragment data during mdast-to-HAST property conversion.
  */
-function countRinNewlinesBeforeNode(text: string, offset: number): number {
-  let count = 0;
-  for (let index = offset - 1; index >= 0 && text[index] === '\n'; index--) count++;
-  return count;
-}
-function isRinMarkdownImageLinkAtEnd(text: string): boolean {
-  const trimmed = text.trim();
-  const match = trimmed.match(/(.*)(!\[.*?\]\(.*?\))$/s);
-  if (!match) return false;
-  const beforeImage = match[1];
-  return beforeImage.trim().length === 0 || beforeImage.endsWith('\n');
-}
-/** Do not treat a missing source position as offset zero (the start of the article). */
-function getRinImageLayout(source: string, node: any): 'block' | 'inline' | undefined {
-  const offset = node?.position?.start?.offset;
-  if (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0) return undefined;
-  const previousContent = source.slice(0, offset);
-  return countRinNewlinesBeforeNode(previousContent, offset) >= 1
-    || previousContent.trim().length === 0
-    || isRinMarkdownImageLinkAtEnd(previousContent)
-    ? 'block'
-    : 'inline';
-}
-
 function remarkRinImageMetadata() {
   return (tree: any, file: any): void => {
     const source = typeof file?.value === 'string' ? file.value : '';
     const visit = (node: any): void => {
       if (!node || typeof node !== 'object') return;
-      if (node.type === 'image' && typeof node.url === 'string') {
+      if (node.type === 'image') {
         const layout = getRinImageLayout(source, node);
-        node.data = node.data ?? {};
-        const properties = { ...(node.data.hProperties ?? {}) } as Record<string, any>;
-        if (layout) properties.dataRinImageLayout = layout;
-        const metadata = parseRinImageUrlMetadata(node.url);
-        if (metadata.src !== node.url) node.url = metadata.src;
-        if (metadata.blurhash) properties.dataRinBlurhash = metadata.blurhash;
-        for (const name of ['width', 'height'] as const) {
-          const value = metadata[name];
-          if (value && properties[name] == null) applyImageDimension(properties, name, String(value));
+        if (layout) {
+          node.data = node.data ?? {};
+          node.data.hProperties = {
+            ...(node.data.hProperties ?? {}),
+            dataRinImageLayout: layout,
+          };
         }
-        node.data.hProperties = properties;
       }
       if (Array.isArray(node.children)) node.children.forEach(visit);
     };
