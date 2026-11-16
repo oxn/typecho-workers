@@ -4,11 +4,24 @@ import './markdown-styles.css';
 const STYLESHEET_ID = 'rin-markdown-renderer-stylesheet';
 const ROOT_SELECTOR = '.toc-content';
 function installStyles(): void {
-  if (document.getElementById(STYLESHEET_ID)) return;
+  const existing = document.getElementById(STYLESHEET_ID) as HTMLLinkElement | null;
+  if (existing) {
+    if (existing.dataset.loadState === 'loading' || existing.dataset.loadState === 'loaded') return;
+    existing.remove();
+  }
+
   const link = document.createElement('link');
   link.id = STYLESHEET_ID;
   link.rel = 'stylesheet';
   link.href = '/plugin-assets/typecho-plugin-markdown-rehype/markdown-runtime.css';
+  link.dataset.loadState = 'loading';
+  link.onload = () => {
+    link.dataset.loadState = 'loaded';
+  };
+  link.onerror = () => {
+    link.remove();
+    console.error('Rin Markdown stylesheet failed to load:', link.href);
+  };
   document.head.append(link);
 }
 

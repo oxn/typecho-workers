@@ -14,20 +14,18 @@ import { registerPluginAdminPath } from '@/lib/plugin';
 import katexCss from 'katex/dist/katex.min.css?inline';
 import { getRinMermaidConfig } from './mermaid-config';
 
-/** Parse a small, safe image-dimension grammar: numeric pixels, percentages and auto. */
-function parseImageDimension(value: string): { style: string } | null {
-  const normalized = value.trim().toLowerCase();
-  if (!/^(?:\d+(?:\.\d+)?(?:px|%)?|auto)$/.test(normalized)) return null;
-  if (normalized.endsWith('%') || normalized === 'auto') return { style: normalized };
-  return { style: `${normalized.replace(/px$/, '')}px` };
+/** Match Rin: image URL dimensions become numeric HTML width/height attributes. */
+function parseImageDimension(value: string): number | undefined {
+  const normalized = value.trim().toLowerCase().replace(/px$/, '');
+  if (!/^\\d+$/.test(normalized)) return undefined;
+  const dimension = Number(normalized);
+  return Number.isSafeInteger(dimension) && dimension > 0 ? dimension : undefined;
 }
 
 function applyImageDimension(properties: Record<string, any>, name: 'width' | 'height', value: string): void {
   const dimension = parseImageDimension(value);
-  if (!dimension) return;
-  const declaration = `${name}:${dimension.style}`;
-  const existing = typeof properties.style === 'string' ? properties.style.trim().replace(/;?$/, ';') : '';
-  properties.style = `${existing}${declaration}`;
+  if (dimension === undefined || properties[name] != null) return;
+  properties[name] = dimension;
 }
 
 function toRinPositiveInteger(value: string | null): number | undefined {
