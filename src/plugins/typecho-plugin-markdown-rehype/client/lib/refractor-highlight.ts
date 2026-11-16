@@ -47,3 +47,30 @@ export function getSupportedLanguageCount(): number {
 export function getUnregisteredLanguages(): string[] {
   return REFRACTOR_SUPPORTED_LANGUAGES.filter(language => !refractor.registered(language));
 }
+
+export interface HighlightSegment {
+  value: string;
+  classNames: string[];
+}
+
+/** Match react-syntax-highlighter's flattenCodeTree: merge ancestor token classes onto text leaves. */
+export function flattenHighlightTree(root: RefractorRoot): HighlightSegment[] {
+  const segments: HighlightSegment[] = [];
+  const visit = (nodes: RefractorNode[], inherited: string[]): void => {
+    for (const node of nodes) {
+      if (node.type === 'text') {
+        segments.push({ value: node.value, classNames: [...new Set(inherited)] });
+        continue;
+      }
+      const value = node.properties?.className;
+      const classes = Array.isArray(value)
+        ? value.filter(item => typeof item === 'string')
+        : typeof value === 'string'
+          ? value.split(/\\s+/).filter(Boolean)
+          : [];
+      visit(node.children, inherited.concat(classes));
+    }
+  };
+  visit(root.children, []);
+  return segments;
+}

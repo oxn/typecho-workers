@@ -1,21 +1,15 @@
-import { highlightCode, type RefractorNode } from './lib/refractor-highlight';
+import { flattenHighlightTree, highlightCode } from './lib/refractor-highlight';
 
-function appendHighlightNode(parent: Node, node: RefractorNode): void {
-  if (node.type === 'text') {
-    parent.appendChild(document.createTextNode(node.value));
-    return;
+function appendHighlightSegments(code: HTMLElement, source: string, language: string): void {
+  const tree = highlightCode(source, language);
+  const fragment = document.createDocumentFragment();
+  for (const segment of flattenHighlightTree(tree)) {
+    const span = document.createElement('span');
+    span.className = segment.classNames.join(' ');
+    span.textContent = segment.value;
+    fragment.append(span);
   }
-  if (node.type !== 'element' || node.tagName !== 'span') return;
-
-  const span = document.createElement('span');
-  const className = node.properties?.className;
-  if (Array.isArray(className)) {
-    span.className = className.filter(value => typeof value === 'string').join(' ');
-  } else if (typeof className === 'string') {
-    span.className = className;
-  }
-  parent.appendChild(span);
-  node.children.forEach(child => appendHighlightNode(span, child));
+  code.replaceChildren(fragment);
 }
 
 function enhanceCodeBlocks(root: Element): void {
@@ -36,10 +30,7 @@ function enhanceCodeBlocks(root: Element): void {
     const language = languageMatch?.[1] || '';
     if (language && language !== 'text' && language !== 'plain') {
       code.className = code.className.replace(/language-[\w+-]+/, 'language-' + language);
-      const highlighted = highlightCode(displayValue, language);
-      const fragment = document.createDocumentFragment();
-      highlighted.children.forEach(node => appendHighlightNode(fragment, node));
-      code.replaceChildren(fragment);
+      appendHighlightSegments(code, displayValue, language);
     }
     const button = document.createElement('button');
     button.type = 'button';

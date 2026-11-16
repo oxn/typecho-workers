@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getSupportedLanguageCount, getUnregisteredLanguages, highlightCode } from './client/lib/refractor-highlight';
+import { flattenHighlightTree, getSupportedLanguageCount, getUnregisteredLanguages, highlightCode } from './client/lib/refractor-highlight';
 
 function collectElements(nodes: any[]): any[] {
   return nodes.flatMap(node => node.type === 'element'
@@ -41,4 +41,25 @@ describe('Rin Refractor code highlighting', () => {
     expect(elements.length).toBeGreaterThan(0);
     expect(elements.every(node => node.tagName === 'span')).toBe(true);
   });
+  it('merges nested token classes onto text leaves like Rin', () => {
+    const tree = {
+      type: 'root',
+      children: [{
+        type: 'element',
+        tagName: 'span',
+        properties: { className: ['token', 'outer'] },
+        children: [{
+          type: 'element',
+          tagName: 'span',
+          properties: { className: ['token', 'inner'] },
+          children: [{ type: 'text', value: 'value' }],
+        }],
+      }],
+    } as any;
+
+    expect(flattenHighlightTree(tree)).toEqual([
+      { value: 'value', classNames: ['token', 'outer', 'inner'] },
+    ]);
+  });
+
 });
