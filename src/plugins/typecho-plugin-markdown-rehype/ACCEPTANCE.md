@@ -66,3 +66,11 @@
 3. 不把用户的观察扩展成未经证实的通用规则。
 4. CSS 修改应修正或替换现有规则，不通过不断追加覆盖规则解决问题。
 5. 未经用户明确同意，不改动本记录中标记为冻结的图片样式。
+
+
+## 6. Rin 表格颜色对照修正（2026-11-17）
+
+- 对照 Rin `client/src/components/markdown.tsx` 与 `client/src/index.css`：Rin 的表格单元格边框使用 `border-slate-500`，深色模式使用 `dark:border-slate-300`；表头背景由 `.table th` 设为浅色模式 `slate-200`、深色模式 `slate-700`。
+- 插件原有 `.toc-content th/td` 却使用 `currentColor` 边框，且表头固定为 `#4b5563`，与 Rin 的最终层叠样式不一致。
+- 已直接替换 `markdown-styles.css` 中原有表头/单元格规则：边框改为 light `#64748b`、dark `#cbd5e1`；表头背景改为 light `#e2e8f0`、dark `#334155`。未追加第二套表格规则，未改动表格结构、图片样式或其他范围。
+- 本次为源码对照与 CSS 修正，尚未执行浏览器视觉回归；不得记为本地显示验收通过。
