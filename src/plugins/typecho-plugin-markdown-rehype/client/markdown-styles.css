@@ -50,6 +50,7 @@
 .rin-code-block .rin-code-pre>code{font:14px/1.375 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;font-variant-ligatures:normal;-webkit-font-feature-settings:"liga" 1;font-feature-settings:"liga" 1}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre{background:#1e1e1e;color:#d4d4d4;font-family:Menlo,Monaco,Consolas,"Andale Mono","Ubuntu Mono","Courier New",monospace;font-size:13px;line-height:1.5}:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code{background:#1e1e1e;color:#d4d4d4;font-size:14px;line-height:1.5}
 /* Rin base16AteliersulphurpoolLight token styles */
+/* Rin base16AteliersulphurpoolLight token styles */
 .rin-code-block .token.comment{color:#898ea4}
 .rin-code-block .token.prolog{color:#898ea4}
 .rin-code-block .token.doctype{color:#898ea4}
@@ -82,7 +83,7 @@
 .rin-code-block .token.important{font-weight:bold;color:#c94922}
 .rin-code-block .token.bold{font-weight:bold}
 
-/* Rin vscDarkPlus token styles */
+/* Rin vscDarkPlus token styles, including light-only property resets */
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.doctype.doctype-tag{color:#569CD6}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.doctype.name{color:#9cdcfe}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.comment{color:#6a9955}
@@ -94,16 +95,16 @@
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.number{color:#b5cea8}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.constant{color:#9cdcfe}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.symbol{color:#b5cea8}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.inserted{color:#b5cea8}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.inserted{color:#b5cea8;border-bottom:0;text-decoration:none}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.unit{color:#b5cea8}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.selector{color:#d7ba7d}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-name{color:#9cdcfe}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.string{color:#ce9178}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.char{color:#ce9178}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.builtin{color:#ce9178}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.deleted{color:#ce9178}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.deleted{color:#ce9178;text-decoration:none}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.operator{color:#d4d4d4}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.entity{color:#569cd6}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.entity{color:#569cd6;cursor:auto}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.operator.arrow{color:#569CD6}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule{color:#ce9178}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.rule{color:#c586c0}
@@ -116,7 +117,7 @@
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.function{color:#dcdcaa}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.function.maybe-class-name{color:#dcdcaa}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.regex{color:#d16969}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.important{color:#569cd6}
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.important{color:#569cd6;font-weight:normal}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.italic{font-style:italic}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.class-name{color:#4ec9b0}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.maybe-class-name{color:#4ec9b0}
@@ -133,20 +134,13 @@
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value{color:#ce9178}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value.punctuation{color:#ce9178}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value.punctuation.attr-equals{color:#d4d4d4}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.namespace{color:#4ec9b0}
-
-/* Reset light-only token properties in dark mode. */
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.namespace{color:#4ec9b0;opacity:1}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.doctype{color:inherit}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.namespace{opacity:1}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.entity{cursor:auto}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.url{color:inherit}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.control{color:inherit}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.directive{color:inherit}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.statement{color:inherit}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.placeholder{color:inherit}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.deleted{text-decoration:none}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.inserted{border-bottom:0;text-decoration:none}
-:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.important{font-weight:normal}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.bold{font-weight:normal}
 
 .rin-code-pre>code.highlight{outline:.4em solid #c94922;outline-offset:.4em}
