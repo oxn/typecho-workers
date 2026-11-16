@@ -145,3 +145,49 @@
 :is(.dark,.is-dark) .toc-content .rin-mermaid_default,[data-color-mode="dark"] .toc-content .rin-mermaid_default{display:none}
 :is(.dark,.is-dark) .toc-content .rin-mermaid_dark,[data-color-mode="dark"] .toc-content .rin-mermaid_dark{display:block}
 
+/* Keep themed NOTE alerts identical to the editor preview palette. */
+.warm-prose .toc-content .markdown-alert-note,
+.warm-prose .toc-content .markdown-alert-note .markdown-alert-title,
+.warm-prose .toc-content .markdown-alert-note strong {
+  color: #818cf8;
+}
+:is(.dark, .is-dark, [data-color-mode="dark"]) .warm-prose .toc-content .markdown-alert-note,
+:is(.dark, .is-dark, [data-color-mode="dark"]) .warm-prose .toc-content .markdown-alert-note .markdown-alert-title,
+:is(.dark, .is-dark, [data-color-mode="dark"]) .warm-prose .toc-content .markdown-alert-note strong,
+.warm-prose .toc-content:is(.dark, .is-dark, [data-color-mode="dark"]) .markdown-alert-note,
+.warm-prose .toc-content:is(.dark, .is-dark, [data-color-mode="dark"]) .markdown-alert-note .markdown-alert-title,
+.warm-prose .toc-content:is(.dark, .is-dark, [data-color-mode="dark"]) .markdown-alert-note strong {
+  color: #a5b4fc;
+}
+
+/* The theme's max-content rule must not shrink Markdown tables. */
+.warm-prose .toc-content table {
+  box-sizing: border-box;
+  width: 100% !important;
+  min-width: 100%;
+  max-width: 100%;
+}
+
+/* Mermaid keeps both light/dark source layers; only make their canvases transparent
+   and center the rendered SVG without removing either layer. */
+.toc-content pre.rin-mermaid_default,
+.toc-content pre.rin-mermaid_dark {
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 1.5rem auto;
+  padding: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: transparent !important;
+  text-align: center;
+  white-space: normal;
+}
+.toc-content pre.rin-mermaid_default svg,
+.toc-content pre.rin-mermaid_dark svg {
+  display: block;
+  width: max-content;
+  max-width: none;
+  height: auto;
+  margin: 0 auto;
+  background: transparent !important;
+}

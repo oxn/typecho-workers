@@ -15,20 +15,16 @@ import katexCss from 'katex/dist/katex.min.css?inline';
 import { getRinMermaidConfig } from './mermaid-config';
 
 /** Parse a small, safe image-dimension grammar: numeric pixels, percentages and auto. */
-function parseImageDimension(value: string): { attribute?: string; style?: string } | null {
+function parseImageDimension(value: string): { style: string } | null {
   const normalized = value.trim().toLowerCase();
   if (!/^(?:\d+(?:\.\d+)?(?:px|%)?|auto)$/.test(normalized)) return null;
   if (normalized.endsWith('%') || normalized === 'auto') return { style: normalized };
-  return { attribute: normalized.replace(/px$/, '') };
+  return { style: `${normalized.replace(/px$/, '')}px` };
 }
 
 function applyImageDimension(properties: Record<string, any>, name: 'width' | 'height', value: string): void {
   const dimension = parseImageDimension(value);
   if (!dimension) return;
-  if (dimension.attribute !== undefined) {
-    properties[name] = dimension.attribute;
-    return;
-  }
   const declaration = `${name}:${dimension.style}`;
   const existing = typeof properties.style === 'string' ? properties.style.trim().replace(/;?$/, ';') : '';
   properties.style = `${existing}${declaration}`;
