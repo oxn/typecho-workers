@@ -51,6 +51,26 @@ describe('Typecho-compatible raw HTML rendering', () => {
     expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/block\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
   });
 
+
+  it('classifies leading and inline images using their original Markdown offsets', async () => {
+    const html = await renderMarkdown([
+      '![leading](https://example.test/leading.png)',
+      '',
+      '这是一段包含 ![inline](https://example.test/inline.png) 的正文。',
+    ].join('\\n'));
+
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/leading\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/inline\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
+  });
+
+  it('classifies an image after a blank line as block even after paragraph text', async () => {
+    const html = await renderMarkdown(
+      '前一段文字。\\n\\n![next](https://example.test/next.png)',
+    );
+
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/next\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
+  });
+
   it('preserves image blurhash while extracting dimensions', async () => {
     const html = await renderMarkdown(
       '![logo.ico](https://cycy.fun/CYlogo.ico#&blurhash=LEHV6nWB2yk8pyo0adR*.7kCMdnj&width=48&height=48)',
