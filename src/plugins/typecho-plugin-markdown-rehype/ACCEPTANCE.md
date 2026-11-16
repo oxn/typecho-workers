@@ -74,3 +74,10 @@
 - 插件原有 `.toc-content th/td` 却使用 `currentColor` 边框，且表头固定为 `#4b5563`，与 Rin 的最终层叠样式不一致。
 - 已直接替换 `markdown-styles.css` 中原有表头/单元格规则：边框改为 light `#64748b`、dark `#cbd5e1`；表头背景改为 light `#e2e8f0`、dark `#334155`。未追加第二套表格规则，未改动表格结构、图片样式或其他范围。
 - 本次为源码对照与 CSS 修正，尚未执行浏览器视觉回归；不得记为本地显示验收通过。
+
+
+## 7. Markdown 表格满铺修正（2026-11-17）
+
+- 只读检查主题样式发现 `.warm-prose table` 使用 `width: max-content !important`，文章表格还会经过主题的 breakout 规则；插件原来把满铺覆盖单独放在文件末尾的 `.warm-prose .toc-content table` 规则中，导致规则分散且只针对该外层结构。
+- 已将满铺约束合并回插件原有的通用 `.toc-content table` 规则：加入 `box-sizing: border-box`、`width: 100% !important`、`min-width: 100%`、`max-width: 100%`，并移除末尾重复的专用覆盖规则。未修改主题文件、Markdown 解析结构或表格颜色规则。
+- 该修改确保表格至少铺满 Markdown 内容容器的可用宽度；超出容器的内容仍由表格自身横向滚动承载。尚未经过用户本地浏览器视觉验收，不记为显示测试通过。
