@@ -89,3 +89,17 @@
 - 旧 SVG 测试还假设存在 Rehype sanitizer、SVG ID 自动加前缀及危险 HTML 属性过滤；但当前处理器按 Typecho / Rin 的原始 HTML 透传契约运行，没有注册 sanitizer。相关测试已改为验证实际处理链路：普通 Markdown 数学使用 KaTeX，原始 HTML 保留原样，SVG 结构与属性透传。
 - 同时清理了上述测试中已失效的渲染参数。此次只修正测试断言，不改变生产渲染逻辑。
 - 测试文件已提交并从 GitHub 重新读取核对；尚未执行 Vitest，不能记为测试通过。
+
+## 9. 表格主题 breakout 冲突复查（2026-11-17）
+
+- 复查文章实际结构：主题 warm-prose 容器内包含插件输出的 toc-content 根节点；表格由 Markdown 处理器输出，并附加 Rin 的 table block max-w-full overflow-x-auto 类。
+- 主题对文章表格同时设置 width: max-content !important，以及文章级 left: 50%、width: auto、transform: translateX(-50%) breakout。上一轮仅处理宽度，未完整清除 breakout 定位和变换，因此不足以保证正文内满铺。
+- 已在插件原有表格规则中提高文章表格选择器优先级，并统一重置 position、left、transform，同时固定 width/min-width/max-width: 100% !important。仅修改插件 CSS，不修改主题文件，不追加独立规则。
+- 已从 GitHub 回读核对；浏览器效果仍由用户本地验证，尚不记为通过。
+
+## 10. 修复 KaTeX / SVG 测试文件语法损坏（2026-11-17）
+
+- 重新读取 svg-compat.test.ts 原始文件时，发现 raw HTML TeX 测试断言字符串被截断，后续测试内容被插入字符串中，文件末尾还存在重复测试块及多余闭合符号，属于明确的 TypeScript 语法错误。
+- 已重写该测试文件为五个完整用例：HAST SVG 属性名、raw HTML 中 TeX 原样保留、普通 Markdown KaTeX、代码围栏中的 TeX 字面保留、SVG 结构与属性保留。
+- 只修复测试文件，没有修改生产渲染代码。提交后已从 GitHub 原始文件回读核对。
+- Vitest 尚未执行；不能据此声称测试通过。
