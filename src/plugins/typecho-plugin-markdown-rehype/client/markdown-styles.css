@@ -140,6 +140,10 @@
 .rin-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);font-size:24px}
 .rin-lightbox-prev{left:12px}.rin-lightbox-next{right:12px}
 .rin-lightbox-caption{position:absolute;bottom:16px;left:16px;right:16px;text-align:center;font-size:14px;color:#ddd}
+/* Rin-style native video player */
+.toc-content video{display:block;width:100%;max-width:100%;height:auto;max-height:75vh;margin:1.25rem auto;overflow:hidden;border:1px solid rgba(127,127,127,.22);border-radius:12px;background:#111;box-shadow:0 8px 24px rgba(0,0,0,.12);object-fit:contain;color-scheme:dark}
+.toc-content video:focus-visible{outline:2px solid #269b63;outline-offset:3px}
+.toc-content video::cue{color:#fff;background:rgba(0,0,0,.72)}
 .toc-content .rin-mermaid_dark{display:none}
 :is(.dark,.is-dark) .toc-content .rin-mermaid_default,[data-color-mode="dark"] .toc-content .rin-mermaid_default{display:none}
 :is(.dark,.is-dark) .toc-content .rin-mermaid_dark,[data-color-mode="dark"] .toc-content .rin-mermaid_dark{display:block}
