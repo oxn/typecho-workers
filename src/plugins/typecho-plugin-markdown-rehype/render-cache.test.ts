@@ -131,7 +131,7 @@ describe('Markdown image BlurHash compatibility', () => {
     expect(html).not.toContain('#&amp;width=48');
   });
 
-  it('extracts encoded BlurHash and dimensions before sanitizing the image URL', async () => {
+  it('extracts encoded BlurHash and dimensions before stripping image metadata', async () => {
     const html = await renderMarkdown(
       '![markdown.webp](https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024)',
     );
