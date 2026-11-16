@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getSupportedLanguageCount, highlightCode } from './client/lib/refractor-highlight';
+import { getSupportedLanguageCount, getUnregisteredLanguages, highlightCode } from './client/lib/refractor-highlight';
 
 function collectElements(nodes: any[]): any[] {
   return nodes.flatMap(node => node.type === 'element'
@@ -15,6 +15,7 @@ function className(node: any): string {
 describe('Rin Refractor code highlighting', () => {
   it('registers the complete 297-language Prism grammar set', () => {
     expect(getSupportedLanguageCount()).toBe(297);
+    expect(getUnregisteredLanguages()).toEqual([]);
   });
 
   it('returns Prism token classes for JavaScript', () => {

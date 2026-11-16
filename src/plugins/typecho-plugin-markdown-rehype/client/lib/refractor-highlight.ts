@@ -1,4 +1,5 @@
 import { refractor } from 'refractor/all';
+import { REFractorSupportedLanguages } from './refractor-languages';
 
 export interface RefractorTextNode {
   type: 'text';
@@ -39,5 +40,9 @@ export function highlightCode(value: string, language: string): RefractorRoot {
 }
 
 export function getSupportedLanguageCount(): number {
-  return refractor.listLanguages().length;
+  return REFractorSupportedLanguages.length;
+}
+
+export function getUnregisteredLanguages(): string[] {
+  return REFractorSupportedLanguages.filter(language => !refractor.registered(language));
 }
