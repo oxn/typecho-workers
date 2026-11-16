@@ -8,37 +8,21 @@ import {
 } from './index';
 
 describe('Markdown Rehype render cache compatibility', () => {
-  it('keeps cached output isolated when the math engine changes for identical source', async () => {
+  it('returns the same KaTeX-rendered HTML for repeated identical source', async () => {
     const source = '公式：$x^2 + y^2 = z^2$';
-
-    const katex = await renderMarkdown(source, { mathEngine: 'katex' });
-    const mathjax = await renderMarkdown(source, { mathEngine: 'mathjax' });
-    const katexAgain = await renderMarkdown(source, { mathEngine: 'katex' });
-
-    expect(katex).toContain('class="katex"');
-    expect(mathjax).toContain('language-math');
-    expect(mathjax).not.toContain('class="katex"');
-    expect(katexAgain).toBe(katex);
+    const first = await renderMarkdown(source);
+    const second = await renderMarkdown(source);
+    expect(first).toContain('class="katex"');
+    expect(second).toBe(first);
   });
 
-  it('keeps TOC-enabled and TOC-disabled output isolated for identical source', async () => {
-    const source = '# 示例文章\n\n## 目录\n\n## 第一章\n\n正文内容。';
-
-    const withoutToc = await renderMarkdown(source, {
-      mathEngine: 'mathjax',
-      tocEnabled: false,
-    });
-    const withToc = await renderMarkdown(source, {
-      mathEngine: 'mathjax',
-      tocEnabled: true,
-    });
-
-    expect(withToc).not.toBe(withoutToc);
-    expect(withToc).toContain('<ul>');
-    expect(withoutToc).not.toContain('<ul>');
+  it('does not add a generated TOC to ordinary Markdown headings', async () => {
+    const html = await renderMarkdown('# 示例文章\n\n## 第一章\n\n正文内容。');
+    expect(html).toContain('<h1 id="示例文章"');
+    expect(html).toContain('<h2 id="第一章"');
+    expect(html).not.toContain('<nav');
   });
 });
-
 
 describe('Markdown preview request protection', () => {
   it('reads UTF-8 request bodies within the byte limit', async () => {
@@ -139,7 +123,6 @@ describe('Markdown image BlurHash compatibility', () => {
   it('extracts dimensions when the URL fragment starts with an ampersand', async () => {
     const html = await renderMarkdown(
       '![logo.ico](https://cycy.fun/CYlogo.ico#&width=48&height=48)',
-      { mathEngine: 'mathjax' },
     );
 
     expect(html).toContain('src="https://cycy.fun/CYlogo.ico"');
@@ -151,7 +134,6 @@ describe('Markdown image BlurHash compatibility', () => {
   it('extracts encoded BlurHash and dimensions before sanitizing the image URL', async () => {
     const html = await renderMarkdown(
       '![markdown.webp](https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024)',
-      { mathEngine: 'mathjax' },
     );
 
     expect(html).toContain('src="https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp"');
@@ -172,7 +154,7 @@ describe('Markdown image BlurHash compatibility', () => {
       '```infographic',
       'title: Example',
       '```',
-    ].join('\n'), { mathEngine: 'mathjax' });
+    ].join('\n'));
 
     expect(html).toContain('src="https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp"');
     expect(html).toContain('@startuml');
@@ -184,15 +166,12 @@ describe('Markdown image BlurHash compatibility', () => {
   });
 });
 
-describe('Markdown Rehype sanitizer safety', () => {
-  it('removes raw style elements but preserves supported inline style attributes', async () => {
+describe('Typecho raw HTML compatibility', () => {
+  it('preserves raw style elements and inline style attributes without plugin-side filtering', async () => {
     const html = await renderMarkdown(
-      '<style>.unsafe-article-rule { display: none }</style>\n\n<div style="color: red">保留内联样式</div>',
-      { mathEngine: 'katex' },
+      '<style>.article-rule { display: none }</style>\n\n<div style="color: red">保留内联样式</div>',
     );
-
-    expect(html).not.toContain('<style');
-    expect(html).not.toContain('.unsafe-article-rule');
+    expect(html).toContain('article-rule');
     expect(html).toContain('style="color: red"');
     expect(html).toContain('保留内联样式');
   });
@@ -206,7 +185,7 @@ describe('Markdown Rehype complex-content compatibility', () => {
       '  A["x < y & y > z"] --> B["<b>普通文本</b>"]',
       '```',
     ].join('\n');
-    const html = await renderMarkdown(source, { mathEngine: 'katex' });
+    const html = await renderMarkdown(source);
 
     expect(html).toContain('x &lt; y &amp; y &gt; z');
     expect(html).toContain('&lt;b&gt;普通文本&lt;/b&gt;');
@@ -246,7 +225,7 @@ describe('Markdown Rehype complex-content compatibility', () => {
       '```',
     ].join('\n');
 
-    const html = await renderMarkdown(source, { mathEngine: 'katex' });
+    const html = await renderMarkdown(source);
 
     expect(html.match(/class="mermaid_default dark:hidden"/g)).toHaveLength(4);
     expect(html.match(/class="mermaid_dark dark:block hidden"/g)).toHaveLength(4);
@@ -268,7 +247,7 @@ describe('Markdown Rehype complex-content compatibility', () => {
       '```',
     ].join('\n');
 
-    const html = await renderMarkdown(source, { mathEngine: 'katex' });
+    const html = await renderMarkdown(source);
 
     expect(html.match(/class="mermaid_default dark:hidden"/g)).toHaveLength(1);
     expect(html.match(/class="mermaid_dark dark:block hidden"/g)).toHaveLength(1);
@@ -301,7 +280,7 @@ describe('Markdown Rehype complex-content compatibility', () => {
       '| beta | 2 |',
     ].join('\n\n');
 
-    const html = await renderMarkdown(source, { mathEngine: 'katex', tocEnabled: true });
+    const html = await renderMarkdown(source);
 
     expect(html).toContain('class="katex"');
     expect(html).toContain('language-ts');
