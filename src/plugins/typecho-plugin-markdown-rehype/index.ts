@@ -6,15 +6,11 @@ import remarkMath from 'remark-math';
 import remarkBreaks from 'remark-breaks';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
-import { defaultSchema } from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { registerPluginAdminPath } from '@/lib/plugin';
-import { env } from 'cloudflare:workers';
-import { getDb } from 'typecho/db';
-import { getOption } from 'typecho/plugin-sdk';
 import katexCss from 'katex/dist/katex.min.css?inline';
 import { getRinMermaidConfig } from './mermaid-config';
 
@@ -107,7 +103,7 @@ function remarkRinImageMetadata() {
   };
 }
 
-/** Extract image display metadata before sanitization and keep resource URLs clean. */
+/** Extract image display metadata before rendering and keep resource URLs clean. */
 function rehypeImageDimensions() {
   return (tree: any, file: any): void => {
     const source = typeof file?.value === 'string' ? file.value : '';
@@ -156,212 +152,6 @@ function rehypeImageDimensions() {
 
 
 
-// Baseline attribute and tag vocabulary for the plugin-owned HTML allowlist filter.
-// Administrator-defined tags and attributes are merged at runtime.
-const safeSvgHref = /^#[\p{L}\p{N}\p{M}_:.-]+$/u;
-const safeSvgPaint = /^(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)|url\(\s*(["']?)#[\p{L}\p{N}\p{M}_:.-]+\1\s*\)(?:\s+(?:none|currentColor|context-fill|context-stroke|transparent|#[\da-f]{3,8}|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^<>]*\)))?)$/iu;
-const safeSvgOpacity = /^(?:(?:0(?:\.\d+)?|0?\.\d+|1(?:\.0+)?)|(?:(?:100|[1-9]?\d)(?:\.\d+)?)%)$/;
-const safeSvgReference = /^url\(\s*(["']?)#[\p{L}\p{N}\p{M}_:.-]+\1\s*\)$/iu;
-const commonSvgAttributes = [
-  'id', 'className', 'style', 'transform', 'transformOrigin',
-  'color', 'colorInterpolation', 'colorInterpolationFilters',
-  'fillRule', 'strokeWidth',
-  'strokeLineCap', 'strokeLineJoin', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit',
-  'clipRule', 'maskType', 'lightingColor',
-  ['fill', safeSvgPaint], ['stroke', safeSvgPaint], ['opacity', safeSvgOpacity],
-  ['fillOpacity', safeSvgOpacity], ['strokeOpacity', safeSvgOpacity],
-  ['clipPath', safeSvgReference], ['mask', safeSvgReference], ['filter', safeSvgReference],
-  ['marker', safeSvgReference], ['markerStart', safeSvgReference], ['markerMid', safeSvgReference], ['markerEnd', safeSvgReference],
-  'vectorEffect', 'shapeRendering', 'imageRendering', 'textRendering',
-  'display', 'visibility', 'overflow', 'paintOrder', 'pointerEvents',
-  'dominantBaseline', 'alignmentBaseline', 'textAnchor', 'textDecoration',
-  'fontFamily', 'fontSize', 'fontSizeAdjust', 'fontStretch', 'fontStyle', 'fontVariant', 'fontWeight',
-  'letterSpacing', 'wordSpacing', 'writingMode', 'direction', 'unicodeBidi',
-  'pathLength',
-];
-export const DEFAULT_IFRAME_ATTRIBUTES = [
-  'src', 'width', 'height', 'frameBorder', 'frameSpacing', 'framespacing', 'border',
-  'allow', 'allowFullScreen', 'allowTransparency', 'allowPaymentRequest',
-  'title', 'name', 'id', 'className', 'style', 'referrerPolicy', 'sandbox',
-  'scrolling', 'marginWidth', 'marginHeight', 'loading', 'credentialless',
-  'fetchPriority', 'align', 'longDesc', 'ariaLabel', 'ariaHidden', 'dataDiagId',
-] as const;
-
-/** Safe optional HTML tags that administrators may explicitly allow in article content. */
-export const DEFAULT_CUSTOM_HTML_TAGS = [
-  'u', 's', 'kbd', 'abbr', 'small', 'cite', 'q', 'time',
-  'del', 'ins', 'ruby', 'rt', 'rp', 'wbr', 'bdi', 'bdo',
-  'data', 'output', 'progress', 'meter',
-  // Preserve common semantic HTML elements accepted by Rin's rehypeRaw path.
-  'address', 'article', 'aside', 'footer', 'header', 'nav', 'hgroup', 'search',
-  'dl', 'dt', 'dd', 'samp', 'var', 'dfn',
-] as const;
-
-
-const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-markdown-rehype';
-const DEFAULT_CUSTOM_HTML_ATTRIBUTES: Record<string, string[]> = {
-  abbr: ['title', 'className'],
-  q: ['cite', 'className'],
-  time: ['dateTime', 'className'],
-  del: ['cite', 'dateTime', 'className'],
-  ins: ['cite', 'dateTime', 'className'],
-  bdo: ['dir', 'className'],
-  data: ['value', 'className'],
-  output: ['htmlFor', 'form', 'name', 'className'],
-  progress: ['max', 'value', 'className'],
-  meter: ['min', 'max', 'low', 'high', 'optimum', 'value', 'className'],
-};
-export function normalizeCustomHtmlAttributes(value: unknown): Record<string, string[]> {
-  if (typeof value !== 'string') return {};
-  if (value.length > 16_384) value = value.slice(0, 16_384);
-  const result: Record<string, Set<string>> = {};
-  for (const line of value.replace(/\\[nr]/gi, '\n').split(/[\n;；]+/)) {
-    const match = line.trim().match(/^([a-z][a-z0-9:-]*)\s*:\s*(.+)$/i);
-    if (!match) continue;
-    const tag = match[1].toLowerCase();
-    const attrs = result[tag] ?? new Set<string>();
-    for (const raw of match[2].split(/[\s,，]+/)) {
-      const name = raw.trim().toLowerCase();
-      if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
-      attrs.add(HTML_TO_HAST_IFRAME_PROPERTIES[name] ?? name.replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase()));
-    }
-    result[tag] = attrs;
-  }
-  return Object.fromEntries(Object.entries(result).map(([tag, attrs]) => [tag, [...attrs]]));
-}
-
-const HTML_TO_HAST_IFRAME_PROPERTIES: Record<string, string> = {
-  class: 'className',
-  frameborder: 'frameBorder',
-  framespacing: 'frameSpacing',
-  allowfullscreen: 'allowFullScreen',
-  allowtransparency: 'allowTransparency',
-  allowpaymentrequest: 'allowPaymentRequest',
-  referrerpolicy: 'referrerPolicy',
-  marginwidth: 'marginWidth',
-  marginheight: 'marginHeight',
-  fetchpriority: 'fetchPriority',
-  longdesc: 'longDesc',
-};
-
-function parsePluginConfig(value: unknown): Record<string, unknown> {
-  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
-  if (typeof value !== 'string' || !value.trim()) return {};
-  try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-export function normalizeCustomIframeAttributes(value: unknown): string[] {
-  if (typeof value !== 'string') return [];
-  if (value.length > 16_384) value = value.slice(0, 16_384);
-  const result = new Set<string>();
-  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
-    const name = raw.trim().toLowerCase();
-    if (!name || !/^[a-z][a-z0-9:-]*$/.test(name)) continue;
-    const property = HTML_TO_HAST_IFRAME_PROPERTIES[name]
-      ?? (name.startsWith('data-') || name.startsWith('aria-')
-        ? name.replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase())
-        : name);
-    result.add(property);
-  }
-  return [...result];
-}
-
-export function normalizeCustomHtmlTags(value: unknown): string[] {
-  if (typeof value !== 'string') return [];
-  if (value.length > 16_384) value = value.slice(0, 16_384);
-  const result = new Set<string>();
-  for (const raw of value.replace(/\\[nr]/gi, ' ').split(/[\s,，;；]+/)) {
-    const name = raw.trim().toLowerCase();
-    if (/^[a-z][a-z0-9:-]*$/.test(name)) result.add(name);
-  }
-  return [...result];
-}
-
-let cachedCustomIframeAttributes: string[] = [...DEFAULT_IFRAME_ATTRIBUTES];
-let customIframeAttributesExpiresAt = 0;
-let customIframeAttributesLoad: Promise<string[]> | null = null;
-let cachedCustomHtmlTags: string[] = [...DEFAULT_CUSTOM_HTML_TAGS];
-let customHtmlTagsExpiresAt = 0;
-let customHtmlTagsLoad: Promise<string[]> | null = null;
-let cachedCustomHtmlAttributes: Record<string, string[]> = DEFAULT_CUSTOM_HTML_ATTRIBUTES;
-let customHtmlAttributesExpiresAt = 0;
-let customHtmlAttributesLoad: Promise<Record<string, string[]>> | null = null;
-
-async function loadCustomIframeAttributes(): Promise<string[]> {
-  if (Date.now() < customIframeAttributesExpiresAt) return cachedCustomIframeAttributes;
-  if (customIframeAttributesLoad) return customIframeAttributesLoad;
-  customIframeAttributesLoad = (async () => {
-    try {
-      const db = getDb(env.DB);
-      const config = parsePluginConfig(await getOption(db, PLUGIN_OPTION_KEY));
-      const configured = normalizeCustomIframeAttributes(config.iframeAttributes);
-      cachedCustomIframeAttributes = configured.length ? configured : [...DEFAULT_IFRAME_ATTRIBUTES];
-    } catch {
-      cachedCustomIframeAttributes = [...DEFAULT_IFRAME_ATTRIBUTES];
-    }
-    customIframeAttributesExpiresAt = Date.now() + 15_000;
-    return cachedCustomIframeAttributes;
-  })();
-  try {
-    return await customIframeAttributesLoad;
-  } finally {
-    customIframeAttributesLoad = null;
-  }
-}
-
-async function loadCustomHtmlTags(): Promise<string[]> {
-  if (Date.now() < customHtmlTagsExpiresAt) return cachedCustomHtmlTags;
-  if (customHtmlTagsLoad) return customHtmlTagsLoad;
-  customHtmlTagsLoad = (async () => {
-    try {
-      const db = getDb(env.DB);
-      const config = parsePluginConfig(await getOption(db, PLUGIN_OPTION_KEY));
-      cachedCustomHtmlTags = Object.prototype.hasOwnProperty.call(config, 'htmlTags')
-        ? normalizeCustomHtmlTags(config.htmlTags)
-        : [...DEFAULT_CUSTOM_HTML_TAGS];
-    } catch {
-      cachedCustomHtmlTags = [...DEFAULT_CUSTOM_HTML_TAGS];
-    }
-    customHtmlTagsExpiresAt = Date.now() + 15_000;
-    return cachedCustomHtmlTags;
-  })();
-  try {
-    return await customHtmlTagsLoad;
-  } finally {
-    customHtmlTagsLoad = null;
-  }
-}
-
-async function loadCustomHtmlAttributes(): Promise<Record<string, string[]>> {
-  if (Date.now() < customHtmlAttributesExpiresAt) return cachedCustomHtmlAttributes;
-  if (customHtmlAttributesLoad) return customHtmlAttributesLoad;
-  customHtmlAttributesLoad = (async () => {
-    try {
-      const db = getDb(env.DB);
-      const config = parsePluginConfig(await getOption(db, PLUGIN_OPTION_KEY));
-      cachedCustomHtmlAttributes = Object.prototype.hasOwnProperty.call(config, 'htmlAttributes')
-        ? normalizeCustomHtmlAttributes(config.htmlAttributes)
-        : DEFAULT_CUSTOM_HTML_ATTRIBUTES;
-    } catch {
-      cachedCustomHtmlAttributes = DEFAULT_CUSTOM_HTML_ATTRIBUTES;
-    }
-    customHtmlAttributesExpiresAt = Date.now() + 15_000;
-    return cachedCustomHtmlAttributes;
-  })();
-  try {
-    return await customHtmlAttributesLoad;
-  } finally {
-    customHtmlAttributesLoad = null;
-  }
-}
-
 const ADMIN_PREVIEW_PATH = '/api/admin/markdown-rehype-preview';
 
 const MARKDOWN_BRIDGE_MAX_ENTRIES = 32;
@@ -387,398 +177,19 @@ async function renderMarkdownBridgeSource(source: string): Promise<string> {
   return token;
 }
 
-function restoreMarkdownBridgeHtml(sanitized: string): string {
-  const match = sanitized.match(/<p>\s*(TYPECHOMARKDOWNREHYPE[a-f0-9]{32})\s*<\/p>/i);
-  if (!match) return sanitized;
+function restoreMarkdownBridgeHtml(processed: string): string {
+  const match = processed.match(/<p>\s*(TYPECHOMARKDOWNREHYPE[a-f0-9]{32})\s*<\/p>/i);
+  if (!match) return processed;
   const entry = markdownBridge.get(match[1]);
   markdownBridge.delete(match[1]);
-  if (!entry || Date.now() - entry.createdAt > MARKDOWN_BRIDGE_TTL_MS) return sanitized;
+  if (!entry || Date.now() - entry.createdAt > MARKDOWN_BRIDGE_TTL_MS) return processed;
   // renderMarkdown already returns Rin's single .toc-content root.
   // Restore it unchanged so public articles/pages and the admin preview share
   // the same DOM structure and runtime scope.
-  return sanitized.replace(match[0], entry.html);
+  return processed.replace(match[0], entry.html);
 }
 
 
-export function createArticleSanitizeSchema(
-  iframeAttributes: string[] = [...DEFAULT_IFRAME_ATTRIBUTES],
-  customHtmlTags: string[] = [],
-  customHtmlAttributes: Record<string, string[]> = DEFAULT_CUSTOM_HTML_ATTRIBUTES,
-) {
-  const configuredAttributes: Record<string, any[]> = {};
-  for (const [tag, attributes] of Object.entries(customHtmlAttributes)) {
-    const base = (defaultSchema.attributes as Record<string, any[]>)[tag] ?? [];
-    configuredAttributes[tag] = [...base, ...attributes.map(attribute =>
-      tag === 'bdo' && attribute === 'dir' ? ['dir', 'ltr', 'rtl'] : attribute
-    )];
-  }
-  return {
-    ...articleSanitizeSchema,
-    tagNames: [...articleSanitizeSchema.tagNames, ...customHtmlTags],
-    attributes: {
-      ...articleSanitizeSchema.attributes,
-      ...configuredAttributes,
-      iframe: [...iframeAttributes],
-    },
-  };
-}
-
-/**
- * Plugin-owned HTML allowlist filter. Built-in Markdown/Rin elements retain
- * their established schema; administrator-defined tags and attributes are
- * merged at runtime without a second hidden denylist.
- *
- * Explicitly configured attributes pass through as authored. This is powerful:
- * event handlers, srcdoc, and similar active attributes can execute browser-side
- * behavior and must only be enabled by a trusted administrator.
- */
-function rehypeRinHtmlAllowlist(
-  iframeAttributes: string[],
-  customHtmlTags: string[],
-  customHtmlAttributes: Record<string, string[]>,
-) {
-  const schema = createArticleSanitizeSchema(iframeAttributes, customHtmlTags, customHtmlAttributes);
-  const tagNames = new Set((schema.tagNames ?? []).map((name: string) => name.toLowerCase()));
-  const attributeSchema = schema.attributes as Record<string, any[]>;
-  const configured = new Map<string, Set<string>>(
-    Object.entries(customHtmlAttributes).map(([tag, attrs]) => [
-      tag.toLowerCase(),
-      new Set(attrs.map((attr) => attr.toLowerCase())),
-    ]),
-  );
-  const normalizeName = (name: string) => name.replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase()).toLowerCase();
-  const matchesRule = (rule: any, name: string, value: any): boolean => {
-    if (typeof rule === 'string') return normalizeName(rule) === name;
-    if (!Array.isArray(rule) || normalizeName(String(rule[0])) !== name) return false;
-    if (rule.length === 1) return true;
-    return rule.slice(1).some((item: any) => item instanceof RegExp
-      ? typeof value === 'string' && item.test(value)
-      : item === value || String(item) === String(value));
-  };
-  const visit = (parent: any): void => {
-    if (!parent || !Array.isArray(parent.children)) return;
-    const output: any[] = [];
-    for (const child of parent.children) {
-      if (!child || child.type !== 'element') {
-        if (child && Array.isArray(child.children)) visit(child);
-        output.push(child);
-        continue;
-      }
-      const tag = String(child.tagName || '').toLowerCase();
-      if (!tagNames.has(tag)) {
-        if (['script', 'style', 'iframe', 'object', 'embed'].includes(tag)) continue;
-        if (Array.isArray(child.children)) output.push(...child.children);
-        continue;
-      }
-      const properties = child.properties && typeof child.properties === 'object' ? child.properties : {};
-      const rules = [...(attributeSchema[tag] ?? []), ...(attributeSchema['*'] ?? [])];
-      const configuredForTag = configured.get(tag) ?? new Set<string>();
-      for (const key of Object.keys(properties)) {
-        const normalized = normalizeName(key);
-        if (configuredForTag.has(normalized)) continue;
-        if (!rules.some((rule: any) => matchesRule(rule, normalized, properties[key]))) delete properties[key];
-      }
-      child.properties = properties;
-      visit(child);
-      output.push(child);
-    }
-    parent.children = output;
-  };
-  return (tree: any): void => visit(tree);
-}
-
-const articleSanitizeSchema = {
-  ...defaultSchema,
-  tagNames: [
-    ...defaultSchema.tagNames,
-    'button', 'figure', 'figcaption', 'mark', 'sup', 'sub',
-    'main', 'label', 'picture', 'details', 'summary', 'video', 'audio', 'source', 'track', 'iframe',
-    'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'image',
-    'line', 'polyline', 'polygon', 'title', 'desc', 'defs', 'use', 'symbol',
-    'linearGradient', 'radialGradient', 'stop', 'clipPath', 'mask', 'filter', 'marker', 'pattern',
-    'feBlend', 'feColorMatrix', 'feComponentTransfer', 'feComposite', 'feConvolveMatrix', 'feDiffuseLighting',
-    'feDisplacementMap', 'feDistantLight', 'feDropShadow', 'feFlood', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA',
-    'feGaussianBlur', 'feImage', 'feMerge', 'feMergeNode', 'feMorphology', 'feOffset', 'fePointLight',
-    'feSpecularLighting', 'feSpotLight', 'feTile', 'feTurbulence', 'text', 'tspan',
-  ],
-  attributes: {
-    ...defaultSchema.attributes,
-    // Rin's rehypeRaw renderer forwards inline styles on arbitrary allowed raw-HTML elements.
-    // Keep style globally available while the sanitizer continues to reject event handlers.
-    '*': [...((defaultSchema.attributes as Record<string, any[]>)['*'] ?? []), 'style'],
-    a: [
-      ...(defaultSchema.attributes.a ?? []),
-      'id', 'ariaLabel', 'ariaDescribedBy', 'dataFootnoteRef', 'dataFootnoteBackref',
-      'className', 'download', 'style',
-      ['target', '_blank', '_self'],
-      'rel',
-    ],
-    blockquote: [
-      ...(defaultSchema.attributes.blockquote ?? []),
-      'className', 'dataAlert', 'style',
-    ],
-    code: [...(defaultSchema.attributes.code ?? []), 'className', 'style'],
-    pre: [...(defaultSchema.attributes.pre ?? []), 'className', 'style'],
-    th: [...(defaultSchema.attributes.th ?? []), 'className', 'style', ['align', 'left', 'center', 'right'], ['valign', 'top', 'middle', 'bottom']],
-    td: [...(defaultSchema.attributes.td ?? []), 'className', 'style', ['align', 'left', 'center', 'right'], ['valign', 'top', 'middle', 'bottom']],
-    details: ['open', 'name', 'className', 'style', 'id'],
-    summary: ['className', 'style', 'id'],
-    video: [
-      'src', 'controls', 'width', 'height', 'poster', 'autoplay', 'muted', 'loop',
-      ['preload', 'none', 'metadata', 'auto'],
-      ['playsInline', true],
-      ['disablePictureInPicture', true],
-      ['disableRemotePlayback', true],
-      ['crossOrigin', 'anonymous', 'use-credentials'],
-      ['controlsList', /^(?:nodownload|nofullscreen|noremoteplayback)(?:\s+(?:nodownload|nofullscreen|noremoteplayback))*$/i],
-    ],
-    audio: [
-      'src', 'controls', 'autoplay', 'muted', 'loop',
-      ['preload', 'none', 'metadata', 'auto'],
-      ['disableRemotePlayback', true],
-      ['crossOrigin', 'anonymous', 'use-credentials'],
-      ['controlsList', /^(?:nodownload|nofullscreen|noremoteplayback)(?:\s+(?:nodownload|nofullscreen|noremoteplayback))*$/i],
-    ],
-    source: [
-      'src', 'type', 'media', 'sizes', 'width', 'height', ['crossOrigin', 'anonymous', 'use-credentials'],
-      // Responsive <picture> sources are forwarded by Rin's raw-HTML renderer.
-      // Restrict srcset candidates to HTTP(S), protocol-relative, or relative URLs.
-      ['srcSet', /^(?:(?:(?:https?:)?\/\/|\/|\.{1,2}\/|(?![a-z][a-z0-9+.-]*:)[^,\s]+)(?:\s+(?:\d+(?:\.\d+)?x|\d+w))?)(?:\s*,\s*(?:(?:https?:)?\/\/|\/|\.{1,2}\/|(?![a-z][a-z0-9+.-]*:)[^,\s]+)(?:\s+(?:\d+(?:\.\d+)?x|\d+w))?)*$/i],
-    ],
-    track: [
-      'src', ['kind', 'subtitles', 'captions', 'descriptions', 'chapters', 'metadata'],
-      'srcLang', 'label', 'default',
-    ],
-    iframe: [
-      ['src', /^(?:https?:)?\/\/[^\s]+$/i],
-      ...DEFAULT_IFRAME_ATTRIBUTES,
-    ],
-    button: [
-      ['type', 'button'],
-      ['disabled', true],
-      'className', 'title', 'ariaLabel', 'dataDisclaimerToggle', 'ariaExpanded', 'style',
-    ],
-    main: ['className', 'style', 'id', 'ariaLabel', 'ariaLabelledBy', 'ariaDescribedBy'],
-    label: ['htmlFor', 'className', 'style', 'id', 'title', 'ariaLabel'],
-    picture: ['className', 'style', 'id'],
-    div: [
-      ...(defaultSchema.attributes.div ?? []),
-      ['dir', 'ltr', 'rtl', 'auto'],
-      'className', 'dataAlign', 'dataType', 'dataId', 'dataUrl', 'dataCaption',
-      'dataStartDate', 'dataDisclaimer', 'dataCountdownTarget',
-      'dataCountdownDays', 'dataCountdownHours', 'dataCountdownMinutes', 'dataCountdownSeconds',
-      'ariaHidden', 'style',
-    ],
-    span: [
-      ...(defaultSchema.attributes.span ?? []),
-      'className', 'dataCountdownDays', 'dataCountdownHours', 'style',
-      'dataCountdownMinutes', 'dataCountdownSeconds',
-    ],
-    p: [...(defaultSchema.attributes.p ?? []), 'className', 'style', ['dir', 'ltr', 'rtl', 'auto']],
-    section: [...(defaultSchema.attributes.section ?? []), 'className', 'style', 'dataFootnotes'],
-    article: [...(defaultSchema.attributes.article ?? []), 'className', 'style'],
-    aside: [...(defaultSchema.attributes.aside ?? []), 'className', 'style'],
-    header: [...(defaultSchema.attributes.header ?? []), 'className', 'style'],
-    footer: [...(defaultSchema.attributes.footer ?? []), 'className', 'style'],
-    nav: [...(defaultSchema.attributes.nav ?? []), 'className', 'style'],
-    figure: ['className', 'style', 'ariaHidden'],
-    figcaption: ['className', 'style'],
-    // WordPress/Gutenberg commonly stores presentation classes on semantic blocks.
-    h1: [...(defaultSchema.attributes.h1 ?? []), 'id', 'className', 'style'],
-    h2: [...(defaultSchema.attributes.h2 ?? []), 'id', 'className', 'style'],
-    h3: [...(defaultSchema.attributes.h3 ?? []), 'id', 'className', 'style'],
-    h4: [...(defaultSchema.attributes.h4 ?? []), 'id', 'className', 'style'],
-    h5: [...(defaultSchema.attributes.h5 ?? []), 'id', 'className', 'style'],
-    h6: [...(defaultSchema.attributes.h6 ?? []), 'id', 'className', 'style'],
-    ul: [...(defaultSchema.attributes.ul ?? []), 'className', 'style'],
-    ol: [...(defaultSchema.attributes.ol ?? []), 'className', 'style'],
-    hr: [...(defaultSchema.attributes.hr ?? []), 'className', 'style'],
-    table: [...(defaultSchema.attributes.table ?? []), 'className', 'style'],
-    thead: [...(defaultSchema.attributes.thead ?? []), 'className', 'style'],
-    tbody: [...(defaultSchema.attributes.tbody ?? []), 'className', 'style'],
-    tfoot: [...(defaultSchema.attributes.tfoot ?? []), 'className', 'style'],
-    tr: [...(defaultSchema.attributes.tr ?? []), 'className', 'style'],
-    dl: [...(defaultSchema.attributes.dl ?? []), 'className'],
-    dt: [...(defaultSchema.attributes.dt ?? []), 'className'],
-    dd: [...(defaultSchema.attributes.dd ?? []), 'className'],
-    i: [...(defaultSchema.attributes.i ?? []), 'className'],
-    b: [...(defaultSchema.attributes.b ?? []), 'className'],
-    em: [...(defaultSchema.attributes.em ?? []), 'className', 'style'],
-    strong: [...(defaultSchema.attributes.strong ?? []), 'className', 'style'],
-    mark: ['className', 'style'],
-    sup: ['id', 'title', 'ariaLabel', 'ariaDescribedBy', 'dataFootnoteRef', 'dataFootnoteBackref', 'className', 'style'],
-    // GFM footnote links target the generated <li id="fn-N"> element.
-    // Preserve that target ID or the visible superscript link has nowhere to jump.
-    li: [...(defaultSchema.attributes.li ?? []), 'id', 'className', 'style'],
-    sub: ['id', 'title', 'ariaLabel', 'ariaDescribedBy', 'className', 'style'],
-
-
-    img: [
-      ...(defaultSchema.attributes.img ?? []),
-      'alt', 'title', 'width', 'height', 'loading', 'className', 'style', 'dataBlurhash', 'dataRinBlurhash', 'dataRinImageLayout',
-    ],
-    svg: [
-      'id', 'className', 'width', 'height', 'viewBox', 'xmlns', 'xmlnsXLink', 'version', 'preserveAspectRatio', 'style',
-      ['fill', safeSvgPaint],
-      ['stroke', safeSvgPaint],
-      'strokeWidth', 'strokeLineCap', 'strokeLineJoin', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit',
-      'fillRule', 'clipRule', ['opacity', safeSvgOpacity], ['fillOpacity', safeSvgOpacity], ['strokeOpacity', safeSvgOpacity],
-      ['clipPath', safeSvgReference], ['mask', safeSvgReference], ['filter', safeSvgReference], 'className',
-      ['role', 'img'], 'ariaLabel', 'ariaLabelledBy', 'ariaDescribedBy',
-      ['ariaHidden', 'true', 'false'],
-      ['focusable', 'true', 'false'],
-      'className',
-    ],
-    g: [
-      ...commonSvgAttributes,
-      ['fill', safeSvgPaint], ['stroke', safeSvgPaint],
-      ['opacity', safeSvgOpacity],
-      'strokeWidth', 'strokeLineCap', 'strokeLineJoin', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit',
-      'fillRule', 'clipRule', ['fillOpacity', safeSvgOpacity], ['strokeOpacity', safeSvgOpacity], ['clipPath', safeSvgReference], ['marker', safeSvgReference],
-      ['mask', safeSvgReference], ['filter', safeSvgReference], 'transform', 'vectorEffect', 'shapeRendering', 'className', 'style',
-    ],
-    path: [
-      ...commonSvgAttributes,
-      'd',
-      ['fill', safeSvgPaint], ['stroke', safeSvgPaint],
-      ['opacity', safeSvgOpacity],
-      ['fillRule', 'nonzero', 'evenodd'],
-      ['clipRule', 'nonzero', 'evenodd'],
-      'strokeWidth', 'strokeLineCap', 'strokeLineJoin', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit',
-      ['fillOpacity', safeSvgOpacity], ['strokeOpacity', safeSvgOpacity], ['clipPath', safeSvgReference], ['mask', safeSvgReference],
-      ['filter', safeSvgReference], ['marker', safeSvgReference], 'transform', 'vectorEffect', 'shapeRendering', 'className', 'style',
-    ],
-    rect: [
-      ...commonSvgAttributes,
-      'x', 'y', 'width', 'height', 'rx', 'ry',
-      ['fill', safeSvgPaint], ['stroke', safeSvgPaint],
-      ['opacity', safeSvgOpacity],
-      'strokeWidth', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit', ['fillOpacity', safeSvgOpacity], ['strokeOpacity', safeSvgOpacity],
-      ['clipPath', safeSvgReference], ['mask', safeSvgReference], ['filter', safeSvgReference], ['marker', safeSvgReference],
-      'transform', 'vectorEffect', 'shapeRendering', 'className', 'style',
-    ],
-    circle: [
-      ...commonSvgAttributes,
-      'cx', 'cy', 'r',
-      ['fill', safeSvgPaint], ['stroke', safeSvgPaint],
-      ['opacity', safeSvgOpacity],
-      'strokeWidth', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit', ['fillOpacity', safeSvgOpacity], ['strokeOpacity', safeSvgOpacity],
-      ['clipPath', safeSvgReference], ['mask', safeSvgReference], ['filter', safeSvgReference], ['marker', safeSvgReference],
-      'transform', 'vectorEffect', 'shapeRendering', 'className', 'style',
-    ],
-    ellipse: [
-      ...commonSvgAttributes,
-      'cx', 'cy', 'rx', 'ry',
-      ['fill', safeSvgPaint], ['stroke', safeSvgPaint],
-      ['opacity', safeSvgOpacity],
-      'strokeWidth', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit', ['fillOpacity', safeSvgOpacity], ['strokeOpacity', safeSvgOpacity],
-      ['clipPath', safeSvgReference], ['mask', safeSvgReference], ['filter', safeSvgReference], ['marker', safeSvgReference],
-      'transform', 'vectorEffect', 'shapeRendering', 'className', 'style',
-    ],
-    line: [
-      ...commonSvgAttributes,
-      'x1', 'y1', 'x2', 'y2',
-      ['stroke', safeSvgPaint], ['opacity', safeSvgOpacity],
-      'strokeWidth', 'strokeLineCap', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit', ['strokeOpacity', safeSvgOpacity],
-      ['clipPath', safeSvgReference], ['mask', safeSvgReference], ['filter', safeSvgReference], ['marker', safeSvgReference],
-      'transform', 'vectorEffect', 'shapeRendering', 'className', 'style',
-    ],
-    polyline: [
-      ...commonSvgAttributes,
-      'points',
-      ['fill', safeSvgPaint], ['stroke', safeSvgPaint],
-      ['opacity', safeSvgOpacity],
-      'strokeWidth', 'strokeLineCap', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit', ['strokeOpacity', safeSvgOpacity],
-      ['clipPath', safeSvgReference], ['mask', safeSvgReference], ['filter', safeSvgReference],
-      'transform', 'vectorEffect', 'shapeRendering', 'className', 'style',
-    ],
-    polygon: [
-      ...commonSvgAttributes,
-      'points',
-      ['fill', safeSvgPaint], ['stroke', safeSvgPaint],
-      ['opacity', safeSvgOpacity],
-      'strokeWidth', 'strokeLineCap', 'strokeDashArray', 'strokeDashOffset', 'strokeMiterLimit', ['strokeOpacity', safeSvgOpacity],
-      ['clipPath', safeSvgReference], ['mask', safeSvgReference], ['filter', safeSvgReference],
-      'transform', 'vectorEffect', 'shapeRendering', 'className', 'style',
-    ],
-    title: ['id', 'className'],
-    desc: ['id', 'className'],
-    defs: ['id', 'className', 'style'],
-    symbol: [...commonSvgAttributes, 'viewBox', 'preserveAspectRatio'],
-    use: [
-      ...commonSvgAttributes,
-      ['href', safeSvgHref], ['xLinkHref', safeSvgHref], ['xlinkHref', safeSvgHref],
-      'x', 'y', 'width', 'height',
-    ],
-    linearGradient: [
-      ...commonSvgAttributes, 'x1', 'x2', 'y1', 'y2', 'gradientUnits', 'gradientTransform', 'spreadMethod',
-      ['href', safeSvgHref], ['xLinkHref', safeSvgHref], ['xlinkHref', safeSvgHref],
-    ],
-    radialGradient: [
-      ...commonSvgAttributes, 'cx', 'cy', 'r', 'fx', 'fy', 'fr', 'gradientUnits', 'gradientTransform', 'spreadMethod',
-      ['href', safeSvgHref], ['xLinkHref', safeSvgHref], ['xlinkHref', safeSvgHref],
-    ],
-    stop: [
-      ...commonSvgAttributes, 'offset',
-      ['stopColor', safeSvgPaint], ['stopOpacity', safeSvgOpacity],
-    ],
-    clipPath: [...commonSvgAttributes, 'clipPathUnits'],
-    mask: [
-      ...commonSvgAttributes, 'maskUnits', 'maskContentUnits', 'x', 'y', 'width', 'height',
-      ['fill', safeSvgPaint], ['stroke', safeSvgPaint], ['opacity', safeSvgOpacity],
-      'fillRule', 'clipRule', ['fillOpacity', safeSvgOpacity], ['strokeOpacity', safeSvgOpacity], 'strokeWidth',
-    ],
-    marker: [...commonSvgAttributes, 'markerWidth', 'markerHeight', 'refX', 'refY', 'orient', 'markerUnits', 'viewBox'],
-    pattern: [
-      ...commonSvgAttributes, 'x', 'y', 'width', 'height', 'patternUnits', 'patternContentUnits', 'patternTransform', 'viewBox',
-      ['href', safeSvgHref], ['xLinkHref', safeSvgHref], ['xlinkHref', safeSvgHref],
-    ],
-    image: [
-      ...commonSvgAttributes, 'x', 'y', 'width', 'height', 'preserveAspectRatio',
-      ['href', /^https?:\/\//i], ['xLinkHref', /^https?:\/\//i], ['xlinkHref', /^https?:\/\//i],
-    ],
-    filter: [...commonSvgAttributes, 'x', 'y', 'width', 'height', 'filterUnits', 'primitiveUnits', 'colorInterpolationFilters'],
-    feBlend: ['in', 'in2', 'mode', 'result'],
-    feColorMatrix: ['in', 'type', 'values', 'result'],
-    feComponentTransfer: ['in', 'result'],
-    feComposite: ['in', 'in2', 'operator', 'k1', 'k2', 'k3', 'k4', 'result'],
-    feConvolveMatrix: ['in', 'order', 'kernelMatrix', 'divisor', 'bias', 'targetX', 'targetY', 'edgeMode', 'kernelUnitLength', 'preserveAlpha', 'result'],
-    feDiffuseLighting: ['in', 'surfaceScale', 'diffuseConstant', 'kernelUnitLength', 'result'],
-    feDisplacementMap: ['in', 'in2', 'scale', 'xChannelSelector', 'yChannelSelector', 'result'],
-    feDistantLight: ['azimuth', 'elevation'],
-    feDropShadow: ['in', 'dx', 'dy', 'stdDeviation', ['floodColor', safeSvgPaint], ['floodOpacity', safeSvgOpacity], 'result'],
-    feFlood: [['floodColor', safeSvgPaint], ['floodOpacity', safeSvgOpacity], 'result'],
-    feFuncR: ['type', 'slope', 'amplitude', 'exponent', 'intercept', 'tableValues'],
-    feFuncG: ['type', 'slope', 'amplitude', 'exponent', 'intercept', 'tableValues'],
-    feFuncB: ['type', 'slope', 'amplitude', 'exponent', 'intercept', 'tableValues'],
-    feFuncA: ['type', 'slope', 'amplitude', 'exponent', 'intercept', 'tableValues'],
-    feGaussianBlur: ['in', 'stdDeviation', 'edgeMode', 'result'],
-    feImage: [['href', /^https?:\/\//i], ['xLinkHref', /^https?:\/\//i], ['xlinkHref', /^https?:\/\//i], 'preserveAspectRatio', 'result'],
-    feMerge: [],
-    feMergeNode: ['in'],
-    feMorphology: ['in', 'operator', 'radius', 'result'],
-    feOffset: ['in', 'dx', 'dy', 'result'],
-    fePointLight: ['x', 'y', 'z'],
-    feSpecularLighting: ['in', 'surfaceScale', 'specularConstant', 'specularExponent', 'kernelUnitLength', 'result'],
-    feSpotLight: ['x', 'y', 'z', 'pointsAtX', 'pointsAtY', 'pointsAtZ', 'specularExponent', 'limitingConeAngle'],
-    feTile: ['in', 'result'],
-    feTurbulence: ['baseFrequency', 'numOctaves', 'seed', 'stitchTiles', 'type', 'result'],
-    text: [
-      ...commonSvgAttributes,'x', 'y', 'dx', 'dy', 'textAnchor', 'fontSize', 'fontWeight', 'fill', 'stroke', 'className', 'style'],
-    tspan: [
-      ...commonSvgAttributes,'x', 'y', 'dx', 'dy', 'textAnchor', 'fontSize', 'fontWeight', 'fill', 'stroke', 'className', 'style'],
-  },
-  required: {
-    ...defaultSchema.required,
-    button: { type: 'button' },
-  },
-};
-
-/**
- * Remove raw style blocks before sanitization. CSS text inside a disallowed
- * style element would otherwise be unwrapped into visible article text.
- * Inline style attributes remain available for existing article formatting.
- */
 function remarkMermaidVariants() {
   return (tree: any): void => {
     const visit = (node: any): void => {
@@ -801,21 +212,14 @@ function remarkMermaidVariants() {
   };
 }
 
-function rehypeRinIframes(allowedAttributes: string[]) {
+/** Wrap iframes for the existing responsive layout without filtering or rewriting their authored attributes. */
+function rehypeRinIframeWrapper() {
   return (tree: any): void => {
     const visit = (parent: any): void => {
       if (!parent || !Array.isArray(parent.children)) return;
       const next: any[] = [];
       for (const child of parent.children) {
         if (child?.type === 'element' && child.tagName === 'iframe') {
-          const properties = child.properties || (child.properties = {});
-          const allowed = new Set(allowedAttributes.map((name) => name.toLowerCase()));
-          if (allowed.has('title') && !(typeof properties.title === 'string' && properties.title)) properties.title = 'Embedded content';
-          if ((allowed.has('class') || allowed.has('classname')) && properties.className == null) properties.className = ['rin-iframe'];
-          if (allowed.has('style') && properties.style == null) properties.style = 'min-height:400px';
-          if (allowed.has('loading') && properties.loading == null) properties.loading = 'lazy';
-          if (allowed.has('referrerpolicy') && properties.referrerPolicy == null) properties.referrerPolicy = 'no-referrer';
-          if (allowed.has('sandbox') && properties.sandbox == null) properties.sandbox = 'allow-scripts allow-same-origin allow-popups allow-forms';
           next.push({
             type: 'element',
             tagName: 'div',
@@ -921,7 +325,7 @@ function rehypeRinHeadingIds() {
  * processors can process files repeatedly. Reuse avoids rebuilding the plugin
  * chain on every article request while keeping math/TOC options isolated.
  */
-function createMarkdownProcessor(iframeAttributes: string[], customHtmlTags: string[], customHtmlAttributes: Record<string, string[]>) {
+function createMarkdownProcessor() {
   return unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -935,23 +339,13 @@ function createMarkdownProcessor(iframeAttributes: string[], customHtmlTags: str
     .use(rehypeRaw)
     .use(rehypeImageDimensions)
     .use(rehypeRinCodeBlocks)
-    .use(rehypeRinHtmlAllowlist, iframeAttributes, customHtmlTags, customHtmlAttributes)
-    .use(rehypeRinIframes, iframeAttributes)
+    .use(rehypeRinIframeWrapper)
     .use(rehypeRinSemanticComponents)
     .use(rehypeRinHeadingIds)
     .use(rehypeStringify);
 }
 
-const markdownProcessorCache = new Map<string, ReturnType<typeof createMarkdownProcessor>>();
-function getMarkdownProcessor(iframeAttributes: string[], customHtmlTags: string[], customHtmlAttributes: Record<string, string[]>) {
-  const key = JSON.stringify([iframeAttributes, customHtmlTags, customHtmlAttributes]);
-  let processor = markdownProcessorCache.get(key);
-  if (!processor) {
-    processor = createMarkdownProcessor(iframeAttributes, customHtmlTags, customHtmlAttributes);
-    markdownProcessorCache.set(key, processor);
-  }
-  return processor;
-}
+const markdownProcessor = createMarkdownProcessor();
 
 export class MarkdownRenderCapacityError extends Error {
   constructor(message = 'Markdown preview capacity is temporarily full') {
@@ -1129,7 +523,7 @@ function clearMarkdownRenderCache(): void {
   renderedMarkdownCacheWeight = 0;
 }
 
-/** Rin-compatible Markdown article pipeline with a fixed safe HTML schema. */
+/** Typecho-compatible Markdown pipeline: raw HTML is passed through without plugin-side filtering. */
 export async function renderMarkdown(source: string): Promise<string> {
   if (!source) return '';
   // Keep the public renderer and the editor preview on the same Typecho input
@@ -1138,13 +532,8 @@ export async function renderMarkdown(source: string): Promise<string> {
   const normalizedSource = source
     .replace(/^<!--markdown-->/, '')
     .replace(/<!--more-->/g, '');
-  const [iframeAttributes, customHtmlTags, customHtmlAttributes] = await Promise.all([
-    loadCustomIframeAttributes(),
-    loadCustomHtmlTags(),
-    loadCustomHtmlAttributes(),
-  ]);
   const cacheKey = normalizedSource.length <= RENDERED_MARKDOWN_CACHE_MAX_SOURCE_LENGTH
-    ? JSON.stringify([iframeAttributes, customHtmlTags, customHtmlAttributes, normalizedSource])
+    ? normalizedSource
     : null;
 
   if (cacheKey) {
@@ -1157,7 +546,7 @@ export async function renderMarkdown(source: string): Promise<string> {
     if (inFlight) return inFlight;
   }
 
-  const processor = getMarkdownProcessor(iframeAttributes, customHtmlTags, customHtmlAttributes);
+  const processor = markdownProcessor;
   // The cache and in-flight lookup happen before the gate, so cache hits never
   // wait for a render slot and identical concurrent requests still share work.
   const render = runMarkdownRender(async () => {
@@ -1530,7 +919,6 @@ function createAdminPreviewScript(): string {
 const markdownRehypeAdminCss = [
   '.markdown-rehype-settings-page .typecho-option { margin: 0 0 16px !important; padding: 20px 22px !important; border: 1px solid #e5e9e7 !important; border-radius: 10px !important; background: #fff !important; box-shadow: 0 2px 9px rgba(20, 40, 30, .035) !important; }',
   '.markdown-rehype-settings-page .typecho-option > li { padding: 0 !important; }',
-  '.markdown-rehype-settings-page .markdown-rehype-allowlist-card { border-color: #dfe8e2 !important; border-radius: 10px !important; background: #fff !important; }',
   '.markdown-rehype-settings-page .typecho-option input[type="checkbox"] { accent-color: #269b63; }',
   '.markdown-rehype-settings-page .typecho-option p.description, .markdown-rehype-settings-page .typecho-option .description { margin: 8px 0 0 !important; color: #77817b; font-size: 13px; line-height: 1.7; }',
   '.markdown-rehype-settings-page .typecho-option-submit { padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }',
@@ -1699,8 +1087,8 @@ function createPublicContentRuntimeScript(): string {
 export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   // Let the plugin own Markdown rendering for every theme that uses the shared
-  // content renderer. The final replacement runs after the core sanitizer;
-  // the HTML inserted here has already passed this plugin's rehype sanitizer.
+  // content renderer. The final replacement restores the plugin's rendered HTML;
+  // the plugin does not add another HTML filtering layer.
   addHook('content:markdown', pluginId, async (source: string) => {
     if (typeof source !== 'string' || !source) return source;
     return renderMarkdownBridgeSource(source);
@@ -1778,9 +1166,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('plugin:config:beforeSave', pluginId, (result: any, extra?: { pluginId?: string }) => {
     if (extra?.pluginId === pluginId) {
       clearMarkdownRenderCache();
-      customIframeAttributesExpiresAt = 0;
-      customHtmlTagsExpiresAt = 0;
-      customHtmlAttributesExpiresAt = 0;
     }
     return result;
   }, 20);
@@ -1813,77 +1198,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       '    toolbar.append(link);',
       '    form.before(toolbar);',
       '  }',
-      '  var htmlTags = form.querySelector(\'textarea[name="htmlTags"]\');',
-      '  var htmlTagsCard = htmlTags && htmlTags.closest(\'.typecho-option\');',
-      '  var htmlAttributes = form.querySelector(\'textarea[name="htmlAttributes"]\');',
-      '  var htmlAttributesCard = htmlAttributes && htmlAttributes.closest(\'.typecho-option\');',
-      '  var iframeAttributesCard = form.querySelector(\'textarea[name="iframeAttributes"]\')?.closest(\'.typecho-option\');',
-      '  if (htmlTagsCard) htmlTagsCard.classList.add(\'markdown-rehype-allowlist-card\');',
-      "  var setAllowlistDescription = function (field, message) {",
-      "    if (!field) return;",
-      "    var card = field.closest('.typecho-option');",
-      "    if (!card) return;",
-      "    var description = card.querySelector('p.description, .description');",
-      "    if (description) description.textContent = message;",
-      "  };",
-      "  setAllowlistDescription(htmlTags, '填写允许出现在文章原始 HTML 中的标签名。普通结构标签风险较低；script 会执行脚本，style 会影响页面样式，iframe 会加载外部页面，object/embed 可能加载活动内容，form 可提交数据。只有信任文章作者和内容来源时才开放这些标签。');",
-      "  setAllowlistDescription(htmlAttributes, '每行格式：标签名: 属性1, 属性2。明确列出的属性会原样放行，不再由插件隐藏名单二次拦截。class、title、width、height、alt 通常风险较低；href/src 会触发链接或资源加载；style 可改变页面外观；on* 事件属性可执行 JavaScript；srcdoc、formaction 等可能带来更高风险。仅开放确实需要的属性。');",
-      "  setAllowlistDescription(form.querySelector('textarea[name=\"iframeAttributes\"]'), '仅控制 iframe 可输出的属性；src 指定嵌入地址，外部域名仍沿用基础设置中的 CSP frame-src 策略。width/height/title/loading 通常风险较低；allow、allowfullscreen、allowpaymentrequest 会授予嵌入内容更多浏览器能力；sandbox 决定嵌入页面的执行和交互权限；srcdoc 可直接嵌入 HTML；on* 事件属性可执行 JavaScript。按视频平台要求开放必要属性，并谨慎评估高风险属性。');",
-      '  if (htmlAttributesCard) htmlAttributesCard.classList.add(\'markdown-rehype-allowlist-card\');',
-      '  if (htmlTags) {',
-      '    var normalizeHtmlTags = function () {',
-      '      var tags = Array.from(new Set(htmlTags.value.replace(/\\\\[nr]/gi, \' \').split(/[\\s,，;；]+/).map(function (tag) { return tag.trim().toLowerCase(); }).filter(Boolean)));',
-      '      htmlTags.value = tags.join(\', \');',
-      '    };',
-      '    htmlTags.addEventListener(\'blur\', normalizeHtmlTags);',
-      '    form.addEventListener(\'submit\', normalizeHtmlTags);',
-      '    normalizeHtmlTags();',
-      '  }',
-      '  if (htmlAttributes) {',
-      '    var normalizeHtmlAttributes = function () {',
-      '      var rows = htmlAttributes.value.replace(/\\\\[nr]/gi, \'\\n\').split(/[\\n;；]+/).map(function (line) {',
-      '        var match = line.trim().match(/^([a-z][a-z0-9:-]*)\\s*:\\s*(.+)$/i);',
-      '        if (!match) return \'\';',
-      '        var attrs = Array.from(new Set(match[2].split(/[\\s,，]+/).map(function (attr) { return attr.trim().toLowerCase(); }).filter(Boolean)));',
-      '        return attrs.length ? match[1].toLowerCase() + \': \' + attrs.join(\', \') : \'\';',
-      '      }).filter(Boolean);',
-      '      htmlAttributes.value = rows.join(\'\\n\');',
-      '    };',
-      '    htmlAttributes.addEventListener(\'blur\', normalizeHtmlAttributes);',
-      '    form.addEventListener(\'submit\', normalizeHtmlAttributes);',
-      '    normalizeHtmlAttributes();',
-      '  }',
-      '  if (htmlAttributes && !form.querySelector(\'[data-html-attributes-reset]\')) {',
-      '    var htmlAttributesReset = document.createElement(\'button\');',
-      '    htmlAttributesReset.type = \'button\';',
-      '    htmlAttributesReset.className = \'btn btn-xs\';',
-      '    htmlAttributesReset.dataset.htmlAttributesReset = \'1\';',
-      '    htmlAttributesReset.textContent = \'恢复默认属性白名单\';',
-      '    htmlAttributesReset.style.marginTop = \'8px\';',
-      '    htmlAttributesReset.addEventListener(\'click\', function () { htmlAttributes.value = \'abbr: title, class\\nq: cite, class\\ntime: datetime, class\\ndel: cite, datetime, class\\nins: cite, datetime, class\\nbdo: dir, class\\ndata: value, class\\noutput: for, form, name, class\\nprogress: max, value, class\\nmeter: min, max, low, high, optimum, value, class\'; normalizeHtmlAttributes(); htmlAttributes.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
-      '    htmlAttributes.after(htmlAttributesReset);',
-      '  }',
-      '  if (iframeAttributesCard) iframeAttributesCard.classList.add(\'markdown-rehype-allowlist-card\');',
-      '  if (htmlTags && !form.querySelector(\'[data-html-tags-reset]\')) {',
-      '    var htmlTagsReset = document.createElement(\'button\');',
-      '    htmlTagsReset.type = \'button\';',
-      '    htmlTagsReset.className = \'btn btn-xs\';',
-      '    htmlTagsReset.dataset.htmlTagsReset = \'1\';',
-      '    htmlTagsReset.textContent = \'恢复常用标签默认值\';',
-      '    htmlTagsReset.style.marginTop = \'8px\';',
-      '    htmlTagsReset.addEventListener(\'click\', function () { htmlTags.value = \'u, s, kbd, abbr, small, cite, q, time, del, ins, ruby, rt, rp, wbr, bdi, bdo, data, output, progress, meter, address, article, aside, footer, header, nav, hgroup, search, dl, dt, dd, samp, var, dfn\'; normalizeHtmlTags(); htmlTags.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
-      '    htmlTags.after(htmlTagsReset);',
-      '  }',
-      '  var iframeAttributes = form.querySelector(\'textarea[name="iframeAttributes"]\');',
-      '  if (iframeAttributes) {',
-      '    var normalizeIframeAttributes = function () {',
-      '      var attributes = Array.from(new Set(iframeAttributes.value.replace(/\\\\[nr]/gi, \' \').split(/[\\s,，;；]+/).map(function (attribute) { return attribute.trim().toLowerCase(); }).filter(Boolean)));',
-      '      iframeAttributes.value = attributes.join(\', \');',
-      '    };',
-      '    iframeAttributes.addEventListener(\'blur\', normalizeIframeAttributes);',
-      '    form.addEventListener(\'submit\', normalizeIframeAttributes);',
-      '    normalizeIframeAttributes();',
-      '  }',
       "  var initialConfigValues = Array.prototype.map.call(form.querySelectorAll('input[name], textarea[name], select[name]'), function (field) {",
       "    return [field.name, field.type === 'checkbox' || field.type === 'radio' ? field.checked : field.value];",
       "  });",
@@ -1910,24 +1224,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       "    event.preventDefault();",
       "    unchangedNotice.textContent = '配置没有变化，无需保存。';",
       "  });",
-      '  document.addEventListener(\'DOMContentLoaded\', function () {',
-      '    if (htmlTags) normalizeHtmlTags();',
-      '    if (iframeAttributes) normalizeIframeAttributes();',
-      '  });',
-      '  window.addEventListener(\'pageshow\', function () {',
-      '    if (htmlTags) normalizeHtmlTags();',
-      '    if (iframeAttributes) normalizeIframeAttributes();',
-      '  });',
-      '  if (iframeAttributes && !form.querySelector(\'[data-iframe-allowlist-reset]\')) {',
-      '    var reset = document.createElement(\'button\');',
-      '    reset.type = \'button\';',
-      '    reset.className = \'btn btn-xs\';',
-      '    reset.dataset.iframeAllowlistReset = \'1\';',
-      '    reset.textContent = \'恢复默认白名单\';',
-      '    reset.style.marginTop = \'8px\';',
-      '    reset.addEventListener(\'click\', function () { iframeAttributes.value = \'src, width, height, frameborder, framespacing, border, allow, allowfullscreen, allowtransparency, allowpaymentrequest, title, name, id, class, style, referrerpolicy, sandbox, scrolling, marginwidth, marginheight, loading, credentialless, fetchpriority, align, longdesc, aria-label, aria-hidden, data-diag-id\'; normalizeIframeAttributes(); iframeAttributes.dispatchEvent(new Event(\'input\', { bubbles: true })); });',
-      '    iframeAttributes.after(reset);',
-      '  }',
       '})();',
       '</script>',
     ].join('\n');
