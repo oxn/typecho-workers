@@ -34,6 +34,23 @@ describe('Typecho-compatible raw HTML rendering', () => {
     expect(html).not.toContain('#&width=48&height=48');
   });
 
+  it('matches Rin image layout classification for adjacent Markdown images', async () => {
+    const html = await renderMarkdown(
+      '![first](https://example.test/first.png)![second](https://example.test/second.png)',
+    );
+
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/first\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/second\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
+  });
+
+  it('keeps an image following a newline classified as a block image', async () => {
+    const html = await renderMarkdown(
+      '正文内容\\n![block](https://example.test/block.png)',
+    );
+
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/block\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
+  });
+
   it('preserves image blurhash while extracting dimensions', async () => {
     const html = await renderMarkdown(
       '![logo.ico](https://cycy.fun/CYlogo.ico#&blurhash=LEHV6nWB2yk8pyo0adR*.7kCMdnj&width=48&height=48)',
