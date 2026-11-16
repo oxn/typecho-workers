@@ -81,3 +81,11 @@
 - 只读检查主题样式发现 `.warm-prose table` 使用 `width: max-content !important`，文章表格还会经过主题的 breakout 规则；插件原来把满铺覆盖单独放在文件末尾的 `.warm-prose .toc-content table` 规则中，导致规则分散且只针对该外层结构。
 - 已将满铺约束合并回插件原有的通用 `.toc-content table` 规则：加入 `box-sizing: border-box`、`width: 100% !important`、`min-width: 100%`、`max-width: 100%`，并移除末尾重复的专用覆盖规则。未修改主题文件、Markdown 解析结构或表格颜色规则。
 - 该修改确保表格至少铺满 Markdown 内容容器的可用宽度；超出容器的内容仍由表格自身横向滚动承载。尚未经过用户本地浏览器视觉验收，不记为显示测试通过。
+
+
+## 8. 测试用例与当前渲染契约对齐（2026-11-17）
+
+- 只读复查发现旧测试仍在调用已不存在的 `mathEngine` / `tocEnabled` 参数，并假设可以切换 MathJax 或启用自动 TOC；这与当前单一 KaTeX 渲染链路及 TOC 设置暂不参与渲染的既定行为冲突。
+- 旧 SVG 测试还假设存在 Rehype sanitizer、SVG ID 自动加前缀及危险 HTML 属性过滤；但当前处理器按 Typecho / Rin 的原始 HTML 透传契约运行，没有注册 sanitizer。相关测试已改为验证实际处理链路：普通 Markdown 数学使用 KaTeX，原始 HTML 保留原样，SVG 结构与属性透传。
+- 同时清理了上述测试中已失效的渲染参数。此次只修正测试断言，不改变生产渲染逻辑。
+- 测试文件已提交并从 GitHub 重新读取核对；尚未执行 Vitest，不能记为测试通过。
