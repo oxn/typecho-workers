@@ -17,7 +17,7 @@ import { getRinMermaidConfig } from './mermaid-config';
 /** Match Rin: image URL dimensions become numeric HTML width/height attributes. */
 function parseImageDimension(value: string): number | undefined {
   const normalized = value.trim().toLowerCase().replace(/px$/, '');
-  if (!/^\\d+$/.test(normalized)) return undefined;
+  if (!/^\d+$/.test(normalized)) return undefined;
   const dimension = Number(normalized);
   return Number.isSafeInteger(dimension) && dimension > 0 ? dimension : undefined;
 }
