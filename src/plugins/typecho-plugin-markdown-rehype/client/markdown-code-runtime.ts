@@ -5,7 +5,7 @@ function appendHighlightSegments(code: HTMLElement, source: string, language: st
   const fragment = document.createDocumentFragment();
   for (const segment of flattenHighlightTree(tree)) {
     const span = document.createElement('span');
-    span.className = segment.classNames.join(' ');
+    if (segment.classNames.length) span.className = segment.classNames.join(' ');
     span.textContent = segment.value;
     fragment.append(span);
   }

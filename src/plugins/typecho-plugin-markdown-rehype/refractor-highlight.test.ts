@@ -42,6 +42,12 @@ describe('Rin Refractor code highlighting', () => {
     expect(elements.every(node => node.tagName === 'span')).toBe(true);
   });
 
+  it('creates an unclassed text segment for plain code', () => {
+    expect(flattenHighlightTree(highlightCode('plain text', 'text'))).toEqual([
+      { value: 'plain text', classNames: [] },
+    ]);
+  });
+
   it('merges nested token classes onto text leaves like Rin', () => {
     const tree = {
       type: 'root',
