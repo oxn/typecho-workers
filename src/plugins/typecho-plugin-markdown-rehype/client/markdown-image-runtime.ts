@@ -41,9 +41,12 @@ function enhanceImage(image: HTMLImageElement): void {
   // Match Rin's rendered <img> classes; data attributes identify the runtime-managed image.
   image.classList.add('mx-auto', 'max-w-full', 'cursor-zoom-in', 'transition-opacity');
   if (rounded) image.classList.add('rounded-xl');
-  inner.append(image);
-  outer.append(inner);
+  // Insert the wrapper at the image's original position before moving the image.
+  // Moving first would make outer an ancestor of image, so image.before(outer)
+  // would try to insert an ancestor into its own descendant and throw.
   image.before(outer);
+  outer.append(inner);
+  inner.append(image);
 
   const loaded = () => {
     image.classList.remove('opacity-0', 'hidden');
