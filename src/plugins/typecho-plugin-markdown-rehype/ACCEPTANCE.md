@@ -103,3 +103,12 @@
 - 已重写该测试文件为五个完整用例：HAST SVG 属性名、raw HTML 中 TeX 原样保留、普通 Markdown KaTeX、代码围栏中的 TeX 字面保留、SVG 结构与属性保留。
 - 只修复测试文件，没有修改生产渲染代码。提交后已从 GitHub 原始文件回读核对。
 - Vitest 尚未执行；不能据此声称测试通过。
+
+
+## 11. 表格满铺第二轮：恢复文章级 breakout（2026-11-17）
+
+- 用户确认提交 `df8d31b8643bdcae9a63e51acd10a9a97fa4ed7d` 的表格没有平铺；本轮以用户指定的 `1b1b1824341889b7ada9405a697579c56186c184` 为排查基线，未从更早提交回退。
+- 复核主题原始规则后确认：warm 与 warm-cy 都把文章表格设计为文章正文 breakout，使用 `left:50%`、`transform:translateX(-50%)` 和按 `--warm-breakout-width` 计算的宽度。上一轮插件规则却把表格强制设为 `position:static`、`left:auto`、`transform:none`、`max-width:100%`，直接取消了主题原本的满铺 breakout；这才是上一轮修复方向错误的关键原因。
+- 本次修正插件现有表格规则：普通 `.toc-content table` 在内容容器内保持 100% 满铺及横向滚动；文章正文中的表格恢复主题既有 breakout 定位，并沿用主题相同的最大宽度计算，不再把它限制回正文窄栏。笔记等非文章场景不启用 breakout。
+- 只修改插件现有 CSS 规则，不改主题文件、Markdown DOM、表格颜色或其他功能；没有追加第三套覆盖规则。
+- 本次是源码层面的根因修正，尚未经过用户本地浏览器确认；不能记为视觉验收通过。
