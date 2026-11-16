@@ -63,7 +63,7 @@ function countRinNewlinesBeforeNode(text: string, offset: number): number {
 }
 function isRinMarkdownImageLinkAtEnd(text: string): boolean {
   const trimmed = text.trim();
-  const match = trimmed.match(/(.*)(!\[.*?\]\(.*?\))$/s);
+  const match = trimmed.match(/(.*)(!\\[.*?\\]\\(.*?\\))$/s);
   if (!match) return false;
   const beforeImage = match[1];
   return beforeImage.trim().length === 0 || beforeImage.endsWith('\n');
