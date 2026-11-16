@@ -25,6 +25,10 @@ function enhanceImage(image: HTMLImageElement): void {
   inner.style.zoom = scale;
   const width = Number.parseInt(image.getAttribute('width') || '', 10);
   const height = Number.parseInt(image.getAttribute('height') || '', 10);
+  // Warm's breakout rule sets width:auto on images, overriding HTML width hints.
+  // Restore the parsed source width inline; max-width:100% still constrains it,
+  // while height:auto in the stylesheet preserves the intrinsic aspect ratio.
+  if (width > 0) image.style.width = width + 'px';
   if (width > 0 && height > 0) inner.style.aspectRatio = width + ' / ' + height;
 
   const blurhash = image.dataset.rinBlurhash || '';
