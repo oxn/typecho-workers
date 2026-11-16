@@ -63,7 +63,7 @@ function discoverPluginClients(rootDir: string): ClientSource[] {
 
     const entries = readdirSync(clientDir);
     for (const entry of entries) {
-      if (!entry.endsWith('.ts')) continue;
+      if (!entry.endsWith('.ts') && !entry.endsWith('.css')) continue;
       const sourcePath = join(clientDir, entry);
       const jsName = entry.replace(/\.ts$/, '.js');
       const outDir = join(rootDir, 'public', 'plugin-assets', pluginId);
@@ -77,10 +77,23 @@ function discoverPluginClients(rootDir: string): ClientSource[] {
   return sources;
 }
 
+async function copyStaticAssets(sources: ClientSource[], silent = false): Promise<void> {
+  for (const src of sources) {
+    if (!src.sourcePath.endsWith('.css')) continue;
+    mkdirSync(src.outDir, { recursive: true });
+    const outfile = join(src.outDir, basename(src.sourcePath));
+    cpSync(src.sourcePath, outfile);
+    if (!silent) {
+      console.log(`[client-loader] ${src.sourcePath} → ${relative(process.cwd(), outfile)}`);
+    }
+  }
+}
+
 async function compileAll(sources: ClientSource[], silent = false): Promise<void> {
   try {
     const esbuild = await import('esbuild');
     for (const src of sources) {
+      if (!src.sourcePath.endsWith('.ts')) continue;
       mkdirSync(src.outDir, { recursive: true });
       const outfile = join(src.outDir, basename(src.sourcePath).replace(/\.ts$/, '.js'));
       await esbuild.build({
@@ -126,6 +139,7 @@ export default function clientLoaderIntegration(): AstroIntegration {
             console.log(`  - ${relative(rootDir, src.sourcePath)} → ${src.publicUrl}`);
           }
           await compileAll(allSources);
+          await copyStaticAssets(allSources);
         } else {
           console.log('[client-loader] No client sources found (src/client/ + src/plugins/*/client/)');
         }
