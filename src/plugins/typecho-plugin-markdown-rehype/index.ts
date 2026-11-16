@@ -56,6 +56,29 @@ function parseRinImageUrlMetadata(url: string): {
  * Parse image metadata once from the final HAST img src after rehypeRaw,
  * avoiding loss of fragment data during mdast-to-HAST property conversion.
  */
+function countRinNewlinesBeforeNode(text: string, offset: number): number {
+  let count = 0;
+  for (let index = offset - 1; index >= 0 && text[index] === '\n'; index--) count++;
+  return count;
+}
+function isRinMarkdownImageLinkAtEnd(text: string): boolean {
+  const trimmed = text.trim();
+  const match = trimmed.match(/(.*)(!\[.*?\]\(.*?\))$/s);
+  if (!match) return false;
+  const beforeImage = match[1];
+  return beforeImage.trim().length === 0 || beforeImage.endsWith('\n');
+}
+/** Do not treat a missing source position as offset zero (the start of the article). */
+function getRinImageLayout(source: string, node: any): 'block' | 'inline' | undefined {
+  const offset = node?.position?.start?.offset;
+  if (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0) return undefined;
+  const previousContent = source.slice(0, offset);
+  return countRinNewlinesBeforeNode(previousContent, offset) >= 1
+    || previousContent.trim().length === 0
+    || isRinMarkdownImageLinkAtEnd(previousContent)
+    ? 'block'
+    : 'inline';
+}
 function remarkRinImageMetadata() {
   return (tree: any, file: any): void => {
     const source = typeof file?.value === 'string' ? file.value : '';
