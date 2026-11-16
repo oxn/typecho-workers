@@ -85,6 +85,19 @@ function remarkRinImageMetadata() {
     const visit = (node: any): void => {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'image') {
+        // Read metadata while the original Markdown destination is still intact.
+        // remark-rehype/rehype-raw may normalize the URL fragment, so relying only
+        // on the later HAST src can silently lose the leading-& metadata form.
+        if (typeof node.url === 'string') {
+          const metadata = parseRinImageUrlMetadata(node.url);
+          node.url = metadata.src;
+          node.data = node.data ?? {};
+          const properties = { ...(node.data.hProperties ?? {}) } as Record<string, any>;
+          if (metadata.blurhash) properties.dataRinBlurhash = metadata.blurhash;
+          if (metadata.width) applyImageDimension(properties, 'width', String(metadata.width));
+          if (metadata.height) applyImageDimension(properties, 'height', String(metadata.height));
+          node.data.hProperties = properties;
+        }
         const layout = getRinImageLayout(source, node);
         if (layout) {
           node.data = node.data ?? {};

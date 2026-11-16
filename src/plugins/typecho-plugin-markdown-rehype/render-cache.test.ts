@@ -136,6 +136,18 @@ describe('Markdown preview request protection', () => {
 });
 
 describe('Markdown image BlurHash compatibility', () => {
+  it('extracts dimensions when the URL fragment starts with an ampersand', async () => {
+    const html = await renderMarkdown(
+      '![logo.ico](https://cycy.fun/CYlogo.ico#&width=48&height=48)',
+      { mathEngine: 'mathjax' },
+    );
+
+    expect(html).toContain('src="https://cycy.fun/CYlogo.ico"');
+    expect(html).toContain('width="48"');
+    expect(html).toContain('height="48"');
+    expect(html).not.toContain('#&amp;width=48');
+  });
+
   it('extracts encoded BlurHash and dimensions before sanitizing the image URL', async () => {
     const html = await renderMarkdown(
       '![markdown.webp](https://cdn.jsdelivr.net/gh/xoxx/xoxx/img/rin/markdown.webp#blurhash=LfLp%7Bl%2509GXo.T-S%251tSIWj%3Dt7f9&width=1536&height=1024)',

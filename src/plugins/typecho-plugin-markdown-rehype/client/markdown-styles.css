@@ -50,7 +50,6 @@
 .rin-code-block .rin-code-pre>code{font:14px/1.375 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;white-space:pre-wrap;font-variant-ligatures:normal;-webkit-font-feature-settings:"liga" 1;font-feature-settings:"liga" 1}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre{background:#1e1e1e;color:#d4d4d4;font-family:Menlo,Monaco,Consolas,"Andale Mono","Ubuntu Mono","Courier New",monospace;font-size:13px;line-height:1.5}:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code{background:#1e1e1e;color:#d4d4d4;font-size:14px;line-height:1.5}
 /* Rin base16AteliersulphurpoolLight token styles */
-/* Rin base16AteliersulphurpoolLight token styles */
 .rin-code-block .token.comment{color:#898ea4}
 .rin-code-block .token.prolog{color:#898ea4}
 .rin-code-block .token.doctype{color:#898ea4}
@@ -143,7 +142,6 @@
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.placeholder{color:inherit}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.bold{font-weight:normal}
 
-.rin-code-pre>code.highlight{outline:.4em solid #c94922;outline-offset:.4em}
 .rin-code-block .rin-code-pre ::selection{background:#dfe2f1;text-shadow:none}
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre ::selection{background:#264f78;text-shadow:none}
 .rin-code-copy{position:absolute;top:4px;right:4px;padding:4px 8px;border:0;border-radius:6px;background:rgba(127,127,127,.16);color:inherit;font-size:14px;user-select:none;cursor:pointer;visibility:hidden}
