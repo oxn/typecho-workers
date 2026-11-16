@@ -1,3 +1,4 @@
+// @ts-ignore Refractor exposes ESM entry points without bundled TypeScript declarations.
 import { refractor } from 'refractor/all';
 import { REFRACTOR_SUPPORTED_LANGUAGES } from './refractor-languages';
 
@@ -29,7 +30,7 @@ function plainTextRoot(value: string): RefractorRoot {
   };
 }
 
-/** Use Rin's Refractor/Prism AST engine, falling back to unmodified plain text. */
+/** Use Refractor's Prism AST engine, falling back to unmodified plain text. */
 export function highlightCode(value: string, language: string): RefractorRoot {
   if (!language || language === 'text') return plainTextRoot(value);
   try {
