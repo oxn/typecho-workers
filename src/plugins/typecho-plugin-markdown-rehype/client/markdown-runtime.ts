@@ -1,3 +1,5 @@
+import './markdown-styles.css';
+
 // Initializes shared Markdown styles and on-demand presentation loaders.
 const STYLESHEET_ID = 'rin-markdown-renderer-stylesheet';
 const ROOT_SELECTOR = '.toc-content';
@@ -6,7 +8,7 @@ function installStyles(): void {
   const link = document.createElement('link');
   link.id = STYLESHEET_ID;
   link.rel = 'stylesheet';
-  link.href = '/plugin-assets/typecho-plugin-markdown-rehype/markdown-styles.css';
+  link.href = '/plugin-assets/typecho-plugin-markdown-rehype/markdown-runtime.css';
   document.head.append(link);
 }
 
