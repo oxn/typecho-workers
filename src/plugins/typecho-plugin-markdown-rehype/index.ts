@@ -320,10 +320,9 @@ function rehypeRinHeadingIds() {
 }
 
 /**
- * Build one immutable processor for each supported render configuration.
- * Unified freezes a processor on first process() and documents that frozen
- * processors can process files repeatedly. Reuse avoids rebuilding the plugin
- * chain on every article request while keeping math/TOC options isolated.
+ * Build one immutable processor shared by article rendering and editor preview.
+ * Unified freezes a processor on first process() and supports repeated processing.
+ * Reuse avoids rebuilding the plugin chain for every article request.
  */
 function createMarkdownProcessor() {
   return unified()
