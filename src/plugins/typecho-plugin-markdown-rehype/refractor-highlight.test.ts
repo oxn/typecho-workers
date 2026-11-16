@@ -41,6 +41,7 @@ describe('Rin Refractor code highlighting', () => {
     expect(elements.length).toBeGreaterThan(0);
     expect(elements.every(node => node.tagName === 'span')).toBe(true);
   });
+
   it('merges nested token classes onto text leaves like Rin', () => {
     const tree = {
       type: 'root',

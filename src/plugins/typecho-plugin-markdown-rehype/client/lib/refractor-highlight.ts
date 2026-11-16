@@ -66,7 +66,7 @@ export function flattenHighlightTree(root: RefractorRoot): HighlightSegment[] {
       const classes = Array.isArray(value)
         ? value.filter(item => typeof item === 'string')
         : typeof value === 'string'
-          ? value.split(/\\s+/).filter(Boolean)
+          ? value.split(/\s+/).filter(Boolean)
           : [];
       visit(node.children, inherited.concat(classes));
     }
