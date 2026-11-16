@@ -1,4 +1,4 @@
-// Lightweight shared Rin article styles and on-demand presentation loaders.
+// Initializes shared Markdown styles and on-demand presentation loaders.
 const STYLESHEET_ID = 'rin-markdown-renderer-stylesheet';
 const ROOT_SELECTOR = '.toc-content';
 function installStyles(): void {
