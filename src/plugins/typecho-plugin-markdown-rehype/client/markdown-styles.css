@@ -151,7 +151,7 @@
 .rin-image-inner{position:relative;display:inline-block;max-width:100%;overflow:hidden}
 .rin-image-inner.is-rounded{border-radius:.75rem}
 .rin-image-blurhash{position:absolute;inset:0;width:100%;height:100%;transform:scale(1.1);filter:blur(4px);pointer-events:none}
-.rin-image-inner img[data-rin-image-enhanced="1"]{display:block;margin-left:auto;margin-right:auto;max-width:100%;height:auto;cursor:zoom-in;transition:opacity .2s}
+:is(.warm-article:not(.is-note) .warm-prose,.warm-prose) .rin-image-inner img[data-rin-image-enhanced="1"]{position:static;left:auto;width:auto;max-width:100%;height:auto;transform:none;display:block;margin-left:auto;margin-right:auto;cursor:zoom-in;transition:opacity .2s}
 .rin-image-inner img[data-rin-image-enhanced="1"][data-rin-image-layout="inline"]{display:inline}
 .rin-image-inner.is-rounded img[data-rin-image-enhanced="1"]{border-radius:.75rem}
 .rin-image-inner img[data-rin-image-enhanced="1"].opacity-0{opacity:0}
