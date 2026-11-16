@@ -1,6 +1,22 @@
-// @ts-ignore PrismJS is consumed as a browser bundle; its runtime package has no bundled types.
-import Prism from 'prismjs';
-import './lib/prism-languages';
+import { highlightCode, type RefractorNode } from './lib/refractor-highlight';
+
+function appendHighlightNode(parent: Node, node: RefractorNode): void {
+  if (node.type === 'text') {
+    parent.appendChild(document.createTextNode(node.value));
+    return;
+  }
+  if (node.type !== 'element' || node.tagName !== 'span') return;
+
+  const span = document.createElement('span');
+  const className = node.properties?.className;
+  if (Array.isArray(className)) {
+    span.className = className.filter(value => typeof value === 'string').join(' ');
+  } else if (typeof className === 'string') {
+    span.className = className;
+  }
+  parent.appendChild(span);
+  node.children.forEach(child => appendHighlightNode(span, child));
+}
 
 function enhanceCodeBlocks(root: Element): void {
   root.querySelectorAll<HTMLElement>('.rin-code-pre > code').forEach(code => {
@@ -20,8 +36,10 @@ function enhanceCodeBlocks(root: Element): void {
     const language = languageMatch?.[1] || '';
     if (language && language !== 'text' && language !== 'plain') {
       code.className = code.className.replace(/language-[\w+-]+/, 'language-' + language);
-      try { Prism.highlightElement(code); }
-      catch (error) { console.error('Rin Prism highlighting failed:', error); }
+      const highlighted = highlightCode(displayValue, language);
+      const fragment = document.createDocumentFragment();
+      highlighted.children.forEach(node => appendHighlightNode(fragment, node));
+      code.replaceChildren(fragment);
     }
     const button = document.createElement('button');
     button.type = 'button';

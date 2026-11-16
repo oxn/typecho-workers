@@ -1,7 +1,7 @@
 {
   "name": "typecho-plugin-markdown-rehype",
   "version": "1.0.0",
-  "description": "Rin-compatible Markdown article and page renderer with GFM, Mermaid, KaTeX, Prism highlighting, image placeholders and lightbox.",
+  "description": "Rin-compatible Markdown article and page renderer with GFM, Mermaid, KaTeX, Refractor highlighting, image placeholders and lightbox.",
   "author": "怸歪",
   "homepage": "https://347777.xyz",
   "main": "index.ts",
@@ -30,7 +30,7 @@
     "plugin": {
       "id": "typecho-plugin-markdown-rehype",
       "name": "Markdown Rehype",
-      "description": "Rin-compatible Markdown article and page renderer with GFM, Mermaid, KaTeX, Prism highlighting, image placeholders and lightbox.",
+      "description": "Rin-compatible Markdown article and page renderer with GFM, Mermaid, KaTeX, Refractor highlighting, image placeholders and lightbox.",
       "version": "2026.11.13.21.10",
       "author": "怸歪",
       "authorUrl": "https://347777.xyz",
@@ -62,7 +62,7 @@
     "rehype-stringify": "^10.0.1",
     "katex": "^0.16.22",
     "mermaid": "11.12.2",
-    "prismjs": "^1.30.0",
-    "remark-breaks": "^4.0.0"
+    "remark-breaks": "^4.0.0",
+    "refractor": "^5.0.0"
   }
 }
