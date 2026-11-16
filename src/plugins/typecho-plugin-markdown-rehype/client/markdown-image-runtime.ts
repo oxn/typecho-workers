@@ -19,9 +19,9 @@ function enhanceImage(image: HTMLImageElement): void {
   const rounded = block;
   const scale = block ? '0.75' : '0.5';
   const outer = document.createElement('span');
-  outer.className = block ? 'rin-image-block' : 'rin-image-inline';
+  outer.className = block ? 'rin-image-block block w-full text-center my-4' : 'rin-image-inline inline-block align-middle mx-1';
   const inner = document.createElement('span');
-  inner.className = 'rin-image-inner' + (rounded ? ' is-rounded' : '');
+  inner.className = 'rin-image-inner relative inline-block max-w-full overflow-hidden' + (rounded ? ' is-rounded rounded-xl' : '');
   inner.style.zoom = scale;
   const width = Number.parseInt(image.getAttribute('width') || '', 10);
   const height = Number.parseInt(image.getAttribute('height') || '', 10);
@@ -31,30 +31,29 @@ function enhanceImage(image: HTMLImageElement): void {
   let canvas: HTMLCanvasElement | null = null;
   if (blurhash) {
     canvas = document.createElement('canvas');
-    canvas.className = 'rin-image-blurhash' + (rounded ? ' is-rounded' : '');
+    canvas.className = 'rin-image-blurhash absolute inset-0 h-full w-full scale-110 blur-sm' + (rounded ? ' is-rounded rounded-xl' : '');
     canvas.setAttribute('aria-hidden', 'true');
     try { drawBlurhashToCanvas(canvas, blurhash); }
     catch (error) { console.error('Failed to render blurhash', error); canvas = null; }
     if (canvas) inner.append(canvas);
   }
 
-  image.classList.add('rin-image-element');
-  // Rin keeps inline Markdown images inline inside their inline-block wrapper;
-  // block images remain block-level so the centered full-width layout is preserved.
-  if (!block) image.classList.add('is-inline');
-  if (rounded) image.classList.add('is-rounded');
+  // Match Rin's rendered <img> classes; data attributes identify the runtime-managed image.
+  image.classList.add('mx-auto', 'max-w-full', 'cursor-zoom-in', 'transition-opacity');
+  if (rounded) image.classList.add('rounded-xl');
   inner.append(image);
   outer.append(inner);
   image.before(outer);
 
   const loaded = () => {
-    image.classList.remove('is-loading', 'is-hidden');
+    image.classList.remove('opacity-0', 'hidden');
+    image.classList.add('opacity-100');
     inner.querySelector('.rin-image-placeholder')?.remove();
     canvas?.remove();
   };
   const failed = () => {
-    image.classList.remove('is-loading');
-    image.classList.add('is-hidden');
+    image.classList.remove('opacity-0', 'opacity-100');
+    image.classList.add('hidden');
     if (!blurhash || !canvas) showImagePlaceholder(inner, image.alt || '', block);
   };
   image.addEventListener('load', loaded);
@@ -63,7 +62,9 @@ function enhanceImage(image: HTMLImageElement): void {
     if (image.naturalWidth > 0) loaded();
     else failed();
   } else if (canvas) {
-    image.classList.add('is-loading');
+    image.classList.add('opacity-0');
+  } else {
+    image.classList.add('opacity-100');
   }
 }
 
@@ -282,7 +283,7 @@ function initialize(root: Element): void {
     root.setAttribute('data-rin-image-click-bound', '1');
     root.addEventListener('click', event => {
       const target = event.target as HTMLElement;
-      const image = target.closest('img.rin-image-element') as HTMLImageElement | null;
+      const image = target.closest('img[data-rin-image-enhanced="1"]') as HTMLImageElement | null;
       if (image) lightbox?.open(image);
     });
   }
