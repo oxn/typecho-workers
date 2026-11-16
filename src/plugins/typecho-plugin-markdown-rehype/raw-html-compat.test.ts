@@ -45,7 +45,7 @@ describe('Typecho-compatible raw HTML rendering', () => {
 
   it('keeps an image following a newline classified as a block image', async () => {
     const html = await renderMarkdown(
-      '正文内容\\n![block](https://example.test/block.png)',
+      '正文内容\n![block](https://example.test/block.png)',
     );
 
     expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/block\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
@@ -57,7 +57,7 @@ describe('Typecho-compatible raw HTML rendering', () => {
       '![leading](https://example.test/leading.png)',
       '',
       '这是一段包含 ![inline](https://example.test/inline.png) 的正文。',
-    ].join('\\n'));
+    ].join('\n'));
 
     expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/leading\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
     expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/inline\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
@@ -65,7 +65,7 @@ describe('Typecho-compatible raw HTML rendering', () => {
 
   it('classifies an image after a blank line as block even after paragraph text', async () => {
     const html = await renderMarkdown(
-      '前一段文字。\\n\\n![next](https://example.test/next.png)',
+      '前一段文字。\n\n![next](https://example.test/next.png)',
     );
 
     expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/next\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
