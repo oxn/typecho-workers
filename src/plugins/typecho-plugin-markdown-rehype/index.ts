@@ -71,20 +71,28 @@ function isRinMarkdownImageLinkAtEnd(text: string): boolean {
   const beforeImage = match[1];
   return beforeImage.trim().length === 0 || beforeImage.endsWith('\n');
 }
+/** Do not treat a missing source position as offset zero (the start of the article). */
+function getRinImageLayout(source: string, node: any): 'block' | 'inline' | undefined {
+  const offset = node?.position?.start?.offset;
+  if (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0) return undefined;
+  const previousContent = source.slice(0, offset);
+  return countRinNewlinesBeforeNode(previousContent, offset) >= 1
+    || previousContent.trim().length === 0
+    || isRinMarkdownImageLinkAtEnd(previousContent)
+    ? 'block'
+    : 'inline';
+}
+
 function remarkRinImageMetadata() {
   return (tree: any, file: any): void => {
     const source = typeof file?.value === 'string' ? file.value : '';
     const visit = (node: any): void => {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'image' && typeof node.url === 'string') {
-        const offset = Number(node.position?.start?.offset ?? 0);
-        const previousContent = source.slice(0, offset);
-        const block = countRinNewlinesBeforeNode(previousContent, offset) >= 1
-          || previousContent.trim().length === 0
-          || isRinMarkdownImageLinkAtEnd(previousContent);
+        const layout = getRinImageLayout(source, node);
         node.data = node.data ?? {};
         const properties = { ...(node.data.hProperties ?? {}) } as Record<string, any>;
-        properties.dataRinImageLayout = block ? 'block' : 'inline';
+        if (layout) properties.dataRinImageLayout = layout;
         const metadata = parseRinImageUrlMetadata(node.url);
         if (metadata.src !== node.url) node.url = metadata.src;
         if (metadata.blurhash) properties.dataRinBlurhash = metadata.blurhash;
@@ -108,12 +116,10 @@ function rehypeImageDimensions() {
       if (!node || typeof node !== 'object') return;
       if (node.type === 'element' && node.tagName === 'img' && node.properties) {
         const properties = node.properties as Record<string, any>;
-        const offset = Number(node.position?.start?.offset ?? 0);
-        const previousContent = source.slice(0, offset);
-        const block = countRinNewlinesBeforeNode(previousContent, offset) >= 1
-          || previousContent.trim().length === 0
-          || isRinMarkdownImageLinkAtEnd(previousContent);
-        if (properties.dataRinImageLayout == null) properties.dataRinImageLayout = block ? 'block' : 'inline';
+        if (properties.dataRinImageLayout == null) {
+          const layout = getRinImageLayout(source, node);
+          if (layout) properties.dataRinImageLayout = layout;
+        }
         const src = properties.src;
         if (typeof src === 'string') {
           const metadata = parseRinImageUrlMetadata(src);
