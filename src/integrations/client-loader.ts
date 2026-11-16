@@ -1,9 +1,10 @@
 /**
  * Astro integration: Client Loader
  *
- * Scans for TypeScript browser-side source files in:
+ * Scans for TypeScript browser-side source files and plugin CSS assets in:
  *   - src/client/*.ts          → compiled to public/js/
  *   - src/plugins/<id>/client/*.ts → compiled to public/plugin-assets/<id>/
+ *   - src/plugins/<id>/client/*.css → copied to public/plugin-assets/<id>/
  *
  * Uses esbuild to compile TypeScript to IIFE JavaScript, then copies
  * the output into public/ so Astro serves it as static files.
