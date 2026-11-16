@@ -1,5 +1,5 @@
 /** Language identifiers retained from the plugin's previous 297-language registry. */
-export const REFractorSupportedLanguages = [
+export const REFRACTOR_SUPPORTED_LANGUAGES = [
   'markup',
   'css',
   'clike',
