@@ -34,6 +34,29 @@ function applyImageDimension(properties: Record<string, any>, name: 'width' | 'h
   properties.style = `${existing}${declaration}`;
 }
 
+function toRinPositiveInteger(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+/** Match Rin's URLSearchParams-based fragment parsing exactly. */
+function parseRinImageUrlMetadata(url: string): {
+  src: string;
+  blurhash?: string;
+  width?: number;
+  height?: number;
+} {
+  const [src, fragment = ''] = url.split('#', 2);
+  const params = new URLSearchParams(fragment.replace(/&amp;/gi, '&'));
+  return {
+    src,
+    blurhash: params.get('blurhash') || undefined,
+    width: toRinPositiveInteger(params.get('width')),
+    height: toRinPositiveInteger(params.get('height')),
+  };
+}
+
 /**
  * Rin-compatible Markdown image metadata handling.
  * Runs on remark image nodes before remark-rehype, so Markdown images receive
@@ -66,34 +89,12 @@ function remarkRinImageMetadata() {
         node.data = node.data ?? {};
         const properties = { ...(node.data.hProperties ?? {}) } as Record<string, any>;
         properties.dataRinImageLayout = block ? 'block' : 'inline';
-        const hashIndex = node.url.indexOf('#');
-        if (hashIndex >= 0) {
-          const resourceUrl = node.url.slice(0, hashIndex);
-          const fragment = node.url.slice(hashIndex + 1).replace(/&amp;/gi, '&');
-          const metadata = new Map<string, string>();
-          for (const part of fragment.split(/[&;]/)) {
-            if (!part) continue;
-            const separator = part.indexOf('=');
-            if (separator < 0) continue;
-            let key = part.slice(0, separator);
-            let value = part.slice(separator + 1);
-            try { key = decodeURIComponent(key); } catch {}
-            value = value.replace(/\+/g, '%2B');
-            try { value = decodeURIComponent(value); } catch {}
-            metadata.set(key.toLowerCase(), value);
-          }
-          const blurhash = metadata.get('blurhash') || '';
-          const validBlurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(blurhash) ? blurhash : '';
-          if (validBlurhash) properties.dataRinBlurhash = validBlurhash;
-          for (const name of ['width', 'height'] as const) {
-            const raw = metadata.get(name);
-            if (!raw) continue;
-            const value = Number.parseInt(raw, 10);
-            if (Number.isFinite(value) && Number.isInteger(value) && value > 0 && properties[name] == null) {
-              applyImageDimension(properties, name, String(value));
-            }
-          }
-          node.url = resourceUrl;
+        const metadata = parseRinImageUrlMetadata(node.url);
+        if (metadata.src !== node.url) node.url = metadata.src;
+        if (metadata.blurhash) properties.dataRinBlurhash = metadata.blurhash;
+        for (const name of ['width', 'height'] as const) {
+          const value = metadata[name];
+          if (value && properties[name] == null) applyImageDimension(properties, name, String(value));
         }
         node.data.hProperties = properties;
       }
@@ -119,28 +120,12 @@ function rehypeImageDimensions() {
         if (properties.dataRinImageLayout == null) properties.dataRinImageLayout = block ? 'block' : 'inline';
         const src = properties.src;
         if (typeof src === 'string') {
-          const hash = src.indexOf('#');
-          if (hash >= 0) {
-            const metadata = new Map<string, string>();
-            for (const part of src.slice(hash + 1).replace(/&amp;/gi, '&').split(/[&;]/)) {
-              if (!part) continue;
-              const separator = part.indexOf('=');
-              if (separator < 0) continue;
-              let key = part.slice(0, separator);
-              let value = part.slice(separator + 1);
-              try { key = decodeURIComponent(key); } catch {}
-              try { value = decodeURIComponent(value.replace(/\+/g, '%2B')); } catch {}
-              metadata.set(key.toLowerCase(), value);
-            }
-            const blurhash = metadata.get('blurhash') || '';
-            if (/^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]{6,200}$/.test(blurhash)) {
-              properties.dataRinBlurhash = blurhash;
-            }
-            for (const name of ['width', 'height'] as const) {
-              const value = metadata.get(name);
-              if (value && properties[name] == null) applyImageDimension(properties, name, value);
-            }
-            properties.src = src.slice(0, hash);
+          const metadata = parseRinImageUrlMetadata(src);
+          if (metadata.src !== src) properties.src = metadata.src;
+          if (metadata.blurhash) properties.dataRinBlurhash = metadata.blurhash;
+          for (const name of ['width', 'height'] as const) {
+            const value = metadata[name];
+            if (value && properties[name] == null) applyImageDimension(properties, name, String(value));
           }
         }
       }
