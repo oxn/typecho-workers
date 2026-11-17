@@ -57,19 +57,26 @@ function pageHtml(csrfToken: string, rawSettings: unknown, rawThemeSettings: unk
   const linkRows = Array.from({ length: 10 }, (_, index) => {
     const number = index + 1;
     const suffix = String(number).padStart(2, '0');
+    const textKey = `linktxt${suffix}`;
+    const urlKey = `links${suffix}`;
+    const blankKey = `linkblank${suffix}`;
+    const textValue = settings[textKey] !== undefined ? settings[textKey] : themeSettings[textKey];
+    const urlValue = settings[urlKey] !== undefined ? settings[urlKey] : themeSettings[urlKey];
+    const blankValue = settings[blankKey] !== undefined ? settings[blankKey] : themeSettings[blankKey];
+    const checked = blankValue === true || blankValue === 1 || blankValue === '1';
     return `
       <div class="cy-service-link-row">
         <div class="cy-service-link-text-line">
           <label for="cy-link-text-${suffix}">文字${number}：</label>
-          <input id="cy-link-text-${suffix}" name="linktxt${suffix}" type="text">
+          <input id="cy-link-text-${suffix}" name="${textKey}" data-cy-service-setting="${textKey}" type="text" value="${escapeHtml(textValue)}">
           <label class="cy-service-new-window" for="cy-link-blank-${suffix}">
-            <input id="cy-link-blank-${suffix}" name="linkblank${suffix}" type="checkbox">
+            <input id="cy-link-blank-${suffix}" name="${blankKey}" data-cy-service-setting="${blankKey}" type="checkbox" ${checked ? 'checked' : ''}>
             <span>新窗口打开</span>
           </label>
         </div>
         <div class="cy-service-link-url-line">
           <label for="cy-link-url-${suffix}">网址${number}：</label>
-          <input id="cy-link-url-${suffix}" name="links${suffix}" type="text">
+          <input id="cy-link-url-${suffix}" name="${urlKey}" data-cy-service-setting="${urlKey}" type="text" value="${escapeHtml(urlValue)}">
         </div>
       </div>`;
   }).join('');
@@ -93,7 +100,7 @@ function pageHtml(csrfToken: string, rawSettings: unknown, rawThemeSettings: unk
 
         <section class="cy-service-links-group">
           <div class="cy-service-links-heading">
-            <strong>页面连接</strong>
+            <strong>页脚连接</strong>
             <span>支持 https://、http://、mailto:、站内链接；普通域名可直接填写。</span>
           </div>
           ${linkRows}
@@ -122,7 +129,7 @@ function pageHtml(csrfToken: string, rawSettings: unknown, rawThemeSettings: unk
       </main>
 
       <div class="cy-service-actions">
-        <button type="button" data-cy-service-save>保存置顶设置</button>
+        <button type="button" data-cy-service-save>保存设置</button>
         <span data-cy-service-save-status role="status" aria-live="polite"></span>
       </div>
     </div>
@@ -145,7 +152,14 @@ function pageHtml(csrfToken: string, rawSettings: unknown, rawThemeSettings: unk
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': root.dataset.csrfToken || ''
               },
-              body: JSON.stringify({ pinnedIds: input.value })
+              body: JSON.stringify((function () {
+                var values = { pinnedIds: input ? input.value : '' };
+                root.querySelectorAll('[data-cy-service-setting]').forEach(function (field) {
+                  var key = field.getAttribute('data-cy-service-setting');
+                  values[key] = field.type === 'checkbox' ? !!field.checked : field.value;
+                });
+                return values;
+              })())
             });
             var result = await response.json();
             if (!response.ok || !result.success) throw new Error(result.error || '保存失败');
@@ -199,17 +213,44 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     try { body = await request.json(); } catch {
       return { handled: true, response: json({ error: 'Invalid JSON' }, 400) };
     }
-    if (!body || typeof body !== 'object' || typeof (body as { pinnedIds?: unknown }).pinnedIds !== 'string') {
+    if (!body || typeof body !== 'object') {
+      return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
+    }
+    const values = body as Record<string, unknown>;
+    if (typeof values.pinnedIds !== 'string') {
       return { handled: true, response: json({ error: 'Invalid pinned IDs' }, 400) };
     }
+    for (let index = 1; index <= 10; index++) {
+      const suffix = String(index).padStart(2, '0');
+      for (const key of [`linktxt${suffix}`, `links${suffix}`]) {
+        if (values[key] !== undefined && typeof values[key] !== 'string') {
+          return { handled: true, response: json({ error: 'Invalid footer link settings' }, 400) };
+        }
+      }
+      const blankKey = `linkblank${suffix}`;
+      if (values[blankKey] !== undefined && typeof values[blankKey] !== 'boolean') {
+        return { handled: true, response: json({ error: 'Invalid footer link settings' }, 400) };
+      }
+    }
 
-    const ids = parsePinnedIds((body as { pinnedIds: string }).pinnedIds);
+    const ids = parsePinnedIds(values.pinnedIds);
     const normalized = ids.join(',');
     const current = parsePluginSettings(auth.options[LEGACY_OPTION_KEY]);
-    if (current.pinnedIds === normalized) {
+    const next: Record<string, unknown> = { ...current, pinnedIds: normalized };
+    for (let index = 1; index <= 10; index++) {
+      const suffix = String(index).padStart(2, '0');
+      for (const key of [`linktxt${suffix}`, `links${suffix}`]) {
+        if (typeof values[key] === 'string') next[key] = values[key];
+      }
+      const blankKey = `linkblank${suffix}`;
+      if (typeof values[blankKey] === 'boolean') next[blankKey] = values[blankKey] ? '1' : '0';
+    }
+    const unchanged = Object.keys(next).length === Object.keys(current).length
+      && Object.keys(next).every(key => current[key] === next[key]);
+    if (unchanged) {
       return { handled: true, response: json({ success: true, unchanged: true, pinnedIds: normalized }) };
     }
-    await setOption(auth.db, LEGACY_OPTION_KEY, JSON.stringify({ ...current, pinnedIds: normalized }));
+    await setOption(auth.db, LEGACY_OPTION_KEY, JSON.stringify(next));
     return { handled: true, response: json({ success: true, unchanged: false, pinnedIds: normalized }) };
   }, 20);
 }
