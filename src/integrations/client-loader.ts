@@ -12,7 +12,7 @@
  * no runtime overhead beyond <script src="...">.
  */
 import type { AstroIntegration } from 'astro';
-import { existsSync, readdirSync, mkdirSync, writeFileSync, statSync, cpSync } from 'node:fs';
+import { existsSync, readdirSync, mkdirSync, statSync, readFileSync, realpathSync } from 'node:fs';
 import { join, relative, dirname } from 'node:path';
 
 interface ClientSource {
@@ -77,6 +77,71 @@ function discoverPluginClients(rootDir: string): ClientSource[] {
   return sources;
 }
 
+/**
+ * Discover installed Typecho plugin client sources in node_modules.
+ * The server plugin loader supports npm/workspace packages; mirror that
+ * discovery here so their browser entrypoints are emitted as public assets too.
+ */
+function discoverInstalledPluginClients(rootDir: string): ClientSource[] {
+  const nodeModulesDir = join(rootDir, 'node_modules');
+  if (!existsSync(nodeModulesDir) || !statSync(nodeModulesDir).isDirectory()) return [];
+
+  const sources: ClientSource[] = [];
+  const seen = new Set<string>();
+
+  const addPackage = (packageName: string, packageDir: string) => {
+    try {
+      const realPackageDir = realpathSync(packageDir);
+      const pkgPath = join(realPackageDir, 'package.json');
+      if (!existsSync(pkgPath)) return;
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as Record<string, any>;
+      const keywords = Array.isArray(pkg.keywords)
+        ? pkg.keywords.map((value: unknown) => String(value).toLowerCase())
+        : [];
+      if (!keywords.includes('typecho') || !keywords.includes('plugin')) return;
+
+      const pluginId = String(pkg.typecho?.plugin?.id || packageName);
+      const clientDir = join(realPackageDir, 'client');
+      if (!existsSync(clientDir) || !statSync(clientDir).isDirectory()) return;
+
+      for (const entry of readdirSync(clientDir)) {
+        if (!entry.endsWith('.ts')) continue;
+        const sourcePath = join(clientDir, entry);
+        const key = pluginId + '/' + entry;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        sources.push({
+          sourcePath,
+          outDir: join(rootDir, 'public', 'plugin-assets', pluginId),
+          publicUrl: `/plugin-assets/${pluginId}/${entry.replace(/\\.ts$/, '.js')}`,
+        });
+      }
+    } catch {
+      // Ignore unrelated, malformed, or inaccessible packages.
+    }
+  };
+
+  for (const entry of readdirSync(nodeModulesDir)) {
+    if (entry.startsWith('.')) continue;
+    if (entry.startsWith('@')) {
+      const scopeDir = join(nodeModulesDir, entry);
+      try {
+        for (const scopedEntry of readdirSync(scopeDir)) {
+          if (!scopedEntry.startsWith('.')) {
+            addPackage(`${entry}/${scopedEntry}`, join(scopeDir, scopedEntry));
+          }
+        }
+      } catch {
+        continue;
+      }
+    } else {
+      addPackage(entry, join(nodeModulesDir, entry));
+    }
+  }
+
+  return sources;
+}
+
 async function compileAll(sources: ClientSource[], silent = false): Promise<void> {
   try {
     const esbuild = await import('esbuild');
@@ -118,6 +183,7 @@ export default function clientLoaderIntegration(): AstroIntegration {
         allSources = [
           ...discoverCoreClients(rootDir),
           ...discoverPluginClients(rootDir),
+          ...discoverInstalledPluginClients(rootDir),
         ];
 
         if (allSources.length > 0) {
@@ -127,7 +193,7 @@ export default function clientLoaderIntegration(): AstroIntegration {
           }
           await compileAll(allSources);
         } else {
-          console.log('[client-loader] No client sources found (src/client/ + src/plugins/*/client/)');
+          console.log('[client-loader] No client sources found (src/client/ + src/plugins/*/client/ + node_modules Typecho plugins)');
         }
       },
 
