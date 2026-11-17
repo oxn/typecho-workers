@@ -207,3 +207,40 @@
     margin-left: 63px;
   }
 }
+
+
+.cy-service-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 20px;
+}
+.cy-service-actions button {
+  min-height: 36px;
+  padding: 7px 16px;
+  border: 1px solid #269b63;
+  border-radius: 6px;
+  background: #269b63;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.cy-service-actions button:hover:not(:disabled) {
+  border-color: #1e8654;
+  background: #1e8654;
+}
+.cy-service-actions button:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+.cy-service-actions [data-cy-service-save-status] {
+  color: #269b63;
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .cy-service-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
