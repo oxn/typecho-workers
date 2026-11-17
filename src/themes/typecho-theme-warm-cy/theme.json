@@ -1,41 +1,32 @@
 {
-  "id": "typecho-theme-oxn",
-  "name": "Typecho oxn",
-  "description": "基于warm的独立主体。",
+  "id": "typecho-theme-warm-cy",
+  "name": "Typecho Warm CY",
+  "description": "基于 Typecho Warm 的独立自定义主题。",
   "author": "怸歪",
-  "version": "1.0.0",
+  "version": "2026.11.17.09.00",
   "stylesheet": "style.css",
-  "homepage": "https://github.com/oxn/typecho-workers/tree/1117/src/themes/typecho-theme-oxn",
+  "screenshot": "screenshot.png",
+  "homepage": "https://oook.top",
   "license": "MIT",
   "commentsMode": "api",
   "publicHtml": true,
-  "tags": ["warm", "minimal", "notes", "single-column"],
+  "tags": [
+    "warm",
+    "minimal",
+    "notes",
+    "single-column"
+  ],
   "config": {
-    "githubUrl": {
-      "type": "text",
-      "label": "GitHub 地址",
-      "default": ""
-    },
-    "socialUrl": {
-      "type": "text",
-      "label": "社交主页地址",
-      "default": ""
-    },
-    "email": {
-      "type": "text",
-      "label": "联系邮箱",
-      "default": ""
-    },
     "imageOptimizeParams": {
       "type": "text",
       "label": "图片优化参数",
-      "description": "适用于站内所有图片，示例：?quality=80",
+      "description": "图片优化参数，例如：?quality=80。留空表示不追加参数。",
       "default": ""
     },
     "thumbOptimizeParams": {
       "type": "text",
       "label": "缩略图优化参数",
-      "description": "适用于主题所有缩略图位置，示例：?quality=80&width=500",
+      "description": "缩略图优化参数，例如：?quality=80&width=500。留空表示不追加参数。",
       "default": ""
     },
     "continuousLoadMode": {

@@ -19,7 +19,7 @@ import { generateCommentToken, validateUnapprovedCommentToken } from '@/lib/auth
 import { resolveGravatarUrl } from '@/lib/gravatar';
 import { buildCommentPaginationSummary, loadCommentPage, type CommentPage } from '@/lib/comment-page';
 import type { RequestContext } from '@/lib/context';
-import { applyFilterSafely, type HookContext } from '@/lib/plugin';
+import type { HookContext } from '@/lib/plugin';
 import { canViewContent, publishedPostCondition } from '@/lib/content-visibility';
 import type {
   ThemeIndexProps, ThemePostProps, ThemePageProps, ThemeArchiveProps, ThemeNotFoundProps,
@@ -314,25 +314,6 @@ async function prepareArchiveData(
   const commonPromise = loadCommon(ctx, requestUrl);
   const page = getPage(locals, url);
   const pageSize = Math.max(1, Math.floor(Number(options.pageSize) || 5));
-  const selection = params.archiveType === 'index'
-    ? await applyFilterSafely(ctx, 'archive:select', { pinnedIds: [] }, {
-        archiveType: params.archiveType,
-        options,
-        requestUrl,
-      })
-    : { pinnedIds: [] };
-  const pinnedIds = Array.isArray(selection?.pinnedIds)
-    ? [...new Set(selection.pinnedIds.map(Number).filter((id: number) => Number.isSafeInteger(id) && id > 0))]
-    : [];
-  const archiveOrder = pinnedIds.length
-    ? [
-        sql`CASE ${schema.contents.cid} ${sql.join(
-          pinnedIds.map((id, index) => sql`WHEN ${id} THEN ${index}`),
-          sql` `,
-        )} ELSE ${pinnedIds.length} END`,
-        desc(schema.contents.created),
-      ]
-    : [desc(schema.contents.created)];
 
   // G7-5: every archive (index, category, tag, author, search) hides
   // posts whose `created` is in the future. The legacy code only
@@ -365,13 +346,13 @@ async function prepareArchiveData(
       return db.select({ content: publicPostColumns }).from(schema.contents)
         .innerJoin(schema.relationships, eq(schema.contents.cid, schema.relationships.cid))
         .where(countWhere)
-        .orderBy(...archiveOrder)
+        .orderBy(desc(schema.contents.created))
         .limit(pageSize + 1)
         .offset(offset);
     }
     return db.select(publicPostColumns).from(schema.contents)
       .where(countWhere)
-      .orderBy(...archiveOrder)
+      .orderBy(desc(schema.contents.created))
       .limit(pageSize + 1)
       .offset(offset);
   };
@@ -382,7 +363,6 @@ async function prepareArchiveData(
     page: requestedPage,
     pageSize,
     joinMid: params.joinMid ?? null,
-    pinnedIds: pinnedIds.length ? pinnedIds : null,
     baseUrl: params.archiveType === 'author' ? params.baseUrl : undefined,
   };
   const initialPostsPromise = params.archiveType === 'search'

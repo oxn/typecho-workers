@@ -1,12 +1,11 @@
 ---
 import { env } from 'cloudflare:workers';
 import { getDb, schema } from 'typecho/db';
-import { getNotesStreamForTheme, type NoteListItem } from 'typecho-plugin-notes';
-import { createContext } from '@/lib/context';
-import { optimizeContentImages } from '@/lib/image-transform';
-import { and, eq, inArray } from 'drizzle-orm';
+import type { NoteListItem } from 'typecho-plugin-notes';
+import { optimizeContentImages } from './warm-image';
+import { and, eq, inArray, lte } from 'drizzle-orm';
 import type { ThemeIndexProps, PostListItem } from '@/lib/theme-props';
-import { buildCategoryLink } from '@/lib/content';
+import { buildCategoryLink, buildPermalink, renderContentExcerpt } from 'typecho/plugin-sdk';
 import NotFound from './NotFound.astro';
 import WarmShell from './WarmShell.astro';
 import WarmStreamPagination from './WarmStreamPagination.astro';
@@ -58,8 +57,8 @@ let hasPrev = pagination.hasPrev;
 let hasNext = pagination.hasNext;
 
 if (notesEnabled && stream !== 'posts') {
-  const noteContext = await createContext(Astro.locals, Astro.request);
-  const notesDb = noteContext.db ?? getDb(env.DB);
+  const notesDb = getDb(env.DB);
+  const { getNotesStreamForTheme } = await import('typecho-plugin-notes');
   const result = await getNotesStreamForTheme(
     notesDb,
     stream,
@@ -127,6 +126,72 @@ const activeSection = stream === 'notes' ? 'notes' : stream === 'posts' ? 'artic
 const heading = stream === 'notes' ? '笔记' : stream === 'posts' ? '文章' : '';
 const settings = warmSettings(options);
 const baseUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
+
+// 首页置顶来自本主题的独立外观配置。直接按 ID 查询数据库，不能只在当前页 posts 上排序，
+// 否则原本位于后续页的文章无法出现在首页顶部。
+const isHomeListing = Astro.url.pathname === '/' && !topic && !requestedStream;
+const isHomepage = isHomeListing && pagination.currentPage === 1;
+const pinnedIds = isHomeListing ? settings.pinnedIds : [];
+const pinnedIdSet = new Set(pinnedIds);
+let pinnedItems: WarmPostItem[] = [];
+if (pinnedIds.length > 0) {
+  const pinDb = getDb(env.DB);
+  const now = Math.floor(Date.now() / 1000);
+  const pinnedRows = await pinDb.select({
+    cid: schema.contents.cid,
+    title: schema.contents.title,
+    slug: schema.contents.slug,
+    created: schema.contents.created,
+    text: schema.contents.text,
+    type: schema.contents.type,
+    status: schema.contents.status,
+  }).from(schema.contents).where(and(
+    inArray(schema.contents.cid, pinnedIds),
+    eq(schema.contents.type, 'post'),
+    eq(schema.contents.status, 'publish'),
+    lte(schema.contents.created, now),
+  ));
+  const rowById = new Map(pinnedRows.map(row => [Number(row.cid), row]));
+  const validIds = pinnedIds.filter(cid => rowById.has(cid));
+  const categoryById = new Map<number, PostListItem['categories']>();
+  if (validIds.length > 0) {
+    const categoryRows = await pinDb.select({
+      cid: schema.relationships.cid,
+      mid: schema.metas.mid,
+      name: schema.metas.name,
+      slug: schema.metas.slug,
+    }).from(schema.relationships)
+      .innerJoin(schema.metas, eq(schema.relationships.mid, schema.metas.mid))
+      .where(and(inArray(schema.relationships.cid, validIds), eq(schema.metas.type, 'category')));
+    for (const row of categoryRows) {
+      const cid = Number(row.cid);
+      const categories = categoryById.get(cid) || [];
+      categories.push({
+        name: row.name || '',
+        slug: row.slug || '',
+        permalink: buildCategoryLink(row.slug || '', urls.siteUrl, options.categoryPattern as string | undefined, row.mid),
+      });
+      categoryById.set(cid, categories);
+    }
+  }
+  pinnedItems = validIds.map(cid => {
+    const row = rowById.get(cid)!;
+    return {
+      type: 'post' as const,
+      cid,
+      title: row.title || '',
+      permalink: buildPermalink({ cid, slug: row.slug, type: row.type, created: row.created }, urls.siteUrl, options.permalinkPattern as string | undefined),
+      excerpt: plainExcerpt(renderContentExcerpt(row.text || '', ' - 阅读剩余部分 -', buildPermalink({ cid, slug: row.slug, type: row.type, created: row.created }, urls.siteUrl, options.permalinkPattern as string | undefined))),
+      created: Number(row.created || 0),
+      categories: categoryById.get(cid) || [],
+    };
+  });
+}
+// 排除所有页普通/混合流中的置顶文章，防止加载更多时重复；第一页再按设置顺序置顶。
+items = items.filter(item => item.type !== 'post' || !pinnedIdSet.has(Number(item.cid)));
+if (isHomepage && currentPage === 1 && pinnedItems.length > 0) {
+  items = [...pinnedItems, ...items];
+}
 const pageUrl = (page: number) => {
   const params = new URLSearchParams();
   if (stream !== 'mixed') params.set('stream', stream);
@@ -191,13 +256,14 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
       </article>
     ) : (
       <article class="warm-stream-item warm-post-card" data-content-type="post">
-        <a class="warm-stream-item__hit" href={item.permalink} aria-label={`阅读：${item.title}`}></a>
+        <a class="warm-stream-item__hit" href={item.permalink} data-no-instant aria-label={`阅读：${item.title}`}></a>
         <div class="warm-item-meta">
           <time datetime={new Date(item.created * 1000).toISOString()}>{formatWarmDate(item.created, options.postDateFormat, options.timezone)}</time>
           {item.categories[0] ? <span aria-hidden="true">·</span> : null}
           {item.categories[0] ? <a class="warm-category" href={item.categories[0].permalink}>{item.categories[0].name}</a> : null}
+          {isHomepage && pinnedIdSet.has(Number(item.cid)) && <span class="warm-pinned-badge" aria-label="置顶文章"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2.5h6l-.7 3.1 2.2 2.2v1H8.8v4.7l-.8.8-.8-.8V8.8H3.5v-1l2.2-2.2L5 2.5Z" fill="currentColor"/></svg>置顶</span>}
         </div>
-        <h2><a href={item.permalink}>{item.title}</a></h2>
+        <h2><a href={item.permalink} data-no-instant>{item.title}</a></h2>
         {item.excerpt && <p>{item.excerpt}</p>}
       </article>
     ))}
