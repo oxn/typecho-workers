@@ -1,6 +1,8 @@
 /* CY 服务插件设置页：样式仅作用于本插件容器，不依赖主题 CSS。 */
 .cy-service-settings {
   box-sizing: border-box;
+  width: 66.6667%;
+  margin-left: 16.6667%;
   padding-top: 4px;
   color: #34433a;
   font-size: 14px;
@@ -175,6 +177,12 @@
   height: 15px;
   margin: 0;
   accent-color: #269b63;
+}
+@media (max-width: 767px) {
+  .cy-service-settings {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 @media (max-width: 640px) {
   .cy-service-card {
