@@ -1,11 +1,8 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { pinyin } from 'pinyin-pro';
-import { parsePluginOption, registerPluginAdminPath } from 'typecho/plugin-sdk';
-import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
+import { parsePluginOption } from 'typecho/plugin-sdk';
+import type { PluginInitContext } from 'typecho/plugin-sdk';
 import { schema } from '@/db';
-import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 
-const ADMIN_PATH = '/api/admin/pinyin-slug';
 const SAVE_SLUG_PARAM = '__pinyinSlug';
 const DEFAULT_TITLE_LENGTH = 100;
 const DEFAULT_SLUG_LENGTH = 300;
@@ -39,46 +36,6 @@ function getConfig(options?: Record<string, unknown>): PinyinConfig {
   };
 }
 
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'private, no-store',
-    },
-  });
-}
-
-/**
- * Convert a title to a URL-safe ASCII slug.
- * Pinyin conversion stays in the Worker; the editor only sends the title.
- */
-export function titleToPinyinSlug(title: string, maxLength = DEFAULT_SLUG_LENGTH): string {
-  const source = title.trim();
-  if (!source) return '';
-
-  // Keep separators only where the original title contains whitespace,
-  // punctuation, or symbols. Pinyin syllables inside a continuous Han run
-  // are concatenated instead of being separated with hyphens.
-  const slug = source
-    .split(/([\s\p{P}\p{S}]+)/u)
-    .map((part) => {
-      if (!part) return '';
-      if (/^[\s\p{P}\p{S}]+$/u.test(part)) return '-';
-
-      return pinyin(part, { toneType: 'none', nonZh: 'consecutive' })
-        .replace(/\s+/g, '')
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-');
-    })
-    .join('')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-  return slug.slice(0, maxLength).replace(/-+$/g, '');
-}
 
 /** Normalize a manually edited slug using the same URL-safe character set. */
 function normalizeSlug(value: string, maxLength: number): string {
@@ -168,26 +125,36 @@ function editorHtml(
   titleMaxLength: number,
   slugMaxLength: number,
 ): string {
-  const initialSlug = JSON.stringify(currentSlug).replace(/</g, '\\u003c');
-  const cidValue = Number.isSafeInteger(currentCid) && currentCid > 0 ? String(currentCid) : '0';
+  const attrs = [
+    'data-form-name="' + formName + '"',
+    'data-initial-slug="' + escapeHtmlAttribute(currentSlug) + '"',
+    'data-current-cid="' + (Number.isSafeInteger(currentCid) && currentCid > 0 ? String(currentCid) : '0') + '"',
+    'data-allows-slug-edit="' + String(allowsSlugEdit) + '"',
+    'data-title-max-length="' + titleMaxLength + '"',
+    'data-slug-max-length="' + slugMaxLength + '"',
+  ].join(' ');
 
-  return `<script>
+  return `<script src="/plugin-assets/typecho-plugin-pinyin/pinyin-editor.js"></script>\n<script ${attrs}>
 (function () {
-  var form = document.forms.namedItem('${formName}');
+  var script = document.currentScript;
+  if (!script) return;
+
+  var formName = script.dataset.formName || '';
+  var form = document.forms.namedItem(formName);
   var title = document.getElementById('title');
   var permalinkRow = document.querySelector('p.url-slug');
   if (!form || !title || !permalinkRow || form.dataset.pinyinSlugReady === '1') return;
   form.dataset.pinyinSlugReady = '1';
 
-  title.maxLength = ${titleMaxLength};
-  var slug = document.getElementById('slug');
-  var initialSlug = ${initialSlug};
-  var currentCid = ${cidValue};
-  var allowsSlugEdit = ${allowsSlugEdit ? 'true' : 'false'};
+  var initialSlug = script.dataset.initialSlug || '';
+  var currentCid = Number(script.dataset.currentCid || 0);
+  var allowsSlugEdit = script.dataset.allowsSlugEdit === 'true';
+  var titleMaxLength = Number(script.dataset.titleMaxLength || 100);
+  var slugMaxLength = Number(script.dataset.slugMaxLength || 300);
 
-  // Keep the permalink and its slug controls on one responsive row. For ID
-  // permalinks the generated slug follows the complete URL; for slug-based
-  // permalinks the native input remains between the prefix and suffix.
+  title.maxLength = titleMaxLength;
+  var slug = document.getElementById('slug');
+
   permalinkRow.style.display = 'flex';
   permalinkRow.style.flexWrap = window.matchMedia('(max-width: 767px)').matches ? 'wrap' : 'nowrap';
   permalinkRow.style.alignItems = 'center';
@@ -204,8 +171,6 @@ function editorHtml(
 
     slug = document.createElement('input');
     slug.type = 'text';
-    // Use the native #slug ID so Typecho's original yellow input styling
-    // applies unchanged to this plugin-created control.
     slug.id = 'slug';
     slug.autocomplete = 'off';
     slug.className = 'mono';
@@ -213,7 +178,6 @@ function editorHtml(
     slug.placeholder = '输入缩略名';
     slug.setAttribute('aria-label', '缩略名');
     slug.style.cssText = 'box-sizing:border-box;flex:0 1 auto;width:120px;max-width:min(420px,100%);min-width:48px;white-space:nowrap;overflow:hidden;';
- 
     permalinkRow.appendChild(label);
     permalinkRow.appendChild(slug);
   } else {
@@ -224,17 +188,17 @@ function editorHtml(
     slug.style.minWidth = '48px';
     slug.style.overflow = 'hidden';
   }
-  slug.maxLength = ${slugMaxLength};
-  if (String(slug.value || '').length > ${slugMaxLength}) {
-    slug.value = String(slug.value || '').slice(0, ${slugMaxLength});
-  }
+
+  slug.maxLength = slugMaxLength;
+  if (slug.value.length > slugMaxLength) slug.value = slug.value.slice(0, slugMaxLength);
+
+  var measureCanvas = document.createElement('canvas');
 
   function updateSlugInputWidth() {
     var mobile = window.matchMedia('(max-width: 767px)').matches;
     permalinkRow.style.flexWrap = mobile ? 'wrap' : 'nowrap';
     var style = window.getComputedStyle(slug);
-    var canvas = updateSlugInputWidth.canvas || (updateSlugInputWidth.canvas = document.createElement('canvas'));
-    var context = canvas.getContext && canvas.getContext('2d');
+    var context = measureCanvas.getContext && measureCanvas.getContext('2d');
     var text = String(slug.value || slug.placeholder || '');
     var measured = 120;
     if (context) {
@@ -258,57 +222,32 @@ function editorHtml(
     var width = Math.max(48, Math.min(measured, available, 420));
     slug.style.width = width + 'px';
     slug.style.maxWidth = mobile ? '100%' : width + 'px';
-    slug.style.flex = mobile ? '0 1 auto' : '0 1 auto';
+    slug.style.flex = '0 1 auto';
   }
 
-  var csrf = form.querySelector('input[name="_"]');
   var lastGenerated = '';
   var manual = String(initialSlug || '').trim() !== '';
-  var sequence = 0;
-  var timer = 0;
-  var generationPromise = Promise.resolve();
-  var generationPending = false;
-  var lastGeneratedTitle = '';
 
   function generate(force) {
     var value = String(title.value || '').trim();
     if (!value || (!force && (manual || (slug.value && slug.value !== lastGenerated)))) {
       return Promise.resolve();
     }
-    var current = ++sequence;
-    generationPending = true;
-    generationPromise = fetch('${ADMIN_PATH}', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrf ? String(csrf.value || '') : ''
-      },
-      body: JSON.stringify({ title: value })
-    }).then(function (response) {
-      if (!response.ok) throw new Error('拼音缩略名生成失败');
-      return response.json();
-    }).then(function (data) {
-      if (current !== sequence || manual || String(title.value || '').trim() !== value) return;
-      if (typeof data.slug !== 'string' || !data.slug) return;
-      lastGenerated = data.slug;
-      lastGeneratedTitle = value;
-      slug.value = data.slug;
-      updateSlugInputWidth();
-      slug.dispatchEvent(new Event('change', { bubbles: true }));
-    }).catch(function () {
-      // Pinyin generation is an optional editor enhancement; never block saving.
-      if (current === sequence) lastGeneratedTitle = value;
-    }).then(function () {
-      if (current === sequence) generationPending = false;
-    });
-    return generationPromise;
+
+    if (typeof window.TypechoPinyinSlug !== 'function') return Promise.resolve();
+    var generated = window.TypechoPinyinSlug(value, slugMaxLength);
+    if (!generated) return Promise.resolve();
+
+    lastGenerated = generated;
+    slug.value = generated;
+    updateSlugInputWidth();
+    slug.dispatchEvent(new Event('change', { bubbles: true }));
+    return Promise.resolve();
   }
 
-  title.addEventListener('input', function () {
-    if (manual) return;
-    window.clearTimeout(timer);
-    timer = window.setTimeout(function () { generate(false); }, 500);
+  // Keep the 1117 behavior: generate only after leaving the title field.
+  title.addEventListener('blur', function () {
+    generate(false);
   });
 
   slug.addEventListener('input', function () {
@@ -327,8 +266,6 @@ function editorHtml(
   regenerate.style.cssText = 'flex:0 0 auto;white-space:nowrap;';
   permalinkRow.appendChild(regenerate);
 
-  // CID is useful only when the permalink already exposes an editable slug.
-  // ID-style permalinks show the complete URL first and omit this redundant ID.
   if (allowsSlugEdit) {
     var cid = document.createElement('span');
     cid.textContent = 'CID=' + (currentCid > 0 ? String(currentCid) : '保存后生成');
@@ -343,35 +280,18 @@ function editorHtml(
     slugRowObserver.observe(permalinkRow);
   }
 
-  form.addEventListener('submit', function (event) {
-    var currentTitle = String(title.value || '').trim();
-    if (!manual && currentTitle && (generationPending || currentTitle !== lastGeneratedTitle)) {
-      event.preventDefault();
-      window.clearTimeout(timer);
-      if (!generationPending) generate(false);
-      var submitter = event.submitter;
-      generationPromise.then(function () {
-        if (typeof form.requestSubmit === 'function') form.requestSubmit(submitter || undefined);
-        else form.submit();
-      });
-      return;
-    }
-
-    // Pass the requested value to the finishSave hook in both permalink modes.
-    // The native slug field still serves the core save flow when it is editable;
-    // this extra parameter lets the plugin enforce its configured limit afterward.
+  form.addEventListener('submit', function () {
     var value = String(slug.value || '').trim();
     var target = new URL(form.getAttribute('action') || '/api/admin/content', window.location.href);
-    if (value) target.searchParams.set('${SAVE_SLUG_PARAM}', value);
-    else target.searchParams.delete('${SAVE_SLUG_PARAM}');
+    if (value) target.searchParams.set('__pinyinSlug', value);
+    else target.searchParams.delete('__pinyinSlug');
     form.setAttribute('action', target.pathname + target.search + target.hash);
   });
-
-  if (!manual && !String(slug.value || '').trim()) {
-    generate(false);
-  }
 })();
 </script>`;
+}
+function escapeHtmlAttribute(value: string): string {
+  return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /** Plugin-owned settings presentation; embedded so disabling this plugin removes it. */
@@ -391,8 +311,6 @@ const pinyinAdminCss = [
 ].join('\n');
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
-  registerPluginAdminPath(ADMIN_PATH);
-
   addHook('admin:header', pluginId, (html: string, extra?: { title?: string }) => {
     if (extra?.title !== '设置插件 拼音别名') return html;
     return `${html}<style data-typecho-pinyin-admin>${pinyinAdminCss}</style>`;
@@ -453,45 +371,4 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     await persistSubmittedSlug(content, extra);
   });
 
-  addHook('route:request', pluginId, async (
-    result: PluginRouteResult,
-    extra?: { request?: Request; path?: string; options?: Record<string, unknown> }, 
-  ) => {
-    if (result?.handled || !extra?.request || extra.path !== ADMIN_PATH) return result;
-    const request = extra.request;
-
-    if (request.method !== 'POST') {
-      return { handled: true, response: json({ error: 'Method not allowed' }, 405) };
-    }
-
-    const auth = await requireAdminAction(request, 'editor');
-    if (isAdminActionResponse(auth)) {
-      return {
-        handled: true,
-        response: json({ error: auth.status === 401 ? 'Unauthorized' : 'Forbidden' }, auth.status),
-      };
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return { handled: true, response: json({ error: 'Invalid JSON' }, 400) };
-    }
-
-    if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      return { handled: true, response: json({ error: 'Invalid request' }, 400) };
-    }
-
-    const title = (body as { title?: unknown }).title;
-    const titleLength = getConfig(extra?.options).titleLength;
-    if (typeof title !== 'string' || !title.trim() || title.length > titleLength) {
-      return { handled: true, response: json({ error: `标题不能为空且不能超过 ${titleLength} 字` }, 400) };
-    }
-
-    return {
-      handled: true,
-      response: json({ success: true, slug: titleToPinyinSlug(title, getConfig(extra?.options).slugLength) }),
-    };
-  }, 20);
 }

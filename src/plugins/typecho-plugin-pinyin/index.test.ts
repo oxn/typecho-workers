@@ -1,22 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
+import { titleToPinyinSlug } from './client/pinyin-editor';
 
 const mocks = vi.hoisted(() => ({
-  registerPluginAdminPath: vi.fn(),
-  requireAdminAction: vi.fn(),
-  isAdminActionResponse: vi.fn(),
+  parsePluginOption: vi.fn((value: unknown) => {
+    if (typeof value === 'string') {
+      try { return JSON.parse(value); } catch { return {}; }
+    }
+    return value && typeof value === 'object' ? value : {};
+  }),
 }));
 
 vi.mock('typecho/plugin-sdk', () => ({
-  registerPluginAdminPath: mocks.registerPluginAdminPath,
+  parsePluginOption: mocks.parsePluginOption,
 }));
 
-vi.mock('@/lib/admin-auth', () => ({
-  requireAdminAction: mocks.requireAdminAction,
-  isAdminActionResponse: mocks.isAdminActionResponse,
-}));
-
-import init, { titleToPinyinSlug } from './index';
+import init from './index';
 
 function setup() {
   const hooks = new Map<string, (...args: any[]) => any>();
@@ -30,11 +29,9 @@ function setup() {
 }
 
 describe('typecho-plugin-pinyin', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  beforeEach(() => vi.clearAllMocks());
 
-  it('joins consecutive Chinese pinyin syllables and uses hyphens only for source separators', () => {
+  it('keeps the original pinyin conversion output in the client', () => {
     expect(titleToPinyinSlug('你好 Typecho')).toBe('nihao-typecho');
     expect(titleToPinyinSlug('中华人民共和国')).toBe('zhonghuarenmingongheguo');
     expect(titleToPinyinSlug('我的文章：标题')).toBe('wodewenzhang-biaoti');
@@ -42,136 +39,37 @@ describe('typecho-plugin-pinyin', () => {
     expect(titleToPinyinSlug('  ')).toBe('');
   });
 
-  it('respects the configured slug length and the 300-character default', () => {
+  it('respects the configured slug length and 300-character default', () => {
     expect(titleToPinyinSlug('a'.repeat(400))).toHaveLength(300);
     expect(titleToPinyinSlug('a'.repeat(20), 5)).toBe('aaaaa');
     expect(titleToPinyinSlug('你好', 3).length).toBeLessThanOrEqual(3);
   });
 
-  it('registers a dedicated admin route', () => {
-    setup();
-    expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith('/api/admin/pinyin-slug');
-  });
-
-  it('supports both slug-based and ID-based permalink editors', () => {
+  it('uses the browser pinyin bundle for both post and page editors', () => {
     const hooks = setup();
     const post = hooks.get('admin:writePost:bottom')!;
     const page = hooks.get('admin:writePage:bottom')!;
 
-    expect(post('', { options: { permalinkPattern: '/archives/{cid}/' } }))
-      .toContain('var allowsSlugEdit = false;');
-    expect(page('', { options: { pagePattern: '/archives/{cid}/' } }))
-      .toContain('var allowsSlugEdit = false;');
-    expect(page('', { options: { pagePattern: '/{slug}.html' } }))
-      .toContain('var allowsSlugEdit = true;');
-    expect(page('', { options: { pagePattern: '/{slug}.html' } }))
-      .toContain("textContent = '重新生成'");
-    expect(post('', { options: { permalinkPattern: '/{slug}/' }, post: { slug: 'existing-slug' } }))
-      .toContain('var initialSlug = "existing-slug";');
-    expect(post('', { options: { permalinkPattern: '/{slug}/' }, post: { slug: '' } }))
-      .toContain("var manual = String(initialSlug || '').trim() !== '';");
-    const editorHtml = post('', { options: { permalinkPattern: '/{slug}/' } });
-    expect(editorHtml).toContain("X-CSRF-Token");
-    expect(editorHtml).toContain('title.maxLength = 100;');
-    expect(editorHtml).toContain('slug.maxLength = 300;');
-    expect(editorHtml).toContain("target.searchParams.set('__pinyinSlug', value)");
+    const postHtml = post('', { options: { permalinkPattern: '/archives/{cid}/' } });
+    expect(postHtml).toContain('<script src="/plugin-assets/typecho-plugin-pinyin/pinyin-editor.js"></script>');
+    expect(postHtml).toContain('<script data-form-name="write_post"');
+    expect(postHtml).toContain("title.addEventListener('blur'");
+    expect(postHtml).toContain('window.TypechoPinyinSlug(value, slugMaxLength)');
+    expect(postHtml).not.toContain('fetch(');
+    expect(postHtml).toContain('data-allows-slug-edit="false"');
+    expect(postHtml).toContain('data-title-max-length="100"');
+    expect(postHtml).toContain('data-slug-max-length="300"');
+
+    const pageHtml = page('', { options: { pagePattern: '/{slug}.html' }, page: { slug: 'existing-slug' } });
+    expect(pageHtml).toContain('data-form-name="write_page"');
+    expect(pageHtml).toContain('data-allows-slug-edit="true"');
+    expect(pageHtml).toContain('data-initial-slug="existing-slug"');
   });
 
-  it('rejects non-POST requests without invoking the auth handler', async () => {
+  it('keeps the post and page finishSave hooks without a pinyin generation API', () => {
     const hooks = setup();
-    const route = hooks.get('route:request')!;
-    const result = await route(
-      { handled: false },
-      { path: '/api/admin/pinyin-slug', request: new Request('https://example.com/api/admin/pinyin-slug') },
-    );
-
-    expect(result.handled).toBe(true);
-    expect(result.response.status).toBe(405);
-    expect(mocks.requireAdminAction).not.toHaveBeenCalled();
-  });
-
-  it('uses the existing editor permission and admin-action security gate', async () => {
-    const hooks = setup();
-    const route = hooks.get('route:request')!;
-    const request = new Request('https://example.com/api/admin/pinyin-slug', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: '你好' }),
-    });
-    const forbidden = new Response('Forbidden', { status: 403 });
-    mocks.requireAdminAction.mockResolvedValue(forbidden);
-    mocks.isAdminActionResponse.mockReturnValue(true);
-
-    const result = await route({ handled: false }, { path: '/api/admin/pinyin-slug', request });
-
-    expect(mocks.requireAdminAction).toHaveBeenCalledWith(request, 'editor');
-    expect(result.handled).toBe(true);
-    expect(result.response.status).toBe(403);
-  });
-
-  it('rejects malformed JSON and oversized titles after authentication', async () => {
-    const hooks = setup();
-    const route = hooks.get('route:request')!;
-    mocks.requireAdminAction.mockResolvedValue({ user: { group: 'editor' } });
-    mocks.isAdminActionResponse.mockReturnValue(false);
-
-    const malformed = await route(
-      { handled: false },
-      {
-        path: '/api/admin/pinyin-slug',
-        request: new Request('https://example.com/api/admin/pinyin-slug', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'test-token' },
-          body: '{',
-        }),
-      },
-    );
-    expect(malformed.response.status).toBe(400);
-
-    const blank = await route(
-      { handled: false },
-      {
-        path: '/api/admin/pinyin-slug',
-        request: new Request('https://example.com/api/admin/pinyin-slug', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'test-token' },
-          body: JSON.stringify({ title: '   ' }),
-        }),
-      },
-    );
-    expect(blank.response.status).toBe(400);
-
-    const oversized = await route(
-      { handled: false },
-      {
-        path: '/api/admin/pinyin-slug',
-        request: new Request('https://example.com/api/admin/pinyin-slug', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'test-token' },
-          body: JSON.stringify({ title: 'a'.repeat(501) }),
-        }),
-      },
-    );
-    expect(oversized.response.status).toBe(400);
-  });
-
-  it('returns a slug after the existing editor security gate succeeds', async () => {
-    const hooks = setup();
-    const route = hooks.get('route:request')!;
-    const request = new Request('https://example.com/api/admin/pinyin-slug', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'test-token' },
-      body: JSON.stringify({ title: '你好 Typecho' }),
-    });
-    mocks.requireAdminAction.mockResolvedValue({ user: { group: 'editor' } });
-    mocks.isAdminActionResponse.mockReturnValue(false);
-
-    const result = await route({ handled: false }, { path: '/api/admin/pinyin-slug', request });
-    const payload = await result.response.json();
-
-    expect(mocks.requireAdminAction).toHaveBeenCalledWith(request, 'editor');
-    expect(result.handled).toBe(true);
-    expect(result.response.status).toBe(200);
-    expect(payload).toEqual({ success: true, slug: 'nihao-typecho' });
+    expect(hooks.has('post:finishSave')).toBe(true);
+    expect(hooks.has('page:finishSave')).toBe(true);
+    expect(hooks.has('route:request')).toBe(false);
   });
 });
