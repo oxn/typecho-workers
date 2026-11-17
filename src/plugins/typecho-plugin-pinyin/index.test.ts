@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
+import { titleToPinyinSlug } from './client/pinyin-editor';
 
 const mocks = vi.hoisted(() => ({
   parsePluginOption: vi.fn((value: unknown) => {
@@ -8,20 +9,13 @@ const mocks = vi.hoisted(() => ({
     }
     return value && typeof value === 'object' ? value : {};
   }),
-  registerPluginAdminPath: vi.fn(),
 }));
 
 vi.mock('typecho/plugin-sdk', () => ({
   parsePluginOption: mocks.parsePluginOption,
-  registerPluginAdminPath: mocks.registerPluginAdminPath,
 }));
 
-vi.mock('@/lib/admin-auth', () => ({
-  isAdminActionResponse: vi.fn(() => false),
-  requireAdminAction: vi.fn(async () => ({ ok: true })),
-}));
-
-import init, { titleToPinyinSlug } from './index';
+import init from './index';
 
 function setup() {
   const hooks = new Map<string, (...args: any[]) => any>();
@@ -37,7 +31,7 @@ function setup() {
 describe('typecho-plugin-pinyin', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('keeps the original pinyin conversion output', () => {
+  it('keeps the original pinyin conversion output in the client', () => {
     expect(titleToPinyinSlug('你好 Typecho')).toBe('nihao-typecho');
     expect(titleToPinyinSlug('中华人民共和国')).toBe('zhonghuarenmingongheguo');
     expect(titleToPinyinSlug('我的文章：标题')).toBe('wodewenzhang-biaoti');
@@ -51,32 +45,31 @@ describe('typecho-plugin-pinyin', () => {
     expect(titleToPinyinSlug('你好', 3).length).toBeLessThanOrEqual(3);
   });
 
-  it('inlines the editor script for both post and page editors', () => {
+  it('uses the browser pinyin bundle for both post and page editors', () => {
     const hooks = setup();
     const post = hooks.get('admin:writePost:bottom')!;
     const page = hooks.get('admin:writePage:bottom')!;
 
     const postHtml = post('', { options: { permalinkPattern: '/archives/{cid}/' } });
+    expect(postHtml).toContain('<script src="/plugin-assets/typecho-plugin-pinyin/pinyin-editor.js"></script>');
     expect(postHtml).toContain('<script data-form-name="write_post"');
     expect(postHtml).toContain("title.addEventListener('blur'");
-    expect(postHtml).toContain("fetch('/api/admin/pinyin-slug'");
+    expect(postHtml).toContain('window.TypechoPinyinSlug(value, slugMaxLength)');
+    expect(postHtml).not.toContain('fetch(');
     expect(postHtml).toContain('data-allows-slug-edit="false"');
     expect(postHtml).toContain('data-title-max-length="100"');
     expect(postHtml).toContain('data-slug-max-length="300"');
-    expect(postHtml).not.toContain('pinyin-editor.js');
 
     const pageHtml = page('', { options: { pagePattern: '/{slug}.html' }, page: { slug: 'existing-slug' } });
     expect(pageHtml).toContain('data-form-name="write_page"');
     expect(pageHtml).toContain('data-allows-slug-edit="true"');
     expect(pageHtml).toContain('data-initial-slug="existing-slug"');
-    expect(pageHtml).not.toContain('pinyin-editor.js');
   });
 
-  it('keeps the post and page finishSave hooks and registers the pinyin API route', () => {
+  it('keeps the post and page finishSave hooks without a pinyin generation API', () => {
     const hooks = setup();
     expect(hooks.has('post:finishSave')).toBe(true);
     expect(hooks.has('page:finishSave')).toBe(true);
-    expect(hooks.has('route:request')).toBe(true);
-    expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith('/api/admin/pinyin-slug');
+    expect(hooks.has('route:request')).toBe(false);
   });
 });
