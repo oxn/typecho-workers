@@ -10,7 +10,7 @@ type PinyinBrowserWindow = Window & {
  */
 const browserWindow = window as PinyinBrowserWindow;
 
-browserWindow.TypechoPinyinSlug = function titleToPinyinSlug(
+export function titleToPinyinSlug(
   title: string,
   maxLength = 300,
 ): string {
@@ -18,7 +18,7 @@ browserWindow.TypechoPinyinSlug = function titleToPinyinSlug(
   if (!source) return '';
 
   const slug = source
-    .split(/([\\s\\p{P}\\p{S}]+)/u)
+    .split(/([\s\p{P}\\p{S}]+)/u)
     .map((part) => {
       if (!part) return '';
       if (/^[\\s\\p{P}\\p{S}]+$/u.test(part)) return '-';
@@ -26,7 +26,7 @@ browserWindow.TypechoPinyinSlug = function titleToPinyinSlug(
       return pinyin(part, { toneType: 'none', nonZh: 'consecutive' })
         .replace(/\\s+/g, '')
         .normalize('NFKD')
-        .replace(/[\\u0300-\\u036f]/g, '')
+        .replace(/[\u0300-\\u036f]/g, '')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-');
     })
@@ -35,4 +35,8 @@ browserWindow.TypechoPinyinSlug = function titleToPinyinSlug(
     .replace(/^-+|-+$/g, '');
 
   return slug.slice(0, maxLength).replace(/-+$/g, '');
-};
+}
+
+if (typeof window !== 'undefined') {
+  browserWindow.TypechoPinyinSlug = titleToPinyinSlug;
+}
