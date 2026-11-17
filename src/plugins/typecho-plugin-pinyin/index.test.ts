@@ -8,14 +8,20 @@ const mocks = vi.hoisted(() => ({
     }
     return value && typeof value === 'object' ? value : {};
   }),
+  registerPluginAdminPath: vi.fn(),
 }));
 
 vi.mock('typecho/plugin-sdk', () => ({
   parsePluginOption: mocks.parsePluginOption,
+  registerPluginAdminPath: mocks.registerPluginAdminPath,
 }));
 
-import init from './index';
-import { titleToPinyinSlug } from './pinyin';
+vi.mock('@/lib/admin-auth', () => ({
+  isAdminActionResponse: vi.fn(() => false),
+  requireAdminAction: vi.fn(async () => ({ ok: true })),
+}));
+
+import init, { titleToPinyinSlug } from './index';
 
 function setup() {
   const hooks = new Map<string, (...args: any[]) => any>();
@@ -45,27 +51,32 @@ describe('typecho-plugin-pinyin', () => {
     expect(titleToPinyinSlug('你好', 3).length).toBeLessThanOrEqual(3);
   });
 
-  it('injects the bundled browser script for both post and page editors', () => {
+  it('inlines the editor script for both post and page editors', () => {
     const hooks = setup();
     const post = hooks.get('admin:writePost:bottom')!;
     const page = hooks.get('admin:writePage:bottom')!;
 
     const postHtml = post('', { options: { permalinkPattern: '/archives/{cid}/' } });
-    expect(postHtml).toContain('/plugin-assets/typecho-plugin-pinyin/pinyin-editor.js');
+    expect(postHtml).toContain('<script data-form-name="write_post"');
+    expect(postHtml).toContain("title.addEventListener('blur'");
+    expect(postHtml).toContain("fetch('/api/admin/pinyin-slug'");
     expect(postHtml).toContain('data-allows-slug-edit="false"');
     expect(postHtml).toContain('data-title-max-length="100"');
     expect(postHtml).toContain('data-slug-max-length="300"');
+    expect(postHtml).not.toContain('pinyin-editor.js');
 
     const pageHtml = page('', { options: { pagePattern: '/{slug}.html' }, page: { slug: 'existing-slug' } });
+    expect(pageHtml).toContain('data-form-name="write_page"');
     expect(pageHtml).toContain('data-allows-slug-edit="true"');
     expect(pageHtml).toContain('data-initial-slug="existing-slug"');
-    expect(pageHtml).toContain('/plugin-assets/typecho-plugin-pinyin/pinyin-editor.js');
+    expect(pageHtml).not.toContain('pinyin-editor.js');
   });
 
-  it('keeps the original post and page finishSave hooks for duplicate handling', () => {
+  it('keeps the post and page finishSave hooks and registers the pinyin API route', () => {
     const hooks = setup();
     expect(hooks.has('post:finishSave')).toBe(true);
     expect(hooks.has('page:finishSave')).toBe(true);
-    expect(hooks.has('route:request')).toBe(false);
+    expect(hooks.has('route:request')).toBe(true);
+    expect(mocks.registerPluginAdminPath).toHaveBeenCalledWith('/api/admin/pinyin-slug');
   });
 });
