@@ -4,8 +4,6 @@ type PinyinBrowserWindow = Window & {
   TypechoPinyinSlug?: (title: string, maxLength?: number) => string;
 };
 
-const browserWindow = window as PinyinBrowserWindow;
-
 export function titleToPinyinSlug(title: string, maxLength = 300): string {
   const source = String(title || '').trim();
   if (!source) return '';
@@ -31,5 +29,5 @@ export function titleToPinyinSlug(title: string, maxLength = 300): string {
 }
 
 if (typeof window !== 'undefined') {
-  browserWindow.TypechoPinyinSlug = titleToPinyinSlug;
+  (window as PinyinBrowserWindow).TypechoPinyinSlug = titleToPinyinSlug;
 }
