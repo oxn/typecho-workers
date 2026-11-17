@@ -4,16 +4,6 @@ import adminCss from './admin.css?raw';
 const ADMIN_PAGE_SLUG = 'cy-service';
 const PLUGIN_VERSION = '0.1.0';
 
-function escapeHtml(value: unknown): string {
-  return String(value ?? '').replace(/[&<>"']/g, character => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  })[character] || character);
-}
-
 function pageHtml(): string {
   const linkRows = Array.from({ length: 10 }, (_, index) => {
     const number = index + 1;
