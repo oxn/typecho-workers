@@ -1,0 +1,209 @@
+/* CY 服务插件设置页：样式仅作用于本插件容器，不依赖主题 CSS。 */
+.cy-service-settings {
+  box-sizing: border-box;
+  width: 66.6667%;
+  margin-left: 16.6667%;
+  padding-top: 4px;
+  color: #34433a;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.cy-service-settings *,
+.cy-service-settings *::before,
+.cy-service-settings *::after {
+  box-sizing: border-box;
+}
+.cy-service-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 18px;
+}
+.cy-service-header > strong {
+  color: #26352d;
+  font-size: 16px;
+  font-weight: 700;
+}
+.cy-service-version {
+  color: #77817b;
+  font-size: 13px;
+}
+.cy-service-header > a {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border: 1px solid #dce4df;
+  border-radius: 7px;
+  background: #fff;
+  color: #269b63;
+  text-decoration: none;
+  font-size: 13px;
+}
+.cy-service-header > a:hover {
+  border-color: #269b63;
+  background: #f5fbf7;
+}
+.cy-service-card {
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border: 1px solid #e5e9e7;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 2px 9px rgba(20, 40, 30, .035);
+}
+.cy-service-field-head {
+  margin: 0 0 9px;
+}
+.cy-service-field-head > label {
+  display: block;
+  margin: 0 0 5px;
+  color: #26352d;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.6;
+}
+.cy-service-description {
+  margin: 0;
+  color: #77817b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.cy-service-description strong {
+  color: #46534b;
+  font-weight: 600;
+}
+.cy-service-description code {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #f3f6f4;
+  color: #46534b;
+  font-size: 12px;
+}
+.cy-service-settings input[type="text"],
+.cy-service-settings textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #dce4df;
+  border-radius: 6px;
+  background: #fff;
+  color: #34433a;
+  font: inherit;
+  line-height: 1.6;
+  box-shadow: none;
+}
+.cy-service-settings textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+.cy-service-settings input:focus,
+.cy-service-settings textarea:focus {
+  border-color: #269b63;
+  outline: 1px solid rgba(38, 155, 99, .16);
+  box-shadow: 0 0 0 2px rgba(38, 155, 99, .08);
+}
+.cy-service-links-group {
+  margin: 0 0 22px;
+  padding: 16px 18px 8px;
+  border: 1px solid #e5e9e7;
+  border-radius: 9px;
+  background: #fff;
+}
+.cy-service-links-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+  margin: 0 0 12px;
+  padding: 0 0 11px;
+  border-bottom: 1px solid #dfe6e1;
+  text-align: left;
+}
+.cy-service-links-heading strong {
+  color: #26352d;
+  font-size: 15px;
+  font-weight: 650;
+}
+.cy-service-links-heading span {
+  color: #77817b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.cy-service-link-row {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid #e8ece9;
+}
+.cy-service-link-row:last-child {
+  border-bottom: 0;
+}
+.cy-service-link-text-line,
+.cy-service-link-url-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.cy-service-link-text-line > label:first-child,
+.cy-service-link-url-line > label {
+  flex: 0 0 62px;
+  color: #46534b;
+  font-size: 13px;
+  text-align: left;
+}
+.cy-service-link-text-line > input,
+.cy-service-link-url-line > input {
+  flex: 1 1 auto;
+  width: 1%;
+}
+.cy-service-new-window {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  color: #56635b;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cy-service-new-window input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #269b63;
+}
+@media (max-width: 767px) {
+  .cy-service-settings {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+@media (max-width: 640px) {
+  .cy-service-card {
+    padding: 14px;
+  }
+  .cy-service-links-group {
+    padding: 14px 14px 6px;
+  }
+  .cy-service-links-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .cy-service-link-text-line {
+    flex-wrap: wrap;
+  }
+  .cy-service-link-text-line > label:first-child,
+  .cy-service-link-url-line > label {
+    flex-basis: 54px;
+  }
+  .cy-service-new-window {
+    margin-left: 63px;
+  }
+}
