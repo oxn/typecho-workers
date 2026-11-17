@@ -1,8 +1,8 @@
 {
   "id": "typecho-theme-oxn",
-  "name": "Typecho OXN",
-  "description": "静谧温润的单栏写作主题，支持文章与笔记混合时间线。",
-  "author": "Tokinx",
+  "name": "Typecho oxn",
+  "description": "基于warm的独立主体。",
+  "author": "怸歪",
   "version": "1.0.0",
   "stylesheet": "style.css",
   "homepage": "https://github.com/oxn/typecho-workers/tree/1117/src/themes/typecho-theme-oxn",
