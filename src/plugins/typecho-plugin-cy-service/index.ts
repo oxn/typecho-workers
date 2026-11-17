@@ -1,5 +1,5 @@
 import type { PluginInitContext } from 'typecho/plugin-sdk';
-import adminCss from './admin.css?raw';
+import adminCss from './cy-service-settings.css?raw';
 
 const ADMIN_PAGE_SLUG = 'cy-service';
 const PLUGIN_VERSION = '0.1.0';
