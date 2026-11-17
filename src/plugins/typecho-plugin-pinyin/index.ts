@@ -1,12 +1,9 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { parsePluginOption, registerPluginAdminPath } from 'typecho/plugin-sdk';
-import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
-import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
-import { pinyin } from 'pinyin-pro';
+import { parsePluginOption } from 'typecho/plugin-sdk';
+import type { PluginInitContext } from 'typecho/plugin-sdk';
 import { schema } from '@/db';
 
 const SAVE_SLUG_PARAM = '__pinyinSlug';
-const ADMIN_PATH = '/api/admin/pinyin-slug';
 const DEFAULT_TITLE_LENGTH = 100;
 const DEFAULT_SLUG_LENGTH = 300;
 const DEFAULT_SLUG_ATTEMPTS = 50;
@@ -39,35 +36,6 @@ function getConfig(options?: Record<string, unknown>): PinyinConfig {
   };
 }
 
-
-/** Convert a title to a URL-safe ASCII pinyin slug. */
-export function titleToPinyinSlug(title: string, maxLength = DEFAULT_SLUG_LENGTH): string {
-  const source = title.trim();
-  if (!source) return '';
-  const slug = source
-    .split(/([\s\p{P}\p{S}]+)/u)
-    .map((part) => {
-      if (!part) return '';
-      if (/^[\s\p{P}\p{S}]+$/u.test(part)) return '-';
-      return pinyin(part, { toneType: 'none', nonZh: 'consecutive' })
-        .replace(/\s+/g, '')
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-');
-    })
-    .join('')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return slug.slice(0, maxLength).replace(/-+$/g, '');
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, no-store' },
-  });
-}
 
 /** Normalize a manually edited slug using the same URL-safe character set. */
 function normalizeSlug(value: string, maxLength: number): string {
@@ -166,7 +134,7 @@ function editorHtml(
     'data-slug-max-length="' + slugMaxLength + '"',
   ].join(' ');
 
-  return `<script ${attrs}>
+  return `<script src="/plugin-assets/typecho-plugin-pinyin/pinyin-editor.js"></script>\n<script ${attrs}>
 (function () {
   var script = document.currentScript;
   if (!script) return;
@@ -257,11 +225,8 @@ function editorHtml(
     slug.style.flex = '0 1 auto';
   }
 
-  var csrf = form.querySelector('input[name="_"]');
   var lastGenerated = '';
   var manual = String(initialSlug || '').trim() !== '';
-  var generationSequence = 0;
-  var generationPromise = Promise.resolve();
 
   function generate(force) {
     var value = String(title.value || '').trim();
@@ -269,30 +234,15 @@ function editorHtml(
       return Promise.resolve();
     }
 
-    var sequence = ++generationSequence;
-    generationPromise = fetch('${ADMIN_PATH}', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrf ? String(csrf.value || '') : ''
-      },
-      body: JSON.stringify({ title: value })
-    }).then(function (response) {
-      if (!response.ok) throw new Error('拼音缩略名生成失败');
-      return response.json();
-    }).then(function (data) {
-      if (sequence !== generationSequence || manual || String(title.value || '').trim() !== value) return;
-      if (typeof data.slug !== 'string' || !data.slug) return;
-      lastGenerated = data.slug;
-      slug.value = data.slug;
-      updateSlugInputWidth();
-      slug.dispatchEvent(new Event('change', { bubbles: true }));
-    }).catch(function () {
-      // Pinyin generation is optional; never block saving.
-    });
+    if (typeof window.TypechoPinyinSlug !== 'function') return Promise.resolve();
+    var generated = window.TypechoPinyinSlug(value, slugMaxLength);
+    if (!generated) return Promise.resolve();
 
-    return generationPromise;
+    lastGenerated = generated;
+    slug.value = generated;
+    updateSlugInputWidth();
+    slug.dispatchEvent(new Event('change', { bubbles: true }));
+    return Promise.resolve();
   }
 
   // Keep the 1117 behavior: generate only after leaving the title field.
@@ -361,7 +311,6 @@ const pinyinAdminCss = [
 ].join('\n');
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
-  registerPluginAdminPath(ADMIN_PATH);
   addHook('admin:header', pluginId, (html: string, extra?: { title?: string }) => {
     if (extra?.title !== '设置插件 拼音别名') return html;
     return `${html}<style data-typecho-pinyin-admin>${pinyinAdminCss}</style>`;
@@ -421,45 +370,5 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('page:finishSave', pluginId, async (content: Record<string, any>, extra?: SaveExtra) => {
     await persistSubmittedSlug(content, extra);
   });
-
-  addHook('route:request', pluginId, async (
-    result: PluginRouteResult,
-    extra?: { request?: Request; path?: string; options?: Record<string, unknown> },
-  ) => {
-    if (result?.handled || !extra?.request || extra.path !== ADMIN_PATH) return result;
-    const request = extra.request;
-    if (request.method !== 'POST') {
-      return { handled: true, response: json({ error: 'Method not allowed' }, 405) };
-    }
-
-    const auth = await requireAdminAction(request, 'editor');
-    if (isAdminActionResponse(auth)) {
-      return {
-        handled: true,
-        response: json({ error: auth.status === 401 ? 'Unauthorized' : 'Forbidden' }, auth.status),
-      };
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return { handled: true, response: json({ error: 'Invalid JSON' }, 400) };
-    }
-    if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      return { handled: true, response: json({ error: 'Invalid request' }, 400) };
-    }
-
-    const title = (body as { title?: unknown }).title;
-    const titleLength = getConfig(extra.options).titleLength;
-    if (typeof title !== 'string' || !title.trim() || title.length > titleLength) {
-      return { handled: true, response: json({ error: `标题不能为空且不能超过 ${titleLength} 字` }, 400) };
-    }
-
-    return {
-      handled: true,
-      response: json({ success: true, slug: titleToPinyinSlug(title, getConfig(extra.options).slugLength) }),
-    };
-  }, 20);
 
 }
