@@ -1,9 +1,12 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { parsePluginOption } from 'typecho/plugin-sdk';
-import type { PluginInitContext } from 'typecho/plugin-sdk';
+import { parsePluginOption, registerPluginAdminPath } from 'typecho/plugin-sdk';
+import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
+import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
+import { pinyin } from 'pinyin-pro';
 import { schema } from '@/db';
 
 const SAVE_SLUG_PARAM = '__pinyinSlug';
+const ADMIN_PATH = '/api/admin/pinyin-slug';
 const DEFAULT_TITLE_LENGTH = 100;
 const DEFAULT_SLUG_LENGTH = 300;
 const DEFAULT_SLUG_ATTEMPTS = 50;
@@ -34,6 +37,36 @@ function getConfig(options?: Record<string, unknown>): PinyinConfig {
     slugLength: boundedInteger(raw.slugLength, DEFAULT_SLUG_LENGTH, 1, 1000),
     slugAttempts: boundedInteger(raw.slugAttempts, DEFAULT_SLUG_ATTEMPTS, 1, 200),
   };
+}
+
+
+/** Convert a title to a URL-safe ASCII pinyin slug. */
+function titleToPinyinSlug(title: string, maxLength: number): string {
+  const source = title.trim();
+  if (!source) return '';
+  const slug = source
+    .split(/([\\s\\p{P}\\p{S}]+)/u)
+    .map((part) => {
+      if (!part) return '';
+      if (/^[\\s\\p{P}\\p{S}]+$/u.test(part)) return '-';
+      return pinyin(part, { toneType: 'none', nonZh: 'consecutive' })
+        .replace(/\\s+/g, '')
+        .normalize('NFKD')
+        .replace(/[\\u0300-\\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-');
+    })
+    .join('')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug.slice(0, maxLength).replace(/-+$/g, '');
+}
+
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, no-store' },
+  });
 }
 
 /** Normalize a manually edited slug using the same URL-safe character set. */
@@ -125,7 +158,6 @@ function editorHtml(
   slugMaxLength: number,
 ): string {
   const attrs = [
-    'src="/plugin-assets/typecho-plugin-pinyin/pinyin-editor.js"',
     'data-form-name="' + formName + '"',
     'data-initial-slug="' + escapeHtmlAttribute(currentSlug) + '"',
     'data-current-cid="' + (Number.isSafeInteger(currentCid) && currentCid > 0 ? String(currentCid) : '0') + '"',
@@ -133,9 +165,181 @@ function editorHtml(
     'data-title-max-length="' + titleMaxLength + '"',
     'data-slug-max-length="' + slugMaxLength + '"',
   ].join(' ');
-  return '<script ' + attrs + '></script>';
-}
 
+  return `<script ${attrs}>
+(function () {
+  var script = document.currentScript;
+  if (!script) return;
+
+  var formName = script.dataset.formName || '';
+  var form = document.forms.namedItem(formName);
+  var title = document.getElementById('title');
+  var permalinkRow = document.querySelector('p.url-slug');
+  if (!form || !title || !permalinkRow || form.dataset.pinyinSlugReady === '1') return;
+  form.dataset.pinyinSlugReady = '1';
+
+  var initialSlug = script.dataset.initialSlug || '';
+  var currentCid = Number(script.dataset.currentCid || 0);
+  var allowsSlugEdit = script.dataset.allowsSlugEdit === 'true';
+  var titleMaxLength = Number(script.dataset.titleMaxLength || 100);
+  var slugMaxLength = Number(script.dataset.slugMaxLength || 300);
+
+  title.maxLength = titleMaxLength;
+  var slug = document.getElementById('slug');
+
+  permalinkRow.style.display = 'flex';
+  permalinkRow.style.flexWrap = window.matchMedia('(max-width: 767px)').matches ? 'wrap' : 'nowrap';
+  permalinkRow.style.alignItems = 'center';
+  permalinkRow.style.gap = '8px';
+  permalinkRow.style.maxWidth = '100%';
+  permalinkRow.style.minWidth = '0';
+  permalinkRow.style.overflowX = 'hidden';
+
+  if (!slug) {
+    var label = document.createElement('label');
+    label.htmlFor = 'slug';
+    label.textContent = '缩略名';
+    label.style.cssText = 'flex:0 0 auto;margin-left:2px;';
+
+    slug = document.createElement('input');
+    slug.type = 'text';
+    slug.id = 'slug';
+    slug.autocomplete = 'off';
+    slug.className = 'mono';
+    slug.value = initialSlug;
+    slug.placeholder = '输入缩略名';
+    slug.setAttribute('aria-label', '缩略名');
+    slug.style.cssText = 'box-sizing:border-box;flex:0 1 auto;width:120px;max-width:min(420px,100%);min-width:48px;white-space:nowrap;overflow:hidden;';
+    permalinkRow.appendChild(label);
+    permalinkRow.appendChild(slug);
+  } else {
+    slug.style.boxSizing = 'border-box';
+    slug.style.flex = '0 1 auto';
+    slug.style.width = '120px';
+    slug.style.maxWidth = 'min(420px,100%)';
+    slug.style.minWidth = '48px';
+    slug.style.overflow = 'hidden';
+  }
+
+  slug.maxLength = slugMaxLength;
+  if (slug.value.length > slugMaxLength) slug.value = slug.value.slice(0, slugMaxLength);
+
+  var measureCanvas = document.createElement('canvas');
+
+  function updateSlugInputWidth() {
+    var mobile = window.matchMedia('(max-width: 767px)').matches;
+    permalinkRow.style.flexWrap = mobile ? 'wrap' : 'nowrap';
+    var style = window.getComputedStyle(slug);
+    var context = measureCanvas.getContext && measureCanvas.getContext('2d');
+    var text = String(slug.value || slug.placeholder || '');
+    var measured = 120;
+    if (context) {
+      context.font = style.font;
+      measured = Math.ceil(context.measureText(text).width) +
+        (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0) +
+        (parseFloat(style.borderLeftWidth) || 0) + (parseFloat(style.borderRightWidth) || 0) + 14;
+    }
+
+    var available = Math.max(48, permalinkRow.clientWidth);
+    if (!mobile) {
+      var siblingsWidth = 0;
+      Array.prototype.forEach.call(permalinkRow.children, function (child) {
+        if (child !== slug) siblingsWidth += child.getBoundingClientRect().width;
+      });
+      var gap = parseFloat(window.getComputedStyle(permalinkRow).columnGap) || 0;
+      available = Math.max(48, permalinkRow.clientWidth - siblingsWidth -
+        gap * Math.max(0, permalinkRow.children.length - 1) - 2);
+    }
+
+    var width = Math.max(48, Math.min(measured, available, 420));
+    slug.style.width = width + 'px';
+    slug.style.maxWidth = mobile ? '100%' : width + 'px';
+    slug.style.flex = '0 1 auto';
+  }
+
+  var csrf = form.querySelector('input[name="_"]');
+  var lastGenerated = '';
+  var manual = String(initialSlug || '').trim() !== '';
+  var generationSequence = 0;
+  var generationPromise = Promise.resolve();
+
+  function generate(force) {
+    var value = String(title.value || '').trim();
+    if (!value || (!force && (manual || (slug.value && slug.value !== lastGenerated)))) {
+      return Promise.resolve();
+    }
+
+    var sequence = ++generationSequence;
+    generationPromise = fetch('${ADMIN_PATH}', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf ? String(csrf.value || '') : ''
+      },
+      body: JSON.stringify({ title: value })
+    }).then(function (response) {
+      if (!response.ok) throw new Error('拼音缩略名生成失败');
+      return response.json();
+    }).then(function (data) {
+      if (sequence !== generationSequence || manual || String(title.value || '').trim() !== value) return;
+      if (typeof data.slug !== 'string' || !data.slug) return;
+      lastGenerated = data.slug;
+      slug.value = data.slug;
+      updateSlugInputWidth();
+      slug.dispatchEvent(new Event('change', { bubbles: true }));
+    }).catch(function () {
+      // Pinyin generation is optional; never block saving.
+    });
+
+    return generationPromise;
+  }
+
+  // Keep the 1117 behavior: generate only after leaving the title field.
+  title.addEventListener('blur', function () {
+    generate(false);
+  });
+
+  slug.addEventListener('input', function () {
+    if (String(slug.value || '') !== lastGenerated) manual = true;
+    updateSlugInputWidth();
+  });
+
+  var regenerate = document.createElement('button');
+  regenerate.type = 'button';
+  regenerate.className = 'btn btn-xs';
+  regenerate.textContent = '重新生成';
+  regenerate.addEventListener('click', function () {
+    manual = false;
+    generate(true);
+  });
+  regenerate.style.cssText = 'flex:0 0 auto;white-space:nowrap;';
+  permalinkRow.appendChild(regenerate);
+
+  if (allowsSlugEdit) {
+    var cid = document.createElement('span');
+    cid.textContent = 'CID=' + (currentCid > 0 ? String(currentCid) : '保存后生成');
+    cid.style.cssText = 'color:#999;font-size:12px;white-space:nowrap;margin-left:2px;';
+    permalinkRow.appendChild(cid);
+  }
+
+  updateSlugInputWidth();
+  window.addEventListener('resize', updateSlugInputWidth);
+  if (window.ResizeObserver) {
+    var slugRowObserver = new ResizeObserver(updateSlugInputWidth);
+    slugRowObserver.observe(permalinkRow);
+  }
+
+  form.addEventListener('submit', function () {
+    var value = String(slug.value || '').trim();
+    var target = new URL(form.getAttribute('action') || '/api/admin/content', window.location.href);
+    if (value) target.searchParams.set('__pinyinSlug', value);
+    else target.searchParams.delete('__pinyinSlug');
+    form.setAttribute('action', target.pathname + target.search + target.hash);
+  });
+})();
+</script>`;
+}
 function escapeHtmlAttribute(value: string): string {
   return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -157,6 +361,7 @@ const pinyinAdminCss = [
 ].join('\n');
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
+  registerPluginAdminPath(ADMIN_PATH);
   addHook('admin:header', pluginId, (html: string, extra?: { title?: string }) => {
     if (extra?.title !== '设置插件 拼音别名') return html;
     return `${html}<style data-typecho-pinyin-admin>${pinyinAdminCss}</style>`;
@@ -216,5 +421,45 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('page:finishSave', pluginId, async (content: Record<string, any>, extra?: SaveExtra) => {
     await persistSubmittedSlug(content, extra);
   });
+
+  addHook('route:request', pluginId, async (
+    result: PluginRouteResult,
+    extra?: { request?: Request; path?: string; options?: Record<string, unknown> },
+  ) => {
+    if (result?.handled || !extra?.request || extra.path !== ADMIN_PATH) return result;
+    const request = extra.request;
+    if (request.method !== 'POST') {
+      return { handled: true, response: json({ error: 'Method not allowed' }, 405) };
+    }
+
+    const auth = await requireAdminAction(request, 'editor');
+    if (isAdminActionResponse(auth)) {
+      return {
+        handled: true,
+        response: json({ error: auth.status === 401 ? 'Unauthorized' : 'Forbidden' }, auth.status),
+      };
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return { handled: true, response: json({ error: 'Invalid JSON' }, 400) };
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return { handled: true, response: json({ error: 'Invalid request' }, 400) };
+    }
+
+    const title = (body as { title?: unknown }).title;
+    const titleLength = getConfig(extra.options).titleLength;
+    if (typeof title !== 'string' || !title.trim() || title.length > titleLength) {
+      return { handled: true, response: json({ error: `标题不能为空且不能超过 ${titleLength} 字` }, 400) };
+    }
+
+    return {
+      handled: true,
+      response: json({ success: true, slug: titleToPinyinSlug(title, getConfig(extra.options).slugLength) }),
+    };
+  }, 20);
 
 }
