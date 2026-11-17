@@ -57,12 +57,13 @@ import { titleToPinyinSlug } from '../pinyin';
   slug.maxLength = slugMaxLength;
   if (slug.value.length > slugMaxLength) slug.value = slug.value.slice(0, slugMaxLength);
 
+  var measureCanvas = document.createElement('canvas');
+
   function updateSlugInputWidth() {
     var mobile = window.matchMedia('(max-width: 767px)').matches;
     permalinkRow!.style.flexWrap = mobile ? 'wrap' : 'nowrap';
     var style = window.getComputedStyle(slug!);
-    var canvas = updateSlugInputWidth.canvas || (updateSlugInputWidth.canvas = document.createElement('canvas'));
-    var context = canvas.getContext && canvas.getContext('2d');
+    var context = measureCanvas.getContext && measureCanvas.getContext('2d');
     var text = String(slug!.value || slug!.placeholder || '');
     var measured = 120;
     if (context) {
@@ -88,7 +89,6 @@ import { titleToPinyinSlug } from '../pinyin';
     slug!.style.maxWidth = mobile ? '100%' : width + 'px';
     slug!.style.flex = '0 1 auto';
   }
-  (updateSlugInputWidth as any).canvas = null;
 
   var lastGenerated = '';
   var manual = String(initialSlug || '').trim() !== '';

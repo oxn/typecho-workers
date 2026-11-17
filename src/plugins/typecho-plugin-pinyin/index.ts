@@ -1,3 +1,4 @@
+import { and, eq, sql } from 'drizzle-orm';
 import { parsePluginOption } from 'typecho/plugin-sdk';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
 import { schema } from '@/db';
@@ -64,6 +65,20 @@ export function titleToPinyinSlug(title: string, maxLength = DEFAULT_SLUG_LENGTH
     .replace(/^-+|-+$/g, '');
 
   return slug.slice(0, maxLength).replace(/-+$/g, '');
+}
+
+/** Normalize a manually edited slug using the same URL-safe character set. */
+function normalizeSlug(value: string, maxLength: number): string {
+  return value
+    .trim()
+    .normalize('NFKD')
+    .replace(/[\\u0300-\\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, maxLength)
+    .replace(/-+$/g, '');
 }
 
 /**
