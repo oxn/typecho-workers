@@ -123,7 +123,7 @@ function pageHtml(csrfToken: string, rawSettings: unknown, rawThemeSettings: unk
       </main>
 
       <div class="cy-service-actions">
-        <button type="button" data-cy-service-save>保存设置</button>
+        <button type="button" data-cy-service-save>保存置顶设置</button>
         <span data-cy-service-save-status role="status" aria-live="polite"></span>
       </div>
     </div>
