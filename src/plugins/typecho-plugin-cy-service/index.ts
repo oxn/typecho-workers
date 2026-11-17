@@ -7,7 +7,6 @@ const ADMIN_PAGE_SLUG = 'cy-service';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-service-settings';
 const LEGACY_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
 const THEME_OPTION_KEY = 'theme:typecho-theme-warm-cy';
-const THEME_ID = 'typecho-theme-warm-cy';
 const PLUGIN_VERSION = '0.1.0';
 
 function parsePluginSettings(value: unknown): Record<string, unknown> {
@@ -196,10 +195,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     if (isAdminActionResponse(auth)) {
       return { handled: true, response: json({ error: auth.status === 401 ? 'Unauthorized' : 'Forbidden' }, auth.status) };
     }
-    if (auth.options.theme !== THEME_ID) {
-      return { handled: true, response: json({ error: 'Theme is not active' }, 404) };
-    }
-
     let body: unknown;
     try { body = await request.json(); } catch {
       return { handled: true, response: json({ error: 'Invalid JSON' }, 400) };
