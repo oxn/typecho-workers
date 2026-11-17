@@ -59,7 +59,7 @@ describe('typecho-plugin-pinyin', () => {
     const pageHtml = page('', { options: { pagePattern: '/{slug}.html' }, page: { slug: 'existing-slug' } });
     expect(pageHtml).toContain('data-allows-slug-edit="true"');
     expect(pageHtml).toContain('data-initial-slug="existing-slug"');
-    expect(pageHtml).toContain('重新生成');
+    expect(pageHtml).toContain('/plugin-assets/typecho-plugin-pinyin/pinyin-editor.js');
   });
 
   it('keeps the original post and page finishSave hooks for duplicate handling', () => {
