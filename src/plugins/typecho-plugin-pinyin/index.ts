@@ -41,7 +41,7 @@ function getConfig(options?: Record<string, unknown>): PinyinConfig {
 
 
 /** Convert a title to a URL-safe ASCII pinyin slug. */
-function titleToPinyinSlug(title: string, maxLength: number): string {
+export function titleToPinyinSlug(title: string, maxLength = DEFAULT_SLUG_LENGTH): string {
   const source = title.trim();
   if (!source) return '';
   const slug = source
