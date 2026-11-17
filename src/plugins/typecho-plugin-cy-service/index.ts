@@ -6,6 +6,7 @@ import adminCss from './cy-service-settings.css?raw';
 const ADMIN_PAGE_SLUG = 'cy-service';
 const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-service-settings';
 const LEGACY_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
+const THEME_OPTION_KEY = 'theme:typecho-theme-warm-cy';
 const THEME_ID = 'typecho-theme-warm-cy';
 const PLUGIN_VERSION = '0.1.0';
 
@@ -49,9 +50,11 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-function pageHtml(csrfToken: string, rawSettings: unknown): string {
+function pageHtml(csrfToken: string, rawSettings: unknown, rawThemeSettings: unknown): string {
   const settings = parsePluginSettings(rawSettings);
-  const pinnedIds = parsePinnedIds(settings.pinnedIds).join(',');
+  const themeSettings = parsePluginSettings(rawThemeSettings);
+  const pinnedValue = settings.pinnedIds !== undefined ? settings.pinnedIds : themeSettings.pinnedIds;
+  const pinnedIds = parsePinnedIds(pinnedValue).join(',');
   const linkRows = Array.from({ length: 10 }, (_, index) => {
     const number = index + 1;
     const suffix = String(number).padStart(2, '0');
@@ -174,7 +177,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     options?: Record<string, unknown>;
   }) => {
     if (extra?.slug !== ADMIN_PAGE_SLUG) return html;
-    return pageHtml(extra.csrfToken || '', extra.options?.[LEGACY_OPTION_KEY]);
+    return pageHtml(extra.csrfToken || '', extra.options?.[LEGACY_OPTION_KEY], extra.options?.[THEME_OPTION_KEY]);
   }, 20);
 
   addHook('route:request', pluginId, async (
