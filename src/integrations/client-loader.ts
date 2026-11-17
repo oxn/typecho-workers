@@ -113,7 +113,7 @@ function discoverInstalledPluginClients(rootDir: string): ClientSource[] {
         sources.push({
           sourcePath,
           outDir: join(rootDir, 'public', 'plugin-assets', pluginId),
-          publicUrl: `/plugin-assets/${pluginId}/${entry.replace(/\\.ts$/, '.js')}`,
+          publicUrl: `/plugin-assets/${pluginId}/${entry.replace(/\.ts$/, '.js')}`,
         });
       }
     } catch {
@@ -184,7 +184,9 @@ export default function clientLoaderIntegration(): AstroIntegration {
           ...discoverCoreClients(rootDir),
           ...discoverPluginClients(rootDir),
           ...discoverInstalledPluginClients(rootDir),
-        ];
+        ].filter((source, index, sources) =>
+          sources.findIndex(candidate => candidate.publicUrl === source.publicUrl) === index
+        );
 
         if (allSources.length > 0) {
           console.log(`[client-loader] Found ${allSources.length} client source(s)`);
