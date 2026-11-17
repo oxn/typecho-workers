@@ -26,7 +26,7 @@ function pageHtml(): string {
   }).join('');
 
   return `
-    <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-service-settings">
+    <div class="cy-service-settings">
       <header class="cy-service-header">
         <strong>CY服务插件</strong>
         <span class="cy-service-version">版本：${PLUGIN_VERSION}</span>
