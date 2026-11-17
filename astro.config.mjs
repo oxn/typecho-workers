@@ -63,6 +63,7 @@ export default defineConfig({
         'typecho-plugin-cache',
         'typecho-plugin-notifier',
         'typecho-plugin-notes',
+        'typecho-plugin-oxn-service',
         'typecho-plugin-intelligence',
         'typecho-plugin-turnstile',
         'typecho-theme-warm',
