@@ -36,43 +36,12 @@ function getConfig(options?: Record<string, unknown>): PinyinConfig {
   };
 }
 
-/**
- * Convert a title to a URL-safe ASCII slug.
- * Pinyin conversion stays in the Worker; the editor only sends the title.
- */
-export function titleToPinyinSlug(title: string, maxLength = DEFAULT_SLUG_LENGTH): string {
-  const source = title.trim();
-  if (!source) return '';
-
-  // Keep separators only where the original title contains whitespace,
-  // punctuation, or symbols. Pinyin syllables inside a continuous Han run
-  // are concatenated instead of being separated with hyphens.
-  const slug = source
-    .split(/([\s\p{P}\p{S}]+)/u)
-    .map((part) => {
-      if (!part) return '';
-      if (/^[\s\p{P}\p{S}]+$/u.test(part)) return '-';
-
-      return pinyin(part, { toneType: 'none', nonZh: 'consecutive' })
-        .replace(/\s+/g, '')
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-');
-    })
-    .join('')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-  return slug.slice(0, maxLength).replace(/-+$/g, '');
-}
-
 /** Normalize a manually edited slug using the same URL-safe character set. */
 function normalizeSlug(value: string, maxLength: number): string {
   return value
     .trim()
     .normalize('NFKD')
-    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/-+/g, '-')
