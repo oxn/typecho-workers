@@ -1,0 +1,19 @@
+{
+  "name": "typecho-theme-oxn",
+  "version": "1.0.0",
+  "description": "A warm, humanistic single-column theme for Typecho-Workers with Notes support.",
+  "author": "Tokinx",
+  "homepage": "https://github.com/oxn/typecho-workers/tree/1117/src/themes/typecho-theme-oxn",
+  "license": "MIT",
+  "keywords": [
+    "typecho",
+    "theme",
+    "warm",
+    "notes"
+  ],
+  "files": [
+    "theme.json",
+    "style.css",
+    "components/"
+  ]
+}
