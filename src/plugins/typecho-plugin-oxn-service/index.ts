@@ -36,7 +36,7 @@ function parseIds(value: unknown): number[] {
     if (!Number.isSafeInteger(id) || id <= 0 || seen.has(id)) continue;
     seen.add(id);
     ids.push(id);
-    if (ids.length === 100) break;
+    if (ids.length === 20) break;
   }
   return ids;
 }
