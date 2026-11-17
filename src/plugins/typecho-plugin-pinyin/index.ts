@@ -45,14 +45,14 @@ function titleToPinyinSlug(title: string, maxLength: number): string {
   const source = title.trim();
   if (!source) return '';
   const slug = source
-    .split(/([\\s\\p{P}\\p{S}]+)/u)
+    .split(/([\s\p{P}\p{S}]+)/u)
     .map((part) => {
       if (!part) return '';
-      if (/^[\\s\\p{P}\\p{S}]+$/u.test(part)) return '-';
+      if (/^[\s\p{P}\p{S}]+$/u.test(part)) return '-';
       return pinyin(part, { toneType: 'none', nonZh: 'consecutive' })
-        .replace(/\\s+/g, '')
+        .replace(/\s+/g, '')
         .normalize('NFKD')
-        .replace(/[\\u0300-\\u036f]/g, '')
+        .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-');
     })
