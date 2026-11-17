@@ -25,9 +25,9 @@ function parsePinnedIds(value: unknown): number[] {
   if (typeof value !== 'string' && typeof value !== 'number') return [];
   const result: number[] = [];
   const seen = new Set<number>();
-  for (const part of String(value).split(/[，,\\s]+/)) {
+  for (const part of String(value).split(/[，,\s]+/)) {
     const trimmed = part.trim();
-    if (!/^\\d+$/.test(trimmed)) continue;
+    if (!/^\d+$/.test(trimmed)) continue;
     const cid = Number(trimmed);
     if (!Number.isSafeInteger(cid) || cid <= 0 || seen.has(cid)) continue;
     seen.add(cid);
@@ -37,8 +37,8 @@ function parsePinnedIds(value: unknown): number[] {
 }
 
 function escapeHtml(value: unknown): string {
-  return String(value ?? '').replace(/[&<>\"']/g, character => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;',
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   })[character] || character);
 }
 
