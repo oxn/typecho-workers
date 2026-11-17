@@ -4,7 +4,7 @@
   "description": "独立的 CY 服务设置界面。",
   "author": "怸歪",
   "homepage": "https://347777.xyz",
-  "keywords": ["typecho", "cy-service"],
+  "keywords": ["typecho", "plugin", "cy-service"],
   "type": "module",
   "main": "index.ts",
   "typecho": {
