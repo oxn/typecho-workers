@@ -1,10 +1,57 @@
-import type { PluginInitContext } from 'typecho/plugin-sdk';
+import { registerPluginAdminPath, setOption } from 'typecho/plugin-sdk';
+import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
+import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import adminCss from './cy-service-settings.css?raw';
 
 const ADMIN_PAGE_SLUG = 'cy-service';
+const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-service-settings';
+const LEGACY_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
+const THEME_ID = 'typecho-theme-warm-cy';
 const PLUGIN_VERSION = '0.1.0';
 
-function pageHtml(): string {
+function parsePluginSettings(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'string' || !value) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function parsePinnedIds(value: unknown): number[] {
+  if (typeof value !== 'string' && typeof value !== 'number') return [];
+  const result: number[] = [];
+  const seen = new Set<number>();
+  for (const part of String(value).split(/[，,\\s]+/)) {
+    const trimmed = part.trim();
+    if (!/^\\d+$/.test(trimmed)) continue;
+    const cid = Number(trimmed);
+    if (!Number.isSafeInteger(cid) || cid <= 0 || seen.has(cid)) continue;
+    seen.add(cid);
+    result.push(cid);
+  }
+  return result;
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>\"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;',
+  })[character] || character);
+}
+
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, no-store' },
+  });
+}
+
+function pageHtml(csrfToken: string, rawSettings: unknown): string {
+  const settings = parsePluginSettings(rawSettings);
+  const pinnedIds = parsePinnedIds(settings.pinnedIds).join(',');
   const linkRows = Array.from({ length: 10 }, (_, index) => {
     const number = index + 1;
     const suffix = String(number).padStart(2, '0');
@@ -26,7 +73,7 @@ function pageHtml(): string {
   }).join('');
 
   return `
-    <div class="cy-service-settings">
+    <div class="cy-service-settings" data-cy-service-settings data-csrf-token="${escapeHtml(csrfToken)}">
       <header class="cy-service-header">
         <strong>CY服务插件</strong>
         <span class="cy-service-version">版本：${PLUGIN_VERSION}</span>
@@ -39,7 +86,7 @@ function pageHtml(): string {
             <label for="cy-pinned-ids">首页置顶文章 ID</label>
             <p class="cy-service-description">只控制首页置顶。填写文章 ID，多个 ID 用英文逗号分隔；其他页面不受影响。</p>
           </div>
-          <input id="cy-pinned-ids" name="pinnedIds" type="text">
+          <input id="cy-pinned-ids" name="pinnedIds" type="text" value="${escapeHtml(pinnedIds)}">
         </section>
 
         <section class="cy-service-links-group">
@@ -71,7 +118,46 @@ function pageHtml(): string {
           <textarea id="cy-footer-content" name="footerCustomHtml"></textarea>
         </section>
       </main>
-    </div>`;
+
+      <div class="cy-service-actions">
+        <button type="button" data-cy-service-save>保存设置</button>
+        <span data-cy-service-save-status role="status" aria-live="polite"></span>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var root = document.querySelector('[data-cy-service-settings]');
+        if (!root || root.dataset.initialized === '1') return;
+        root.dataset.initialized = '1';
+        var button = root.querySelector('[data-cy-service-save]');
+        var input = root.querySelector('[name="pinnedIds"]');
+        var status = root.querySelector('[data-cy-service-save-status]');
+        button?.addEventListener('click', async function () {
+          if (!button || !input || !status) return;
+          button.disabled = true;
+          status.textContent = '正在保存…';
+          try {
+            var response = await fetch('/api/admin/cy-service-settings', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': root.dataset.csrfToken || ''
+              },
+              body: JSON.stringify({ pinnedIds: input.value })
+            });
+            var result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.error || '保存失败');
+            input.value = result.pinnedIds || '';
+            status.textContent = '保存成功';
+          } catch (error) {
+            status.textContent = error instanceof Error ? error.message : '保存失败';
+          } finally {
+            button.disabled = false;
+          }
+        });
+      })();
+    </script>
+  `;
 }
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
@@ -80,8 +166,52 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     return `${html}<style data-cy-service-admin>${adminCss}</style>`;
   }, 20);
 
-  addHook('admin:page', pluginId, (html: string, extra?: { slug?: string }) => {
+  registerPluginAdminPath(ADMIN_SETTINGS_API_PATH);
+
+  addHook('admin:page', pluginId, (html: string, extra?: {
+    slug?: string;
+    csrfToken?: string;
+    options?: Record<string, unknown>;
+  }) => {
     if (extra?.slug !== ADMIN_PAGE_SLUG) return html;
-    return pageHtml();
+    return pageHtml(extra.csrfToken || '', extra.options?.[LEGACY_OPTION_KEY]);
+  }, 20);
+
+  addHook('route:request', pluginId, async (
+    result: PluginRouteResult,
+    extra?: { request?: Request; path?: string },
+  ) => {
+    if (result?.handled || !extra?.request) return result;
+    const request = extra.request;
+    const path = extra.path || new URL(request.url).pathname;
+    if (path !== ADMIN_SETTINGS_API_PATH) return result;
+    if (request.method !== 'POST') {
+      return { handled: true, response: json({ error: 'Method not allowed' }, 405) };
+    }
+
+    const auth = await requireAdminAction(request, 'administrator');
+    if (isAdminActionResponse(auth)) {
+      return { handled: true, response: json({ error: auth.status === 401 ? 'Unauthorized' : 'Forbidden' }, auth.status) };
+    }
+    if (auth.options.theme !== THEME_ID) {
+      return { handled: true, response: json({ error: 'Theme is not active' }, 404) };
+    }
+
+    let body: unknown;
+    try { body = await request.json(); } catch {
+      return { handled: true, response: json({ error: 'Invalid JSON' }, 400) };
+    }
+    if (!body || typeof body !== 'object' || typeof (body as { pinnedIds?: unknown }).pinnedIds !== 'string') {
+      return { handled: true, response: json({ error: 'Invalid pinned IDs' }, 400) };
+    }
+
+    const ids = parsePinnedIds((body as { pinnedIds: string }).pinnedIds);
+    const normalized = ids.join(',');
+    const current = parsePluginSettings(auth.options[LEGACY_OPTION_KEY]);
+    if (current.pinnedIds === normalized) {
+      return { handled: true, response: json({ success: true, unchanged: true, pinnedIds: normalized }) };
+    }
+    await setOption(auth.db, LEGACY_OPTION_KEY, JSON.stringify({ ...current, pinnedIds: normalized }));
+    return { handled: true, response: json({ success: true, unchanged: false, pinnedIds: normalized }) };
   }, 20);
 }
