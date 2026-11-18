@@ -7,8 +7,13 @@
     "./plugin-sdk": "./src/lib/plugin-sdk.ts",
     "./db": "./src/db/index.ts"
   },
-  "workspaces": ["src/plugins/*", "src/themes/*"],
-  "engines": { "node": ">=22.12.0" },
+  "workspaces": [
+    "src/plugins/*",
+    "src/themes/*"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "astro dev --force",
     "build": "astro build",
@@ -47,7 +52,6 @@
     "typecho-plugin-intelligence": "workspace:*",
     "typecho-plugin-turnstile": "workspace:*",
     "typecho-plugin-pinyin": "workspace:*",
-    "typecho-plugin-markdown-rehype": "workspace:*",
     "typecho-theme-warm": "workspace:*",
     "typecho-theme-warm-cy": "workspace:*"
   },

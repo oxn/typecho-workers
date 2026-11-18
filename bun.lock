@@ -14,7 +14,6 @@
         "typecho-plugin-antispam": "workspace:*",
         "typecho-plugin-cache": "workspace:*",
         "typecho-plugin-intelligence": "workspace:*",
-        "typecho-plugin-markdown-rehype": "workspace:*",
         "typecho-plugin-notes": "workspace:*",
         "typecho-plugin-notifier": "workspace:*",
         "typecho-plugin-pinyin": "workspace:*",
@@ -46,25 +45,6 @@
     "src/plugins/typecho-plugin-intelligence": {
       "name": "typecho-plugin-intelligence",
       "version": "2.0.0",
-    },
-    "src/plugins/typecho-plugin-markdown-rehype": {
-      "name": "typecho-plugin-markdown-rehype",
-      "version": "1.0.0",
-      "dependencies": {
-        "katex": "^0.16.22",
-        "mermaid": "11.12.2",
-        "refractor": "^5.0.0",
-        "rehype-katex": "^7.0.1",
-        "rehype-raw": "^7.0.0",
-        "rehype-stringify": "^10.0.1",
-        "remark-breaks": "^4.0.0",
-        "remark-gfm": "^4.0.1",
-        "remark-github-blockquote-alert": "^1.2.1",
-        "remark-math": "^6.0.0",
-        "remark-parse": "^11.0.0",
-        "remark-rehype": "^11.1.2",
-        "unified": "^11.0.5",
-      },
     },
     "src/plugins/typecho-plugin-notes": {
       "name": "typecho-plugin-notes",
