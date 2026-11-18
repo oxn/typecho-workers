@@ -319,32 +319,51 @@ export interface RenderOptions {
   siteUrl?: string;
 }
 
+async function finalizeRenderedContent(root: HTMLElement, options: RenderOptions = {}): Promise<void> {
+  transformMermaidBlocks(root);
+  addHeadingIds(root);
+  ensureKatexStyles(root);
+  wrapIframes(root);
+  initializeArticleToc(root);
+  if (options.imageOptimizeParams) {
+    root.querySelectorAll<HTMLImageElement>('img[src]').forEach((image) => {
+      const src = image.getAttribute('src') || '';
+      const optimized = optimizeImageUrl(src, options.imageOptimizeParams || '', options.siteUrl || '');
+      if (optimized !== src) image.setAttribute('src', optimized);
+    });
+  }
+  normalizeImages(root);
+  try {
+    await enhanceOptionalFeatures(root);
+  } catch (error) {
+    // Optional browser enhancements must never replace successfully rendered article content.
+    console.error('[Warm CY] optional content enhancement failed', error);
+  }
+  document.dispatchEvent(new CustomEvent('warm:client-content-rendered', { detail: { root } }));
+}
+
+/** Render the legacy client-Markdown path. */
 export async function renderInto(root: HTMLElement, source: string, options: RenderOptions = {}): Promise<void> {
   root.setAttribute('aria-busy', 'true');
   try {
     root.innerHTML = await renderMarkdown(source);
-    transformMermaidBlocks(root);
-    addHeadingIds(root);
-    ensureKatexStyles(root);
-    wrapIframes(root);
-    initializeArticleToc(root);
-    if (options.imageOptimizeParams) {
-      root.querySelectorAll<HTMLImageElement>('img[src]').forEach((image) => {
-        const src = image.getAttribute('src') || '';
-        const optimized = optimizeImageUrl(src, options.imageOptimizeParams || '', options.siteUrl || '');
-        if (optimized !== src) image.setAttribute('src', optimized);
-      });
-    }
-    normalizeImages(root);
-    try {
-      await enhanceOptionalFeatures(root);
-    } catch (error) {
-      // Optional browser enhancements must never replace successfully rendered article content.
-      console.error('[Warm CY] optional content enhancement failed', error);
-    }
-    document.dispatchEvent(new CustomEvent('warm:client-content-rendered', { detail: { root } }));
+    await finalizeRenderedContent(root, options);
   } catch (error) {
     console.error('[Warm CY] client Markdown render failed', error);
+    root.innerHTML = '<p>文章内容加载失败。</p>';
+  } finally {
+    root.removeAttribute('aria-busy');
+  }
+}
+
+/** Use the core's already-rendered and sanitized HTML without parsing Markdown again. */
+export async function renderHtmlInto(root: HTMLElement, html: string, options: RenderOptions = {}): Promise<void> {
+  root.setAttribute('aria-busy', 'true');
+  try {
+    root.innerHTML = html;
+    await finalizeRenderedContent(root, options);
+  } catch (error) {
+    console.error('[Warm CY] server HTML enhancement failed', error);
     root.innerHTML = '<p>文章内容加载失败。</p>';
   } finally {
     root.removeAttribute('aria-busy');
