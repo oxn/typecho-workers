@@ -714,6 +714,10 @@ body.warm-theme {
   display: inline-flex;
 }
 
+.warm-theme-trigger svg[hidden] {
+  display: none;
+}
+
 .warm-theme-menu {
   position: absolute;
   top: 0;
