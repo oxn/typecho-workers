@@ -326,7 +326,6 @@ function restoreWarmMarkdownAlertIcons(content: string): string {
         titlePattern,
         (title, opening: string, _titleQuote: string, text: string, closing: string) => {
           if (opening.includes('cy-markdown-alert-has-icon')) return title;
-          const existingSvg = text.match(/<svg\b(?=[^>]*\bclass=(["'])[^"']*\bmarkdown-alert-icon\b[^"']*\1)[^>]*>[\s\S]*?<\/svg>/i)?.[0];
           const withoutFallbackIcon = text
             .replace(/<svg\b(?=[^>]*\bclass=(['"])[^'"]*\bocticon\b[^'"]*\1)[^>]*>[\s\S]*?<\/svg>/gi, '')
             .replace(/<span\b(?=[^>]*\bclass=(["'])[^"']*\bocticon\b[^"']*\1)[^>]*>[\s\S]*?<\/span>/gi, '')
