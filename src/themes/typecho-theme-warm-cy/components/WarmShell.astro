@@ -183,9 +183,10 @@ const footerLinks = [
         const lightIcon = document.querySelector('[data-warm-theme-icon-light]');
         const systemIcon = document.querySelector('[data-warm-theme-icon-system]');
         const darkIcon = document.querySelector('[data-warm-theme-icon-dark]');
-        if (lightIcon) lightIcon.hidden = themeMode !== 'light';
-        if (systemIcon) systemIcon.hidden = themeMode !== 'system';
-        if (darkIcon) darkIcon.hidden = themeMode !== 'dark';
+        // Use inline display so the selected icon wins over theme-wide SVG rules.
+        if (lightIcon) lightIcon.style.display = themeMode === 'light' ? 'block' : 'none';
+        if (systemIcon) systemIcon.style.display = themeMode === 'system' ? 'block' : 'none';
+        if (darkIcon) darkIcon.style.display = themeMode === 'dark' ? 'block' : 'none';
         const themeToggle = document.querySelector('[data-warm-theme-toggle]');
         const modeLabels = { light: '明亮模式', system: '跟随系统', dark: '暗黑模式' };
         if (themeToggle) {
