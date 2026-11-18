@@ -13,10 +13,11 @@ function appendHighlightSegments(code: HTMLElement, source: string, language: st
 }
 
 function enhanceCodeBlocks(root: Element): void {
-  root.querySelectorAll<HTMLElement>('.rin-code-pre > code').forEach(code => {
+  root.querySelectorAll<HTMLElement>('pre > code[class*="language-"]').forEach(code => {
     const pre = code.parentElement;
-    if (!pre || pre.closest('.rin-mermaid_default,.rin-mermaid_dark') || pre.dataset.rinCodeEnhanced === '1') return;
+    if (!pre || code.classList.contains('language-mermaid') || code.classList.contains('lang-mermaid') || pre.closest('.rin-mermaid_default,.rin-mermaid_dark') || pre.dataset.rinCodeEnhanced === '1') return;
     pre.dataset.rinCodeEnhanced = '1';
+    pre.classList.add('rin-code-pre');
     const copyValue = code.textContent || '';
     const displayValue = copyValue.replace(/\n$/, '');
     if (displayValue !== copyValue) code.textContent = displayValue;
