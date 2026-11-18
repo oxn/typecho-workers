@@ -88,7 +88,7 @@ async function enhanceOptionalFeatures(root: HTMLElement): Promise<void> {
   }
 }
 
-function transformMermaidBlocks(root: HTMLElement): void {
+export function transformMermaidBlocks(root: HTMLElement): void {
   root.querySelectorAll<HTMLElement>('pre > code.language-mermaid, pre > code.lang-mermaid').forEach((code) => {
     const pre = code.parentElement;
     if (!pre) return;
