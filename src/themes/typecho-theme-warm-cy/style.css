@@ -638,7 +638,7 @@ body.warm-theme {
   color: #fff;
 }
 
-.warm-theme a {
+.warm-theme a:not(.warm-search-trigger) {
   color: inherit;
   text-decoration: none;
 }
