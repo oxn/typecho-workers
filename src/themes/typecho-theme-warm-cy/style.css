@@ -1341,19 +1341,20 @@ body.warm-theme {
 }
 
 
-/* Keep the roomy rhythm on Markdown blocks, not restored custom HTML. */
-.warm-prose > :not(.cy-inline-html-pending) {
+/* Markdown typography and vertical rhythm. */
+.warm-prose > :not(.cy-inline-html-pending, h1, h2, h3, h4, h5, h6) {
   line-height: 1.75;
 }
 
-/* Custom HTML inherits the site's base line-height unless it defines its own. */
+/* Restored custom HTML keeps its own line-height unless explicitly styled. */
 .warm-prose .cy-inline-html-pending {
   line-height: 1.65;
 }
 
-/* Only Markdown paragraphs receive the theme's large paragraph spacing. */
+/* Paragraph spacing is smaller than the heading lead-in, so adjacent margins
+   collapse to the heading's spacing instead of making the gap feel oversized. */
 .warm-prose > p {
-  margin: 0 0 1.65em;
+  margin: 0 0 1.25em;
 }
 
 .warm-prose h2,
@@ -1365,9 +1366,23 @@ body.warm-theme {
   scroll-margin-top: 40px;
 }
 
-.warm-prose h2 { margin: 2em 0 .95em; font-size: 1.48em; line-height: 1.5; }
-.warm-prose h3 { margin: 1.8em 0 .8em; font-size: 1.18em; line-height: 1.5; }
-.warm-prose h4 { margin: 1.5em 0 .7em; font-size: 1em; line-height: 1.5; }
+.warm-prose h2 {
+  margin: 1.6em 0 .75em;
+  font-size: 1.48em;
+  line-height: 1.5;
+}
+
+.warm-prose h3 {
+  margin: 1.4em 0 .65em;
+  font-size: 1.18em;
+  line-height: 1.5;
+}
+
+.warm-prose h4 {
+  margin: 1.2em 0 .55em;
+  font-size: 1em;
+  line-height: 1.5;
+}
 
 .warm-prose a {
   color: #5f554d;
