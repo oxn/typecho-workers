@@ -1,6 +1,7 @@
 ---
 import { env } from 'cloudflare:workers';
-import { getDb } from 'typecho/db';
+import { getDb, schema } from 'typecho/db';
+import { eq } from 'drizzle-orm';
 import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
 import { createContext } from '@/lib/context';
@@ -28,6 +29,12 @@ const note = noteContext
   ? await getNoteForTheme(noteContext.db ?? db, post.cid, urls.siteUrl)
   : null;
 const isNote = note?.type === 'note';
+const articleSource = !isNote && !(post.hasPassword && !post.passwordVerified)
+  ? (await db.query.contents.findFirst({
+    columns: { text: true },
+    where: eq(schema.contents.cid, post.cid),
+  }))?.text || ''
+  : '';
 const settings = warmSettings(options);
 const articleHtml = post.content;
 const optimizedContent = optimizeContentImages(
@@ -92,7 +99,7 @@ const articleDeclarationHtml = !isNote
       {isNote ? (
         <div class:list={["warm-prose", "warm-note-prose"]} view-image itemprop="articleBody" set:html={displayContent} />
       ) : (
-        <WarmClientContent source={post.source} />
+        <WarmClientContent source={articleSource} />
       )}
       {tocItems.length > 0 && <WarmToc items={tocItems} />}
     </div>
