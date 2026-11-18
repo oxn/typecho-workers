@@ -20,12 +20,13 @@
   position:relative;
   min-width:0;
   max-width:100%;
+  margin:.5em 0;
   overflow:hidden
 }
 
 .rin-code-block .rin-code-pre {
   box-sizing:border-box;
-  margin:.5em 0;
+  margin:0;
   padding:1em;
   max-width:100%;
   overflow:auto;
@@ -455,6 +456,12 @@
 
 .rin-code-block:hover .rin-code-copy,.rin-code-copy:focus {
   visibility:visible
+}
+
+@media (hover:none) {
+  .warm-theme .rin-code-copy {
+    visibility:visible
+  }
 }
 
 .rin-image-block {
