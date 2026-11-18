@@ -832,7 +832,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
           }
 
           dialog.dataset.searchBase = searchBase;
-          const nav = document.querySelector('.warm-nav') || document.querySelector('header nav');
+          const nav = document.querySelector('.warm-header__tools') || document.querySelector('.warm-nav') || document.querySelector('header nav');
           if (nav) {
             nav.append(trigger);
             trigger.classList.remove('warm-search-trigger--floating');
