@@ -2787,7 +2787,7 @@ body.warm-theme {
   }
 
   .warm-header__tools {
-    top: 4px;
+    top: 16px;
     justify-content: flex-end;
   }
 
