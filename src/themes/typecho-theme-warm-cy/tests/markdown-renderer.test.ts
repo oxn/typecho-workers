@@ -92,4 +92,27 @@ describe('Warm CY client article renderer', () => {
       else delete (globalThis as any).Node;
     }
   });
+  it('loads KaTeX styles for formulas rendered in the client', async () => {
+    const dom = new JSDOM('<!doctype html><html><head></head><body><div id="content"></div></body></html>');
+    const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+    const previousCustomEvent = Object.getOwnPropertyDescriptor(globalThis, 'CustomEvent');
+
+    try {
+      Object.defineProperty(globalThis, 'document', { configurable: true, value: dom.window.document });
+      Object.defineProperty(globalThis, 'CustomEvent', { configurable: true, value: dom.window.CustomEvent });
+
+      const root = dom.window.document.querySelector<HTMLElement>('#content')!;
+      await renderInto(root, '行内公式：$a^2+b^2=c^2$');
+
+      expect(root.querySelector('.katex')).not.toBeNull();
+      expect(dom.window.document.head.querySelector('[data-warm-katex-styles]')).not.toBeNull();
+    } finally {
+      dom.window.close();
+      if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument);
+      else delete (globalThis as any).document;
+      if (previousCustomEvent) Object.defineProperty(globalThis, 'CustomEvent', previousCustomEvent);
+      else delete (globalThis as any).CustomEvent;
+    }
+  });
+
 });
