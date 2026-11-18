@@ -2902,12 +2902,21 @@ body.warm-theme {
   text-decoration: none;
 }
 
-
-/* Client-rendered Mermaid diagrams: one theme variant, transparent canvas, centered. */
-.warm-prose pre.rin-mermaid {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* Keep both Mermaid theme renders; show only the variant matching the active color mode. */
+.warm-prose pre.rin-mermaid_default {
+  display: block;
+}
+.warm-prose pre.rin-mermaid_dark {
+  display: none;
+}
+.dark .warm-prose pre.rin-mermaid_default {
+  display: none !important;
+}
+.dark .warm-prose pre.rin-mermaid_dark {
+  display: block !important;
+}
+.warm-prose pre.rin-mermaid_default,
+.warm-prose pre.rin-mermaid_dark {
   width: 100%;
   margin-inline: auto;
   overflow-x: auto;
@@ -2917,8 +2926,8 @@ body.warm-theme {
   border: 0 !important;
   box-shadow: none !important;
 }
-
-.warm-prose pre.rin-mermaid svg {
+.warm-prose pre.rin-mermaid_default svg,
+.warm-prose pre.rin-mermaid_dark svg {
   display: block;
   max-width: 100%;
   height: auto;
