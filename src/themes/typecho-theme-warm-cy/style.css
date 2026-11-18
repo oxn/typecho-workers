@@ -1761,7 +1761,7 @@ body.warm-theme {
   width: 18px;
   min-width: 18px;
   height: 18px;
-  margin-right: 8px !important;
+  margin-right: 16px !important;
   color: inherit !important;
   fill: currentColor !important;
   font-family: Arial, sans-serif;
