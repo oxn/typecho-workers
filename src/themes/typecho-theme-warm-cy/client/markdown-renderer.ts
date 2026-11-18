@@ -72,6 +72,51 @@ async function enhanceOptionalFeatures(root: HTMLElement): Promise<void> {
   }
 }
 
+function initializeArticleToc(root: HTMLElement): void {
+  const articleBody = root.closest<HTMLElement>('.warm-article__body');
+  const article = root.closest<HTMLElement>('.warm-article');
+  const nav = articleBody?.querySelector<HTMLElement>('[data-warm-toc]');
+  const list = nav?.querySelector<HTMLOListElement>('[data-warm-toc-list]');
+  if (!articleBody || !article || !nav || !list) return;
+
+  const headings = Array.from(root.querySelectorAll<HTMLElement>('h2, h3'));
+  if (headings.length < 2) {
+    nav.style.display = 'none';
+    articleBody.classList.remove('warm-article__body--toc');
+    article.classList.remove('has-toc');
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const heading of headings) {
+    if (!heading.id) continue;
+    const item = document.createElement('li');
+    item.className = 'warm-toc__item';
+    const link = document.createElement('a');
+    link.className = 'warm-toc__link';
+    link.href = '#' + heading.id;
+    link.setAttribute('data-warm-toc-link', '');
+    const label = document.createElement('span');
+    label.className = 'warm-toc__label';
+    label.textContent = (heading.textContent || '').trim();
+    link.append(label);
+    item.append(link);
+    fragment.append(item);
+  }
+
+  if (fragment.childNodes.length < 2) {
+    nav.style.display = 'none';
+    articleBody.classList.remove('warm-article__body--toc');
+    article.classList.remove('has-toc');
+    return;
+  }
+
+  list.replaceChildren(fragment);
+  nav.style.removeProperty('display');
+  articleBody.classList.add('warm-article__body--toc');
+  article.classList.add('has-toc');
+}
+
 function normalizeImages(root: HTMLElement): void {
   root.querySelectorAll<HTMLImageElement>('img').forEach((image) => {
     image.loading ||= 'lazy';
@@ -99,6 +144,7 @@ export async function renderInto(root: HTMLElement, source: string, options: Ren
   try {
     root.innerHTML = await renderMarkdown(source);
     addHeadingIds(root);
+    initializeArticleToc(root);
     if (options.imageOptimizeParams) {
       root.querySelectorAll<HTMLImageElement>('img[src]').forEach((image) => {
         const src = image.getAttribute('src') || '';
