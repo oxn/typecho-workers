@@ -103,6 +103,7 @@ describe('typecho-plugin-warm-cy', () => {
     expect(html).toContain('返回主题设置');
     expect(html).toContain('评论区管理按键');
     expect(html).toContain('首页搜索按键');
+    expect(html).toContain('后台入口按键');
     expect(html).not.toContain('五种 Note 与图标样式');
   });
 
@@ -181,6 +182,7 @@ describe('typecho-plugin-warm-cy', () => {
       request: routeRequest(SETTINGS_API_PATH, 'POST', {
         showCommentManagementButtons: true,
         showHomeSearchButton: false,
+        showAdminEntryButton: false,
       }),
       path: SETTINGS_API_PATH,
     });
@@ -190,6 +192,7 @@ describe('typecho-plugin-warm-cy', () => {
       existingPluginSetting: 'keep',
       showCommentManagementButtons: '1',
       showHomeSearchButton: '0',
+      showAdminEntryButton: '0',
     });
     expect(saved).not.toHaveProperty('htmlEnhancementEnabled');
     expect(saved).not.toHaveProperty('canonicalDomainRedirectEnabled');
