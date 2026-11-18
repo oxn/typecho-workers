@@ -6,7 +6,7 @@ describe('Warm CY client article renderer', () => {
   it('preserves authored HTML, attributes, inline CSS, style blocks and SVG', async () => {
     const source = [
       '<style>.custom-card { color: rgb(1, 2, 3); }</style>',
-      '<custom-card data-state="ready" aria-label="custom element">',
+      '<custom-card data-state="ready" aria-label="custom element" style="color: red">',
       '  <svg viewBox="0 0 48 48" aria-labelledby="icon-title">',
       '    <title id="icon-title">云盘图标</title>',
       '    <path d="M0 0h48v48H0z" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -17,7 +17,7 @@ describe('Warm CY client article renderer', () => {
     const html = await renderMarkdown(source);
 
     expect(html).toContain('<style>.custom-card { color: rgb(1, 2, 3); }</style>');
-    expect(html).toContain('<custom-card data-state="ready" aria-label="custom element">');
+    expect(html).toContain('<custom-card data-state="ready" aria-label="custom element" style="color: red">');
     expect(html).toContain('viewBox="0 0 48 48"');
     expect(html).toContain('aria-labelledby="icon-title"');
     expect(html).toContain('stroke-width="2"');
@@ -64,7 +64,7 @@ describe('Warm CY client article renderer', () => {
         '',
         '## 第二节',
         '',
-        '<iframe src="https://player.example.test/embed/1" data-player-mode="wide" allow="autoplay; fullscreen"></iframe>',
+        '<iframe src="https://player.example.test/embed/1" data-player-mode="wide" allow="autoplay; fullscreen" sandbox="allow-scripts" onload="window.frameReady = true" srcdoc="<p>embedded</p>"></iframe>',
       ].join('\n'));
 
       expect(root.querySelectorAll('h1[id], h2[id], h3[id]')).toHaveLength(4);
@@ -77,6 +77,9 @@ describe('Warm CY client article renderer', () => {
       expect(iframe.parentElement?.classList.contains('rin-iframe-wrapper')).toBe(true);
       expect(iframe.getAttribute('data-player-mode')).toBe('wide');
       expect(iframe.getAttribute('allow')).toBe('autoplay; fullscreen');
+      expect(iframe.getAttribute('sandbox')).toBe('allow-scripts');
+      expect(iframe.getAttribute('onload')).toBe('window.frameReady = true');
+      expect(iframe.getAttribute('srcdoc')).toBe('<p>embedded</p>');
     } finally {
       dom.window.close();
       if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument);
