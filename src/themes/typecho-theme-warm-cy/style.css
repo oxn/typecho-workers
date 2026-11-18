@@ -29,16 +29,16 @@
   padding:1em;
   max-width:100%;
   overflow:auto;
-  border-radius:.25rem;
+  border-radius:4px;
   white-space:pre;
-  background:#f5f7ff;
+  background:var(--warm-surface);
   color:#5e6687;
-  font:14px/1.375 Consolas,Menlo,Monaco,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L","Courier New",Courier,monospace;
+  font:14px/1.5 Consolas,Menlo,Monaco,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L","Courier New",Courier,monospace;
   tab-size:4
 }
 
 .rin-code-block .rin-code-pre>code {
-  font:14px/1.375 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;
+  font:14px/1.5 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;
   white-space:pre-wrap;
   font-variant-ligatures:normal;
   -webkit-font-feature-settings:"liga" 1;
@@ -46,15 +46,15 @@
 }
 
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre {
-  background:#1e1e1e;
+  background:var(--warm-surface);
   color:#d4d4d4;
   font-family:Menlo,Monaco,Consolas,"Andale Mono","Ubuntu Mono","Courier New",monospace;
-  font-size:13px;
+  font-size:14px;
   line-height:1.5
 }
 
 :is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code {
-  background:#1e1e1e;
+  background:transparent;
   color:#d4d4d4;
   font-size:14px;
   line-height:1.5
@@ -446,8 +446,8 @@
   border-radius:6px;
   background:rgba(127,127,127,.16);
   color:inherit;
-  font-size:14px;
-  line-height:14px;
+  font-size:12px;
+  line-height:1.5;
   user-select:none;
   cursor:pointer;
   visibility:hidden
@@ -1365,9 +1365,9 @@ body.warm-theme {
   scroll-margin-top: 40px;
 }
 
-.warm-prose h2 { margin: 3em 0 .95em; font-size: 1.48em; line-height: 1.5; }
-.warm-prose h3 { margin: 2.4em 0 .8em; font-size: 1.18em; line-height: 1.55; }
-.warm-prose h4 { margin: 2em 0 .7em; font-size: 1em; line-height: 1.6; }
+.warm-prose h2 { margin: 2em 0 .95em; font-size: 1.48em; line-height: 1.5; }
+.warm-prose h3 { margin: 1.8em 0 .8em; font-size: 1.18em; line-height: 1.5; }
+.warm-prose h4 { margin: 1.5em 0 .7em; font-size: 1em; line-height: 1.5; }
 
 .warm-prose a {
   color: #5f554d;
@@ -1895,6 +1895,7 @@ body.warm-theme {
   color: #514b46;
   font-family: var(--warm-mono);
   font-size: .88em;
+  line-height: 1.5;
 }
 
 .warm-prose pre {
@@ -1904,8 +1905,9 @@ body.warm-theme {
   background: var(--warm-surface);
   color: #403d39;
   font-family: var(--warm-mono);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: .88em;
+  line-height: 1.5;
+  border-radius: 4px;
   tab-size: 2;
 }
 
@@ -1933,6 +1935,7 @@ body.warm-theme {
   background: transparent;
   color: inherit;
   font-size: inherit;
+  line-height: 1.5;
 }
 
 
@@ -2698,7 +2701,6 @@ body.warm-theme {
 
   .warm-prose pre {
     padding: 14px 16px;
-    font-size: 13px;
   }
 
   .warm-comments__heading {
