@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { getDb, schema } from 'typecho/db';
+import { schema } from 'typecho/db';
 import { registerPluginAdminPath, setOption } from 'typecho/plugin-sdk';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { generateSecurityToken } from '@/lib/auth';
@@ -1184,6 +1184,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const ids = parsePinnedIds(settings.pinnedIds).filter(id => id !== contentId);
     if (pinned) ids.unshift(contentId);
     settings.pinnedIds = ids.join(',');
+    delete settings.htmlEnhancementEnabled;
+    delete settings.canonicalDomainRedirectEnabled;
     await setOption(auth.db, PLUGIN_OPTION_KEY, JSON.stringify(settings));
     return { handled: true, response: json({ success: true, pinned, pinnedIds: ids }) };
   }, 20);
