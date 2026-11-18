@@ -659,7 +659,3 @@ function plainHeadingText(inner: string): string {
     .trim();
 }
 
-/** Preserve iframe tags and all author-supplied attributes verbatim. */
-export function renderWarmIframes(html: string): string {
-  return html;
-}
