@@ -442,16 +442,42 @@
   position:absolute;
   top:4px;
   right:4px;
-  padding:2px 4px;
+  display:inline-flex;
+  width:32px;
+  height:32px;
+  align-items:center;
+  justify-content:center;
+  padding:0;
   border:0;
   border-radius:6px;
-  background:rgba(127,127,127,.16);
-  color:inherit;
-  font-size:12px;
-  line-height:1.5;
+  background:transparent;
+  color:#9ca3af;
+  line-height:1;
   user-select:none;
   cursor:pointer;
-  visibility:hidden
+  visibility:hidden;
+  transition:color .2s ease,background-color .2s ease
+}
+
+.warm-theme .rin-code-copy:hover,
+.warm-theme .rin-code-copy:focus-visible {
+  background:rgba(156,163,175,.16);
+  color:#4b5563
+}
+
+.warm-theme .rin-code-copy.is-copied {
+  color:#22c55e
+}
+
+.warm-theme .rin-code-copy:disabled {
+  cursor:default;
+  opacity:.7
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .warm-theme .rin-code-copy:hover,
+:is(.dark,[data-color-mode="dark"],.is-dark) .warm-theme .rin-code-copy:focus-visible {
+  background:rgba(107,114,128,.22);
+  color:#d1d5db
 }
 
 .rin-code-block:hover .rin-code-copy,.rin-code-copy:focus {
