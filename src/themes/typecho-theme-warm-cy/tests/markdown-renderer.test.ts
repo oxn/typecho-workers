@@ -116,7 +116,8 @@ describe('Warm CY client article renderer', () => {
   });
 
   it('creates separate light and dark Mermaid source containers without altering the diagram source', () => {
-    const dom = new JSDOM('<!doctype html><html><body><div id="content"><pre><code class="language-mermaid">flowchart TD\\n  A[开始] --> B[结束]</code></pre></div></body></html>');
+    const diagram = ['flowchart TD', '  A[开始] --> B[结束]'].join('\\n');
+    const dom = new JSDOM('<!doctype html><html><body><div id="content"><pre><code class="language-mermaid">' + diagram + '</code></pre></div></body></html>');
     const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
 
     try {
@@ -128,8 +129,8 @@ describe('Warm CY client article renderer', () => {
       const dark = root.querySelector('pre.rin-mermaid_dark');
       expect(light).not.toBeNull();
       expect(dark).not.toBeNull();
-      expect(light?.textContent).toBe('flowchart TD\\n  A[开始] --> B[结束]');
-      expect(dark?.textContent).toBe('flowchart TD\\n  A[开始] --> B[结束]');
+      expect(light?.textContent).toBe(diagram);
+      expect(dark?.textContent).toBe(diagram);
     } finally {
       dom.window.close();
       if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument);
