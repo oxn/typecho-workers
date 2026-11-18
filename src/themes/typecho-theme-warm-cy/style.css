@@ -1748,6 +1748,7 @@ body.warm-theme {
   font-weight: 700;
   line-height: 1.5;
   letter-spacing: 0;
+  color: inherit;
 }
 /* Render the alert glyph emitted by the Rehype pipeline directly.
    Do not hide it: the title pseudo-element is intentionally disabled. */
@@ -1840,12 +1841,6 @@ body.warm-theme {
   border-left-color: #f87171;
   background: #fef2f2;
   color: #dc2626;
-}
-
-/* 五种提示框标题继承对应颜色 */
-.warm-prose .markdown-alert-title,
-.warm-note__content .markdown-alert-title {
-  color: inherit;
 }
 
 /* Keep emphasized text throughout an alert aligned with its variant color.
