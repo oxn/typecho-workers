@@ -63,6 +63,27 @@ const footerLinks = [
       </a>
 
       <div class="warm-header__right">
+        <nav class="warm-nav" aria-label="主导航">
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
+        <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
+          <summary>
+            文章
+            <svg class="warm-nav__chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+          </summary>
+          <div class="warm-nav__menu">
+            <a href={`${homeUrl}?stream=posts`}>全部文章</a>
+            {categories.map(category => (<a href={category.permalink}>{category.name}</a>))}
+          </div>
+        </details>
+        {notesEnabled && (
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
+        )}
+        {pages.map((page) => (
+          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink} data-no-instant>{page.title}</a>
+        ))}
+      </nav>
       <div class="warm-header__tools" aria-label="快捷入口">
         <div class="warm-theme-control">
           <button type="button" class="warm-search-trigger warm-theme-trigger" data-warm-theme-toggle aria-label="显示模式：跟随系统" title="显示模式：跟随系统" aria-expanded="false">
@@ -97,27 +118,6 @@ const footerLinks = [
           </a>
         )}
       </div>
-        <nav class="warm-nav" aria-label="主导航">
-        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
-        <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
-          <summary>
-            文章
-            <svg class="warm-nav__chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.2" />
-            </svg>
-          </summary>
-          <div class="warm-nav__menu">
-            <a href={`${homeUrl}?stream=posts`}>全部文章</a>
-            {categories.map(category => (<a href={category.permalink}>{category.name}</a>))}
-          </div>
-        </details>
-        {notesEnabled && (
-          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
-        )}
-        {pages.map((page) => (
-          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink} data-no-instant>{page.title}</a>
-        ))}
-      </nav>
       </div>
     </div>
   </header>
