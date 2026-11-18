@@ -139,7 +139,7 @@ describe('Warm CY client article renderer', () => {
         '![block](https://site.example/usr/uploads/block.png#&width=48&height=24)',
         '',
         '正文中的 ![inline](https://site.example/usr/uploads/inline.png)',
-      ].join('\\n'), {
+      ].join('\n'), {
         imageOptimizeParams: 'quality=80',
         siteUrl: 'https://site.example',
       });
