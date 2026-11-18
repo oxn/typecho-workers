@@ -77,6 +77,7 @@ function createLightbox(): {
   open: (image: HTMLImageElement) => void;
   close: () => void;
   isConnected: () => boolean;
+  destroy: () => void;
 } {
   let root = document.querySelector<HTMLElement>('.rin-lightbox');
   if (!root) {
