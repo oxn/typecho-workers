@@ -116,7 +116,7 @@ describe('Warm CY client article renderer', () => {
   });
 
   it('creates separate light and dark Mermaid source containers without altering the diagram source', () => {
-    const diagram = ['flowchart TD', '  A[开始] --> B[结束]'].join('\\n');
+    const diagram = ['flowchart TD', '  A[开始] --> B[结束]'].join('\n');
     const dom = new JSDOM('<!doctype html><html><body><div id="content"><pre><code class="language-mermaid">' + diagram + '</code></pre></div></body></html>');
     const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
 
