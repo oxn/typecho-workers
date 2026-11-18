@@ -12,6 +12,7 @@ import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
 import WarmClientContent from './WarmClientContent.astro';
+import WarmPasswordGate from './WarmPasswordGate.astro';
 import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, renderArticleDeclaration, warmArticleSummary, warmSettings } from './warm';
 
 type Props = ThemePostProps;
@@ -98,6 +99,8 @@ const articleDeclarationHtml = !isNote
     <div class:list={["warm-article__body", { "warm-article__body--toc": tocItems.length > 0 }]}>
       {isNote ? (
         <div class:list={["warm-prose", "warm-note-prose"]} view-image itemprop="articleBody" set:html={displayContent} />
+      ) : post.hasPassword && !post.passwordVerified ? (
+        <WarmPasswordGate permalink={post.permalink} />
       ) : (
         <WarmClientContent source={articleSource} />
       )}
