@@ -39,7 +39,9 @@ export interface PostListItem {
   cid: number;
   title: string;
   permalink: string;
-  /** Rendered HTML excerpt (with <!--more--> support) */
+  /** Raw stored article source; the client renderer owns final HTML generation. */
+  source: string;
+  /** Rendered HTML excerpt (legacy SSR/list compatibility during migration). */
   excerpt: string;
   created: number;
   commentsNum: number;
@@ -63,8 +65,10 @@ export interface ThemePostProps extends ThemeBaseProps {
     cid: number;
     title: string;
     permalink: string;
-    /** Rendered HTML content */
+    /** Rendered HTML content (legacy SSR compatibility during migration) */
     content: string;
+    /** Raw stored article source for client-side rendering. */
+    source: string;
     created: number;
     modified: number | null;
     commentsNum: number;
@@ -93,8 +97,10 @@ export interface ThemePageProps extends ThemeBaseProps {
     title: string;
     slug: string;
     permalink: string;
-    /** Rendered HTML content */
+    /** Rendered HTML content (legacy SSR compatibility during migration) */
     content: string;
+    /** Raw stored page source for client-side rendering. */
+    source: string;
     created: number;
     allowComment: boolean;
     hasPassword: boolean;
