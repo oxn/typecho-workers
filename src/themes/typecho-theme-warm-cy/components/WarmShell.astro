@@ -242,7 +242,12 @@ const footerLinks = [
         if (themeMode === 'system') applyThemeMode();
       });
 
-      document.addEventListener('click', event => {
+      // InstantClick re-executes this inline script after each body swap.
+      // Keep one delegated handler on the persistent document so theme-menu
+      // clicks are never applied multiple times.
+      if (document.documentElement.dataset.warmThemeMenuClickBound !== '1') {
+        document.documentElement.dataset.warmThemeMenuClickBound = '1';
+        document.addEventListener('click', event => {
         const target = event.target instanceof Element ? event.target : null;
         if (!target) return;
         const themeToggle = target.closest('[data-warm-theme-toggle]');
@@ -291,7 +296,8 @@ const footerLinks = [
           const dialog = target.closest('[data-warm-search-dialog]');
           if (dialog instanceof HTMLDialogElement && target === dialog && dialog.open) dialog.close();
         }
-      });
+        });
+      }
 
       const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
       document.querySelectorAll('.warm-nav__dropdown').forEach(dropdown => {

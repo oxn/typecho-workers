@@ -76,6 +76,7 @@ function enhanceImage(image: HTMLImageElement): void {
 function createLightbox(): {
   open: (image: HTMLImageElement) => void;
   close: () => void;
+  isConnected: () => boolean;
 } {
   let root = document.querySelector<HTMLElement>('.rin-lightbox');
   if (!root) {
@@ -258,7 +259,7 @@ function createLightbox(): {
           ? document.activeElement
           : null;
       }
-      activeRoot = selected.closest('.toc-content');
+      activeRoot = selected.closest('.warm-prose, .toc-content') || selected.parentElement;
       const list = slides();
       const selectedSrc = selected.currentSrc || selected.src;
       activeIndex = list.findIndex(item => (item.currentSrc || item.src) === selectedSrc);
@@ -270,6 +271,7 @@ function createLightbox(): {
       root!.querySelector<HTMLButtonElement>('[data-action="close"]')?.focus();
     },
     close,
+    isConnected: () => root!.isConnected,
   };
 }
 
@@ -283,6 +285,9 @@ if (typeof document !== 'undefined' && document.body) {
 }
 
 export function initializeImages(root: Element): void {
+  // InstantClick replaces <body>, detaching the previous lightbox node while
+  // this module remains cached. Recreate it against the current document body.
+  if (!lightbox || !lightbox.isConnected()) lightbox = createLightbox();
   root.querySelectorAll<HTMLImageElement>('img').forEach(enhanceImage);
   if (root.getAttribute('data-rin-image-click-bound') !== '1') {
     root.setAttribute('data-rin-image-click-bound', '1');
