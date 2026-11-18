@@ -581,6 +581,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown, rawThe
   ].join('');
   const commentsEnabled = isEnabled(settings.showCommentManagementButtons);
   const searchEnabled = isEnabled(settings.showHomeSearchButton);
+  const adminEntryEnabled = isEnabled(settings.showAdminEntryButton);
   return `
     <div class="col-mb-12 col-tb-8 col-tb-offset-2 cy-feature-settings"
       data-cy-feature-settings data-csrf-token="${escapeHtml(csrfToken)}">
@@ -602,7 +603,14 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown, rawThe
           <input type="checkbox" data-cy-setting="showHomeSearchButton" ${searchEnabled ? 'checked' : ''}>
           <span>首页搜索按键</span>
         </label>
-        <p>控制 Warm CY 所有页面的主导航是否显示搜索图标。关闭后全站不显示搜索入口。</p>
+        <p>控制 Warm CY 所有页面顶部操作区是否显示搜索图标。关闭后全站不显示搜索入口。</p>
+      </section>
+      <section class="cy-feature-card">
+        <label class="cy-feature-toggle">
+          <input type="checkbox" data-cy-setting="showAdminEntryButton" ${adminEntryEnabled ? 'checked' : ''}>
+          <span>后台入口按键</span>
+        </label>
+        <p>控制页面顶部操作区是否显示后台入口图标。开启后点击直接进入 Typecho 后台；未登录时由后台自行处理登录验证。</p>
       </section>
       <div class="cy-feature-actions">
         <button type="button" class="btn" data-cy-save>保存设置</button>
@@ -733,6 +741,7 @@ function featureSettingsPageHtml(csrfToken: string, rawSettings: unknown, rawThe
                 ...movedSettings,
                 showCommentManagementButtons: !!root.querySelector('[data-cy-setting="showCommentManagementButtons"]')?.checked,
                 showHomeSearchButton: !!root.querySelector('[data-cy-setting="showHomeSearchButton"]')?.checked,
+                showAdminEntryButton: !!root.querySelector('[data-cy-setting="showAdminEntryButton"]')?.checked,
               })
             });
             var result = await response.json();
@@ -1126,6 +1135,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       const values = body as {
         showCommentManagementButtons?: unknown;
         showHomeSearchButton?: unknown;
+        showAdminEntryButton?: unknown;
         pinnedIds?: unknown;
         articleDeclarationHtml?: unknown;
         footerCustomHtml?: unknown;
@@ -1138,6 +1148,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       }
       if (typeof values.showCommentManagementButtons !== 'boolean'
         || typeof values.showHomeSearchButton !== 'boolean'
+        || typeof values.showAdminEntryButton !== 'boolean'
 ) {
         return { handled: true, response: json({ error: 'Invalid settings' }, 400) };
       }
@@ -1146,6 +1157,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         ...current,
         showCommentManagementButtons: values.showCommentManagementButtons ? '1' : '0',
         showHomeSearchButton: values.showHomeSearchButton ? '1' : '0',
+        showAdminEntryButton: values.showAdminEntryButton ? '1' : '0',
       };
       delete next.htmlEnhancementEnabled;
       delete next.canonicalDomainRedirectEnabled;
