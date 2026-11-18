@@ -1069,12 +1069,6 @@ body.warm-theme {
   color: #dc2626;
 }
 
-/* 五种提示框标题继承对应颜色 */
-.warm-prose .markdown-alert-title,
-.warm-note__content .markdown-alert-title {
-  color: inherit;
-}
-
 /* Keep emphasized text throughout an alert aligned with its variant color.
    Inline HTML styles still take precedence when an author supplies them. */
 .warm-prose .markdown-alert strong,
@@ -1177,10 +1171,11 @@ body.warm-theme {
 
 .warm-prose table {
   min-width: stretch;
-  width: max-content !important;
-  overflow-x: auto;
+  width: 100%;
   margin: 2.5em 0;
+  border: 1px solid #d9dfe7;
   border-collapse: collapse;
+  table-layout: auto;
   font-size: 14px;
   line-height: 1.75;
 }
@@ -1188,7 +1183,7 @@ body.warm-theme {
 .warm-prose th,
 .warm-prose td {
   padding: 12px 14px;
-  border-bottom: 1px solid var(--warm-border);
+  border: 1px solid #d9dfe7;
   text-align: left;
   vertical-align: top;
 }
@@ -2098,21 +2093,6 @@ body.warm-theme {
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
-}
-
-/* 删除确认输入框 */
-.warm-manage-dialog__input {
-  font-size: 16px;
-}
-
-/* 确认和取消按钮 */
-.warm-manage-dialog__actions button {
-  font-size: 16px;
-}
-
-/* 错误提示 */
-.warm-manage-dialog__error {
-  font-size: 12px;
 }
 
 
