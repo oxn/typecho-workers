@@ -99,12 +99,12 @@ describe('Warm CY client article renderer', () => {
       '正文中的 ![inline](https://example.test/inline.png)',
       '',
       '![group-first](https://example.test/first.png)![group-second](https://example.test/second.png)',
-    ].join('\\n'));
+    ].join('\n'));
 
-    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\\.test\/leading\\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
-    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\\.test\/inline\\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
-    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\\.test\/first\\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
-    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\\.test\/second\\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/leading\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/inline\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/first\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/second\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
   });
 
   it('extracts image URL blurhash and dimensions for Markdown and raw HTML images', async () => {
@@ -112,7 +112,7 @@ describe('Warm CY client article renderer', () => {
       '![markdown](https://cdn.example/markdown.png#&blurhash=abc%2F123&width=48&height=24)',
       '',
       '<img src="https://cdn.example/raw.png#blurhash=raw123&amp;width=64&amp;height=32" alt="raw">',
-    ].join('\\n'));
+    ].join('\n'));
 
     expect(html).toContain('src="https://cdn.example/markdown.png"');
     expect(html).toContain('data-rin-blurhash="abc/123"');
