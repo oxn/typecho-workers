@@ -291,7 +291,10 @@ export function initializeImages(root: Element): void {
     root.addEventListener('click', event => {
       const target = event.target as HTMLElement;
       const image = target.closest('img[data-rin-image-enhanced="1"]') as HTMLImageElement | null;
-      if (image) lightbox?.open(image);
+      if (!image) return;
+      event.preventDefault();
+      event.stopPropagation();
+      lightbox?.open(image);
     });
   }
 }
