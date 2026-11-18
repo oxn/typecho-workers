@@ -1,9 +1,9 @@
 {
   "id": "typecho-theme-warm-cy",
   "name": "Typecho Warm CY",
-  "description": "基于 Typecho Warm 的独立自定义主题。",
+  "description": "面向 Typecho-Workers 的独立 Warm 风格主题，内置 CY Client Runtime，负责页面模板、正文渲染、主题交互与视觉呈现。",
   "author": "怸歪",
-  "version": "2026.11.13.10.49",
+  "version": "2026.11.18.22.04",
   "stylesheet": "style.css",
   "screenshot": "screenshot.png",
   "homepage": "https://oook.top",
