@@ -2901,3 +2901,27 @@ body.warm-theme {
   opacity: 1;
   text-decoration: none;
 }
+
+
+/* Client-rendered Mermaid diagrams: one theme variant, transparent canvas, centered. */
+.warm-prose pre.rin-mermaid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-inline: auto;
+  overflow-x: auto;
+  text-align: center;
+  white-space: normal;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.warm-prose pre.rin-mermaid svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+  background: transparent !important;
+}
