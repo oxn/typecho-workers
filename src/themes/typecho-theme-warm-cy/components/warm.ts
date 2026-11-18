@@ -50,6 +50,7 @@ export interface WarmSettings {
 export interface WarmCyFeatureSettings {
   showCommentManagementButtons: boolean;
   showHomeSearchButton: boolean;
+  showAdminEntryButton: boolean;
 }
 
 export function warmCyFeatureSettings(options: ThemeBaseProps['options']): WarmCyFeatureSettings {
@@ -71,6 +72,7 @@ export function warmCyFeatureSettings(options: ThemeBaseProps['options']): WarmC
   return {
     showCommentManagementButtons: enabled(saved.showCommentManagementButtons),
     showHomeSearchButton: enabled(saved.showHomeSearchButton),
+    showAdminEntryButton: enabled(saved.showAdminEntryButton),
   };
 }
 
