@@ -127,19 +127,6 @@ describe('Warm CY theme helpers', () => {
     expect(settings.thumbOptimizeParams).toBe('quality=80');
   });
 
-  it('reads the formula engine from the Rehype plugin settings', () => {
-    const mathjax = warmSettings({
-      'plugin:typecho-plugin-markdown-rehype': JSON.stringify({ mathEngine: 'mathjax' }),
-      'theme:typecho-theme-warm-cy': JSON.stringify({ markdownMathEngine: 'katex' }),
-    } as never);
-    expect(mathjax.markdownMathEngine).toBe('mathjax');
-
-    const katex = warmSettings({
-      'plugin:typecho-plugin-markdown-rehype': JSON.stringify({ mathEngine: 'katex' }),
-    } as never);
-    expect(katex.markdownMathEngine).toBe('katex');
-  });
-
   it('returns manifest-equivalent defaults when no saved settings exist', () => {
     const settings = warmSettings({} as never);
     expect(settings.pinnedIds).toEqual([]);

@@ -321,19 +321,9 @@ const footerLinks = [
     })();
   </script>
 
-  <script is:inline>
-    // InstantClick re-executes inline body scripts after a page swap. Keep the
-    // existing MathJax runtime/config instead of replacing it after startup.
-    window.MathJax = window.MathJax || {
-      startup: { typeset: false },
-      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }
-    };
-  </script>
   <script>
     import mermaid from 'mermaid';
     import { getWarmMermaidConfig } from 'typecho-plugin-markdown-rehype/mermaid-config';
-
-    import 'katex/dist/katex.min.css';
 
     // Mermaid must measure each theme variant while it participates in layout.
     // The inactive variant is normally display:none; render it temporarily as
@@ -382,49 +372,6 @@ const footerLinks = [
       }
     };
 
-    let mathJaxRendering = false;
-    let mathJaxRenderQueued = false;
-    const renderMathJaxBlocks = async () => {
-      if (mathJaxRendering) {
-        mathJaxRenderQueued = true;
-        return;
-      }
-
-      const articleBodies = [...document.querySelectorAll('.warm-article__body[data-math-engine="mathjax"]')];
-      const blocks = articleBodies.flatMap(body =>
-        [...body.querySelectorAll('code.language-math:not([data-mathjax-processed])')]
-      );
-      if (!blocks.length) return;
-
-      mathJaxRendering = true;
-      try {
-        await import('mathjax-full/es5/tex-svg.js');
-        const replacements = [];
-        for (const code of blocks) {
-          if (!code.isConnected) continue;
-          const source = code.textContent || '';
-          const pre = code.closest('pre');
-          const replacement = document.createElement(pre ? 'div' : 'span');
-          replacement.className = pre ? 'mathjax-display' : 'mathjax-inline';
-          replacement.textContent = pre ? '\\[\n' + source + '\n\\]' : '\\(' + source + '\\)';
-          (pre || code).replaceWith(replacement);
-          replacements.push(replacement);
-        }
-
-        const mathJax = window.MathJax;
-        if (!mathJax?.startup?.promise || !replacements.length) return;
-        await mathJax.startup.promise;
-        await mathJax.typesetPromise(replacements);
-      } catch (error) {
-        console.error('MathJax rendering failed:', error);
-      } finally {
-        mathJaxRendering = false;
-        if (mathJaxRenderQueued) {
-          mathJaxRenderQueued = false;
-          queueMicrotask(() => void renderMathJaxBlocks());
-        }
-      }
-    };
     const enhanceCodeCopyButtons = () => {
       // Match Rin: one copy control per fenced code block, including plain-text blocks.
       document.querySelectorAll('.warm-prose pre > code').forEach(code => {
@@ -517,7 +464,6 @@ const footerLinks = [
     const renderArticleEnhancements = () => {
       enhanceCodeCopyButtons();
       void renderMermaidBlocks();
-      void renderMathJaxBlocks();
     };
     // InstantClick swaps the body node. Observe the document element rather
     // than the old body so diagrams added with a replacement body are detected.

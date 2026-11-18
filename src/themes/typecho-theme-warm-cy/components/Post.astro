@@ -98,7 +98,7 @@ const articleDeclarationHtml = !isNote
       </div>
     </header>
 
-    <div class:list={["warm-article__body", { "warm-article__body--toc": tocItems.length > 0 }]} data-math-engine={!isNote && !passwordLocked ? settings.markdownMathEngine : undefined}>
+    <div class:list={["warm-article__body", { "warm-article__body--toc": tocItems.length > 0 }]}>
       <div class:list={["warm-prose", { "warm-note-prose": isNote }]} view-image itemprop="articleBody" set:html={displayContent} />
       {tocItems.length > 0 && <WarmToc items={tocItems} />}
     </div>

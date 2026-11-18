@@ -45,7 +45,6 @@ export interface WarmSettings {
   imageOptimizeParams: string;
   /** Query params appended to thumbnail URLs; falls back to imageOptimizeParams when empty. */
   thumbOptimizeParams: string;
-  markdownMathEngine: 'katex' | 'mathjax';
 }
 
 export interface WarmCyFeatureSettings {
@@ -80,7 +79,6 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
   const pluginSettings = readSavedPluginSettings(options, 'typecho-plugin-warm-cy') || {};
   const settings = { ...DEFAULT_WARM_SETTINGS, ...(savedSettings || {}) };
   const moved = (key: string) => Object.prototype.hasOwnProperty.call(pluginSettings, key) ? pluginSettings[key] : settings[key];
-  const rehypeSettings = readSavedPluginSettings(options, 'typecho-plugin-markdown-rehype');
   const legacyCommentMode = savedSettings?.commentInitialLoadMode;
   const componentLoadMode = Object.prototype.hasOwnProperty.call(savedSettings || {}, 'commentComponentLoadMode')
     ? settings.commentComponentLoadMode
@@ -111,7 +109,6 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     commentInitialLoadMode: normalizeCommentInitialLoadMode(settings.commentInitialLoadMode),
     imageOptimizeParams,
     thumbOptimizeParams: normalizeOptimizeParams(settings.thumbOptimizeParams) || imageOptimizeParams,
-    markdownMathEngine: rehypeSettings?.mathEngine === 'mathjax' ? 'mathjax' : 'katex',
   };
 }
 

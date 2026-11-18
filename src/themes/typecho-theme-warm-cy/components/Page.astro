@@ -64,7 +64,7 @@ const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
         <h1 itemprop="headline">{page.title}</h1>
       </div>
     </header>
-    <div class="warm-article__body" data-math-engine={!passwordLocked && rehypeEnabled ? settings.markdownMathEngine : undefined}>
+    <div class="warm-article__body">
       <div class="warm-prose" view-image itemprop="articleBody" set:html={displayContent} />
       {toc.items.length > 0 && <WarmToc items={toc.items} />}
     </div>
