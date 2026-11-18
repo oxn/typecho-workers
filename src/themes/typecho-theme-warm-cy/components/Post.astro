@@ -37,7 +37,7 @@ const intelligenceSummary = !isNote && pluginCtx.activatedPlugins.has('typecho-p
 const summary = isNote ? '' : warmArticleSummary(post, intelligenceSummary);
 const description = isNote
   ? plainExcerpt(note.source, 160)
-  : (summary || plainExcerpt(post.content, 160));
+  : (summary || (!(post.hasPassword && !post.passwordVerified) ? plainExcerpt(post.content, 160) : ''));
 const articleDeclarationHtml = !isNote
   ? renderArticleDeclaration(settings.articleDeclarationHtml, {
     siteName: options.title,
