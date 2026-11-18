@@ -28,8 +28,8 @@ describe('Warm CY theme helpers', () => {
       '    B -->|否| D[跳过]',
       '    C --> E[结束]',
       '    D --> E',
-    ].join('\\n');
-    const html = await renderMarkdown('```mermaid\\n' + diagram + '\\n```');
+    ].join('\n');
+    const html = await renderMarkdown('```mermaid\n' + diagram + '\n```');
     const { JSDOM } = await import('jsdom');
     const dom = new JSDOM('<!doctype html><html><body><div id="content"></div></body></html>');
     const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
@@ -341,7 +341,7 @@ describe('Warm CY Mermaid chart-family compatibility', () => {
       const { default: mermaid } = await import('mermaid');
       mermaid.initialize({ startOnLoad: false, theme: 'default' });
         for (const [type, lines] of diagrams) {
-          await expect(mermaid.parse(lines.join('\\n')), type).resolves.toBeTruthy();
+          await expect(mermaid.parse(lines.join('\n')), type).resolves.toBeTruthy();
         }
       }
     } finally {
