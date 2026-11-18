@@ -861,15 +861,6 @@ body.warm-theme {
   transition: color 180ms ease, background-color 180ms ease;
 }
 
-.warm-nav__account {
-  gap: 6px;
-}
-
-.warm-nav__account-icon {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-}
 
 .warm-nav__dropdown > summary::-webkit-details-marker {
   display: none;
