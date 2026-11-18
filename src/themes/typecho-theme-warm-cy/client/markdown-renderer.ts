@@ -6,6 +6,7 @@ import remarkBreaks from 'remark-breaks';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
 import rehypeStringify from 'rehype-stringify';
+import { optimizeImageUrl } from '@/lib/image-transform';
 
 let processorPromise: Promise<any> | null = null;
 
@@ -88,11 +89,23 @@ export async function renderMarkdown(source: string): Promise<string> {
   return '<div class="toc-content min-w-0">' + String(file) + '</div>';
 }
 
-export async function renderInto(root: HTMLElement, source: string): Promise<void> {
+export interface RenderOptions {
+  imageOptimizeParams?: string;
+  siteUrl?: string;
+}
+
+export async function renderInto(root: HTMLElement, source: string, options: RenderOptions = {}): Promise<void> {
   root.setAttribute('aria-busy', 'true');
   try {
     root.innerHTML = await renderMarkdown(source);
     addHeadingIds(root);
+    if (options.imageOptimizeParams) {
+      root.querySelectorAll<HTMLImageElement>('img[src]').forEach((image) => {
+        const src = image.getAttribute('src') || '';
+        const optimized = optimizeImageUrl(src, options.imageOptimizeParams || '', options.siteUrl || '');
+        if (optimized !== src) image.setAttribute('src', optimized);
+      });
+    }
     normalizeImages(root);
     await enhanceOptionalFeatures(root);
   } catch (error) {
