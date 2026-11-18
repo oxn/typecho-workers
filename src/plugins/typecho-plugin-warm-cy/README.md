@@ -33,7 +33,7 @@ CY 服务插件不参与文章或独立页面的正文渲染，也不注册正�
 - CSS、SVG 及其他正文客户端 runtime。
 - Mermaid、公式等正文渲染模块。
 
-以上前台正文能力由 Warm CY 主题内置的统一 CY Client Runtime 和主题自有 Renderer 负责。前台不依赖 Markdown Rehype 插件包；无需为了主题正文输出额外启用该插件。
+以上前台正文能力由 Warm CY 主题内置的统一 CY Client Runtime 和主题自有 Renderer 负责。主题使用 Unified / Remark / Rehype 生态及相应扩展库构建 Markdown 处理管线；具体依赖和职责见主题 README。前台不依赖 `typecho-plugin-markdown-rehype` 插件包，也无需为了主题正文输出启用该插件。
 
 ## 不包含的请求处理功能
 
@@ -42,3 +42,7 @@ CY 服务插件不参与文章或独立页面的正文渲染，也不注册正�
 ## 设置保存
 
 插件设置通过后台保存。置顶列表、页脚链接、文章声明和站点底部自定义 HTML 继续保存在对应的主题/插件选项中；保存时会清理旧版本遗留的正文增强和备用域名跳转开关。
+
+## 更新记录
+
+版本变更记录见本目录的 `CHANGELOG.md`。
