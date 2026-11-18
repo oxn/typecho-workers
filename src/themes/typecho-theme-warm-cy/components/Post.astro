@@ -37,7 +37,6 @@ const articleSource = !isNote && !(post.hasPassword && !post.passwordVerified)
   }))?.text || ''
   : '';
 const settings = warmSettings(options);
-const articleHtml = post.content;
 const optimizedContent = optimizeContentImages(
   isNote ? note.html : post.content,
   settings.imageOptimizeParams,
@@ -74,7 +73,7 @@ const articleDeclarationHtml = !isNote
   section={isNote ? 'notes' : 'articles'}
   detail={!isNote}
 >
-  <article class:list={["warm-article", { "is-note": isNote, "has-toc": tocItems.length > 0 }]} itemscope itemtype="https://schema.org/BlogPosting">
+  <article class:list={["warm-article", { "is-note": isNote }]} itemscope itemtype="https://schema.org/BlogPosting">
     <header class:list={["warm-article__header", { "warm-article__hero": !isNote }]}>
       <div class:list={{ "warm-article__hero-inner": !isNote }}>
         <div class="warm-item-meta">
@@ -102,7 +101,7 @@ const articleDeclarationHtml = !isNote
       ) : (
         <WarmClientContent source={articleSource} imageOptimizeParams={settings.imageOptimizeParams} siteUrl={urls.siteUrl} />
       )}
-      {tocItems.length > 0 && <WarmToc />}
+      {!isNote && !(post.hasPassword && !post.passwordVerified) && <WarmToc />}
     </div>
 
     {isNote && (
