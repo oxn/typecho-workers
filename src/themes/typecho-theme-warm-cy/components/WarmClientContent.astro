@@ -1,26 +1,26 @@
 ---
-const { source = '', imageOptimizeParams = '', siteUrl = '' } = Astro.props as { source?: string; imageOptimizeParams?: string; siteUrl?: string };
-const payload = JSON.stringify({ source, imageOptimizeParams, siteUrl }).replace(/</g, '\\u003c');
+const { html = '', imageOptimizeParams = '', siteUrl = '' } = Astro.props as { html?: string; imageOptimizeParams?: string; siteUrl?: string };
+const payload = JSON.stringify({ html, imageOptimizeParams, siteUrl }).replace(/</g, '\\u003c');
 ---
 <div class="warm-prose" data-warm-client-content itemprop="articleBody" aria-busy="true"></div>
 <script>
-  import { renderInto } from '../client/markdown-renderer';
+  import { renderHtmlInto } from '../client/markdown-renderer';
 
   const initialize = async () => {
     const nodes = document.querySelectorAll<HTMLElement>('[data-warm-client-content]');
-    const sources = document.querySelectorAll<HTMLScriptElement>('[data-warm-client-source]');
+    const payloadNodes = document.querySelectorAll<HTMLScriptElement>('[data-warm-client-source]');
     for (let index = 0; index < nodes.length; index += 1) {
       const node = nodes[index];
       if (node.dataset.warmClientInitialized === '1') continue;
-      const sourceNode = sources[index];
-      if (!sourceNode) {
+      const payloadNode = payloadNodes[index];
+      if (!payloadNode) {
         console.error('[Warm CY] client content source node is missing', { index });
         continue;
       }
       node.dataset.warmClientInitialized = '1';
       try {
-        const payload = JSON.parse(sourceNode.textContent || '{}') as { source?: string; imageOptimizeParams?: string; siteUrl?: string };
-        await renderInto(node, payload.source || '', {
+        const payload = JSON.parse(payloadNode.textContent || '{}') as { html?: string; imageOptimizeParams?: string; siteUrl?: string };
+        await renderHtmlInto(node, payload.html || '', {
           imageOptimizeParams: payload.imageOptimizeParams || '',
           siteUrl: payload.siteUrl || '',
         });
