@@ -13,7 +13,7 @@ function appendHighlightSegments(code: HTMLElement, source: string, language: st
 }
 
 function enhanceCodeBlocks(root: Element): void {
-  root.querySelectorAll<HTMLElement>('pre > code[class*="language-"]').forEach(code => {
+  root.querySelectorAll<HTMLElement>('pre > code').forEach(code => {
     const pre = code.parentElement;
     if (!pre || code.classList.contains('language-mermaid') || code.classList.contains('lang-mermaid') || pre.closest('.rin-mermaid_default,.rin-mermaid_dark') || pre.dataset.rinCodeEnhanced === '1') return;
     pre.dataset.rinCodeEnhanced = '1';
@@ -39,9 +39,42 @@ function enhanceCodeBlocks(root: Element): void {
     button.textContent = '复制';
     button.title = '复制代码';
     button.addEventListener('click', async () => {
-      await navigator.clipboard.writeText(copyValue);
-      button.textContent = '已复制';
-      button.title = '已复制代码';
+      if (button.disabled) return;
+      button.disabled = true;
+      let copied = false;
+
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(copyValue);
+          copied = true;
+        }
+      } catch {
+        // HTTP 本地地址等非安全上下文可能无法使用 Clipboard API，继续尝试兼容方案。
+      }
+
+      if (!copied) {
+        const textarea = document.createElement('textarea');
+        textarea.value = copyValue;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        document.body.append(textarea);
+        try {
+          textarea.focus();
+          textarea.select();
+          textarea.setSelectionRange(0, textarea.value.length);
+          copied = document.execCommand('copy');
+        } catch {
+          copied = false;
+        } finally {
+          textarea.remove();
+        }
+      }
+
+      button.textContent = copied ? '已复制' : '复制失败';
+      button.title = copied ? '已复制代码' : '复制失败，请手动选择代码';
+      button.disabled = false;
       window.setTimeout(() => {
         button.textContent = '复制';
         button.title = '复制代码';
