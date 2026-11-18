@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { JSDOM } from 'jsdom';
-import { renderInto, renderMarkdown } from './markdown-renderer';
+import { renderInto, renderMarkdown, transformMermaidBlocks } from './markdown-renderer';
 
 describe('Warm CY client article renderer', () => {
   it('preserves authored HTML, attributes, inline CSS, style blocks and SVG', async () => {
@@ -112,6 +112,28 @@ describe('Warm CY client article renderer', () => {
       else delete (globalThis as any).document;
       if (previousCustomEvent) Object.defineProperty(globalThis, 'CustomEvent', previousCustomEvent);
       else delete (globalThis as any).CustomEvent;
+    }
+  });
+
+  it('creates separate light and dark Mermaid source containers without altering the diagram source', () => {
+    const dom = new JSDOM('<!doctype html><html><body><div id="content"><pre><code class="language-mermaid">flowchart TD\\n  A[开始] --> B[结束]</code></pre></div></body></html>');
+    const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+
+    try {
+      Object.defineProperty(globalThis, 'document', { configurable: true, value: dom.window.document });
+      const root = dom.window.document.querySelector<HTMLElement>('#content')!;
+      transformMermaidBlocks(root);
+
+      const light = root.querySelector('pre.rin-mermaid_default');
+      const dark = root.querySelector('pre.rin-mermaid_dark');
+      expect(light).not.toBeNull();
+      expect(dark).not.toBeNull();
+      expect(light?.textContent).toBe('flowchart TD\\n  A[开始] --> B[结束]');
+      expect(dark?.textContent).toBe('flowchart TD\\n  A[开始] --> B[结束]');
+    } finally {
+      dom.window.close();
+      if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument);
+      else delete (globalThis as any).document;
     }
   });
 
