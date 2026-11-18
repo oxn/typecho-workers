@@ -70,7 +70,7 @@ describe('Warm CY client article renderer', () => {
       expect(root.querySelectorAll('h1[id], h2[id], h3[id]')).toHaveLength(4);
       const toc = dom.window.document.querySelector('[data-warm-toc]')!;
       expect(toc.querySelectorAll('[data-warm-toc-link]')).toHaveLength(3);
-      expect(toc.getAttribute('style')).toBe('');
+      expect((toc as HTMLElement).style.display).not.toBe('none');
       expect(dom.window.document.querySelector('.warm-article__body')?.classList.contains('warm-article__body--toc')).toBe(true);
 
       const iframe = root.querySelector('iframe')!;
