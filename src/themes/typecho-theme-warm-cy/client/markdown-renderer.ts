@@ -325,7 +325,10 @@ function restoreWarmMarkdownAlertIcons(content: string): string {
       const updatedInner = inner.replace(
         titlePattern,
         (title, opening: string, _titleQuote: string, text: string, closing: string) => {
+          // Preserve the original plugin behavior: if the renderer already supplied
+          // an SVG alert icon, keep that exact SVG instead of replacing its appearance.
           if (opening.includes('cy-markdown-alert-has-icon')) return title;
+          const existingSvg = text.match(/<svg\b(?=[^>]*\bclass=(["'])[^"']*\bmarkdown-alert-icon\b[^"']*\1)[^>]*>[\s\S]*?<\/svg>/i)?.[0];
           const withoutFallbackIcon = text
             .replace(/<svg\b(?=[^>]*\bclass=(['"])[^'"]*\bocticon\b[^'"]*\1)[^>]*>[\s\S]*?<\/svg>/gi, '')
             .replace(/<span\b(?=[^>]*\bclass=(["'])[^"']*\bocticon\b[^"']*\1)[^>]*>[\s\S]*?<\/span>/gi, '')
@@ -336,6 +339,9 @@ function restoreWarmMarkdownAlertIcons(content: string): string {
             /class=(["'])markdown-alert-title\1/i,
             (_match, quote: string) => 'class=' + quote + 'markdown-alert-title cy-markdown-alert-has-icon' + quote,
           );
+          if (existingSvg) {
+            return markedOpening + existingSvg + withoutFallbackIcon + closing;
+          }
           return markedOpening + icon + withoutFallbackIcon + closing;
         },
       );
