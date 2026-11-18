@@ -3589,3 +3589,302 @@ body.warm-theme {
   margin-inline: auto;
   background: transparent !important;
 }
+
+/* ========================================
+   Warm 暗黑主题：统一页面、正文与交互配色
+   仅切换颜色，不改变现有布局与尺寸
+   ======================================== */
+.dark {
+  color-scheme: dark;
+  --warm-bg: #171819;
+  --warm-surface: #202224;
+  --warm-surface-strong: #292c2f;
+  --warm-text: #e8e6e3;
+  --warm-body: #d0ceca;
+  --warm-muted: #aaa7a1;
+  --warm-faint: #85827d;
+  --warm-border: #383a3c;
+  --warm-accent: #c2b6a8;
+  --warm-hover: #242729;
+}
+
+.dark html,
+html.dark {
+  background: var(--warm-bg);
+  color: var(--warm-text);
+}
+
+.dark body.warm-theme {
+  background: var(--warm-bg);
+  color: var(--warm-text);
+}
+
+.dark .warm-theme ::selection {
+  background: #77716a;
+  color: #fff;
+}
+
+.dark .warm-brand__title,
+.dark .warm-prose strong,
+.dark .warm-prose h1,
+.dark .warm-prose h2,
+.dark .warm-prose h3,
+.dark .warm-prose h4,
+.dark .warm-prose h5,
+.dark .warm-prose h6,
+.dark .warm-empty h1,
+.dark .warm-empty h2,
+.dark .warm-not-found h1 {
+  color: var(--warm-text);
+}
+
+.dark .warm-nav__link,
+.dark .warm-nav__dropdown > summary {
+  color: var(--warm-muted) !important;
+}
+
+.dark .warm-nav__link:hover,
+.dark .warm-nav__dropdown:hover > summary {
+  background: var(--warm-hover);
+  color: var(--warm-text) !important;
+}
+
+.dark .warm-nav__link.is-active,
+.dark .warm-nav__dropdown.is-active > summary {
+  background: #45494c;
+  color: #f1efec !important;
+}
+
+.dark .warm-nav__menu {
+  border: 1px solid var(--warm-border);
+  background: var(--warm-surface);
+}
+
+.dark .warm-nav__menu a {
+  color: var(--warm-muted);
+}
+
+.dark .warm-nav__menu a:hover {
+  background: var(--warm-hover);
+  color: var(--warm-text);
+}
+
+.dark .warm-stream-item:hover {
+  background: var(--warm-hover);
+}
+
+.dark .warm-post-card h2 a,
+.dark .warm-topic-filter a,
+.dark .warm-prose a {
+  color: #d0c4b6;
+}
+
+.dark .warm-post-card:hover h2 a,
+.dark .warm-prose a:hover {
+  color: #f0e8df;
+}
+
+.dark .warm-prose a {
+  text-decoration-color: #625c55;
+}
+
+.dark .warm-prose a:hover {
+  text-decoration-color: #b8aa9b;
+}
+
+.dark .warm-note__content {
+  color: var(--warm-body);
+}
+
+.dark .warm-note__content hr,
+.dark .warm-prose hr {
+  background: var(--warm-border);
+}
+
+.dark .warm-prose code {
+  background: var(--warm-surface-strong);
+  color: #e0d8cf;
+}
+
+.dark .warm-prose pre {
+  background: var(--warm-surface);
+  color: #d8d5d0;
+}
+
+.dark .warm-prose blockquote,
+.dark .warm-note__content blockquote {
+  border-left-color: #55514c;
+  background: #202224;
+  color: #c4beb6;
+}
+
+.dark .warm-prose blockquote > strong:first-child {
+  color: var(--warm-text);
+}
+
+.dark .warm-prose table,
+.dark .warm-prose table th,
+.dark .warm-prose table td {
+  border-color: var(--warm-border);
+}
+
+.dark .warm-prose table th {
+  background: #25292c;
+  color: var(--warm-text);
+}
+
+.dark .warm-prose table td {
+  background: #1b1d1f;
+  color: var(--warm-body);
+}
+
+.dark .warm-prose table tr:nth-child(even) td {
+  background: #202326;
+}
+
+.dark .warm-pagination a,
+.dark .warm-comment-pagination a {
+  color: var(--warm-muted);
+}
+
+.dark .warm-pagination a:hover,
+.dark .warm-pagination a.is-current,
+.dark .warm-comment-pagination a:hover,
+.dark .warm-comment-pagination a.is-current {
+  background: var(--warm-surface-strong);
+  color: var(--warm-text);
+}
+
+.dark .warm-password-gate__input,
+.dark .warm-search-input,
+.dark .warm-manage-dialog__input {
+  border-color: var(--warm-border);
+  background: var(--warm-surface);
+  color: var(--warm-text);
+}
+
+.dark .warm-password-gate__input::placeholder,
+.dark .warm-search-input::placeholder,
+.dark .warm-manage-dialog__input::placeholder {
+  color: var(--warm-faint);
+}
+
+.dark .warm-theme-menu {
+  border-color: var(--warm-border);
+  background: var(--warm-surface);
+}
+
+.dark .warm-theme-menu button {
+  color: var(--warm-muted);
+}
+
+.dark .warm-theme-menu button[aria-pressed="true"],
+.dark .warm-theme-menu button:hover {
+  background: var(--warm-surface-strong);
+  color: var(--warm-text);
+}
+
+.dark .warm-search-dialog__panel {
+  border-color: var(--warm-border);
+  background: var(--warm-surface);
+  color: var(--warm-text);
+}
+
+.dark .warm-search-dialog__panel h2,
+.dark .warm-search-input {
+  color: var(--warm-text);
+}
+
+.dark .warm-search-input {
+  border-color: var(--warm-border);
+  background: #191b1d;
+}
+
+.dark .warm-search-dialog__close {
+  color: var(--warm-muted);
+}
+
+.dark .warm-search-dialog__close:hover {
+  background: var(--warm-surface-strong);
+  color: var(--warm-text);
+}
+
+.dark .warm-footer,
+.dark .warm-footer a,
+.dark .warm-footer__tagline {
+  color: var(--warm-muted);
+}
+
+.dark .warm-footer a:hover {
+  color: var(--warm-text);
+}
+
+.dark .warm-note__attachment {
+  background: var(--warm-surface);
+  color: var(--warm-body);
+}
+
+.dark .warm-note__attachment-ext {
+  background: var(--warm-surface-strong);
+  color: var(--warm-muted);
+}
+
+.dark .warm-note__media-name {
+  color: var(--warm-muted);
+}
+
+.dark .warm-note__images img {
+  background: var(--warm-surface-strong);
+}
+
+.dark .warm-search-trigger {
+  color: var(--warm-muted);
+}
+
+.dark .warm-search-trigger:hover,
+.dark .warm-search-trigger:focus-visible {
+  background: var(--warm-hover);
+  color: var(--warm-text);
+}
+
+.dark .warm-prose input[type="checkbox"],
+.dark .warm-note__content input[type="checkbox"] {
+  accent-color: #b7aa9b;
+}
+
+.dark .warm-prose del,
+.dark .warm-note__content del {
+  color: var(--warm-faint);
+}
+
+.dark .warm-prose mark,
+.dark .warm-note__content mark {
+  background: #5a4b2e;
+  color: #f3e4bd;
+}
+
+.dark .warm-prose kbd,
+.dark .warm-note__content kbd {
+  border-color: #4b4d4f;
+  background: var(--warm-surface-strong);
+  color: var(--warm-text);
+}
+
+.dark .warm-prose figcaption,
+.dark .warm-prose caption {
+  color: var(--warm-faint);
+}
+
+.dark .warm-prose iframe,
+.dark .warm-note__content iframe {
+  border-color: var(--warm-border);
+}
+
+.dark .warm-prose .warm-heading-anchor {
+  color: var(--warm-faint);
+}
+
+.dark .warm-prose .warm-heading-anchor:hover {
+  color: var(--warm-text);
+}
+
