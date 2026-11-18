@@ -1343,12 +1343,12 @@ body.warm-theme {
 
 /* Keep the roomy rhythm on Markdown blocks, not restored custom HTML. */
 .warm-prose > :not(.cy-inline-html-pending) {
-  line-height: 2;
+  line-height: 1.75;
 }
 
 /* Custom HTML inherits the site's base line-height unless it defines its own. */
 .warm-prose .cy-inline-html-pending {
-  line-height: 1.75;
+  line-height: 1.65;
 }
 
 /* Only Markdown paragraphs receive the theme's large paragraph spacing. */
@@ -1734,7 +1734,7 @@ body.warm-theme {
   border-radius: 8px;
   font-family: inherit;
   font-size: 0.95em;
-  line-height: 1.75;
+  line-height: 1.65;
   letter-spacing: 0;
 }
 
@@ -1743,11 +1743,12 @@ body.warm-theme {
 .warm-note__content .markdown-alert-title {
   display: flex;
   align-items: center;
+  gap: 8px;
   margin: 0 0 8px !important;
   font-family: var(--warm-font);
   font-size: 0.92rem;
   font-weight: 700;
-  line-height: 1.5;
+  line-height: 1.25em;
   letter-spacing: 0;
   color: inherit;
 }
@@ -1758,7 +1759,6 @@ body.warm-theme {
   flex: 0 0 16px;
   width: 16px;
   height: 16px;
-  margin-right: 16px;
   color: inherit;
   fill: currentColor;
 }
@@ -1905,7 +1905,7 @@ body.warm-theme {
   color: #403d39;
   font-family: var(--warm-mono);
   font-size: 14px;
-  line-height: 1.8;
+  line-height: 1.6;
   tab-size: 2;
 }
 
@@ -1943,7 +1943,7 @@ body.warm-theme {
   margin: 2.5em 0;
   border-collapse: collapse;
   font-size: 14px;
-  line-height: 1.75;
+  line-height: 1.6;
 }
 
 .warm-prose th,
