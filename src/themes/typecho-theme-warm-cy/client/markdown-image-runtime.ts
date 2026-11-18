@@ -224,7 +224,7 @@ function createLightbox(): {
     if (zoom <= 1 && Math.abs(deltaX) > 55) move(deltaX < 0 ? 1 : -1);
     touchStart = null;
   });
-  document.addEventListener('keydown', event => {
+  const handleKeydown = (event: KeyboardEvent) => {
     if (!root!.classList.contains('is-open')) return;
     if (event.key === 'Tab') {
       const focusable = Array.from(root!.querySelectorAll<HTMLElement>(
@@ -251,7 +251,8 @@ function createLightbox(): {
     else if (event.key === 'ArrowLeft') move(-1);
     else if (event.key === '+' || event.key === '=') { zoom = Math.min(zoom + .25, 4); render(); }
     else if (event.key === '-') { zoom = Math.max(zoom - .25, 1); if (zoom === 1) { offsetX = 0; offsetY = 0; } render(); }
-  });
+  };
+  document.addEventListener('keydown', handleKeydown);
   return {
     open: selected => {
       if (!root!.classList.contains('is-open')) {
@@ -272,6 +273,17 @@ function createLightbox(): {
     },
     close,
     isConnected: () => root!.isConnected,
+    destroy: () => {
+      document.removeEventListener('keydown', handleKeydown);
+      if (root!.classList.contains('is-open')) {
+        root!.classList.remove('is-open');
+        image.removeAttribute('src');
+        document.body.style.removeProperty('overflow');
+        if (previouslyFocusedElement?.isConnected) previouslyFocusedElement.focus();
+      }
+      previouslyFocusedElement = null;
+      root!.remove();
+    },
   };
 }
 
@@ -287,7 +299,10 @@ if (typeof document !== 'undefined' && document.body) {
 export function initializeImages(root: Element): void {
   // InstantClick replaces <body>, detaching the previous lightbox node while
   // this module remains cached. Recreate it against the current document body.
-  if (!lightbox || !lightbox.isConnected()) lightbox = createLightbox();
+  if (!lightbox || !lightbox.isConnected()) {
+    lightbox?.destroy();
+    lightbox = createLightbox();
+  }
   root.querySelectorAll<HTMLImageElement>('img').forEach(enhanceImage);
   if (root.getAttribute('data-rin-image-click-bound') !== '1') {
     root.setAttribute('data-rin-image-click-bound', '1');
