@@ -108,6 +108,7 @@ export async function renderInto(root: HTMLElement, source: string, options: Ren
     }
     normalizeImages(root);
     await enhanceOptionalFeatures(root);
+    document.dispatchEvent(new CustomEvent('warm:client-content-rendered', { detail: { root } }));
   } catch (error) {
     console.error('[Warm CY] client Markdown render failed', error);
     root.innerHTML = '<p>文章内容加载失败。</p>';
