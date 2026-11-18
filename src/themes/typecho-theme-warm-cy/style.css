@@ -735,6 +735,19 @@ body.warm-theme {
   display: inline-flex;
 }
 
+/* Keep quick-action order stable in both header layouts. */
+.warm-header__tools > .warm-theme-control {
+  order: 1;
+}
+
+.warm-header__tools > [data-warm-search-open] {
+  order: 2;
+}
+
+.warm-header__tools > .warm-nav__account {
+  order: 3;
+}
+
 .warm-theme-trigger svg[hidden] {
   display: none;
 }
