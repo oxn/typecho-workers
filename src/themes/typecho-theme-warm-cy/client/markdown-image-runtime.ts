@@ -284,7 +284,7 @@ if (typeof document !== 'undefined' && document.body) {
   lightbox = createLightbox();
 }
 
-function initialize(root: Element): void {
+export function initializeImages(root: Element): void {
   root.querySelectorAll<HTMLImageElement>('img').forEach(enhanceImage);
   if (root.getAttribute('data-rin-image-click-bound') !== '1') {
     root.setAttribute('data-rin-image-click-bound', '1');
@@ -296,4 +296,4 @@ function initialize(root: Element): void {
   }
 }
 
-(window as any).__rinMarkdownImageRuntime = { initialize };
+
