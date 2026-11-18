@@ -1,6 +1,6 @@
 
 import type { ThemeBaseProps, ThemePostProps } from '@/lib/theme-props';
-import { normalizeOptimizeParams } from './warm-image';
+import { normalizeOptimizeParams } from '@/lib/image-transform';
 import { escapeHtml, formatDate } from 'typecho/plugin-sdk';
 import sanitizeHtml from 'sanitize-html';
 import postcss from 'postcss';
@@ -46,8 +46,6 @@ export interface WarmSettings {
   /** Query params appended to thumbnail URLs; falls back to imageOptimizeParams when empty. */
   thumbOptimizeParams: string;
   markdownMathEngine: 'katex' | 'mathjax';
-  /** Rehype TOC is opt-in to avoid duplicating a theme-provided TOC. */
-  markdownTocEnabled: boolean;
 }
 
 export interface WarmCyFeatureSettings {
@@ -114,8 +112,6 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     imageOptimizeParams,
     thumbOptimizeParams: normalizeOptimizeParams(settings.thumbOptimizeParams) || imageOptimizeParams,
     markdownMathEngine: rehypeSettings?.mathEngine === 'mathjax' ? 'mathjax' : 'katex',
-    // Rehype TOC is controlled only by the Markdown Rehype plugin setting.
-    markdownTocEnabled: rehypeSettings?.tocEnabled === true || rehypeSettings?.tocEnabled === '1',
   };
 }
 
