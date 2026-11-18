@@ -1,24 +1,8 @@
 ---
-import type { WarmTocItem } from './warm';
-
-interface Props {
-  items: WarmTocItem[];
-}
-
-const { items } = Astro.props;
-if (items.length < 2) return;
 ---
-<nav class="warm-toc" data-warm-toc aria-label="文章目录">
+<nav class="warm-toc" data-warm-toc aria-label="文章目录" style="display:none">
   <div class="warm-toc__inner">
-    <ol class="warm-toc__list">
-      {items.map((item) => (
-        <li class="warm-toc__item">
-          <a class="warm-toc__link" href={`#${item.id}`} data-warm-toc-link>
-            <span class="warm-toc__label">{item.text}</span>
-          </a>
-        </li>
-      ))}
-    </ol>
+    <ol class="warm-toc__list" data-warm-toc-list></ol>
   </div>
 </nav>
 <script is:inline>
