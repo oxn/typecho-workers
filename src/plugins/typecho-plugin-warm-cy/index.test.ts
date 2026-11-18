@@ -145,7 +145,8 @@ describe('typecho-plugin-warm-cy', () => {
     const html = handler('', { options: { theme: 'typecho-theme-warm-cy' } });
     expect(html).toContain("const mainMenu = document.querySelector('.typecho-head-nav > nav > menu')");
     expect(html).toContain("link.textContent = 'CY服务插件'");
-    expect(html).toContain("rehypeLink.textContent = 'Markdown Rehype'");
+    expect(html).not.toContain('Markdown Rehype');
+    expect(html).not.toContain('typecho-plugin-markdown-rehype');
     expect(html).toContain("version.textContent = '主题版本：' + THEME_VERSION");
     expect(html).toContain("link.href = pluginPath");
   });
