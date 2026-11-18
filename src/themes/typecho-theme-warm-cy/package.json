@@ -15,6 +15,7 @@
     "theme.json",
     "style.css",
     "components/",
+    "client/",
     "screenshot.png",
     "favicon.ico",
     "assets/",
