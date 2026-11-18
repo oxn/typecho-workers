@@ -111,6 +111,9 @@
 
     const initialiseAll = () => document.querySelectorAll(`[${ROOT_ATTR}]`).forEach(initialise);
     initialiseAll();
-    document.addEventListener('warm:client-content-rendered', initialiseAll);
+    if (document.documentElement.dataset.warmTocRenderListener !== '1') {
+      document.documentElement.dataset.warmTocRenderListener = '1';
+      document.addEventListener('warm:client-content-rendered', initialiseAll);
+    }
   })();
 </script>
