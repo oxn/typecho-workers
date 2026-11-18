@@ -8,10 +8,15 @@ const payload = JSON.stringify({ source, imageOptimizeParams, siteUrl }).replace
 
   const initialize = async () => {
     const nodes = document.querySelectorAll<HTMLElement>('[data-warm-client-content]');
-    for (const node of nodes) {
+    const sources = document.querySelectorAll<HTMLScriptElement>('[data-warm-client-source]');
+    for (let index = 0; index < nodes.length; index += 1) {
+      const node = nodes[index];
       if (node.dataset.warmClientInitialized === '1') continue;
-      const sourceNode = node.nextElementSibling;
-      if (!(sourceNode instanceof HTMLScriptElement) || !sourceNode.hasAttribute('data-warm-client-source')) continue;
+      const sourceNode = sources[index];
+      if (!sourceNode) {
+        console.error('[Warm CY] client content source node is missing', { index });
+        continue;
+      }
       node.dataset.warmClientInitialized = '1';
       try {
         const payload = JSON.parse(sourceNode.textContent || '{}') as { source?: string; imageOptimizeParams?: string; siteUrl?: string };
