@@ -46,8 +46,8 @@ function enhanceCodeBlocks(root: Element): void {
 }
 
 
-function initialize(root: Element): void {
+export function initializeCodeBlocks(root: Element): void {
   enhanceCodeBlocks(root);
 }
 
-(window as any).__rinMarkdownCodeRuntime = { initialize };
+
