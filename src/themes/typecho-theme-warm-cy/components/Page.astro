@@ -4,7 +4,7 @@ import { env } from 'cloudflare:workers';
 import { getDb, schema } from 'typecho/db';
 import { renderMarkdownFiltered } from '@/lib/markdown';
 import type { ThemePageProps } from '@/lib/theme-props';
-import { optimizeContentImages } from './warm-image';
+import { optimizeContentImages } from '@/lib/image-transform';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmToc from './WarmToc.astro';

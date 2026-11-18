@@ -2662,70 +2662,6 @@ body.warm-theme {
 }
 
 
-/* Rehype Markdown: math, code highlighting and browser-rendered Mermaid. */
-.warm-prose .katex-display,
-.warm-prose .mathjax-display {
-  box-sizing: border-box;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: .75em 0;
-  line-height: normal;
-}
-.warm-prose .katex { font-size: 1.05em; }
-/* MathJax SVG glyphs and tall operators need a larger vertical safety area
-   inside the horizontally scrollable display-math viewport. */
-.warm-prose .mathjax-display { padding-block: 1.25em; }
-.warm-prose .mathjax-inline { line-height: normal; }
-.warm-prose .mathjax-display mjx-container[display="true"] { margin: 0 !important; }
-.warm-prose pre code.hljs { display: block; overflow-x: auto; padding: 0; }
-.warm-prose code.hljs { padding: .15em .35em; border-radius: 4px; }
-.warm-prose .hljs-comment, .warm-prose .hljs-quote { color: #8a918d; font-style: italic; }
-.warm-prose .hljs-keyword, .warm-prose .hljs-selector-tag, .warm-prose .hljs-literal { color: #9b5bce; }
-.warm-prose .hljs-string, .warm-prose .hljs-attr { color: #27865a; }
-.warm-prose .hljs-number, .warm-prose .hljs-symbol { color: #c07835; }
-.warm-prose .hljs-title, .warm-prose .hljs-function { color: #3979b8; }
-.warm-prose pre.mermaid_default,
-.warm-prose pre.mermaid_dark {
-  max-width: 100%;
-  margin: 1.5rem 0;
-  padding: 1rem 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
-  background: transparent;
-  text-align: center;
-  white-space: normal;
-}
-
-.warm-prose pre.mermaid_default svg,
-.warm-prose pre.mermaid_dark svg {
-  display: block;
-  width: max-content;
-  max-width: none;
-  height: auto;
-  margin-inline: auto;
-}
-
-/*
- * Mermaid measures SVG geometry synchronously while rendering. The global
- * reduced-motion rule above applies a non-zero transition duration to every
- * theme element; transitions on SVG nodes/paths can therefore inflate the
- * measured viewBox before those transitions settle. Keep the entire diagram
- * subtree geometry immediate, not only foreignObject labels.
- */
-.warm-prose pre.mermaid_default svg,
-.warm-prose pre.mermaid_default svg *,
-.warm-prose pre.mermaid_default svg *::before,
-.warm-prose pre.mermaid_default svg *::after,
-.warm-prose pre.mermaid_dark svg,
-.warm-prose pre.mermaid_dark svg *,
-.warm-prose pre.mermaid_dark svg *::before,
-.warm-prose pre.mermaid_dark svg *::after {
-  transition: none !important;
-}
-
 /* Rehype heading permalinks: keep the anchor available without making the title noisy. */
 .warm-prose .warm-heading-anchor {
   display: none !important;
@@ -2747,21 +2683,4 @@ body.warm-theme {
   color: var(--warm-accent);
   opacity: 1;
   text-decoration: none;
-}
-
-/* Rin-style dual Mermaid variants: keep both source nodes in the document and
-   switch visibility with the active page theme. */
-.warm-prose pre.mermaid_default {
-  display: block;
-}
-.warm-prose pre.mermaid_dark {
-  display: none;
-}
-html.dark .warm-prose pre.mermaid_default,
-body.dark .warm-prose pre.mermaid_default {
-  display: none;
-}
-html.dark .warm-prose pre.mermaid_dark,
-body.dark .warm-prose pre.mermaid_dark {
-  display: block;
 }

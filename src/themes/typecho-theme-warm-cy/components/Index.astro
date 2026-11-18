@@ -2,7 +2,7 @@
 import { env } from 'cloudflare:workers';
 import { getDb, schema } from 'typecho/db';
 import type { NoteListItem } from 'typecho-plugin-notes';
-import { optimizeContentImages } from './warm-image';
+import { optimizeContentImages } from '@/lib/image-transform';
 import { and, eq, inArray, lte } from 'drizzle-orm';
 import type { ThemeIndexProps, PostListItem } from '@/lib/theme-props';
 import { buildCategoryLink, buildPermalink, renderContentExcerpt } from 'typecho/plugin-sdk';

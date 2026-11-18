@@ -97,7 +97,6 @@
       "name": "typecho-theme-warm-cy",
       "version": "1.0.0",
       "dependencies": {
-        "mermaid": "11.12.2",
         "postcss": "^8.5.26",
         "typecho-plugin-markdown-rehype": "workspace:*",
       },

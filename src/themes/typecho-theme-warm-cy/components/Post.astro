@@ -2,7 +2,7 @@
 import { eq } from 'drizzle-orm';
 import { env } from 'cloudflare:workers';
 import { getDb, schema } from 'typecho/db';
-import { optimizeContentImages } from './warm-image';
+import { optimizeContentImages } from '@/lib/image-transform';
 import type { ThemePostProps } from '@/lib/theme-props';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
