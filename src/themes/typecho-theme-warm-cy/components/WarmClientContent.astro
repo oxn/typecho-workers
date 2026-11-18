@@ -1,6 +1,6 @@
 ---
-const { source = '' } = Astro.props as { source?: string };
-const payload = JSON.stringify(source).replace(/</g, '\\u003c');
+const { source = '', imageOptimizeParams = '', siteUrl = '' } = Astro.props as { source?: string; imageOptimizeParams?: string; siteUrl?: string };
+const payload = JSON.stringify({ source, imageOptimizeParams, siteUrl }).replace(/</g, '\\u003c');
 ---
 <div class="warm-prose" data-warm-client-content aria-busy="true"></div>
 <script>
@@ -14,8 +14,11 @@ const payload = JSON.stringify(source).replace(/</g, '\\u003c');
       const sourceNode = sources[index];
       if (!sourceNode) continue;
       try {
-        const source = JSON.parse(sourceNode.textContent || '""') as string;
-        await renderInto(node, source);
+        const payload = JSON.parse(sourceNode.textContent || '{}') as { source?: string; imageOptimizeParams?: string; siteUrl?: string };
+        await renderInto(node, payload.source || '', {
+          imageOptimizeParams: payload.imageOptimizeParams || '',
+          siteUrl: payload.siteUrl || '',
+        });
       } catch (error) {
         console.error('[Warm CY] invalid client content payload', error);
       }
