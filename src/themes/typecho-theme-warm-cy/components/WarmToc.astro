@@ -125,6 +125,8 @@ if (items.length < 2) return;
       window.addEventListener('instantclick:newpage', cleanupStalePage);
     }
 
-    document.querySelectorAll(`[${ROOT_ATTR}]`).forEach(initialise);
+    const initialiseAll = () => document.querySelectorAll(`[${ROOT_ATTR}]`).forEach(initialise);
+    initialiseAll();
+    document.addEventListener('warm:client-content-rendered', initialiseAll);
   })();
 </script>
