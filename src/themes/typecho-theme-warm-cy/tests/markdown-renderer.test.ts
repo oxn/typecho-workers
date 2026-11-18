@@ -92,6 +92,39 @@ describe('Warm CY client article renderer', () => {
       else delete (globalThis as any).Node;
     }
   });
+  it('restores block and inline image layout markers from Markdown source positions', async () => {
+    const html = await renderMarkdown([
+      '![leading](https://example.test/leading.png)',
+      '',
+      '正文中的 ![inline](https://example.test/inline.png)',
+      '',
+      '![group-first](https://example.test/first.png)![group-second](https://example.test/second.png)',
+    ].join('\\n'));
+
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\\.test\/leading\\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\\.test\/inline\\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\\.test\/first\\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\\.test\/second\\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
+  });
+
+  it('extracts image URL blurhash and dimensions for Markdown and raw HTML images', async () => {
+    const html = await renderMarkdown([
+      '![markdown](https://cdn.example/markdown.png#&blurhash=abc%2F123&width=48&height=24)',
+      '',
+      '<img src="https://cdn.example/raw.png#blurhash=raw123&amp;width=64&amp;height=32" alt="raw">',
+    ].join('\\n'));
+
+    expect(html).toContain('src="https://cdn.example/markdown.png"');
+    expect(html).toContain('data-rin-blurhash="abc/123"');
+    expect(html).toContain('width="48"');
+    expect(html).toContain('height="24"');
+    expect(html).toContain('src="https://cdn.example/raw.png"');
+    expect(html).toContain('data-rin-blurhash="raw123"');
+    expect(html).toContain('width="64"');
+    expect(html).toContain('height="32"');
+    expect(html).not.toContain('#blurhash=');
+  });
+
   it('loads KaTeX styles for formulas rendered in the client', async () => {
     const dom = new JSDOM('<!doctype html><html><head></head><body><div id="content"></div></body></html>');
     const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
