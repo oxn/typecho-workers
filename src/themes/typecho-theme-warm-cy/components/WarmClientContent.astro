@@ -1,0 +1,33 @@
+---
+const { source = '' } = Astro.props as { source?: string };
+const payload = JSON.stringify(source).replace(/</g, '\\u003c');
+---
+<div class="warm-prose" data-warm-client-content aria-busy="true"></div>
+<script>
+  import { renderInto } from '../client/markdown-renderer';
+
+  const initialize = async () => {
+    const nodes = document.querySelectorAll<HTMLElement>('[data-warm-client-content]');
+    const sources = document.querySelectorAll<HTMLScriptElement>('[data-warm-client-source]');
+    for (let index = 0; index < nodes.length; index += 1) {
+      const node = nodes[index];
+      const sourceNode = sources[index];
+      if (!sourceNode) continue;
+      try {
+        const source = JSON.parse(sourceNode.textContent || '""') as string;
+        await renderInto(node, source);
+      } catch (error) {
+        console.error('[Warm CY] invalid client content payload', error);
+      }
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize, { once: true });
+  } else {
+    void initialize();
+  }
+
+  window.addEventListener('instantclick:newpage', () => void initialize());
+</script>
+<script type="application/json" data-warm-client-source set:html={payload}></script>
