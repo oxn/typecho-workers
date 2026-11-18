@@ -131,7 +131,7 @@ describe('Warm CY client article renderer', () => {
     expect(html).not.toContain('#blurhash=');
   });
 
-  it('applies block and inline image scales and same-origin optimization parameters', async () => {
+  it('preserves block and inline image sizing and same-origin optimization parameters', async () => {
     const dom = new JSDOM('<!doctype html><html><head></head><body><div id="content"></div></body></html>');
     const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
     const previousCustomEvent = Object.getOwnPropertyDescriptor(globalThis, 'CustomEvent');
@@ -154,8 +154,8 @@ describe('Warm CY client article renderer', () => {
       expect(images).toHaveLength(2);
       expect(images[0].dataset.rinImageLayout).toBe('block');
       expect(images[1].dataset.rinImageLayout).toBe('inline');
-      expect(images[0].closest('.rin-image-inner')?.getAttribute('style')).toContain('zoom: 0.75');
-      expect(images[1].closest('.rin-image-inner')?.getAttribute('style')).toContain('zoom: 0.5');
+      expect(images[0].closest('.rin-image-inner')?.getAttribute('style') || '').not.toContain('zoom');
+      expect(images[1].closest('.rin-image-inner')?.getAttribute('style') || '').not.toContain('zoom');
       expect(images[0].getAttribute('src')).toBe('https://site.example/usr/uploads/block.png?quality=80');
       expect(images[0].style.width).toBe('48px');
       expect(images[0].getAttribute('width')).toBe('48');
