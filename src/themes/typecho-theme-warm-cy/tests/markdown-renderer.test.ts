@@ -49,10 +49,12 @@ describe('Warm CY client article renderer', () => {
     </body></html>`);
     const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
     const previousCustomEvent = Object.getOwnPropertyDescriptor(globalThis, 'CustomEvent');
+    const previousNode = Object.getOwnPropertyDescriptor(globalThis, 'Node');
 
     try {
       Object.defineProperty(globalThis, 'document', { configurable: true, value: dom.window.document });
       Object.defineProperty(globalThis, 'CustomEvent', { configurable: true, value: dom.window.CustomEvent });
+      Object.defineProperty(globalThis, 'Node', { configurable: true, value: dom.window.Node });
 
       const root = dom.window.document.querySelector<HTMLElement>('[data-warm-client-content]')!;
       await renderInto(root, [
@@ -86,6 +88,8 @@ describe('Warm CY client article renderer', () => {
       else delete (globalThis as any).document;
       if (previousCustomEvent) Object.defineProperty(globalThis, 'CustomEvent', previousCustomEvent);
       else delete (globalThis as any).CustomEvent;
+      if (previousNode) Object.defineProperty(globalThis, 'Node', previousNode);
+      else delete (globalThis as any).Node;
     }
   });
 });
