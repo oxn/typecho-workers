@@ -1197,8 +1197,7 @@ body.warm-theme {
   color: #68635e;
 }
 
-/* Only top-level article blocks break out: never notes, comments or nested lists. */
-.warm-article:not(.is-note) .warm-prose img:not([width][height]),
+/* Only top-level article tables break out; article/page images stay inside the content width. */
 .warm-article:not(.is-note) .warm-prose table {
   position: relative;
   left: 50%;
