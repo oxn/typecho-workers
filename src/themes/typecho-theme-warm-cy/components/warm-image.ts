@@ -1,22 +1,13 @@
-/**
- * Warm CY theme-local image URL helpers.
- * Theme-specific EdgeOne URL rewriting stays inside the theme package.
- */
-export const OPTIMIZE_PARAMS_MAX_LENGTH = 100;
-const OPTIMIZE_PARAMS_UNSAFE = /[^a-zA-Z0-9=&%?._~-]/g;
-const UPLOAD_URL_BASE = 'http://typecho.invalid';
+import {
+  normalizeOptimizeParams,
+  optimizeContentImages as optimizeSharedContentImages,
+  optimizeImageUrl as optimizeSharedImageUrl,
+} from '@/lib/image-transform';
 
-export interface ImageFragmentMetadata {
-  blurhash: string;
-  width: string | null;
-  height: string | null;
-}
+export { normalizeOptimizeParams };
 
-/**
- * Parse display metadata from a URL fragment. Decode percent escapes exactly
- * once and preserve literal plus characters (BlurHash's alphabet includes +).
- */
-export function parseImageFragment(raw: string): ImageFragmentMetadata {
+/** BlurHash is the only theme-specific image fragment metadata retained here. */
+export function parseImageFragment(raw: string): { blurhash: string } {
   const hashIndex = raw.indexOf('#');
   const fragment = (hashIndex >= 0 ? raw.slice(hashIndex + 1) : '').replace(/&amp;/gi, '&');
   const values = new Map<string, string>();
@@ -32,100 +23,36 @@ export function parseImageFragment(raw: string): ImageFragmentMetadata {
   const candidate = values.get('blurhash') || '';
   const blurhash = /^[0-9A-Za-z#$%*+,-.:;=?@\[\]^_{|}~]+$/.test(candidate)
     && candidate.length >= 6 && candidate.length <= 200 ? candidate : '';
-  const dimension = (name: 'width' | 'height'): string | null => {
-    const value = Number(values.get(name));
-    return Number.isInteger(value) && value > 0 && value <= 10000 ? String(value) : null;
-  };
-  return { blurhash, width: dimension('width'), height: dimension('height') };
+  return { blurhash };
 }
 
-export function normalizeOptimizeParams(value: unknown): string {
-  if (typeof value !== 'string') return '';
-  const trimmed = value.trim().replace(/^[?&]+/, '');
-  if (!trimmed) return '';
-  const safe = trimmed.replace(OPTIMIZE_PARAMS_UNSAFE, '').slice(0, OPTIMIZE_PARAMS_MAX_LENGTH);
-  return safe.replace(/^[?&]+/, '');
-}
-
-function parseOwnUpload(raw: string, siteUrl: string): URL | null {
-  if (!raw) return null;
-  let parsed: URL;
-  try { parsed = new URL(raw, UPLOAD_URL_BASE); } catch { return null; }
-  if (!parsed.pathname.startsWith('/usr/uploads/')) return null;
-  if (/\.(gif|svg)$/i.test(parsed.pathname)) return null;
-  if (raw.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(raw)) {
-    if (!siteUrl) return null;
-    try { if (parsed.origin !== new URL(siteUrl).origin) return null; } catch { return null; }
-  }
-  return parsed;
-}
-
-/** Strip fragments from image resource URLs; fragments are display metadata. */
+/** Use the shared image URL implementation; only strip display-only fragments. */
 export function optimizeImageUrl(url: string, params: string, siteUrl: string): string {
-  const hash = url.indexOf('#');
-  const imageUrl = hash >= 0 ? url.slice(0, hash) : url;
-  const clean = normalizeOptimizeParams(params);
-  if (!clean || !imageUrl) return imageUrl;
-  const parsed = parseOwnUpload(imageUrl, siteUrl);
-  if (!parsed) return imageUrl;
-  const sep = parsed.search ? '&' : '?';
-  if (imageUrl.startsWith('/')) return `${parsed.pathname}${parsed.search}${sep}${clean}`;
-  return `${parsed.href}${sep}${clean}`;
+  const hashIndex = url.indexOf('#');
+  const resourceUrl = hashIndex >= 0 ? url.slice(0, hashIndex) : url;
+  return optimizeSharedImageUrl(resourceUrl, params, siteUrl);
 }
 
-function escapeAttribute(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
+/**
+ * The shared library owns URL optimization. This wrapper only extracts the
+ * independent BlurHash placeholder metadata before handing HTML to it.
+ */
 export function optimizeContentImages(html: string, params: string, siteUrl: string): string {
   if (!html) return html;
-  const clean = normalizeOptimizeParams(params);
-  return html.replace(/<img\b[^>]*>/gi, (tag: string) => {
+  const withoutFragments = html.replace(/<img\b[^>]*>/gi, (tag: string) => {
     const srcMatch = tag.match(/(\ssrc\s*=\s*)(["'])(.*?)\2/i);
     if (!srcMatch) return tag;
     const src = srcMatch[3];
+    const hashIndex = src.indexOf('#');
+    if (hashIndex < 0) return tag;
+
     const metadata = parseImageFragment(src);
-
-    let updated = tag;
-    let attributes = '';
-    const recoveredStyles: string[] = [];
-    for (const name of ['width', 'height'] as const) {
-      const dimension = metadata[name];
-      const hasAttribute = new RegExp('\\s' + name + '\\s*=', 'i').test(updated);
-      if (dimension && !hasAttribute) {
-        attributes += ' ' + name + '="' + dimension + '"';
-        recoveredStyles.push(name + ':' + dimension + 'px');
-      }
-    }
+    const resourceUrl = src.slice(0, hashIndex);
+    let updated = tag.replace(srcMatch[0], srcMatch[1] + srcMatch[2] + resourceUrl + srcMatch[2]);
     if (metadata.blurhash && !/\sdata-blurhash\s*=/i.test(updated)) {
-      attributes += ' data-blurhash="' + escapeAttribute(metadata.blurhash) + '"';
-    }
-    if (attributes) updated = updated.replace(/\/?>$/, (ending: string) => attributes + ending);
-
-    if (recoveredStyles.length) {
-      const styleMatch = updated.match(/\sstyle\s*=\s*(["'])(.*?)\1/i);
-      if (styleMatch) {
-        const existing = styleMatch[2];
-        const additions = recoveredStyles.filter(rule => {
-          const property = rule.slice(0, rule.indexOf(':'));
-          return !new RegExp('(?:^|;)\\s*' + property + '\\s*:', 'i').test(existing);
-        });
-        if (additions.length) {
-          const merged = [existing.replace(/;\s*$/, ''), ...additions].filter(Boolean).join(';');
-          updated = updated.replace(styleMatch[0], ' style=' + styleMatch[1] + merged + styleMatch[1]);
-        }
-      } else {
-        updated = updated.replace(/\/?>$/, (ending: string) => ' style="' + recoveredStyles.join(';') + '"' + ending);
-      }
-    }
-
-    // Keep BlurHash in data attributes for the frontend decoder; never leave
-    // fragment metadata in the actual image request URL.
-    const imageUrl = optimizeImageUrl(src, clean, siteUrl);
-    if (imageUrl !== src) {
-      updated = updated.replace(/(\ssrc\s*=\s*)(["'])(.*?)\2/i,
-        (_match: string, prefix: string, quote: string) => prefix + quote + imageUrl + quote);
+      updated = updated.replace(/\/?>$/, (ending: string) => ' data-blurhash="' + metadata.blurhash + '"' + ending);
     }
     return updated;
   });
+  return optimizeSharedContentImages(withoutFragments, params, siteUrl);
 }
