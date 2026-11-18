@@ -40,7 +40,7 @@ const settings = warmSettings(options);
         <h1 itemprop="headline">{page.title}</h1>
       </div>
     </header>
-    <WarmClientContent source={pageSource} />
+    <WarmClientContent source={pageSource} imageOptimizeParams={settings.imageOptimizeParams} siteUrl={urls.siteUrl} />
   </article>
 
   {(page.allowComment || commentPagination.totalComments > 0) && (
