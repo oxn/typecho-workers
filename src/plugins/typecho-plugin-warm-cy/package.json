@@ -1,7 +1,7 @@
 {
   "name": "typecho-plugin-warm-cy",
   "version": "1.2.0",
-  "description": "Warm CY 主题配套管理插件。",
+  "description": "为 Typecho Warm CY 主题提供后台设置、首页置顶、搜索入口、评论管理及页脚与文章声明配置；不参与正文渲染。",
   "author": "怸歪",
   "homepage": "https://347777.xyz",
   "keywords": [
@@ -15,7 +15,7 @@
     "plugin": {
       "id": "typecho-plugin-warm-cy",
       "name": "CY服务插件",
-      "description": "提供置顶管理、评论管理、搜索入口及主题页脚和免责声明配置。",
+      "description": "提供首页置顶、评论管理、搜索入口、主题设置入口，以及页脚链接、文章声明和站点底部内容配置；不负责 Markdown/HTML 正文渲染。",
       "author": "怸歪",
       "authorUrl": "https://347777.xyz",
       "homepage": "https://347777.xyz",
@@ -28,8 +28,8 @@
       "adminPage": "cy-companion",
       "adminPageTitle": "CY服务插件",
       "adminPageIsSettings": true,
-      "buildVersion": "2026.11.10.21.20"
+      "buildVersion": "2026.11.18.22.04"
     }
   },
-  "cyVersion": "2026.11.10.21.20"
+  "cyVersion": "2026.11.18.22.04"
 }
