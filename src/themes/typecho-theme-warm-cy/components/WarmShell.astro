@@ -65,8 +65,9 @@ const footerLinks = [
       <div class="warm-header__right">
       <div class="warm-header__tools" aria-label="快捷入口">
         <div class="warm-theme-control">
-          <button type="button" class="warm-search-trigger warm-theme-trigger" data-warm-theme-toggle aria-label="切换显示模式" title="显示模式" aria-expanded="false">
-            <svg data-warm-theme-icon-light viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <button type="button" class="warm-search-trigger warm-theme-trigger" data-warm-theme-toggle aria-label="显示模式：跟随系统" title="显示模式：跟随系统" aria-expanded="false">
+            <svg data-warm-theme-icon-light viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <svg data-warm-theme-icon-system viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 16H20V5H4V16ZM13 18V20H17V22H7V20H11V18H13Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 16.5h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <svg data-warm-theme-icon-dark viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div class="warm-theme-menu" data-warm-theme-menu hidden aria-label="显示模式">
@@ -180,9 +181,17 @@ const footerLinks = [
         const isDark = themeMode === 'dark' || (themeMode === 'system' && themeMedia.matches);
         document.documentElement.classList.toggle('dark', isDark);
         const lightIcon = document.querySelector('[data-warm-theme-icon-light]');
+        const systemIcon = document.querySelector('[data-warm-theme-icon-system]');
         const darkIcon = document.querySelector('[data-warm-theme-icon-dark]');
-        if (lightIcon) lightIcon.hidden = isDark;
-        if (darkIcon) darkIcon.hidden = !isDark;
+        if (lightIcon) lightIcon.hidden = themeMode !== 'light';
+        if (systemIcon) systemIcon.hidden = themeMode !== 'system';
+        if (darkIcon) darkIcon.hidden = themeMode !== 'dark';
+        const themeToggle = document.querySelector('[data-warm-theme-toggle]');
+        const modeLabels = { light: '明亮模式', system: '跟随系统', dark: '暗黑模式' };
+        if (themeToggle) {
+          themeToggle.setAttribute('aria-label', `显示模式：${modeLabels[themeMode]}`);
+          themeToggle.setAttribute('title', `显示模式：${modeLabels[themeMode]}`);
+        }
         document.querySelectorAll('[data-warm-theme-choice]').forEach(option => {
           option.setAttribute('aria-pressed', option.getAttribute('data-warm-theme-choice') === themeMode ? 'true' : 'false');
         });
