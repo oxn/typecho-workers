@@ -2,7 +2,7 @@
 const { source = '', imageOptimizeParams = '', siteUrl = '' } = Astro.props as { source?: string; imageOptimizeParams?: string; siteUrl?: string };
 const payload = JSON.stringify({ source, imageOptimizeParams, siteUrl }).replace(/</g, '\\u003c');
 ---
-<div class="warm-prose" data-warm-client-content aria-busy="true"></div>
+<div class="warm-prose" data-warm-client-content itemprop="articleBody" aria-busy="true"></div>
 <script>
   import { renderInto } from '../client/markdown-renderer';
 
