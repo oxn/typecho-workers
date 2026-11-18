@@ -56,6 +56,33 @@ const footerLinks = [
 >
   <a class="warm-skip-link" href="#warm-content" data-no-instant>跳至正文</a>
   <header class="warm-header">
+    <div class="warm-header__tools" aria-label="快捷入口">
+      <div class="warm-theme-control">
+        <button type="button" class="warm-search-trigger warm-theme-trigger" data-warm-theme-toggle aria-label="切换显示模式" title="显示模式" aria-expanded="false">
+          <svg data-warm-theme-icon-light viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg data-warm-theme-icon-dark viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="warm-theme-menu" data-warm-theme-menu hidden aria-label="显示模式">
+          <button type="button" data-warm-theme-choice="light" aria-pressed="false">明</button>
+          <button type="button" data-warm-theme-choice="system" aria-pressed="true">系统</button>
+          <button type="button" data-warm-theme-choice="dark" aria-pressed="false">暗</button>
+        </div>
+      </div>
+      {searchEnabled && (
+        <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+        </button>
+      )}
+      {adminEntryEnabled && (
+        <a class="warm-search-trigger warm-nav__account" href={urls.adminUrl} data-no-instant aria-label="进入后台" title="进入后台">
+          <svg class="warm-nav__account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
+            <path d="M3 12h12" />
+            <path d="m10 7 5 5-5 5" />
+          </svg>
+        </a>
+      )}
+    </div>
     <div class="warm-header__inner">
       <a href={homeUrl} class="warm-brand" aria-label={`${options.title} 首页`}>
         <span class="warm-brand__title">{options.title}</span>
@@ -63,22 +90,6 @@ const footerLinks = [
       </a>
 
       <div class="warm-header__right">
-        <div class="warm-header__tools" aria-label="快捷入口">
-          {searchEnabled && (
-            <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
-              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
-            </button>
-          )}
-          {adminEntryEnabled && (
-            <a class="warm-search-trigger warm-nav__account" href={urls.adminUrl} data-no-instant aria-label="进入后台" title="进入后台">
-              <svg class="warm-nav__account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
-                <path d="M3 12h12" />
-                <path d="m10 7 5 5-5 5" />
-              </svg>
-            </a>
-          )}
-        </div>
         <nav class="warm-nav" aria-label="主导航">
         <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
         <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
@@ -151,9 +162,66 @@ const footerLinks = [
   )}
   <script is:inline>
     (() => {
+      const themeStorageKey = 'warm-theme-mode';
+      const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+      const validThemeModes = ['light', 'system', 'dark'];
+      let themeMode = 'system';
+      try {
+        const savedMode = window.localStorage.getItem(themeStorageKey);
+        if (validThemeModes.includes(savedMode)) themeMode = savedMode;
+      } catch {}
+      const applyThemeMode = () => {
+        const isDark = themeMode === 'dark' || (themeMode === 'system' && themeMedia.matches);
+        document.documentElement.classList.toggle('dark', isDark);
+        const lightIcon = document.querySelector('[data-warm-theme-icon-light]');
+        const darkIcon = document.querySelector('[data-warm-theme-icon-dark]');
+        if (lightIcon) lightIcon.hidden = isDark;
+        if (darkIcon) darkIcon.hidden = !isDark;
+        document.querySelectorAll('[data-warm-theme-choice]').forEach(option => {
+          option.setAttribute('aria-pressed', option.getAttribute('data-warm-theme-choice') === themeMode ? 'true' : 'false');
+        });
+      };
+      applyThemeMode();
+      themeMedia.addEventListener?.('change', () => {
+        if (themeMode === 'system') applyThemeMode();
+      });
+
       document.addEventListener('click', event => {
         const target = event.target instanceof Element ? event.target : null;
         if (!target) return;
+        const themeToggle = target.closest('[data-warm-theme-toggle]');
+        if (themeToggle) {
+          const menu = document.querySelector('[data-warm-theme-menu]');
+          if (menu) {
+            const opening = menu.hidden;
+            menu.hidden = !opening;
+            themeToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+          }
+          return;
+        }
+        const themeChoice = target.closest('[data-warm-theme-choice]');
+        if (themeChoice) {
+          const selectedMode = themeChoice.getAttribute('data-warm-theme-choice');
+          if (validThemeModes.includes(selectedMode)) {
+            themeMode = selectedMode;
+            try { window.localStorage.setItem(themeStorageKey, themeMode); } catch {}
+            applyThemeMode();
+          }
+          const menu = document.querySelector('[data-warm-theme-menu]');
+          const toggle = document.querySelector('[data-warm-theme-toggle]');
+          if (menu) menu.hidden = true;
+          if (toggle) {
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.focus();
+          }
+          return;
+        }
+        if (!target.closest('[data-warm-theme-menu]')) {
+          const menu = document.querySelector('[data-warm-theme-menu]');
+          const toggle = document.querySelector('[data-warm-theme-toggle]');
+          if (menu) menu.hidden = true;
+          if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        }
         if (target.closest('[data-warm-search-open]')) {
           const dialog = document.querySelector('[data-warm-search-dialog]');
           if (dialog instanceof HTMLDialogElement && !dialog.open) {
