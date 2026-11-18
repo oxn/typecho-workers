@@ -241,30 +241,9 @@ const footerLinks = [
       };
       window.warmRepairNoteMedia = repairNoteMedia;
       window.addEventListener('instantclick:newpage', () => repairNoteMedia(document));
-      // Safe article controls: support interactive HTML without executing
-      // arbitrary scripts embedded in article content.
-      const initArticleControls = (root = document) => {
+      // Disclaimer disclosure/toggle support for CY article declarations.
+      const initDisclaimerControls = (root = document) => {
         const scope = root && root.querySelectorAll ? root : document;
-
-        // Site-age counter used by older posts.
-        const updateDays = () => {
-          const counters = [];
-          if (scope.matches?.('#days')) counters.push(scope);
-          scope.querySelectorAll?.('#days').forEach(node => counters.push(node));
-          counters.forEach(node => {
-            const start = node.getAttribute('data-start-date') || '2011-11-19';
-            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(start);
-            if (!match) return;
-            const startDay = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-            const today = new Date();
-            const todayDay = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-            node.textContent = String(Math.max(0, Math.floor((todayDay - startDay) / 86400000)));
-          });
-        };
-
-        // A disclosure/toggle control can use data-disclaimer-toggle="#target"
-        // and the target can use data-disclaimer. This is delegated, so it also
-        // works after InstantClick navigation.
         scope.querySelectorAll?.('[data-disclaimer-toggle]').forEach(button => {
           if (button.dataset.disclaimerBound === '1') return;
           button.dataset.disclaimerBound = '1';
@@ -281,11 +260,9 @@ const footerLinks = [
             button.setAttribute('aria-expanded', opening ? 'true' : 'false');
           });
         });
-
-        updateDays();
       };
-      initArticleControls(document);
-      window.addEventListener('instantclick:newpage', () => initArticleControls(document));
+      initDisclaimerControls(document);
+      window.addEventListener('instantclick:newpage', () => initDisclaimerControls(document));
       if (window.InstantClick?.supported) window.InstantClick.init('mousedown');
     })();
   </script>
