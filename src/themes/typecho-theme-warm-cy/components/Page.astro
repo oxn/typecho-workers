@@ -1,52 +1,21 @@
 ---
-import { eq } from 'drizzle-orm';
-import { env } from 'cloudflare:workers';
-import { getDb, schema } from 'typecho/db';
-import { renderMarkdownFiltered } from '@/lib/markdown';
 import type { ThemePageProps } from '@/lib/theme-props';
 import { optimizeContentImages } from '@/lib/image-transform';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
-import WarmToc from './WarmToc.astro';
-import { formatWarmDate, plainExcerpt, prepareArticleToc, renderWarmIframes, warmSettings } from './warm';
+import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
 
 type Props = ThemePageProps;
 const {
   options, urls, pages, sidebarData, currentPath, pluginCtx,
   page, commentPagination,
 } = Astro.props;
-
-const db = getDb(env.DB);
-const settings = warmSettings(options);
-const passwordLocked = page.hasPassword && !page.passwordVerified;
-const rawPageSource = !passwordLocked
-  ? (await db
-    .select({ text: schema.contents.text })
-    .from(schema.contents)
-    .where(eq(schema.contents.cid, page.cid))
-    .limit(1))[0]?.text || ''
-  : '';
-const rehypeEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-markdown-rehype');
-const renderedPageHtml = !passwordLocked
-  ? await renderMarkdownFiltered(pluginCtx, rawPageSource)
-  : page.content;
-// Use the same Markdown renderer selection as Post. Keep the locked-page HTML
-// supplied by the request pipeline untouched until the password is verified.
-const pageHtml = !passwordLocked ? renderedPageHtml : page.content;
-const optimizedContent = optimizeContentImages(
-  pageHtml,
-  settings.imageOptimizeParams,
-  urls.siteUrl,
-);
-const toc = passwordLocked
-  ? { html: optimizedContent, items: [] }
-  : prepareArticleToc(optimizedContent);
-const displayContent = renderWarmIframes(toc.html);
 const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
+const settings = warmSettings(options);
 ---
 <WarmShell
   title={page.title}
-  description={plainExcerpt(pageHtml, 160)}
+  description={plainExcerpt(page.content, 160)}
   options={options}
   urls={urls}
   pages={pages}
@@ -64,10 +33,7 @@ const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
         <h1 itemprop="headline">{page.title}</h1>
       </div>
     </header>
-    <div class="warm-article__body">
-      <div class="warm-prose" view-image itemprop="articleBody" set:html={displayContent} />
-      {toc.items.length > 0 && <WarmToc items={toc.items} />}
-    </div>
+    <div class="warm-prose" view-image itemprop="articleBody" set:html={optimizeContentImages(page.content, settings.imageOptimizeParams, urls.siteUrl)} />
   </article>
 
   {(page.allowComment || commentPagination.totalComments > 0) && (
