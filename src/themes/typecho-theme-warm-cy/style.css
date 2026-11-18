@@ -645,6 +645,7 @@ body.warm-theme {
 }
 
 .warm-header {
+  position: relative;
   padding-top: 48px;
 }
 
@@ -697,11 +698,64 @@ body.warm-theme {
 }
 
 .warm-header__tools {
+  position: absolute;
+  top: 8px;
+  right: var(--warm-gutter);
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
   min-height: 32px;
+}
+
+.warm-theme-control {
+  position: relative;
+  display: inline-flex;
+}
+
+.warm-theme-menu {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--warm-border);
+  border-radius: 8px;
+  background: var(--warm-bg);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
+  white-space: nowrap;
+}
+
+.warm-theme-menu[hidden] {
+  display: none;
+}
+
+.warm-theme-menu button {
+  min-width: 38px;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--warm-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.warm-theme-menu button[aria-pressed="true"],
+.warm-theme-menu button:hover {
+  background: var(--warm-hover);
+  color: var(--warm-accent);
+}
+
+.dark .warm-theme-menu {
+  border-color: #414141;
+  background: #202020;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 28%);
 }
 
 .warm-nav {
@@ -2700,6 +2754,7 @@ body.warm-theme {
   }
 
   .warm-header__tools {
+    top: 4px;
     justify-content: flex-end;
   }
 
