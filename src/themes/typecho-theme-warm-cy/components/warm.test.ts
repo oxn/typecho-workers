@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderMarkdown } from 'typecho-plugin-markdown-rehype';
-import { getWarmMermaidConfig } from 'typecho-plugin-markdown-rehype/mermaid-config';
+import { renderMarkdown, transformMermaidBlocks } from '../client/markdown-renderer';
 import { optimizeContentImages, parseImageFragment } from './warm-image';
 import {
   isCurrentPageLink,
@@ -21,7 +20,7 @@ import {
 } from './warm';
 
 describe('Warm CY theme helpers', () => {
-  it('parses the exact basic Mermaid flowchart emitted by the Rehype pipeline', async () => {
+  it('parses the light and dark Mermaid variants emitted by the client renderer', async () => {
     const diagram = [
       'flowchart TD',
       '    A[开始] --> B{条件判断}',
@@ -29,31 +28,31 @@ describe('Warm CY theme helpers', () => {
       '    B -->|否| D[跳过]',
       '    C --> E[结束]',
       '    D --> E',
-    ].join('\n');
-    const html = await renderMarkdown('```mermaid\n' + diagram + '\n```');
-    const lightMarker = '<pre class="mermaid_default dark:hidden">';
-    const darkMarker = '<pre class="mermaid_dark dark:block hidden">';
-    const lightStart = html.indexOf(lightMarker);
-    const lightEnd = html.indexOf('</pre>', lightStart + lightMarker.length);
-    const darkStart = html.indexOf(darkMarker);
-    const darkEnd = html.indexOf('</pre>', darkStart + darkMarker.length);
-    expect(lightStart).toBeGreaterThanOrEqual(0);
-    expect(lightEnd).toBeGreaterThan(lightStart);
-    expect(darkStart).toBeGreaterThanOrEqual(0);
-    expect(darkEnd).toBeGreaterThan(darkStart);
-    const renderedSource = html.slice(lightStart + lightMarker.length, lightEnd);
-    const darkSource = html.slice(darkStart + darkMarker.length, darkEnd);
-    expect(renderedSource.trim()).toBe(diagram);
-    expect(darkSource.trim()).toBe(diagram);
+    ].join('\\n');
+    const html = await renderMarkdown('```mermaid\\n' + diagram + '\\n```');
     const { JSDOM } = await import('jsdom');
-    const dom = new JSDOM('<!doctype html><html><body></body></html>');
+    const dom = new JSDOM('<!doctype html><html><body><div id="content"></div></body></html>');
     const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
     const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
     try {
       Object.defineProperty(globalThis, 'window', { configurable: true, value: dom.window });
       Object.defineProperty(globalThis, 'document', { configurable: true, value: dom.window.document });
+      const root = dom.window.document.querySelector<HTMLElement>('#content')!;
+      root.innerHTML = html;
+      transformMermaidBlocks(root);
+      const light = root.querySelector<HTMLElement>('pre.rin-mermaid_default');
+      const dark = root.querySelector<HTMLElement>('pre.rin-mermaid_dark');
+      expect(light).not.toBeNull();
+      expect(dark).not.toBeNull();
+      const renderedSource = light?.textContent || '';
+      expect(renderedSource.trim()).toBe(diagram);
+      expect(dark?.textContent?.trim()).toBe(diagram);
+
       const { default: mermaid } = await import('mermaid');
-      for (const config of [getWarmMermaidConfig(false), getWarmMermaidConfig(true)]) {
+      for (const config of [
+        { startOnLoad: false as const, theme: 'default' as const },
+        { startOnLoad: false as const, theme: 'dark' as const },
+      ]) {
         mermaid.initialize({ ...config, securityLevel: 'strict' });
         await expect(mermaid.parse(renderedSource)).resolves.toBeTruthy();
       }
