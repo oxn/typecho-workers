@@ -7,6 +7,7 @@ import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
 import rehypeStringify from 'rehype-stringify';
 import { optimizeImageUrl } from '@/lib/image-transform';
+import katexCss from 'katex/dist/katex.min.css?inline';
 
 let processorPromise: Promise<any> | null = null;
 
@@ -73,7 +74,7 @@ function addHeadingIds(root: HTMLElement): void {
 }
 
 async function enhanceOptionalFeatures(root: HTMLElement): Promise<void> {
-  if (root.querySelector('pre > code.language-mermaid, pre > code.lang-mermaid')) {
+  if (root.querySelector('pre.rin-mermaid_default:not([data-processed]), pre.rin-mermaid_dark:not([data-processed])')) {
     const { initializeMermaid } = await import('./mermaid-runtime');
     await initializeMermaid(root);
   }
@@ -85,6 +86,29 @@ async function enhanceOptionalFeatures(root: HTMLElement): Promise<void> {
     const { initializeImages } = await import('./markdown-image-runtime');
     initializeImages(root);
   }
+}
+
+function transformMermaidBlocks(root: HTMLElement): void {
+  root.querySelectorAll<HTMLElement>('pre > code.language-mermaid, pre > code.lang-mermaid').forEach((code) => {
+    const pre = code.parentElement;
+    if (!pre) return;
+    const source = code.textContent || '';
+    const light = document.createElement('pre');
+    light.className = 'rin-mermaid_default dark:hidden';
+    light.textContent = source;
+    const dark = document.createElement('pre');
+    dark.className = 'rin-mermaid_dark dark:block hidden';
+    dark.textContent = source;
+    pre.replaceWith(light, dark);
+  });
+}
+
+function ensureKatexStyles(root: HTMLElement): void {
+  if (!root.querySelector('.katex') || document.querySelector('[data-warm-katex-styles]')) return;
+  const style = document.createElement('style');
+  style.dataset.warmKatexStyles = '1';
+  style.textContent = katexCss;
+  document.head.append(style);
 }
 
 function wrapIframes(root: HTMLElement): void {
@@ -168,7 +192,9 @@ export async function renderInto(root: HTMLElement, source: string, options: Ren
   root.setAttribute('aria-busy', 'true');
   try {
     root.innerHTML = await renderMarkdown(source);
+    transformMermaidBlocks(root);
     addHeadingIds(root);
+    ensureKatexStyles(root);
     wrapIframes(root);
     initializeArticleToc(root);
     if (options.imageOptimizeParams) {
