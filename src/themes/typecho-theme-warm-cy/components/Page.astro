@@ -3,11 +3,9 @@ import { env } from 'cloudflare:workers';
 import { getDb, schema } from 'typecho/db';
 import { eq } from 'drizzle-orm';
 import type { ThemePageProps } from '@/lib/theme-props';
-import { optimizeContentImages } from '@/lib/image-transform';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmClientContent from './WarmClientContent.astro';
-import WarmPasswordGate from './WarmPasswordGate.astro';
 import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
 
 type Props = ThemePageProps;
@@ -16,12 +14,10 @@ const {
   page, commentPagination,
 } = Astro.props;
 const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
-const pageSource = !(page.hasPassword && !page.passwordVerified)
-  ? (await getDb(env.DB).query.contents.findFirst({
-    columns: { text: true },
-    where: eq(schema.contents.cid, page.cid),
-  }))?.text || ''
-  : '';
+const pageSource = (await getDb(env.DB).query.contents.findFirst({
+  columns: { text: true },
+  where: eq(schema.contents.cid, page.cid),
+}))?.text || '';
 const settings = warmSettings(options);
 ---
 <WarmShell
@@ -44,11 +40,7 @@ const settings = warmSettings(options);
         <h1 itemprop="headline">{page.title}</h1>
       </div>
     </header>
-    {page.hasPassword && !page.passwordVerified ? (
-      <WarmPasswordGate permalink={page.permalink} />
-    ) : (
-      <WarmClientContent source={pageSource} />
-    )}
+    <WarmClientContent source={pageSource} />
   </article>
 
   {(page.allowComment || commentPagination.totalComments > 0) && (
