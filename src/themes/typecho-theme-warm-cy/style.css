@@ -831,11 +831,7 @@ body.warm-theme {
   color: var(--warm-accent);
 }
 
-.dark .warm-theme-menu {
-  border-color: #414141;
-  background: #202020;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 28%);
-}
+
 
 .warm-nav {
   display: flex;
@@ -2917,10 +2913,6 @@ body.warm-theme {
     margin-left: 0;
   }
 
-  .warm-footer {
-    margin-top: 36px;
-    padding-bottom: 36px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2975,11 +2967,7 @@ body.warm-theme {
   background-color: #252a32;
 }
 
-.dark .warm-prose table,
-.dark .warm-prose table th,
-.dark .warm-prose table td {
-  border-color: #444b57;
-}
+
 
 /* Markdown 表格对齐支持 */
 .warm-prose table th[align="left"],
@@ -3396,12 +3384,6 @@ body.warm-theme {
       line-height: 28px;
     }
   
-    .warm-manage-dialog__panel p,
-    .warm-manage-dialog__panel [data-warm-dialog-message] {
-      font-size: 16px;
-      line-height: 24px;
-    }
-  
     .warm-manage-dialog__actions {
       gap: 8px;
     }
@@ -3581,18 +3563,7 @@ body.warm-theme {
 .warm-search-error:empty {
   display: none;
 }
-.dark .warm-search-dialog__panel {
-  border-color: #343434;
-  background: #202020;
-}
-.dark .warm-search-dialog__panel h2,
-.dark .warm-search-input {
-  color: #eee;
-}
-.dark .warm-search-input {
-  border-color: #454545;
-  background: #292929;
-}
+
 @media (max-width: 639px) {
   .warm-search-dialog__panel { padding: 26px 18px 20px; }
   .warm-search-form { gap: 8px; }
@@ -3838,6 +3809,7 @@ html.dark {
 .dark .warm-theme-menu {
   border-color: var(--warm-border);
   background: var(--warm-surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 28%);
 }
 
 .dark .warm-theme-menu button {
