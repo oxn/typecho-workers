@@ -1,7 +1,7 @@
 {
   "name": "typecho-theme-warm-cy",
   "version": "1.0.0",
-  "description": "Typecho Warm CY 独立自定义主题，提供文章阅读与主题展示功能。",
+  "description": "Typecho Warm CY 独立主题，内置 CY Client Runtime 与 Markdown Renderer，不依赖 Markdown 插件包。",
   "author": "怸歪",
   "homepage": "https://oook.top",
   "license": "MIT",
@@ -26,7 +26,6 @@
     "jsdom": "^26.1.0"
   },
   "dependencies": {
-    "typecho-plugin-markdown-rehype": "workspace:*",
     "postcss": "^8.5.26",
     "unified": "^11.0.5",
     "remark-parse": "^11.0.0",
