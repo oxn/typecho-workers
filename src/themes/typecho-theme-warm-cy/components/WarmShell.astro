@@ -170,34 +170,118 @@ const footerLinks = [
   <script is:inline>
     (() => {
       const themeStorageKey = 'warm-theme-mode';
-      const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
       const validThemeModes = ['light', 'system', 'dark'];
-      let themeMode = 'system';
-      try {
-        const savedMode = window.localStorage.getItem(themeStorageKey);
-        if (validThemeModes.includes(savedMode)) themeMode = savedMode;
-      } catch {}
-      const applyThemeMode = () => {
-        const isDark = themeMode === 'dark' || (themeMode === 'system' && themeMedia.matches);
-        document.documentElement.classList.toggle('dark', isDark);
-        const lightIcon = document.querySelector('[data-warm-theme-icon-light]');
-        const systemIcon = document.querySelector('[data-warm-theme-icon-system]');
-        const darkIcon = document.querySelector('[data-warm-theme-icon-dark]');
-        // Use inline display so the selected icon wins over theme-wide SVG rules.
-        if (lightIcon) lightIcon.style.display = themeMode === 'light' ? 'block' : 'none';
-        if (systemIcon) systemIcon.style.display = themeMode === 'system' ? 'block' : 'none';
-        if (darkIcon) darkIcon.style.display = themeMode === 'dark' ? 'block' : 'none';
-        const themeToggle = document.querySelector('[data-warm-theme-toggle]');
-        const modeLabels = { light: '明亮模式', system: '跟随系统', dark: '暗黑模式' };
-        if (themeToggle) {
-          themeToggle.setAttribute('aria-label', `显示模式：${modeLabels[themeMode]}`);
-          themeToggle.setAttribute('title', `显示模式：${modeLabels[themeMode]}`);
-        }
-        document.querySelectorAll('[data-warm-theme-choice]').forEach(option => {
-          option.setAttribute('aria-pressed', option.getAttribute('data-warm-theme-choice') === themeMode ? 'true' : 'false');
+
+      // The controller lives on window because InstantClick replaces <body>
+      // and re-executes this script while the document itself remains alive.
+      // Keep theme state and document/media listeners stable across swaps.
+      let themeController = window.__warmThemeController;
+      if (!themeController) {
+        const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+        let themeMode = 'system';
+        try {
+          const savedMode = window.localStorage.getItem(themeStorageKey);
+          if (validThemeModes.includes(savedMode)) themeMode = savedMode;
+        } catch {}
+
+        const applyThemeMode = () => {
+          const isDark = themeMode === 'dark' || (themeMode === 'system' && themeMedia.matches);
+          document.documentElement.classList.toggle('dark', isDark);
+          const lightIcon = document.querySelector('[data-warm-theme-icon-light]');
+          const systemIcon = document.querySelector('[data-warm-theme-icon-system]');
+          const darkIcon = document.querySelector('[data-warm-theme-icon-dark]');
+          // Use inline display so the selected icon wins over theme-wide SVG rules.
+          if (lightIcon) lightIcon.style.display = themeMode === 'light' ? 'block' : 'none';
+          if (systemIcon) systemIcon.style.display = themeMode === 'system' ? 'block' : 'none';
+          if (darkIcon) darkIcon.style.display = themeMode === 'dark' ? 'block' : 'none';
+          const themeToggle = document.querySelector('[data-warm-theme-toggle]');
+          const modeLabels = { light: '明亮模式', system: '跟随系统', dark: '暗黑模式' };
+          if (themeToggle) {
+            themeToggle.setAttribute('aria-label', `显示模式：${modeLabels[themeMode]}`);
+            themeToggle.setAttribute('title', `显示模式：${modeLabels[themeMode]}`);
+          }
+          document.querySelectorAll('[data-warm-theme-choice]').forEach(option => {
+            option.setAttribute('aria-pressed', option.getAttribute('data-warm-theme-choice') === themeMode ? 'true' : 'false');
+          });
+        };
+
+        themeController = {
+          apply: applyThemeMode,
+          setMode: selectedMode => {
+            if (!validThemeModes.includes(selectedMode)) return;
+            themeMode = selectedMode;
+            try { window.localStorage.setItem(themeStorageKey, themeMode); } catch {}
+            applyThemeMode();
+          },
+        };
+        window.__warmThemeController = themeController;
+
+        themeMedia.addEventListener?.('change', () => {
+          if (themeMode === 'system') applyThemeMode();
         });
+
+        document.addEventListener('click', event => {
+          const target = event.target instanceof Element ? event.target : null;
+          if (!target) return;
+
+          const themeToggle = target.closest('[data-warm-theme-toggle]');
+          if (themeToggle) {
+            const menu = document.querySelector('[data-warm-theme-menu]');
+            if (menu) {
+              const opening = menu.hidden;
+              menu.hidden = !opening;
+              themeToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+            }
+            return;
+          }
+
+          const themeChoice = target.closest('[data-warm-theme-choice]');
+          if (themeChoice) {
+            themeController.setMode(themeChoice.getAttribute('data-warm-theme-choice'));
+            const menu = document.querySelector('[data-warm-theme-menu]');
+            const toggle = document.querySelector('[data-warm-theme-toggle]');
+            if (menu) menu.hidden = true;
+            if (toggle) {
+              toggle.setAttribute('aria-expanded', 'false');
+              toggle.focus();
+            }
+            return;
+          }
+
+          if (!target.closest('[data-warm-theme-menu]')) {
+            const menu = document.querySelector('[data-warm-theme-menu]');
+            const toggle = document.querySelector('[data-warm-theme-toggle]');
+            if (menu) menu.hidden = true;
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
+          }
+
+          if (target.closest('[data-warm-search-open]')) {
+            const dialog = document.querySelector('[data-warm-search-dialog]');
+            if (dialog instanceof HTMLDialogElement && !dialog.open) {
+              dialog.showModal();
+              dialog.querySelector('[data-warm-search-input]')?.focus();
+            }
+          } else if (target.closest('[data-warm-search-close]')) {
+            const dialog = target.closest('[data-warm-search-dialog]');
+            if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
+          } else {
+            const dialog = target.closest('[data-warm-search-dialog]');
+            if (dialog instanceof HTMLDialogElement && target === dialog && dialog.open) dialog.close();
+          }
+        });
+      }
+
+      // Re-apply the persistent preference to the newly swapped page's controls.
+      themeController.apply();
+
+      // Page-bound listeners and observers must not retain the previous body.
+      window.__warmThemePageCleanup?.();
+      const pageAbort = new AbortController();
+      let headerLayoutObserver = null;
+      window.__warmThemePageCleanup = () => {
+        pageAbort.abort();
+        headerLayoutObserver?.disconnect();
       };
-      applyThemeMode();
 
       // Keep quick actions beside the navigation only when the full row fits.
       const header = document.querySelector('.warm-header');
@@ -214,7 +298,6 @@ const footerLinks = [
           return;
         }
         const innerStyle = window.getComputedStyle(headerInner);
-        const rightStyle = window.getComputedStyle(headerRight);
         const navStyle = window.getComputedStyle(headerNav);
         const innerGap = Number.parseFloat(innerStyle.columnGap) || 0;
         const rightGap = 12;
@@ -228,76 +311,16 @@ const footerLinks = [
       };
       updateHeaderToolsLayout();
       if ('ResizeObserver' in window && headerInner) {
-        const headerLayoutObserver = new ResizeObserver(updateHeaderToolsLayout);
+        headerLayoutObserver = new ResizeObserver(updateHeaderToolsLayout);
         headerLayoutObserver.observe(headerInner);
         if (headerBrand) headerLayoutObserver.observe(headerBrand);
         if (headerNav) headerLayoutObserver.observe(headerNav);
         if (headerTools) headerLayoutObserver.observe(headerTools);
       } else {
-        window.addEventListener('resize', updateHeaderToolsLayout, { passive: true });
+        window.addEventListener('resize', updateHeaderToolsLayout, { passive: true, signal: pageAbort.signal });
       }
-      compactHeader.addEventListener?.('change', updateHeaderToolsLayout);
-      window.addEventListener('load', updateHeaderToolsLayout, { once: true });
-      themeMedia.addEventListener?.('change', () => {
-        if (themeMode === 'system') applyThemeMode();
-      });
-
-      // InstantClick re-executes this inline script after each body swap.
-      // Keep one delegated handler on the persistent document so theme-menu
-      // clicks are never applied multiple times.
-      if (document.documentElement.dataset.warmThemeMenuClickBound !== '1') {
-        document.documentElement.dataset.warmThemeMenuClickBound = '1';
-        document.addEventListener('click', event => {
-        const target = event.target instanceof Element ? event.target : null;
-        if (!target) return;
-        const themeToggle = target.closest('[data-warm-theme-toggle]');
-        if (themeToggle) {
-          const menu = document.querySelector('[data-warm-theme-menu]');
-          if (menu) {
-            const opening = menu.hidden;
-            menu.hidden = !opening;
-            themeToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
-          }
-          return;
-        }
-        const themeChoice = target.closest('[data-warm-theme-choice]');
-        if (themeChoice) {
-          const selectedMode = themeChoice.getAttribute('data-warm-theme-choice');
-          if (validThemeModes.includes(selectedMode)) {
-            themeMode = selectedMode;
-            try { window.localStorage.setItem(themeStorageKey, themeMode); } catch {}
-            applyThemeMode();
-          }
-          const menu = document.querySelector('[data-warm-theme-menu]');
-          const toggle = document.querySelector('[data-warm-theme-toggle]');
-          if (menu) menu.hidden = true;
-          if (toggle) {
-            toggle.setAttribute('aria-expanded', 'false');
-            toggle.focus();
-          }
-          return;
-        }
-        if (!target.closest('[data-warm-theme-menu]')) {
-          const menu = document.querySelector('[data-warm-theme-menu]');
-          const toggle = document.querySelector('[data-warm-theme-toggle]');
-          if (menu) menu.hidden = true;
-          if (toggle) toggle.setAttribute('aria-expanded', 'false');
-        }
-        if (target.closest('[data-warm-search-open]')) {
-          const dialog = document.querySelector('[data-warm-search-dialog]');
-          if (dialog instanceof HTMLDialogElement && !dialog.open) {
-            dialog.showModal();
-            dialog.querySelector('[data-warm-search-input]')?.focus();
-          }
-        } else if (target.closest('[data-warm-search-close]')) {
-          const dialog = target.closest('[data-warm-search-dialog]');
-          if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
-        } else {
-          const dialog = target.closest('[data-warm-search-dialog]');
-          if (dialog instanceof HTMLDialogElement && target === dialog && dialog.open) dialog.close();
-        }
-        });
-      }
+      compactHeader.addEventListener?.('change', updateHeaderToolsLayout, { signal: pageAbort.signal });
+      window.addEventListener('load', updateHeaderToolsLayout, { once: true, signal: pageAbort.signal });
 
       const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
       document.querySelectorAll('.warm-nav__dropdown').forEach(dropdown => {
@@ -307,30 +330,28 @@ const footerLinks = [
             dropdown.open = true;
             openedByHover = true;
           }
-        });
+        }, { signal: pageAbort.signal });
         dropdown.addEventListener('click', event => {
           if (!event.target.closest('summary')) return;
           // The first pointer click must not undo the preceding hover-open.
           // Keyboard activation (detail=0) keeps the native details toggle.
           if (openedByHover && event.detail > 0) event.preventDefault();
           openedByHover = false;
-        });
+        }, { signal: pageAbort.signal });
         dropdown.addEventListener('mouseleave', () => {
           openedByHover = false;
           if (hoverCapable.matches && !dropdown.contains(document.activeElement)) dropdown.open = false;
-        });
+        }, { signal: pageAbort.signal });
         dropdown.addEventListener('keydown', event => {
           if (event.key !== 'Escape') return;
           dropdown.open = false;
           dropdown.querySelector('summary')?.focus();
-        });
+        }, { signal: pageAbort.signal });
         dropdown.addEventListener('focusout', event => {
           // iOS Safari can report a null relatedTarget while a touch tap moves
-          // from <summary> to a menu link. Closing synchronously then removes
-          // the link before its synthetic click, so retain the menu until the
-          // document-level outside-click handler decides it should close.
+          // from <summary> to a menu link. Keep the menu until outside-click handles it.
           if (event.relatedTarget && !dropdown.contains(event.relatedTarget)) dropdown.open = false;
-        });
+        }, { signal: pageAbort.signal });
       });
     })();
   </script>
