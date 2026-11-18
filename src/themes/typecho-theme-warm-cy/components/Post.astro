@@ -37,12 +37,9 @@ const articleSource = !isNote && !(post.hasPassword && !post.passwordVerified)
   }))?.text || ''
   : '';
 const settings = warmSettings(options);
-const optimizedContent = optimizeContentImages(
-  isNote ? note.html : post.content,
-  settings.imageOptimizeParams,
-  urls.siteUrl,
-);
-const displayContent = optimizedContent;
+const displayContent = isNote
+  ? optimizeContentImages(note.html, settings.imageOptimizeParams, urls.siteUrl)
+  : '';
 const intelligenceSummary = !isNote && pluginCtx.activatedPlugins.has('typecho-plugin-intelligence')
   ? await readSummary(db, post.cid)
   : null;
