@@ -710,6 +710,26 @@ body.warm-theme {
   min-height: 32px;
 }
 
+/* Place quick actions beside navigation only when the measured row fits. */
+.warm-header--tools-inline .warm-header__right {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.warm-header--tools-inline .warm-header__tools {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  flex: 0 0 auto;
+}
+
+.warm-header--tools-inline .warm-nav {
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
 .warm-theme-control {
   position: relative;
   display: inline-flex;
