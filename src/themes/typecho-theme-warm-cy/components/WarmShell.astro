@@ -282,37 +282,6 @@ const footerLinks = [
           });
         });
 
-        // Generic target-date countdown: data-countdown-target="YYYY-MM-DDTHH:mm:ss"
-        // and children with data-countdown-days/hours/minutes/seconds.
-        scope.querySelectorAll?.('[data-countdown-target]').forEach(rootNode => {
-          if (rootNode.dataset.countdownBound === '1') return;
-          rootNode.dataset.countdownBound = '1';
-          const targetText = rootNode.getAttribute('data-countdown-target');
-          const targetTime = Date.parse(targetText || '');
-          if (!Number.isFinite(targetTime)) return;
-          const update = () => {
-            let left = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
-            const values = {
-              days: Math.floor(left / 86400),
-              hours: Math.floor((left % 86400) / 3600),
-              minutes: Math.floor((left % 3600) / 60),
-              seconds: left % 60
-            };
-            Object.entries(values).forEach(([unit, value]) => {
-              rootNode.querySelectorAll('[data-countdown-' + unit + ']').forEach(el => {
-                el.textContent = String(value).padStart(unit === 'days' ? 1 : 2, '0');
-              });
-            });
-          };
-          update();
-          const timer = window.setInterval(() => {
-            if (!rootNode.isConnected) {
-              window.clearInterval(timer);
-              return;
-            }
-            update();
-          }, 1000);
-        });
         updateDays();
       };
       initArticleControls(document);
