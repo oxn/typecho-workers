@@ -38,10 +38,21 @@ function escapeText(value: string): string {
 }
 
 function addHeadingIds(root: HTMLElement): void {
-  root.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6').forEach((heading) => {
-    if (heading.id) return;
-    const text = heading.textContent?.trim() || '';
-    if (text) heading.id = text;
+  const used = new Set<string>();
+  root.querySelectorAll<HTMLElement>('h2,h3').forEach((heading) => {
+    const existing = heading.id.trim();
+    let id = existing || (heading.textContent || '')
+      .toLowerCase()
+      .replace(/[^\\w\\u4e00-\\u9fff\\s-]/g, '')
+      .replace(/\\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 150) || 'section-' + (used.size + 1);
+    const base = id;
+    let suffix = 2;
+    while (used.has(id)) id = base + '-' + suffix++;
+    used.add(id);
+    heading.id = id;
   });
 }
 
