@@ -1368,7 +1368,6 @@
 
     "typecho-plugin-intelligence": ["typecho-plugin-intelligence@workspace:src/plugins/typecho-plugin-intelligence"],
 
-    "typecho-plugin-markdown-rehype": ["typecho-plugin-markdown-rehype@workspace:src/plugins/typecho-plugin-markdown-rehype"],
 
     "typecho-plugin-notes": ["typecho-plugin-notes@workspace:src/plugins/typecho-plugin-notes"],
 
