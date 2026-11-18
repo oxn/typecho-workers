@@ -36,11 +36,16 @@ function enhanceCodeBlocks(root: Element): void {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'rin-code-copy';
-    button.textContent = 'Copy';
+    button.textContent = '复制';
+    button.title = '复制代码';
     button.addEventListener('click', async () => {
       await navigator.clipboard.writeText(copyValue);
-      button.textContent = 'Copied!';
-      window.setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+      button.textContent = '已复制';
+      button.title = '已复制代码';
+      window.setTimeout(() => {
+        button.textContent = '复制';
+        button.title = '复制代码';
+      }, 2000);
     });
     wrapper.append(button);
   });
