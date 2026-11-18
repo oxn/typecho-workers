@@ -98,11 +98,16 @@ describe('Warm CY client article renderer', () => {
       '',
       '正文中的 ![inline](https://example.test/inline.png)',
       '',
+      '前一段文字。',
+      '',
+      '![after-blank](https://example.test/after-blank.png)',
+      '',
       '![group-first](https://example.test/first.png)![group-second](https://example.test/second.png)',
     ].join('\n'));
 
     expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/leading\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
     expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/inline\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/after-blank\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
     expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/first\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
     expect(html).toMatch(/<img(?=[^>]*src="https:\/\/example\.test\/second\.png")(?=[^>]*data-rin-image-layout="inline")[^>]*>/);
   });
