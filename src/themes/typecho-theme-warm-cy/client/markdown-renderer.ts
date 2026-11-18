@@ -310,7 +310,7 @@ export async function renderMarkdown(source: string): Promise<string> {
   const file = await processor.process(
     source.replace(/^<!--markdown-->/, '').replace(/<!--more-->/g, ''),
   );
-  return '<div class="toc-content min-w-0">' + String(file) + '</div>';
+  return String(file);
 }
 
 export interface RenderOptions {
