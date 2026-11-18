@@ -86,7 +86,7 @@
         if (!heading) return;
         event.preventDefault();
         heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        history.replaceState(null, '', `#${id}`);
+        history.replaceState(null, '', `#${encodeURIComponent(id)}`);
         setActive(id);
       };
 
