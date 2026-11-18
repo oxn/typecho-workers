@@ -43,8 +43,8 @@ function addHeadingIds(root: HTMLElement): void {
     const existing = heading.id.trim();
     let id = existing || (heading.textContent || '')
       .toLowerCase()
-      .replace(/[^\\w\\u4e00-\\u9fff\\s-]/g, '')
-      .replace(/\\s+/g, '-')
+      .replace(/[^\w\u4e00-\u9fff\s-]/g, '')
+      .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 150) || 'section-' + (used.size + 1);
