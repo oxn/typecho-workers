@@ -102,7 +102,7 @@ const articleDeclarationHtml = !isNote
       ) : post.hasPassword && !post.passwordVerified ? (
         <WarmPasswordGate permalink={post.permalink} />
       ) : (
-        <WarmClientContent source={articleSource} />
+        <WarmClientContent source={articleSource} imageOptimizeParams={settings.imageOptimizeParams} siteUrl={urls.siteUrl} />
       )}
       {tocItems.length > 0 && <WarmToc items={tocItems} />}
     </div>
