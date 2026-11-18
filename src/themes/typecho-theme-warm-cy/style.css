@@ -1,3 +1,552 @@
+/* Active client Markdown runtime styles (code highlighting, enhanced images, iframe wrappers). */
+.rin-iframe-wrapper {
+  width:100%;
+  margin:1rem 0
+}
+
+.rin-iframe-wrapper>iframe {
+  display:block;
+  width:100%;
+  min-height:400px;
+  border-radius:.75rem;
+  border:1px solid rgba(0,0,0,.1)
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-iframe-wrapper>iframe {
+  border-color:rgba(255,255,255,.1)
+}
+
+.rin-code-block {
+  position:relative;
+  min-width:0;
+  max-width:100%;
+  overflow:hidden
+}
+
+.rin-code-block .rin-code-pre {
+  box-sizing:border-box;
+  margin:.5em 0;
+  padding:1em;
+  max-width:100%;
+  overflow:auto;
+  border-radius:.25rem;
+  white-space:pre;
+  background:#f5f7ff;
+  color:#5e6687;
+  font:14px/1.375 Consolas,Menlo,Monaco,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L","Courier New",Courier,monospace;
+  tab-size:4
+}
+
+.rin-code-block .rin-code-pre>code {
+  font:14px/1.375 ui-monospace,"SFMono-Regular","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;
+  white-space:pre-wrap;
+  font-variant-ligatures:normal;
+  -webkit-font-feature-settings:"liga" 1;
+  font-feature-settings:"liga" 1
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre {
+  background:#1e1e1e;
+  color:#d4d4d4;
+  font-family:Menlo,Monaco,Consolas,"Andale Mono","Ubuntu Mono","Courier New",monospace;
+  font-size:13px;
+  line-height:1.5
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre>code {
+  background:#1e1e1e;
+  color:#d4d4d4;
+  font-size:14px;
+  line-height:1.5
+}
+
+/* Rin base16AteliersulphurpoolLight token styles */
+.rin-code-block .token.comment {
+  color:#898ea4
+}
+
+.rin-code-block .token.prolog {
+  color:#898ea4
+}
+
+.rin-code-block .token.doctype {
+  color:#898ea4
+}
+
+.rin-code-block .token.cdata {
+  color:#898ea4
+}
+
+.rin-code-block .token.punctuation {
+  color:#5e6687
+}
+
+.rin-code-block .token.namespace {
+  opacity:.7
+}
+
+.rin-code-block .token.operator {
+  color:#c76b29
+}
+
+.rin-code-block .token.boolean {
+  color:#c76b29
+}
+
+.rin-code-block .token.number {
+  color:#c76b29
+}
+
+.rin-code-block .token.property {
+  color:#c08b30
+}
+
+.rin-code-block .token.tag {
+  color:#3d8fd1
+}
+
+.rin-code-block .token.string {
+  color:#22a2c9
+}
+
+.rin-code-block .token.selector {
+  color:#6679cc
+}
+
+.rin-code-block .token.attr-name {
+  color:#c76b29
+}
+
+.rin-code-block .token.entity {
+  color:#22a2c9;
+  cursor:help
+}
+
+.rin-code-block .token.url {
+  color:#22a2c9
+}
+
+.rin-code-block .token.attr-value {
+  color:#ac9739
+}
+
+.rin-code-block .token.keyword {
+  color:#ac9739
+}
+
+.rin-code-block .token.control {
+  color:#ac9739
+}
+
+.rin-code-block .token.directive {
+  color:#ac9739
+}
+
+.rin-code-block .token.unit {
+  color:#ac9739
+}
+
+.rin-code-block .token.statement {
+  color:#22a2c9
+}
+
+.rin-code-block .token.regex {
+  color:#22a2c9
+}
+
+.rin-code-block .token.atrule {
+  color:#22a2c9
+}
+
+.rin-code-block .token.placeholder {
+  color:#3d8fd1
+}
+
+.rin-code-block .token.variable {
+  color:#3d8fd1
+}
+
+.rin-code-block .token.deleted {
+  text-decoration:line-through
+}
+
+.rin-code-block .token.inserted {
+  border-bottom:1px dotted #202746;
+  text-decoration:none
+}
+
+.rin-code-block .token.italic {
+  font-style:italic
+}
+
+.rin-code-block .token.important {
+  font-weight:bold;
+  color:#c94922
+}
+
+.rin-code-block .token.bold {
+  font-weight:bold
+}
+
+/* Rin vscDarkPlus token styles, including light-only property resets */
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.doctype.doctype-tag {
+  color:#569CD6
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.doctype.name {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.comment {
+  color:#6a9955
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.prolog {
+  color:#6a9955
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.punctuation {
+  color:#d4d4d4
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.property {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.tag {
+  color:#569cd6
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.boolean {
+  color:#569cd6
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.number {
+  color:#b5cea8
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.constant {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.symbol {
+  color:#b5cea8
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.inserted {
+  color:#b5cea8;
+  border-bottom:0;
+  text-decoration:none
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.unit {
+  color:#b5cea8
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.selector {
+  color:#d7ba7d
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-name {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.string {
+  color:#ce9178
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.char {
+  color:#ce9178
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.builtin {
+  color:#ce9178
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.deleted {
+  color:#ce9178;
+  text-decoration:none
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.operator {
+  color:#d4d4d4
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.entity {
+  color:#569cd6;
+  cursor:auto
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.operator.arrow {
+  color:#569CD6
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule {
+  color:#ce9178
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.rule {
+  color:#c586c0
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.url {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.url.function {
+  color:#dcdcaa
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.atrule.url.punctuation {
+  color:#d4d4d4
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.keyword {
+  color:#569CD6
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.keyword.module {
+  color:#c586c0
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.keyword.control-flow {
+  color:#c586c0
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.function {
+  color:#dcdcaa
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.function.maybe-class-name {
+  color:#dcdcaa
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.regex {
+  color:#d16969
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.important {
+  color:#569cd6;
+  font-weight:normal
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.italic {
+  font-style:italic
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.class-name {
+  color:#4ec9b0
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.maybe-class-name {
+  color:#4ec9b0
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.console {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.parameter {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.interpolation {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.punctuation.interpolation-punctuation {
+  color:#569cd6
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.variable {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.imports.maybe-class-name {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.exports.maybe-class-name {
+  color:#9cdcfe
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.escape {
+  color:#d7ba7d
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.tag.punctuation {
+  color:#808080
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.cdata {
+  color:#808080
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value {
+  color:#ce9178
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value.punctuation {
+  color:#ce9178
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.attr-value.punctuation.attr-equals {
+  color:#d4d4d4
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.namespace {
+  color:#4ec9b0;
+  opacity:1
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.doctype {
+  color:inherit
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.url {
+  color:inherit
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.control {
+  color:inherit
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.directive {
+  color:inherit
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.statement {
+  color:inherit
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.placeholder {
+  color:inherit
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .token.bold {
+  font-weight:normal
+}
+
+.rin-code-block .rin-code-pre ::selection {
+  background:#dfe2f1;
+  text-shadow:none
+}
+
+:is(.dark,[data-color-mode="dark"],.is-dark) .rin-code-block .rin-code-pre ::selection {
+  background:#264f78;
+  text-shadow:none
+}
+
+.rin-code-copy {
+  position:absolute;
+  top:4px;
+  right:4px;
+  padding:4px 8px;
+  border:0;
+  border-radius:6px;
+  background:rgba(127,127,127,.16);
+  color:inherit;
+  font-size:14px;
+  user-select:none;
+  cursor:pointer;
+  visibility:hidden
+}
+
+.rin-code-block:hover .rin-code-copy,.rin-code-copy:focus {
+  visibility:visible
+}
+
+.rin-image-block {
+  display:block;
+  width:100%;
+  text-align:center;
+  margin:1rem 0
+}
+
+.rin-image-inline {
+  display:inline-block;
+  vertical-align:middle;
+  margin:0 .25rem
+}
+
+.rin-image-inner {
+  position:relative;
+  display:inline-block;
+  max-width:100%;
+  overflow:hidden
+}
+
+.rin-image-inner.is-rounded {
+  border-radius:.75rem
+}
+
+.rin-image-blurhash {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  transform:scale(1.1);
+  filter:blur(4px);
+  pointer-events:none
+}
+
+:is(.warm-article:not(.is-note) .warm-prose,.warm-prose) .rin-image-inner img[data-rin-image-enhanced="1"] {
+  position:static;
+  left:auto;
+  width:auto;
+  max-width:100%;
+  height:auto;
+  transform:none;
+  display:block;
+  margin-left:auto;
+  margin-right:auto;
+  cursor:zoom-in;
+  transition:opacity .2s
+}
+
+.rin-image-inner img[data-rin-image-enhanced="1"][data-rin-image-layout="inline"] {
+  display:inline
+}
+
+.rin-image-inner.is-rounded img[data-rin-image-enhanced="1"] {
+  border-radius:.75rem
+}
+
+.rin-image-inner img[data-rin-image-enhanced="1"].opacity-0 {
+  opacity:0
+}
+
+.rin-image-inner img[data-rin-image-enhanced="1"].opacity-100 {
+  opacity:1
+}
+
+.rin-image-inner img[data-rin-image-enhanced="1"].hidden {
+  display:none
+}
+
+.rin-image-placeholder {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#f5f5f5;
+  color:#a3a3a3
+}
+
+:is(.dark,.is-dark) .rin-image-placeholder,[data-color-mode="dark"] .rin-image-placeholder {
+  background:#262626;
+  color:#737373
+}
+
+.rin-image-placeholder.is-block {
+  min-width:12rem;
+  min-height:8rem
+}
+
+.rin-image-placeholder.is-inline {
+  width:2rem;
+  height:2rem
+}
+
 /* Warm: white paper, warm grey ink, and a quiet serif reading accent. */
 :root {
   --warm-bg: #fff;
