@@ -17,12 +17,10 @@ function enhanceImage(image: HTMLImageElement): void {
   image.dataset.rinImageEnhanced = '1';
   const block = image.dataset.rinImageLayout === 'block';
   const rounded = block;
-  const scale = block ? '0.75' : '0.5';
   const outer = document.createElement('span');
   outer.className = block ? 'rin-image-block block w-full text-center my-4' : 'rin-image-inline inline-block align-middle mx-1';
   const inner = document.createElement('span');
   inner.className = 'rin-image-inner relative inline-block max-w-full overflow-hidden' + (rounded ? ' is-rounded rounded-xl' : '');
-  inner.style.zoom = scale;
   const width = Number.parseInt(image.getAttribute('width') || '', 10);
   const height = Number.parseInt(image.getAttribute('height') || '', 10);
   // Warm's breakout rule sets width:auto on images, overriding HTML width hints.
