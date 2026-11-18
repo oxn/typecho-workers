@@ -1,7 +1,8 @@
 ---
 import { env } from 'cloudflare:workers';
 import { getDb, schema } from 'typecho/db';
-import type { NoteListItem } from 'typecho-plugin-notes';
+import { getNotesStreamForTheme, type NoteListItem } from 'typecho-plugin-notes';
+import { createContext } from '@/lib/context';
 import { optimizeContentImages } from '@/lib/image-transform';
 import { and, eq, inArray, lte } from 'drizzle-orm';
 import type { ThemeIndexProps, PostListItem } from '@/lib/theme-props';
@@ -57,8 +58,8 @@ let hasPrev = pagination.hasPrev;
 let hasNext = pagination.hasNext;
 
 if (notesEnabled && stream !== 'posts') {
-  const notesDb = getDb(env.DB);
-  const { getNotesStreamForTheme } = await import('typecho-plugin-notes');
+  const noteContext = await createContext(Astro.locals, Astro.request);
+  const notesDb = noteContext.db ?? getDb(env.DB);
   const result = await getNotesStreamForTheme(
     notesDb,
     stream,
