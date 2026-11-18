@@ -164,7 +164,12 @@ export async function renderInto(root: HTMLElement, source: string, options: Ren
       });
     }
     normalizeImages(root);
-    await enhanceOptionalFeatures(root);
+    try {
+      await enhanceOptionalFeatures(root);
+    } catch (error) {
+      // Optional browser enhancements must never replace successfully rendered article content.
+      console.error('[Warm CY] optional content enhancement failed', error);
+    }
     document.dispatchEvent(new CustomEvent('warm:client-content-rendered', { detail: { root } }));
   } catch (error) {
     console.error('[Warm CY] client Markdown render failed', error);
