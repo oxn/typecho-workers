@@ -1,7 +1,6 @@
 ---
 import { env } from 'cloudflare:workers';
-import { getDb, schema } from 'typecho/db';
-import { eq } from 'drizzle-orm';
+import { getDb } from 'typecho/db';
 import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
 import { createContext } from '@/lib/context';
@@ -30,11 +29,9 @@ const note = noteContext
   ? await getNoteForTheme(noteContext.db ?? db, post.cid, urls.siteUrl)
   : null;
 const isNote = note?.type === 'note';
-const articleSource = !isNote && !(post.hasPassword && !post.passwordVerified)
-  ? (await db.query.contents.findFirst({
-    columns: { text: true },
-    where: eq(schema.contents.cid, post.cid),
-  }))?.text || ''
+// The core has already rendered and sanitized the article Markdown into post.content.
+const articleHtml = !isNote && !(post.hasPassword && !post.passwordVerified)
+  ? post.content
   : '';
 const settings = warmSettings(options);
 const displayContent = isNote
@@ -46,7 +43,7 @@ const intelligenceSummary = !isNote && pluginCtx.activatedPlugins.has('typecho-p
 const summary = isNote ? '' : warmArticleSummary(post, intelligenceSummary);
 const description = isNote
   ? plainExcerpt(note.source, 160)
-  : (summary || (!(post.hasPassword && !post.passwordVerified) ? plainExcerpt(articleSource, 160) : ''));
+  : (summary || (!(post.hasPassword && !post.passwordVerified) ? plainExcerpt(articleHtml, 160) : ''));
 const articleDeclarationHtml = !isNote
   ? renderArticleDeclaration(settings.articleDeclarationHtml, {
     siteName: options.title,
@@ -83,7 +80,7 @@ const articleDeclarationHtml = !isNote
           )}
           <span aria-hidden="true">·</span>
           <time datetime={new Date(post.created * 1000).toISOString()} itemprop="datePublished">{formatWarmDate(post.created, options.postDateFormat, options.timezone, isNote)}</time>
-          {!isNote && <><span aria-hidden="true">·</span><span>约 {readingMinutes(articleSource)} 分钟阅读</span></>}
+          {!isNote && <><span aria-hidden="true">·</span><span>约 {readingMinutes(articleHtml)} 分钟阅读</span></>}
         </div>
         {!isNote && <h1 itemprop="headline">{post.title}</h1>}
         {summary && <p class="warm-article__summary">{summary}</p>}
@@ -96,7 +93,7 @@ const articleDeclarationHtml = !isNote
       ) : post.hasPassword && !post.passwordVerified ? (
         <WarmPasswordGate permalink={post.permalink} />
       ) : (
-        <WarmClientContent source={articleSource} imageOptimizeParams={settings.imageOptimizeParams} siteUrl={urls.siteUrl} />
+        <WarmClientContent html={articleHtml} imageOptimizeParams={settings.imageOptimizeParams} siteUrl={urls.siteUrl} />
       )}
       {!isNote && !(post.hasPassword && !post.passwordVerified) && <WarmToc />}
     </div>
