@@ -10,6 +10,7 @@ import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
+import WarmClientContent from './WarmClientContent.astro';
 import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, renderArticleDeclaration, warmArticleSummary, warmSettings } from './warm';
 
 type Props = ThemePostProps;
@@ -88,7 +89,11 @@ const articleDeclarationHtml = !isNote
     </header>
 
     <div class:list={["warm-article__body", { "warm-article__body--toc": tocItems.length > 0 }]}>
-      <div class:list={["warm-prose", { "warm-note-prose": isNote }]} view-image itemprop="articleBody" set:html={displayContent} />
+      {isNote ? (
+        <div class:list={["warm-prose", "warm-note-prose"]} view-image itemprop="articleBody" set:html={displayContent} />
+      ) : (
+        <WarmClientContent source={post.source} />
+      )}
       {tocItems.length > 0 && <WarmToc items={tocItems} />}
     </div>
 
