@@ -34,7 +34,9 @@ Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
 const footerCustomHtml = renderFooterCustomHtml(settings.footerCustomHtml);
-const searchEnabled = warmCyFeatureSettings(options).showHomeSearchButton;
+const featureSettings = warmCyFeatureSettings(options);
+const searchEnabled = featureSettings.showHomeSearchButton;
+const adminEntryEnabled = featureSettings.showAdminEntryButton;
 const categories = sidebarData.categories.slice(0, 8);
 const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
@@ -60,7 +62,24 @@ const footerLinks = [
         {options.description && <span class="warm-brand__description">{options.description}</span>}
       </a>
 
-      <nav class="warm-nav" aria-label="主导航">
+      <div class="warm-header__right">
+        <div class="warm-header__tools" aria-label="快捷入口">
+          {searchEnabled && (
+            <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+            </button>
+          )}
+          {adminEntryEnabled && (
+            <a class="warm-search-trigger warm-nav__account" href={urls.adminUrl} data-no-instant aria-label="进入后台" title="进入后台">
+              <svg class="warm-nav__account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
+                <path d="M3 12h12" />
+                <path d="m10 7 5 5-5 5" />
+              </svg>
+            </a>
+          )}
+        </div>
+        <nav class="warm-nav" aria-label="主导航">
         <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
         <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
           <summary>
@@ -80,12 +99,8 @@ const footerLinks = [
         {pages.map((page) => (
           <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && isCurrentPageLink(page.permalink, currentPath, urls.siteUrl) }]} href={page.permalink} data-no-instant>{page.title}</a>
         ))}
-        {searchEnabled && (
-          <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
-            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
-          </button>
-        )}
       </nav>
+      </div>
     </div>
   </header>
 
