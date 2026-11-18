@@ -56,6 +56,21 @@ function addHeadingIds(root: HTMLElement): void {
   });
 }
 
+async function enhanceOptionalFeatures(root: HTMLElement): Promise<void> {
+  if (root.querySelector('pre > code.language-mermaid, pre > code.lang-mermaid')) {
+    const { initializeMermaid } = await import('./mermaid-runtime');
+    await initializeMermaid(root);
+  }
+  if (root.querySelector('pre > code[class*="language-"]')) {
+    const { initializeCodeBlocks } = await import('./markdown-code-runtime');
+    initializeCodeBlocks(root);
+  }
+  if (root.querySelector('img')) {
+    const { initializeImages } = await import('./markdown-image-runtime');
+    initializeImages(root);
+  }
+}
+
 function normalizeImages(root: HTMLElement): void {
   root.querySelectorAll<HTMLImageElement>('img').forEach((image) => {
     image.loading ||= 'lazy';
@@ -79,6 +94,7 @@ export async function renderInto(root: HTMLElement, source: string): Promise<voi
     root.innerHTML = await renderMarkdown(source);
     addHeadingIds(root);
     normalizeImages(root);
+    await enhanceOptionalFeatures(root);
   } catch (error) {
     console.error('[Warm CY] client Markdown render failed', error);
     root.innerHTML = '<p>文章内容加载失败。</p>';
