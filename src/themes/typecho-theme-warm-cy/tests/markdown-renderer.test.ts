@@ -124,6 +124,7 @@ describe('Warm CY client article renderer', () => {
     expect(html).toContain('width="48"');
     expect(html).toContain('height="24"');
     expect(html).toContain('src="https://cdn.example/raw.png"');
+    expect(html).toMatch(/<img(?=[^>]*src="https:\/\/cdn\.example\/raw\.png")(?=[^>]*data-rin-image-layout="block")[^>]*>/);
     expect(html).toContain('data-rin-blurhash="raw123"');
     expect(html).toContain('width="64"');
     expect(html).toContain('height="32"');
