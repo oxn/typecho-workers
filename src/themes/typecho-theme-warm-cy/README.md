@@ -18,6 +18,18 @@
 - 笔记媒体网格及附件展示。
 - 本站上传图片的 URL 优化参数。
 
+## Markdown 解析与渲染
+
+主题在自身 Renderer 中使用 **Unified / Remark / Rehype** 处理管线，将 Markdown 转换为 HTML，并由主题的 CY Client Runtime 完成后续 DOM 输出与交互。处理流程概括如下：
+
+1. `unified` 组织内容处理管线。
+2. `remark-parse` 解析 Markdown；`remark-gfm`、`remark-breaks`、`remark-github-blockquote-alert` 和 `remark-math` 分别提供 GFM、换行、GitHub 风格提示框和数学公式语法支持。
+3. `remark-rehype` 将 Markdown 语法树转换为 HTML 语法树，`rehype-raw` 处理内容中的原生 HTML。
+4. `rehype-katex` 处理数学公式，`rehype-stringify` 输出 HTML。
+5. `katex` 提供公式渲染能力，`refractor` 提供代码语法高亮，`mermaid` 提供流程图渲染。
+
+以上解析与渲染能力由主题直接依赖并组织，不通过 `typecho-plugin-markdown-rehype` 调用，也不要求安装或启用该插件。第三方库仍归各自项目及其权利人所有；各依赖的版权与许可应以对应发行包内的许可证文件和上游项目声明为准。主题自身的 MIT 许可不替代第三方依赖各自的许可义务。
+
 ## CY 服务插件职责
 
 CY 服务插件只负责后台管理与主题配套设置，包括：
