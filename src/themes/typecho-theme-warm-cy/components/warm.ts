@@ -590,6 +590,11 @@ const TOC_MIN_ITEMS = 2;
  * Collect h2/h3 headings for the article TOC and ensure each has a unique id.
  * Returns an empty items list when there are fewer than two headings.
  */
+export function readingMinutes(html: string): number {
+  const characters = html.replace(/<[^>]*>/g, '').replace(/\s+/g, '').length;
+  return Math.max(1, Math.ceil(characters / 420));
+}
+
 export function prepareArticleToc(html: string): { html: string; items: WarmTocItem[] } {
   if (!html) return { html: '', items: [] };
 
