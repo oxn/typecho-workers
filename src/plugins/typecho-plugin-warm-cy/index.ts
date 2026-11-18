@@ -12,8 +12,8 @@ const ADMIN_SETTINGS_API_PATH = '/api/admin/cy-companion-settings';
 const ADMIN_PAGE_SLUG = 'cy-companion';
 const PLUGIN_OPTION_KEY = 'plugin:typecho-plugin-warm-cy';
 const OPTION_KEY = `theme:${THEME_ID}`;
-const PLUGIN_VERSION = '2026.11.10.21.03';
-const THEME_VERSION = '2026.11.10.21.03';
+const PLUGIN_VERSION = '2026.11.18.22.04';
+const THEME_VERSION = '2026.11.18.22.04';
 
 /** Plugin-owned admin styles, embedded to follow the plugin activation lifecycle. */
 const adminCss = String.raw`/* Warm CY Companion settings page only. Loaded through admin:header for this plugin's settings page. */
@@ -960,10 +960,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
             const cyLink = document.createElement('a');
             cyLink.href = pluginPath;
             cyLink.textContent = 'CY服务插件';
-            const rehypeLink = document.createElement('a');
-            rehypeLink.href = '/admin/plugin-config?id=typecho-plugin-markdown-rehype';
-            rehypeLink.textContent = 'Markdown Rehype';
-            toolbar.append(cyLink, rehypeLink);
+            toolbar.append(cyLink);
             form.before(toolbar);
           }
 
