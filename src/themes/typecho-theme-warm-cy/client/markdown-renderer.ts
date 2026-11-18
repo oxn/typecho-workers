@@ -45,13 +45,22 @@ function headingChildToString(child: ChildNode): string {
 }
 
 function addHeadingIds(root: HTMLElement): void {
+  const used = new Set<string>();
   root.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6').forEach((heading) => {
-    if (!heading.hasAttribute('id')) {
-      const children = Array.from(heading.childNodes);
-      heading.id = children.length === 1
-        ? headingChildToString(children[0])
-        : children.map(headingChildToString).join(',');
-    }
+    let id = heading.hasAttribute('id')
+      ? heading.id
+      : (() => {
+          const children = Array.from(heading.childNodes);
+          return children.length === 1
+            ? headingChildToString(children[0])
+            : children.map(headingChildToString).join(',');
+        })();
+    if (!id) id = 'section-' + (used.size + 1);
+    const base = id;
+    let suffix = 2;
+    while (used.has(id)) id = base + '-' + suffix++;
+    used.add(id);
+    heading.id = id;
 
     const existingStyle = heading.getAttribute('style') || '';
     const withoutScrollMargin = existingStyle.replace(/(?:^|;)\s*scroll-margin-top\s*:[^;]*/gi, '');
