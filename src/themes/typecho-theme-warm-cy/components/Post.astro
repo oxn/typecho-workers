@@ -13,7 +13,7 @@ import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
 import WarmClientContent from './WarmClientContent.astro';
 import WarmPasswordGate from './WarmPasswordGate.astro';
-import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, renderArticleDeclaration, warmArticleSummary, warmSettings } from './warm';
+import { formatWarmDate, plainExcerpt, readingMinutes, renderArticleDeclaration, warmArticleSummary, warmSettings } from './warm';
 
 type Props = ThemePostProps;
 
@@ -43,9 +43,7 @@ const optimizedContent = optimizeContentImages(
   settings.imageOptimizeParams,
   urls.siteUrl,
 );
-const toc = isNote ? { html: optimizedContent, items: [] } : prepareArticleToc(optimizedContent);
-const displayContent = toc.html;
-const tocItems = toc.items;
+const displayContent = optimizedContent;
 const intelligenceSummary = !isNote && pluginCtx.activatedPlugins.has('typecho-plugin-intelligence')
   ? await readSummary(db, post.cid)
   : null;
@@ -89,14 +87,14 @@ const articleDeclarationHtml = !isNote
           )}
           <span aria-hidden="true">·</span>
           <time datetime={new Date(post.created * 1000).toISOString()} itemprop="datePublished">{formatWarmDate(post.created, options.postDateFormat, options.timezone, isNote)}</time>
-          {!isNote && <><span aria-hidden="true">·</span><span>约 {readingMinutes(articleHtml)} 分钟阅读</span></>}
+          {!isNote && <><span aria-hidden="true">·</span><span>约 {readingMinutes(articleSource)} 分钟阅读</span></>}
         </div>
         {!isNote && <h1 itemprop="headline">{post.title}</h1>}
         {summary && <p class="warm-article__summary">{summary}</p>}
       </div>
     </header>
 
-    <div class:list={["warm-article__body", { "warm-article__body--toc": tocItems.length > 0 }]}>
+    <div class="warm-article__body">
       {isNote ? (
         <div class:list={["warm-prose", "warm-note-prose"]} view-image itemprop="articleBody" set:html={displayContent} />
       ) : post.hasPassword && !post.passwordVerified ? (
@@ -104,7 +102,7 @@ const articleDeclarationHtml = !isNote
       ) : (
         <WarmClientContent source={articleSource} imageOptimizeParams={settings.imageOptimizeParams} siteUrl={urls.siteUrl} />
       )}
-      {tocItems.length > 0 && <WarmToc items={tocItems} />}
+      {tocItems.length > 0 && <WarmToc />}
     </div>
 
     {isNote && (
