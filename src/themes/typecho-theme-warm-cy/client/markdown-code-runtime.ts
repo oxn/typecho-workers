@@ -36,8 +36,35 @@ function enhanceCodeBlocks(root: Element): void {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'rin-code-copy';
-    button.textContent = '复制';
+    button.setAttribute('aria-label', '复制代码');
     button.title = '复制代码';
+
+    const setButtonIcon = (copied: boolean): void => {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('width', '16');
+      svg.setAttribute('height', '16');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '1.8');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      svg.setAttribute('aria-hidden', 'true');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute(
+        'd',
+        copied
+          ? 'M20 6 9 17l-5-5'
+          : 'M8 8V5.5A1.5 1.5 0 0 1 9.5 4h9A1.5 1.5 0 0 1 20 5.5v11a1.5 1.5 0 0 1-1.5 1.5H16 M14.5 8h-9A1.5 1.5 0 0 0 4 9.5v11A1.5 1.5 0 0 0 5.5 22h9a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 14.5 8Z'
+      );
+      svg.append(path);
+      button.replaceChildren(svg);
+      button.classList.toggle('is-copied', copied);
+      button.title = copied ? '已复制代码' : '复制代码';
+      button.setAttribute('aria-label', button.title);
+    };
+    setButtonIcon(false);
     button.addEventListener('click', async () => {
       if (button.disabled) return;
       button.disabled = true;
@@ -72,13 +99,14 @@ function enhanceCodeBlocks(root: Element): void {
         }
       }
 
-      button.textContent = copied ? '已复制' : '复制失败';
-      button.title = copied ? '已复制代码' : '复制失败，请手动选择代码';
+      if (copied) {
+        setButtonIcon(true);
+      } else {
+        button.title = '复制失败，请手动选择代码';
+        button.setAttribute('aria-label', button.title);
+      }
       button.disabled = false;
-      window.setTimeout(() => {
-        button.textContent = '复制';
-        button.title = '复制代码';
-      }, 2000);
+      window.setTimeout(() => setButtonIcon(false), 2000);
     });
     wrapper.append(button);
   });
