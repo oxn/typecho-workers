@@ -13,7 +13,7 @@ let processorPromise: Promise<any> | null = null;
 async function getProcessor(): Promise<any> {
   if (processorPromise) return processorPromise;
   processorPromise = (async () => {
-    const [{ default: remarkAlert }, { default: rehypeKatex }] = await Promise.all([
+    const [{ remarkAlert }, { default: rehypeKatex }] = await Promise.all([
       import('remark-github-blockquote-alert'),
       import('rehype-katex'),
     ]);
@@ -40,7 +40,7 @@ function escapeText(value: string): string {
 
 function addHeadingIds(root: HTMLElement): void {
   const used = new Set<string>();
-  root.querySelectorAll<HTMLElement>('h2,h3').forEach((heading) => {
+  root.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6').forEach((heading) => {
     const existing = heading.id.trim();
     let id = existing || (heading.textContent || '')
       .toLowerCase()
@@ -70,6 +70,16 @@ async function enhanceOptionalFeatures(root: HTMLElement): Promise<void> {
     const { initializeImages } = await import('./markdown-image-runtime');
     initializeImages(root);
   }
+}
+
+function wrapIframes(root: HTMLElement): void {
+  root.querySelectorAll<HTMLIFrameElement>('iframe').forEach((frame) => {
+    if (frame.parentElement?.classList.contains('rin-iframe-wrapper')) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'rin-iframe-wrapper';
+    frame.before(wrapper);
+    wrapper.append(frame);
+  });
 }
 
 function initializeArticleToc(root: HTMLElement): void {
@@ -144,6 +154,7 @@ export async function renderInto(root: HTMLElement, source: string, options: Ren
   try {
     root.innerHTML = await renderMarkdown(source);
     addHeadingIds(root);
+    wrapIframes(root);
     initializeArticleToc(root);
     if (options.imageOptimizeParams) {
       root.querySelectorAll<HTMLImageElement>('img[src]').forEach((image) => {
