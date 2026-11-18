@@ -222,14 +222,10 @@ export function transformMermaidBlocks(root: HTMLElement): void {
   root.querySelectorAll<HTMLElement>('pre > code.language-mermaid, pre > code.lang-mermaid').forEach((code) => {
     const pre = code.parentElement;
     if (!pre) return;
-    const source = code.textContent || '';
-    const light = document.createElement('pre');
-    light.className = 'rin-mermaid_default dark:hidden';
-    light.textContent = source;
-    const dark = document.createElement('pre');
-    dark.className = 'rin-mermaid_dark dark:block hidden';
-    dark.textContent = source;
-    pre.replaceWith(light, dark);
+    const diagram = document.createElement('pre');
+    diagram.className = 'rin-mermaid';
+    diagram.textContent = code.textContent || '';
+    pre.replaceWith(diagram);
   });
 }
 
