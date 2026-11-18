@@ -1211,11 +1211,18 @@ body.warm-theme {
   width: 18px;
   min-width: 18px;
   height: 18px;
-  margin-right: 8px;
+  margin-right: 8px !important;
+  color: inherit !important;
+  fill: currentColor !important;
   font-family: Arial, sans-serif;
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
+}
+
+.warm-prose .markdown-alert-title .markdown-alert-icon path,
+.warm-note__content .markdown-alert-title .markdown-alert-icon path {
+  fill: currentColor;
 }
 
 .warm-prose .markdown-alert-title::before,
