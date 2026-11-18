@@ -735,6 +735,62 @@ body.warm-theme {
   overflow-wrap: anywhere;
 }
 
+.warm-password-gate > p {
+  margin: 0 0 14px;
+}
+.warm-password-gate__form {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  max-width: 460px;
+}
+.warm-password-gate__input {
+  display: block;
+  min-width: 0;
+  min-height: 44px;
+  flex: 1 1 auto;
+  padding: 9px 12px;
+  border: 1px solid var(--warm-border);
+  border-radius: 0;
+  background: var(--warm-bg);
+  color: var(--warm-text);
+  font: inherit;
+  font-size: 14px;
+}
+.warm-password-gate__input:focus {
+  border-color: var(--warm-accent);
+  outline: 1px solid var(--warm-accent);
+  outline-offset: 0;
+}
+.warm-password-gate__submit {
+  display: inline-flex;
+  min-width: 76px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid var(--warm-accent);
+  border-radius: 0;
+  background: var(--warm-accent);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.warm-password-gate__submit:hover {
+  border-color: var(--warm-text);
+  background: var(--warm-text);
+}
+@media (max-width: 480px) {
+  .warm-password-gate__form {
+    gap: 8px;
+  }
+  .warm-password-gate__submit {
+    min-width: 64px;
+    padding-inline: 12px;
+  }
+}
+
+
 /* Keep the roomy rhythm on Markdown blocks, not restored custom HTML. */
 .warm-prose > :not(.cy-inline-html-pending) {
   line-height: 2;
