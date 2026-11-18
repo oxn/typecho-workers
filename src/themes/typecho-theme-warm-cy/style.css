@@ -700,7 +700,7 @@ body.warm-theme {
 
 .warm-header__tools {
   position: absolute;
-  top: 8px;
+  top: 16px;
   right: var(--warm-gutter);
   z-index: 20;
   display: flex;
@@ -2787,7 +2787,7 @@ body.warm-theme {
   }
 
   .warm-header__tools {
-    top: 16px;
+    top: 12px;
     justify-content: flex-end;
   }
 
