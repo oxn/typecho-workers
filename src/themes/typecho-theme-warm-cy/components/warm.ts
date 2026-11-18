@@ -536,11 +536,6 @@ export function isCurrentPageLink(permalink: string, currentPath: string, siteUr
   }
 }
 
-export function safeEmail(value: unknown): string {
-  if (typeof value !== 'string') return '';
-  const email = value.trim();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
-}
 
 export function formatWarmDate(
   timestamp: number,
