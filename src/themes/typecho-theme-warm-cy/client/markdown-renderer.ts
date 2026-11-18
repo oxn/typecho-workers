@@ -38,22 +38,28 @@ function escapeText(value: string): string {
     .replaceAll('>', '&gt;');
 }
 
+function headingChildToString(child: ChildNode): string {
+  return child.nodeType === Node.TEXT_NODE
+    ? child.textContent || ''
+    : '[object Object]';
+}
+
 function addHeadingIds(root: HTMLElement): void {
-  const used = new Set<string>();
   root.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6').forEach((heading) => {
-    const existing = heading.id.trim();
-    let id = existing || (heading.textContent || '')
-      .toLowerCase()
-      .replace(/[^\w\u4e00-\u9fff\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
-      .slice(0, 150) || 'section-' + (used.size + 1);
-    const base = id;
-    let suffix = 2;
-    while (used.has(id)) id = base + '-' + suffix++;
-    used.add(id);
-    heading.id = id;
+    if (!heading.hasAttribute('id')) {
+      const children = Array.from(heading.childNodes);
+      heading.id = children.length === 1
+        ? headingChildToString(children[0])
+        : children.map(headingChildToString).join(',');
+    }
+
+    const existingStyle = heading.getAttribute('style') || '';
+    const withoutScrollMargin = existingStyle.replace(/(?:^|;)\s*scroll-margin-top\s*:[^;]*/gi, '');
+    heading.setAttribute(
+      'style',
+      (withoutScrollMargin ? withoutScrollMargin.replace(/;?\s*$/, ';') : '') +
+        'scroll-margin-top:var(--header-scroll-offset, 7rem)',
+    );
   });
 }
 
@@ -104,7 +110,7 @@ function initializeArticleToc(root: HTMLElement): void {
     item.className = 'warm-toc__item';
     const link = document.createElement('a');
     link.className = 'warm-toc__link';
-    link.href = '#' + heading.id;
+    link.setAttribute('href', '#' + encodeURIComponent(heading.id));
     link.setAttribute('data-warm-toc-link', '');
     const label = document.createElement('span');
     label.className = 'warm-toc__label';
