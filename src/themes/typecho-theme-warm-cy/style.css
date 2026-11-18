@@ -646,6 +646,7 @@ body.warm-theme {
 
 .warm-header {
   position: relative;
+  z-index: 40;
   padding-top: 48px;
 }
 
