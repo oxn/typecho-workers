@@ -1,0 +1,64 @@
+name: TypeScript and Astro checks
+
+on:
+  push:
+    branches:
+      - ci/ts-astro-check-1118d-20261118
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ts-astro-check-1118d
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: TypeScript and Astro diagnostics
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out isolated inspection branch
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install project dependencies
+        run: bun install --frozen-lockfile
+
+      - name: TypeScript type check (project TypeScript 7)
+        id: typescript
+        continue-on-error: true
+        run: bunx tsc --noEmit
+
+      - name: Install temporary Astro checker toolchain
+        run: |
+          # @astrojs/check currently declares TypeScript 5/6 peer support.
+          # Keep the repository's TypeScript 7 check above, then use a
+          # temporary TypeScript 6 checker runtime for Astro diagnostics.
+          bun add --no-save @astrojs/check@0.9.12 typescript@6.0.3
+
+      - name: Astro component and template diagnostics
+        id: astro
+        continue-on-error: true
+        run: bunx astro check
+
+      - name: Report check results
+        if: always()
+        env:
+          TS_OUTCOME: ${{ steps.typescript.outcome }}
+          ASTRO_OUTCOME: ${{ steps.astro.outcome }}
+        run: |
+          {
+            echo "## TypeScript / Astro check results"
+            echo
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| TypeScript (project TypeScript 7) | ${TS_OUTCOME} |"
+            echo "| Astro components/templates | ${ASTRO_OUTCOME} |"
+            echo
+            echo "Full diagnostics, including file paths and line/column numbers, are in the corresponding step logs."
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "$TS_OUTCOME" = "success" && test "$ASTRO_OUTCOME" = "success"
