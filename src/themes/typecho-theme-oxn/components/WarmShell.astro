@@ -276,6 +276,35 @@ const footerLinks = [
         });
       }
 
+      // Add one delegated copy control to each block code element.
+      document.querySelectorAll('.warm-prose pre:not([data-warm-copy-ready])').forEach(pre => {
+        pre.dataset.warmCopyReady = '1';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.warmCopy = '';
+        button.setAttribute('aria-label', '复制代码');
+        button.textContent = '复制';
+        pre.append(button);
+      });
+      if (!window.__warmCodeCopyListener) {
+        window.__warmCodeCopyListener = true;
+        document.addEventListener('click', async event => {
+          const button = event.target instanceof Element ? event.target.closest('[data-warm-copy]') : null;
+          if (!button) return;
+          const pre = button.closest('pre');
+          if (!pre) return;
+          const clone = pre.cloneNode(true);
+          clone.querySelector('[data-warm-copy]')?.remove();
+          try {
+            await navigator.clipboard.writeText(clone.textContent || '');
+            button.textContent = '已复制';
+          } catch {
+            button.textContent = '复制失败';
+          }
+          window.setTimeout(() => { if (button.isConnected) button.textContent = '复制'; }, 1200);
+        });
+      }
+
       // Re-apply the persistent preference to the newly swapped page's controls.
       themeController.apply();
 
