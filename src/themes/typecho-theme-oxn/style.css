@@ -922,8 +922,10 @@ body.warm-theme {
   right: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  padding: 4px;
   border: 1px solid var(--warm-border);
   border-radius: 4px;
   background: var(--warm-bg);
@@ -933,6 +935,14 @@ body.warm-theme {
   opacity: 0;
   visibility: hidden;
   transition: opacity 150ms ease, visibility 150ms ease;
+}
+.warm-prose pre [data-warm-copy] svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+.warm-prose pre [data-warm-copy][data-copied="true"] {
+  color: #16a34a;
 }
 .warm-prose pre:hover [data-warm-copy],
 .warm-prose pre:focus-within [data-warm-copy] {
