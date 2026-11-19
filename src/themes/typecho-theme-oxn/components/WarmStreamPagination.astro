@@ -130,6 +130,17 @@ const { hasPrev, hasNext, prevUrl, nextUrl, mode, label } = Astro.props;
             : [];
           if (!items.length) throw new Error('下一页没有可加载的内容');
 
+          const pinnedIds = new Set(
+            (nextStream?.dataset.warmPinnedIds || '')
+              .split(',')
+              .map(value => Number(value.trim()))
+              .filter(id => Number.isSafeInteger(id) && id > 0),
+          );
+          for (const item of items) {
+            const postId = Number(item.getAttribute('data-post-id'));
+            if (pinnedIds.has(postId)) item.hidden = true;
+          }
+
           stream.append(...items);
           if (typeof window.warmRepairNoteMedia === 'function') window.warmRepairNoteMedia(stream);
           pagination.dataset.warmNextUrl = nextPagination?.getAttribute('data-warm-next-url') || '';
