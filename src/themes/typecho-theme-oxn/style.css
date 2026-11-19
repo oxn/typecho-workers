@@ -2479,3 +2479,23 @@ html.dark {
 .dark .warm-manage-dialog__actions [data-warm-dialog-confirm] {
   color: #171819;
 }
+
+
+/* Keep the admin-entry link the same muted color as the other header actions. */
+.warm-theme .warm-header__tools > a.warm-nav__account {
+  color: var(--warm-muted);
+}
+
+.warm-theme .warm-header__tools > a.warm-nav__account:hover,
+.warm-theme .warm-header__tools > a.warm-nav__account:focus-visible {
+  color: var(--warm-accent);
+}
+
+.dark .warm-theme .warm-header__tools > a.warm-nav__account {
+  color: var(--warm-muted);
+}
+
+.dark .warm-theme .warm-header__tools > a.warm-nav__account:hover,
+.dark .warm-theme .warm-header__tools > a.warm-nav__account:focus-visible {
+  color: var(--warm-text);
+}
