@@ -1885,3 +1885,120 @@ body.warm-theme {
   .warm-manage-dialog__actions { gap: 8px; }
   .warm-manage-dialog__actions button { min-width: 76px; padding-inline: 12px; }
 }
+
+
+/* 1119d 顶部快捷按键布局与明暗切换：保留 OXN 配色变量。 */
+.warm-header__right {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.warm-header__tools {
+  position: absolute;
+  top: 16px;
+  right: var(--warm-gutter);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 32px;
+}
+
+/* Place quick actions beside navigation only when the measured row fits. */
+.warm-header--tools-inline .warm-header__right {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.warm-header--tools-inline .warm-header__tools {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  flex: 0 0 auto;
+}
+
+.warm-header--tools-inline .warm-nav {
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
+.warm-theme-control {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Keep quick-action order stable in both header layouts. */
+.warm-header__tools > .warm-theme-control {
+  order: 1;
+}
+
+.warm-header__tools > [data-warm-search-open] {
+  order: 2;
+}
+
+.warm-header__tools > .warm-nav__account {
+  order: 3;
+}
+
+.warm-theme-trigger svg[hidden] {
+  display: none;
+}
+
+.warm-theme-menu {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--warm-border);
+  border-radius: 8px;
+  background: var(--warm-bg);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
+  white-space: nowrap;
+}
+
+.warm-theme-menu[hidden] {
+  display: none;
+}
+
+.warm-theme-menu button {
+  display: inline-flex;
+  width: 32px;
+  min-width: 32px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--warm-muted);
+  cursor: pointer;
+}
+
+.warm-theme-menu button svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.warm-theme-menu button[aria-pressed="true"],
+.warm-theme-menu button:hover {
+  background: var(--warm-hover);
+  color: var(--warm-accent);
+}
+
+
+
+@media (max-width: 639px) {
+  .warm-header__right { width: 100%; align-items: stretch; }
+  .warm-header__tools { top: 12px; justify-content: flex-end; }
+}
