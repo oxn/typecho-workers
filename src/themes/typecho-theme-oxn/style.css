@@ -821,7 +821,7 @@ body.warm-theme {
 /* GitHub-style markdown alerts (`> [!NOTE]` …) — same panel as quote, plus title */
 .warm-prose .markdown-alert,
 .warm-note__content .markdown-alert {
-  line-height: 1;
+  line-height: 1.6;
   letter-spacing: 0;
   color: #403d39;
 }
