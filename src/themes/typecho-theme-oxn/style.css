@@ -2023,11 +2023,13 @@ body.warm-theme {
 }
 
 
-/* Keep the backend entry icon on the same theme-aware ink color as other header actions. */
-.warm-header__tools > .warm-nav__account {
-  color: var(--warm-muted) !important;
+
+/* Match 1119d: quick-action icons use theme-aware colors in dark mode. */
+.dark .warm-search-trigger {
+  color: var(--warm-muted);
 }
-.warm-header__tools > .warm-nav__account svg {
-  color: inherit;
-  stroke: currentColor;
+.dark .warm-search-trigger:hover,
+.dark .warm-search-trigger:focus-visible {
+  background: var(--warm-hover);
+  color: var(--warm-text);
 }
