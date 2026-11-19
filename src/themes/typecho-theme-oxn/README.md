@@ -322,11 +322,15 @@ OXN 后台主题设置页在原有保存按钮旁提供：
 - 代码块右上角提供复制图标；复制成功短暂显示绿色勾号，随后恢复复制图标。
 - 图片查看与页面切换脚本会处理页面 DOM 更新后的绑定。
 
-## 6. 文章内容输入语法
+## 6. 文章内容输入格式与示例
 
-文章正文由项目共享 Markdown 流程处理：先解析 Markdown，再进行 HTML 清理，最后交给 OXN 的正文容器展示。下面列出当前处理流程明确支持的常用写法。
+本节按当前项目实际使用的 Markdown 解析器和文章 HTML 清理配置整理。文章正文的处理顺序是：Marked 解析 Markdown → GitHub 风格提示块转换 → sanitize-html 清理 HTML → OXN 主题排版。
+
+**下面每个代码块都是文章编辑器中的输入示例，可以按需复制。** Markdown 示例使用 Markdown 代码块，原生 HTML 示例使用 HTML 代码块。Markdown 和 HTML 可以在同一篇文章中混合输入，但 HTML 标签及属性仍受共享清理规则限制。
 
 ### 6.1 标题
+
+ATX 标题（行首使用井号）：
 
 ```markdown
 # 一级标题
@@ -337,11 +341,21 @@ OXN 后台主题设置页在原有保存按钮旁提供：
 ###### 六级标题
 ```
 
-主题会为正文标题设置对应字号和层级。文章目录只提取 H2、H3；至少有两个有效标题时才显示目录，并为标题补充唯一锚点 ID。
+Setext 标题（标题文字下一行使用等号或短横线）：
 
-### 6.2 段落与换行
+```markdown
+一级标题
+========
 
-普通文字之间空一行形成新段落：
+二级标题
+--------
+```
+
+标题对应 HTML 的 H1—H6。主题会为正文标题设置字号和层级。文章目录只提取 H2、H3；至少有两个有效标题时才显示目录，并为标题补充唯一锚点 ID。
+
+### 6.2 段落、换行与分隔线
+
+段落之间空一行：
 
 ```markdown
 这是第一段文字。
@@ -349,19 +363,49 @@ OXN 后台主题设置页在原有保存按钮旁提供：
 这是第二段文字。
 ```
 
-### 6.3 加粗、斜体、删除线
+同一段落中需要强制换行，可以在行尾输入两个空格：
 
 ```markdown
-**这是加粗文字**
+这是第一行。  
+这是第二行。
+```
+
+分隔线（也可使用三个星号或三个下划线）：
+
+```markdown
+上半部分内容。
+
+---
+
+下半部分内容。
+```
+
+### 6.3 粗体、斜体、删除线、下划线与上下标
+
+Markdown 文字效果：
+
+```markdown
+**这是粗体文字**
 
 *这是斜体文字*
 
 ~~这是删除线文字~~
 
-普通文字中也可以使用 **局部加粗**。
+普通文字中也可以使用 **局部加粗**、*局部斜体* 和 ~~局部删除线~~。
 ```
 
-### 6.4 引用
+下划线、上下标和标记文字使用 HTML：
+
+```html
+<p>这是 <u>带下划线</u> 的文字。</p>
+<p>水的分子式：H<sub>2</sub>O</p>
+<p>数学平方：x<sup>2</sup></p>
+<p><mark>重点标记</mark>，<small>小号文字</small>。</p>
+```
+
+### 6.4 引用与嵌套引用
+
+普通引用：
 
 ```markdown
 > 这是一段引用。
@@ -369,54 +413,137 @@ OXN 后台主题设置页在原有保存按钮旁提供：
 > 引用可以包含多个段落。
 ```
 
-### 6.5 有序和无序列表
+嵌套引用：
+
+```markdown
+> 第一层引用
+>
+> > 第二层引用
+> >
+> > > 第三层引用
+```
+
+引用中也可以混合粗体、链接、列表等 Markdown 内容。
+
+### 6.5 无序列表、有序列表与嵌套列表
+
+无序列表（可用短横线、星号或加号作为标记）：
 
 ```markdown
 - 苹果
 - 香蕉
 - 橙子
+```
 
+有序列表：
+
+```markdown
 1. 第一步
 2. 第二步
 3. 第三步
 ```
 
+嵌套列表（子项需要缩进）：
+
+```markdown
+- 水果
+  - 苹果
+  - 香蕉
+- 饮料
+  - 咖啡
+  - 茶
+
+1. 准备材料
+   1. 面粉
+   2. 鸡蛋
+2. 开始制作
+```
+
 ### 6.6 任务列表
 
+输入方式：
+
 ```markdown
-- [x] 已完成
-- [ ] 尚未完成
+- [x] 已完成的事项
+- [ ] 尚未完成的事项
 ```
 
-任务列表的最终呈现还会受到 Markdown 解析器输出和 HTML 清理规则影响。
+**显示限制：** Marked 会把任务列表解析为带复选框的 HTML，但当前文章清理规则没有允许 input 标签，因此复选框控件会被清理掉。任务文字和列表结构可以保留，不能保证前台显示可交互的勾选框。
 
-### 6.7 链接
+### 6.7 链接、引用式链接、自动链接与邮箱
+
+普通链接：
 
 ```markdown
-[访问项目主页](https://github.com/oxn/typecho-workers)
+[项目主页](https://github.com/oxn/typecho-workers)
 
-[打开站内页面](/about/)
+[站内页面](/about/)
+
+[带标题的链接](https://example.com "鼠标悬停标题")
 ```
 
-### 6.8 图片
+引用式链接：
 
 ```markdown
-![图片说明](https://example.com/images/photo.jpg)
+这里引用了 [项目主页][project]。
+
+[project]: https://github.com/oxn/typecho-workers "项目主页"
+```
+
+自动链接：
+
+```markdown
+https://example.com
+
+https://github.com/oxn/typecho-workers
+
+name@example.com
+```
+
+HTML 邮箱链接：
+
+```html
+<a href="mailto:name@example.com">给我发送邮件</a>
+```
+
+链接的 href、title、target、rel 等属性受清理规则约束；不安全协议或不允许的属性不会保留。
+
+### 6.8 图片与图片说明
+
+Markdown 图片：
+
+```markdown
+![图片替代文字](https://example.com/images/photo.jpg)
 
 ![带标题的图片](https://example.com/images/photo.jpg "图片标题")
 ```
 
-正文图片可使用 Markdown 图片语法，也可输入符合清理规则的 HTML `<img>`。图片的宽度、圆角和最大显示范围由主题 CSS 控制；图片服务参数由后台图片优化设置控制。
+HTML 图片：
 
-### 6.9 行内代码和代码块
+```html
+<img src="https://example.com/images/photo.jpg" alt="图片说明" title="图片标题" width="800" height="450" loading="lazy">
+```
+
+带图片说明的组合：
+
+```html
+<figure>
+  <img src="https://example.com/images/photo.jpg" alt="山间风景">
+  <figcaption>山间风景照片说明</figcaption>
+</figure>
+```
+
+图片允许的主要属性为 src、alt、title、width、height、loading。正文图片最大宽度限制在阅读区域内，并使用统一小圆角；后台图片优化参数会按主题配置处理图片 URL。
+
+### 6.9 行内代码、围栏代码块与缩进代码
 
 行内代码：
 
 ```markdown
-使用 `npm run build` 执行构建。
+使用 `bun run build` 执行项目构建。
 ```
 
-多行代码：
+围栏代码块（推荐）：
 
 ````markdown
 ```ts
@@ -430,11 +557,25 @@ const user: User = {
   name: "Oxn",
 };
 ```
+
+```bash
+bun install
+bun run build
+```
 ````
 
-代码围栏后面的 `ts`、`js`、`html`、`css`、`bash` 等语言标识会作为代码块 class 信息保留，供代码高亮样式或相关工具识别。主题会为代码块添加复制按钮。
+缩进代码块：
 
-### 6.10 表格
+```markdown
+    这是缩进代码块。
+    每行前面缩进四个空格。
+```
+
+代码围栏可以使用 ts、js、html、css、bash、json、sql 等语言标识。解析结果会保留代码块 class 信息；主题提供复制按钮。语言标识本身不代表系统一定安装了对应的语法高亮器。
+
+### 6.10 表格与对齐
+
+基本表格：
 
 ```markdown
 | 名称 | 说明 | 状态 |
@@ -444,81 +585,125 @@ const user: User = {
 | 页面 | 独立页面 | 已支持 |
 ```
 
-表格使用横向可滚动的布局，较宽表格不会强行压缩所有列。
-
-### 6.11 分隔线
+对齐方式：
 
 ```markdown
-正文上半部分。
-
----
-
-正文下半部分。
+| 左对齐 | 居中 | 右对齐 |
+| :--- | :---: | ---: |
+| 左侧内容 | 中间内容 | 100 |
+| 示例文字 | 示例文字 | 200 |
 ```
 
-### 6.12 GitHub 风格提示块
+表格使用横向可滚动布局。HTML 清理配置允许 table、thead、tbody、tr、th、td 等表格标签，并允许单元格的 align、valign 属性。
 
-支持项目 Markdown 流程中的 GitHub 风格提示块转换：
+### 6.11 GitHub 风格提示块（Alerts）
+
+提示块使用引用语法加 [!类型] 标记：
 
 ```markdown
 > [!NOTE]
-> 这是一条普通提示。
+> 这是一条普通说明。
 
 > [!TIP]
 > 这是一条技巧提示。
 
 > [!WARNING]
 > 这是一条警告提示。
+
+> [!IMPORTANT]
+> 这是一条重要提醒。
+
+> [!CAUTION]
+> 这是一条需要谨慎处理的内容。
 ```
 
-当前主题为 NOTE、TIP、WARNING 提供了不同的边框和标题颜色。
+NOTE、TIP、WARNING 有专门的颜色样式。其他非空类型名称也可以转换为通用提示块，但不会自动获得上述三种专属颜色。类型名称会显示为提示块标题。
 
-### 6.13 HTML 内容
+### 6.12 HTML 混合输入
 
-文章 Markdown 中可以混用普通 HTML，但最终输出必须通过项目共享的 HTML 清理规则。当前清理配置在 `src/lib/markdown.ts`，并非 OXN 可以单独绕过的功能。
+Markdown 正文可以混合使用 HTML。以下是常用 HTML 输入示例：
 
-明确额外允许的常用标签包括：
+```html
+<div>
+  <p>这是一个 HTML 段落。</p>
+  <p>可以使用 <strong>粗体</strong>、<em>斜体</em>、<u>下划线</u>。</p>
+  <p>也可以使用 <del>删除线</del>、<ins>插入标记</ins>、<mark>重点标记</mark>。</p>
+</div>
+```
 
-- 标题：`h1` 至 `h6`
-- 图片：`img`
-- 代码：`pre`、`code`
-- 表格：`table`、`thead`、`tbody`、`tr`、`th`、`td`
-- 内容标记：`del`、`ins`
-- 折叠内容：`details`、`summary`
-- 图片说明：`figure`、`figcaption`
-- 媒体：`video`、`audio`、`source`
-- 嵌入内容：`iframe`
+行内 HTML：
 
-示例：折叠内容
+```html
+<p>普通文字中插入 <strong>加粗</strong>、<code>代码</code> 和 <a href="https://example.com">链接</a>。</p>
+```
+
+HTML 标签允许范围不是“所有 HTML”。当前清理规则继承 sanitize-html 默认标签，再增加项目专用标签。常见可保留标签如下：
+
+| 类型 | 当前允许的常见标签 |
+| --- | --- |
+| 页面结构 | address、article、aside、footer、header、hgroup、main、nav、section、div |
+| 标题与段落 | h1—h6、p、br、hr |
+| 文字格式 | b、strong、i、em、u、s、del、ins、small、mark、span |
+| 语义文字 | abbr、bdi、bdo、cite、q、dfn、time、data、var |
+| 上下标与代码文字 | sub、sup、code、kbd、samp、ruby、rb、rp、rt、rtc |
+| 列表 | ul、ol、li、dl、dt、dd、menu |
+| 引用与图片说明 | blockquote、figure、figcaption |
+| 表格 | table、thead、tbody、tr、th、td |
+| 其他内容 | pre、details、summary、img、video、audio、source、iframe |
+
+**属性也有白名单限制。** 例如图片只允许指定图片属性，链接只允许指定链接属性，代码块允许 class，提示块允许 class 和 data-alert，表格单元格允许对齐属性。任意 style、事件处理器（如 onclick）、任意自定义属性不会因为标签被允许就自动保留。
+
+以下内容不能当作文章正文中可直接使用的通用 HTML 功能：script、style、form、任意 SVG 标签，以及任意 HTML 属性。需要自定义视觉样式时，应使用主题已有样式或通过单独评估后的安全方案实现。
+
+### 6.13 折叠内容
+
+输入：
 
 ```html
 <details>
   <summary>点击展开更多说明</summary>
   <p>这里是折叠区域中的内容。</p>
+  <ul>
+    <li>第一项</li>
+    <li>第二项</li>
+  </ul>
 </details>
 ```
 
-示例：视频
+### 6.14 视频与音频
+
+视频：
 
 ```html
-<video src="https://example.com/video.mp4" controls></video>
+<video src="https://example.com/video.mp4" controls width="800"></video>
 ```
 
-示例：音频
+带多个视频源：
+
+```html
+<video controls width="800">
+  <source src="https://example.com/video.mp4" type="video/mp4">
+  当前浏览器不支持播放此视频。
+</video>
+```
+
+音频：
 
 ```html
 <audio src="https://example.com/audio.mp3" controls></audio>
 ```
 
-### 6.14 iframe 嵌入
+视频允许 src、controls、width、height；音频允许 src、controls；source 允许 src、type。媒体能否播放还取决于资源地址、格式和浏览器支持情况。
 
-当前共享清理配置只允许以下 iframe 主机：
+### 6.15 iframe 视频嵌入
 
-- `www.youtube.com`
-- `player.bilibili.com`
-- `player.vimeo.com`
+文章正文只允许以下 iframe 主机：
 
-示例：
+- www.youtube.com
+- player.bilibili.com
+- player.vimeo.com
+
+YouTube 示例：
 
 ```html
 <iframe
@@ -530,35 +715,108 @@ const user: User = {
 </iframe>
 ```
 
-只有允许的主机及允许的属性会保留。其他域名的 iframe 可能被清理掉；不要把普通网页地址直接当作可嵌入播放器地址。
+Bilibili 示例：
 
-### 6.15 更多内容标记
-
-项目内容流程会识别 Typecho 的 `<!--more-->` 摘要分隔标记，并在最终渲染前处理该标记。它不是普通可见 HTML 注释。
-
-### 6.16 当前不应假定支持的语法
-
-当前 OXN 主题没有自行配置以下渲染引擎：
-
-- Mermaid 流程图。
-- KaTeX、MathJax 等数学公式渲染器。
-- 任意 SVG 直接输出。
-- 任意外部网站 iframe。
-
-因此，不要把下面的写法当作已经可用的主题功能：
-
-````text
-```mermaid
-flowchart TD
-  A --> B
+```html
+<iframe
+  src="https://player.bilibili.com/player.html?bvid=视频BV号"
+  width="560"
+  height="315"
+  frameborder="0"
+  allowfullscreen>
+</iframe>
 ```
 
-$$
-E = mc^2
-$
+Vimeo 示例：
+
+```html
+<iframe
+  src="https://player.vimeo.com/video/视频ID"
+  width="560"
+  height="315"
+  frameborder="0"
+  allowfullscreen>
+</iframe>
+```
+
+只有允许主机及配置允许的属性会保留。其他域名的 iframe 会被清理，普通网页地址也不能直接当作播放器嵌入地址。
+
+### 6.16 转义字符与 HTML 实体
+
+Markdown 中可以用反斜杠转义特殊字符，避免它们被当作 Markdown 标记：
+
+```markdown
+\\*这两个星号不会生成斜体\\*
+
+\\# 这不会成为标题
+
+文字中的方括号：\\[示例\\]
+```
+
+HTML 实体：
+
+```html
+<p>版权符号：&copy;</p>
+<p>大于号：&gt;，小于号：&lt;，与符号：&amp;</p>
+```
+
+### 6.17 Typecho 内容标记
+
+摘要分隔符：
+
+```html
+文章前半部分内容。
+
+<!--more-->
+
+点击阅读全文后显示的后半部分内容。
+```
+
+<!--more--> 用于 Typecho 文章摘要分隔，不作为正文可见内容输出。
+
+Markdown 前缀：
+
+```html
+<!--markdown-->
+# 这篇内容按 Markdown 解析
+
+这里继续输入 Markdown 内容。
+```
+
+项目会识别并移除内容开头的 <!--markdown--> 标记，再处理后续正文。
+
+### 6.18 当前没有内置渲染支持的格式
+
+以下格式不是当前文章 Markdown 流程内置的功能，不能仅靠输入代码块就期待它们变成对应的可视化内容：
+
+- Mermaid 流程图。
+- KaTeX、MathJax 数学公式。
+- 任意 SVG 图形直接嵌入。
+- 任意网站 iframe。
+- 脚注、定义列表、Wiki 链接等未配置的 Markdown 扩展语法。
+
+Mermaid 示例（当前不会自动转换成流程图）：
+
+````markdown
+```mermaid
+flowchart TD
+  A[开始] --> B[处理]
+  B --> C[结束]
+```
 ````
 
-如果没有另外安装并接入相应插件或渲染器，上述内容不会自动变成流程图或排版后的数学公式。SVG 也不在文章正文共享 HTML 清理配置的明确允许标签中。
+数学公式示例（当前不会自动转换成排版后的公式）：
+
+```text
+行内公式：$E = mc^2$
+
+块级公式：
+$$
+E = mc^2
+$$
+```
+
+若要使用这些格式，需要另行接入对应渲染器，并评估共享内容清理和安全边界。
 
 ## 7. 评论内容输入
 
