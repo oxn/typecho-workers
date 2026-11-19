@@ -1887,6 +1887,11 @@ body.warm-theme {
 }
 
 
+.warm-header {
+  position: relative;
+  z-index: 40;
+}
+
 /* 1119d 顶部快捷按键布局与明暗切换：保留 OXN 配色变量。 */
 .warm-header__right {
   display: flex;
