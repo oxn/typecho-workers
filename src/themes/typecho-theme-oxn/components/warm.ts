@@ -3,6 +3,8 @@ import { loadThemeConfig } from '@/lib/theme';
 import { normalizeOptimizeParams } from '@/lib/image-transform';
 import { formatDate, generateSlug } from '@/lib/content';
 import { escapeHtml } from '@/lib/escape';
+import sanitizeHtml from 'sanitize-html';
+import postcss from 'postcss';
 
 export const WARM_THEME_ID = 'typecho-theme-warm';
 
@@ -12,6 +14,12 @@ export type WarmCommentComponentLoadMode = 'auto' | 'dwell' | 'manual';
 export type WarmCommentInitialLoadMode = 'manual' | 'auto-first' | 'auto-2' | 'infinite';
 
 export interface WarmSettings {
+  pinnedIds: number[];
+  footerLinks: Array<{ text: string; url: string; newWindow: boolean }>;
+  footerCustomHtml: string;
+  articleDeclarationHtml: string;
+  showHomeSearchButton: boolean;
+  showAdminEntryButton: boolean;
   githubUrl: string;
   socialUrl: string;
   email: string;
@@ -25,7 +33,10 @@ export interface WarmSettings {
 }
 
 export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
+  // Existing OXN appearance controls retain their current Warm namespace.
   const settings = loadThemeConfig(options, WARM_THEME_ID);
+  // CY-derived controls are stored under the OXN theme's own configuration.
+  const oxnSettings = loadThemeConfig(options, 'typecho-theme-oxn');
   const savedSettings = readSavedWarmSettings(options);
   const legacyCommentMode = savedSettings?.commentInitialLoadMode;
   const componentLoadMode = Object.prototype.hasOwnProperty.call(savedSettings || {}, 'commentComponentLoadMode')
@@ -34,7 +45,27 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
       ? 'dwell'
       : settings.commentComponentLoadMode;
   const imageOptimizeParams = normalizeOptimizeParams(settings.imageOptimizeParams);
+  const pinnedIds = parsePinnedIds(oxnSettings.pinnedIds);
+  const footerCustomHtml = typeof oxnSettings.footerCustomHtml === 'string' ? oxnSettings.footerCustomHtml : '';
+  const articleDeclarationHtml = typeof oxnSettings.articleDeclarationHtml === 'string' ? oxnSettings.articleDeclarationHtml : '';
+  const footerLinks = Array.from({ length: 10 }, (_, index) => {
+    const suffix = String(index + 1).padStart(2, '0');
+    const textValue = oxnSettings[`linktxt${suffix}`];
+    const text = typeof textValue === 'string' ? textValue.trim() : '';
+    const url = safeFooterUrl(oxnSettings[`links${suffix}`]);
+    const newWindowValue = oxnSettings[`linkblank${suffix}`];
+    return { text, url, newWindow: newWindowValue === true || newWindowValue === '1' || newWindowValue === 1 };
+  }).filter(link => link.text && link.url);
+  const enabled = (value: unknown) => value === undefined || value === null || value === ''
+    ? true
+    : !(value === false || value === 0 || value === '0');
   return {
+    pinnedIds,
+    footerLinks,
+    footerCustomHtml,
+    articleDeclarationHtml,
+    showHomeSearchButton: enabled(oxnSettings.showHomeSearchButton),
+    showAdminEntryButton: enabled(oxnSettings.showAdminEntryButton),
     githubUrl: safeExternalUrl(settings.githubUrl),
     socialUrl: safeExternalUrl(settings.socialUrl),
     email: safeEmail(settings.email),
@@ -45,6 +76,342 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     thumbOptimizeParams: normalizeOptimizeParams(settings.thumbOptimizeParams) || imageOptimizeParams,
   };
 }
+
+function safeFooterUrl(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) return '';
+  const input = value.trim();
+
+  if (/^mailto:/i.test(input)) {
+    const address = input.slice(input.indexOf(':') + 1).trim();
+    if (!address || /[\s<>]/.test(address) || !address.includes('@')) return '';
+    try {
+      const url = new URL(`mailto:${address}`);
+      return url.protocol === 'mailto:' && url.pathname.includes('@') ? url.toString() : '';
+    } catch {
+      return '';
+    }
+  }
+
+  if (/^https?:\/\//i.test(input)) {
+    try {
+      const url = new URL(input);
+      return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : '';
+    } catch {
+      return '';
+    }
+  }
+
+  if (input.startsWith('//')) {
+    try {
+      const url = new URL(`https:${input}`);
+      return url.protocol === 'https:' ? url.toString() : '';
+    } catch {
+      return '';
+    }
+  }
+
+  if (/^[a-z][a-z\d+.-]*:/i.test(input)) return '';
+  try {
+    const path = input.startsWith('/') ? input : `/${input.replace(/^\.\/+/, '')}`;
+    const url = new URL(path, 'https://relative.invalid');
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Scope administrator CSS to the declaration block. Emit scoped rules after the
+ * theme stylesheet so explicit author styles (including inline link colors) win
+ * over Warm CY defaults without affecting links elsewhere.
+ */
+function scopeArticleDeclarationCss(css: string, scopeSelector = '.warm-article__declaration', keyframePrefix = 'warm-declaration'): string {
+  try {
+    const root = postcss.parse(css);
+    const keyframes = new Map<string, string>();
+
+    root.walkAtRules(/^(?:-webkit-)?keyframes$/i, atRule => {
+      const original = atRule.params.trim();
+      if (!original || !/^[\w-]+$/.test(original)) {
+        atRule.remove();
+        return;
+      }
+      const scoped = `${keyframePrefix}-${original}`;
+      keyframes.set(original, scoped);
+      atRule.params = scoped;
+    });
+
+    const scopeRules = (container: postcss.Container) => {
+      for (const node of [...(container.nodes || [])]) {
+        if (node.type === 'atrule') {
+          const name = node.name.toLowerCase();
+          if (name === 'media' || name === 'supports' || name === 'container') {
+            scopeRules(node);
+          } else if (name !== 'keyframes' && name !== '-webkit-keyframes') {
+            // Global CSS constructs (imports, font-face, property, page, etc.)
+            // must not escape the declaration's visual boundary.
+            node.remove();
+          }
+          continue;
+        }
+        if (node.type !== 'rule') continue;
+
+        // Nested CSS rules are not part of the supported authoring format.
+        if (node.parent?.type === 'rule') {
+          node.remove();
+          continue;
+        }
+
+        const selectors = splitCssSelectorList(node.selector);
+        if (!selectors.length) {
+          node.remove();
+          continue;
+        }
+        node.selector = selectors.map(selector => scopeArticleDeclarationSelector(selector, scopeSelector)).join(', ');
+      }
+    };
+
+    scopeRules(root);
+
+    root.walkDecls(decl => {
+      // Keep author styles scoped and let source order resolve conflicts with theme defaults.
+      decl.important = false;
+      if (/^(?:animation|animation-name|-webkit-animation|-webkit-animation-name)$/i.test(decl.prop)) {
+        for (const [original, scoped] of keyframes) {
+          decl.value = decl.value.replace(
+            new RegExp(`(^|[^\\w-])${escapeRegExp(original)}(?=$|[^\\w-])`, 'g'),
+            (_match, before: string) => `${before}${scoped}`,
+          );
+        }
+      }
+      if (/expression\s*\(|javascript\s*:|vbscript\s*:|behavior\s*:|-moz-binding/i.test(decl.value)) {
+        decl.remove();
+      }
+    });
+
+    return root.nodes?.length ? root.toString() : '';
+  } catch {
+    // Invalid CSS is discarded as a whole rather than emitted unscoped.
+    return '';
+  }
+}
+
+/**
+ * Map document-root selectors onto the declaration container instead of
+ * producing impossible descendants such as ".scope body". This keeps root
+ * styling useful while ensuring it cannot target the actual page root.
+ */
+function scopeArticleDeclarationSelector(selector: string, scopeSelector: string): string {
+  let scoped = selector.trim();
+  let replacedRoot = false;
+  let descendantSeparator = '';
+
+  // Rewrite root elements only at the beginning of a selector. Preserve
+  // descendant whitespace after the complete root chain, while keeping
+  // classes attached to a root (for example, "body.dark > .notice").
+  const rootPrefix = /^(?:(?:html|body)(?=$|[.#:[\s>+~])|:root)/i;
+  while (rootPrefix.test(scoped)) {
+    scoped = scoped.replace(rootPrefix, '');
+    replacedRoot = true;
+    const hadWhitespace = /^\s+/.test(scoped);
+    scoped = scoped.trimStart();
+
+    // Whitespace between root tokens is part of the root chain; whitespace
+    // before the first non-root selector is a real descendant combinator.
+    descendantSeparator = hadWhitespace && !rootPrefix.test(scoped) ? ' ' : '';
+  }
+
+  if (replacedRoot) {
+    if (!scoped) return scopeSelector;
+    if (/^[>+~]/.test(scoped)) return scopeSelector + ' ' + scoped;
+    if (/^[.#:[\]]/.test(scoped)) return scopeSelector + descendantSeparator + scoped;
+    return scopeSelector + ' ' + scoped;
+  }
+
+  return scopeSelector + ' ' + scoped;
+}
+
+function splitCssSelectorList(selector: string): string[] {
+  const result: string[] = [];
+  let start = 0;
+  let quote = '';
+  let round = 0;
+  let square = 0;
+  let escaped = false;
+
+  for (let index = 0; index < selector.length; index++) {
+    const char = selector[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      if (char === quote) quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === '(') round++;
+    else if (char === ')') round = Math.max(0, round - 1);
+    else if (char === '[') square++;
+    else if (char === ']') square = Math.max(0, square - 1);
+    else if (char === ',' && round === 0 && square === 0) {
+      const item = selector.slice(start, index).trim();
+      if (item) result.push(item);
+      start = index + 1;
+    }
+  }
+
+  const last = selector.slice(start).trim();
+  if (last) result.push(last);
+  return result;
+}
+
+function escapeRegExp(value: string): string {
+  const special = '.^$*+?()[]{}|\\';
+  return [...value].map(char => special.includes(char) ? '\\' + char : char).join('');
+}
+
+/**
+ * Normalize and constrain an administrator-authored HTML fragment.
+ *
+ * HTML is parsed and repaired by sanitize-html. Style blocks are parsed as CSS,
+ * scoped to this declaration and emitted after the theme stylesheet so author
+ * declarations can override theme defaults without escaping the container.
+ */
+export function sanitizeArticleDeclarationHtml(html: string): string {
+  const sanitized = sanitizeHtml(html, {
+    allowedTags: [
+      'a', 'abbr', 'b', 'blockquote', 'br', 'caption', 'cite', 'code', 'dd', 'del',
+      'div', 'dl', 'dt', 'em', 'figcaption', 'figure', 'h1', 'h2', 'h3', 'h4',
+      'h5', 'h6', 'hr', 'i', 'img', 'ins', 'kbd', 'li', 'mark', 'ol', 'p',
+      'pre', 'q', 's', 'samp', 'small', 'span', 'style', 'sub', 'summary',
+      'sup', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'u', 'ul',
+    ],
+    allowedAttributes: {
+      '*': ['class', 'id', 'title', 'role', 'style'],
+      a: ['href', 'target', 'rel'],
+      img: ['src', 'alt', 'width', 'height', 'loading'],
+      td: ['colspan', 'rowspan', 'headers'],
+      th: ['colspan', 'rowspan', 'scope', 'headers'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+    allowedSchemesByTag: {
+      img: ['http', 'https', 'data'],
+    },
+    allowProtocolRelative: false,
+  });
+
+  const cssBlocks: string[] = [];
+  let htmlWithPlaceholders = sanitized.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (_match, css: string) => {
+    const token = 'WARM_DECLARATION_STYLE_BLOCK_' + cssBlocks.length + '_TOKEN';
+    cssBlocks.push(css);
+    return token;
+  });
+
+  let inlineIndex = 0;
+  htmlWithPlaceholders = htmlWithPlaceholders.replace(/<([a-z][\w:-]*)([^>]*)>/gi, (tag, name: string, rawAttributes: string) => {
+    const styleMatch = /\sstyle="([^"]*)"/i.exec(rawAttributes);
+    if (!styleMatch) return tag;
+
+    const styleValue = styleMatch[1];
+    const className = 'warm-declaration-inline-' + (++inlineIndex);
+    try {
+      const parsed = postcss.parse('.inline { ' + styleValue + ' }');
+      const declarations: string[] = [];
+      parsed.walkDecls(decl => {
+        decl.important = false;
+        if (!/expression\s*\(|javascript\s*:|vbscript\s*:|behavior\s*:|-moz-binding/i.test(decl.value)) {
+          declarations.push(decl.toString());
+        }
+      });
+      if (declarations.length) cssBlocks.push('.' + className + ' { ' + declarations.join('; ') + ' }');
+    } catch {
+      // Malformed inline CSS is discarded rather than emitted unprocessed.
+    }
+
+    let attributes = rawAttributes.replace(styleMatch[0], '');
+    const classMatch = /\sclass="([^"]*)"/i.exec(attributes);
+    if (classMatch) {
+      attributes = attributes.replace(classMatch[0], ' class="' + classMatch[1] + ' ' + className + '"');
+    } else {
+      attributes += ' class="' + className + '"';
+    }
+    return '<' + name + attributes + '>';
+  });
+
+  const scopedCss = cssBlocks
+    .map(css => scopeArticleDeclarationCss(css))
+    .filter(Boolean)
+    .join('\n');
+  const restoredHtml = htmlWithPlaceholders.replace(/WARM_DECLARATION_STYLE_BLOCK_(\d+)_TOKEN/g, '');
+
+  return scopedCss
+    ? '<style>' + scopedCss + '</style>' + restoredHtml
+    : restoredHtml;
+}
+
+/**
+ * Process CSS embedded in the site-wide footer HTML without changing its HTML,
+ * scripts, or inline styles. Footer stylesheet selectors stay inside the custom
+ * footer container and are emitted after the theme stylesheet.
+ */
+export function renderFooterCustomHtml(html: string): string {
+  if (!html) return '';
+  return html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (_match, attributes: string, css: string) => {
+    const scoped = scopeArticleDeclarationCss(css, '.warm-footer__custom', 'warm-footer-custom');
+    return scoped ? '<style' + attributes + '>' + scoped + '</style>' : '';
+  });
+}
+
+/**
+ * Expand placeholders safely, then normalize the resulting HTML fragment.
+ * The fragment is kept separate from article/comment markup by its caller.
+ */
+export function renderArticleDeclaration(
+  template: string,
+  values: {
+    siteName: string;
+    siteUrl: string;
+    siteDescription: string;
+    postTitle: string;
+    postUrl: string;
+  },
+): string {
+  const replacements: Record<string, string> = {
+    'site.name': values.siteName,
+    'site.url': values.siteUrl,
+    'site.description': values.siteDescription,
+    'post.title': values.postTitle,
+    'post.url': values.postUrl,
+  };
+  const expanded = template.replace(/\{(site\.name|site\.url|site\.description|post\.title|post\.url)\}/g, (_match, key: string) =>
+    escapeHtml(replacements[key] ?? ''),
+  );
+  return sanitizeArticleDeclarationHtml(expanded);
+}
+
+export function parsePinnedIds(value: unknown): number[] {
+  if (typeof value !== 'string' && typeof value !== 'number') return [];
+  const parts = String(value).split(/[，,\s]+/);
+  const result: number[] = [];
+  const seen = new Set<number>();
+  for (const part of parts) {
+    if (!/^\d+$/.test(part.trim())) continue;
+    const cid = Number(part.trim());
+    if (!Number.isSafeInteger(cid) || cid <= 0 || seen.has(cid)) continue;
+    seen.add(cid);
+    result.push(cid);
+  }
+  return result;
+}
+
 
 function readSavedWarmSettings(options: ThemeBaseProps['options']): Record<string, unknown> | null {
   const raw = options?.[`theme:${WARM_THEME_ID}`];

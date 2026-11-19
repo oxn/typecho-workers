@@ -10,7 +10,7 @@ import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
-import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings } from './warm';
+import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings, renderArticleDeclaration } from './warm';
 
 type Props = ThemePostProps;
 
@@ -43,6 +43,15 @@ const summary = isNote ? '' : warmArticleSummary(post, intelligenceSummary);
 const description = isNote
   ? plainExcerpt(note.source, 160)
   : (summary || (!(post.hasPassword && !post.passwordVerified) ? plainExcerpt(post.content, 160) : ''));
+const articleDeclarationHtml = !isNote
+  ? renderArticleDeclaration(settings.articleDeclarationHtml, {
+    siteName: options.title,
+    siteUrl: urls.siteUrl,
+    siteDescription: options.description || '',
+    postTitle: post.title,
+    postUrl: post.permalink,
+  })
+  : '';
 ---
 <WarmShell
   title={isNote ? '笔记' : post.title}
@@ -102,6 +111,10 @@ const description = isNote
       </footer>
     )}
   </article>
+
+  {articleDeclarationHtml.trim() && (
+    <div class="warm-article__declaration" set:html={articleDeclarationHtml}></div>
+  )}
 
   {(post.allowComment || commentPagination.totalComments > 0) && (
     <WarmComments

@@ -3,7 +3,7 @@ import Base from '@/layouts/Base.astro';
 import type { ThemeBaseProps } from '@/lib/theme-props';
 import type { PageContext } from '@/lib/plugin';
 import { PUBLIC_HTML_HEADER } from '@/lib/cache';
-import { warmSettings, type WarmSection } from './warm';
+import { warmSettings, renderFooterCustomHtml, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
 
@@ -32,6 +32,9 @@ const {
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
+const footerCustomHtml = renderFooterCustomHtml(settings.footerCustomHtml);
+const searchEnabled = settings.showHomeSearchButton;
+const adminEntryEnabled = settings.showAdminEntryButton;
 const categories = sidebarData.categories.slice(0, 8);
 const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
@@ -41,6 +44,10 @@ const socialLinks = [
   { label: '社交主页', href: settings.socialUrl },
   { label: 'Email', href: settings.email ? `mailto:${settings.email}` : '' },
 ].filter(link => link.href);
+const footerLinks = [
+  ...settings.footerLinks.map(link => ({ label: link.text, href: link.url, newWindow: link.newWindow })),
+  ...socialLinks.map(link => ({ ...link, newWindow: false })),
+];
 ---
 <Base
   title={title}
@@ -80,6 +87,24 @@ const socialLinks = [
           <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && page.permalink.includes(currentPath) }]} href={page.permalink}>{page.title}</a>
         ))}
       </nav>
+      {(searchEnabled || adminEntryEnabled) && (
+        <div class="warm-header__tools" aria-label="顶部功能按键">
+          {searchEnabled && (
+            <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+            </button>
+          )}
+          {adminEntryEnabled && (
+            <a class="warm-search-trigger warm-nav__account" href={urls.adminUrl} data-no-instant aria-label="进入后台" title="进入后台">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
+                <path d="M3 12h12" />
+                <path d="m10 7 5 5-5 5" />
+              </svg>
+            </a>
+          )}
+        </div>
+      )}
     </div>
   </header>
 
@@ -88,16 +113,44 @@ const socialLinks = [
   </main>
 
   <footer class="warm-footer">
+    {footerCustomHtml.trim() && (
+      <div class="warm-footer__custom" set:html={footerCustomHtml}></div>
+    )}
     <div class="warm-footer__meta">
       <div class="warm-footer__copyright">
         <span>© {new Date().getFullYear()} {options.title}</span>
         {options.description && <><span aria-hidden="true">·</span><span class="warm-footer__tagline">{options.description}</span></>}
       </div>
       <nav aria-label="页脚链接">
-        {socialLinks.map(link => <a href={link.href}>{link.label}</a>)}
+        {footerLinks.map(link => (
+          <a
+            href={link.href}
+            target={link.newWindow ? '_blank' : undefined}
+            rel={link.newWindow ? 'noopener noreferrer' : undefined}
+          >
+            {/<[a-z][\\s\\S]*>/i.test(link.label)
+              ? <span set:html={link.label}></span>
+              : link.label}
+          </a>
+        ))}
       </nav>
     </div>
   </footer>
+  {searchEnabled && (
+    <dialog class="warm-search-dialog" data-warm-search-dialog aria-labelledby="warm-search-title">
+      <div class="warm-search-dialog__panel">
+        <button type="button" class="warm-search-dialog__close" data-warm-search-close aria-label="关闭搜索">×</button>
+        <h2 id="warm-search-title">搜索文章</h2>
+        <form class="warm-search-form" data-warm-search-form method="get" action={homeUrl}>
+          <input type="search" class="warm-search-input" data-warm-search-input name="s" placeholder="输入关键词…" autocomplete="off" aria-label="搜索关键词" />
+          <button type="submit" class="warm-search-submit" aria-label="搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+            <span>搜索</span>
+          </button>
+        </form>
+      </div>
+    </dialog>
+  )}
   <script is:inline>
     (() => {
       const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -144,9 +197,25 @@ const socialLinks = [
     (() => {
       // Delegation also covers navigation inserted by InstantClick.
       document.addEventListener('click', event => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
         document.querySelectorAll('.warm-nav__dropdown[open]').forEach(dropdown => {
-          if (!dropdown.contains(event.target)) dropdown.open = false;
+          if (!dropdown.contains(target)) dropdown.open = false;
         });
+
+        if (target.closest('[data-warm-search-open]')) {
+          const dialog = document.querySelector('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && !dialog.open) {
+            dialog.showModal();
+            dialog.querySelector('[data-warm-search-input]')?.focus();
+          }
+        } else if (target.closest('[data-warm-search-close]')) {
+          const dialog = target.closest('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
+        } else {
+          const dialog = target.closest('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && target === dialog && dialog.open) dialog.close();
+        }
       });
       // ViewImage lightbox: click any note image to view it fullscreen.
       // init() re-registers its document-level listener idempotently, so

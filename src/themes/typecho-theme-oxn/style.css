@@ -1637,3 +1637,180 @@ body.warm-theme {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* CY-derived top quick actions and search dialog */
+.warm-header__tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 32px;
+}
+.warm-search-trigger {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--warm-muted);
+  cursor: pointer;
+  transition: color 180ms ease, background-color 180ms ease;
+}
+.warm-search-trigger:hover,
+.warm-search-trigger:focus-visible {
+  background: var(--warm-hover);
+  color: var(--warm-accent);
+}
+.warm-search-trigger svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.warm-search-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(520px, calc(100vw - 32px));
+  max-width: none;
+  height: fit-content;
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--warm-text);
+}
+.warm-search-dialog::backdrop {
+  background: rgba(25, 25, 25, .28);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+.warm-search-dialog[open] {
+  animation: warm-search-dialog-in .18s ease-out;
+}
+@keyframes warm-search-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.warm-search-dialog__panel {
+  position: relative;
+  padding: 30px;
+  border: 1px solid var(--warm-border);
+  border-radius: 14px;
+  background: var(--warm-bg);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .16);
+}
+.warm-search-dialog__panel h2 {
+  margin: 0 0 20px;
+  color: var(--warm-text);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.warm-search-dialog__close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--warm-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.warm-search-dialog__close:hover {
+  background: var(--warm-surface);
+  color: var(--warm-text);
+}
+.warm-search-form {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.warm-search-input {
+  display: block;
+  min-width: 0;
+  min-height: 46px;
+  flex: 1 1 auto;
+  padding: 10px 13px;
+  border: 1px solid var(--warm-border);
+  border-radius: 8px;
+  outline: none;
+  background: var(--warm-bg);
+  color: var(--warm-text);
+  font-size: 15px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.warm-search-input:focus,
+.warm-search-input:focus-visible {
+  border-color: var(--warm-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(104, 95, 87, .12);
+}
+.warm-search-submit {
+  display: inline-flex;
+  min-width: 94px;
+  min-height: 46px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid var(--warm-accent);
+  border-radius: 8px;
+  background: var(--warm-accent);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: filter 160ms ease;
+}
+.warm-search-submit:hover {
+  filter: brightness(.92);
+}
+.warm-search-submit svg {
+  width: 17px;
+  height: 17px;
+}
+.warm-footer__custom {
+  margin-bottom: 12px;
+}
+.warm-article__declaration {
+  margin-top: 24px;
+}
+.warm-pinned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 2px;
+  padding: 2px 6px;
+  border: 1px solid var(--warm-accent);
+  border-radius: 999px;
+  color: var(--warm-accent);
+  font-size: .75rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.warm-pinned-badge svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+}
+
+@media (max-width: 639px) {
+  .warm-search-dialog__panel { padding: 26px 18px 20px; }
+  .warm-search-form { gap: 8px; }
+  .warm-search-submit { min-width: 82px; padding-inline: 12px; }
+}
