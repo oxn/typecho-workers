@@ -33,6 +33,7 @@ Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
 const footerCustomHtml = renderFooterCustomHtml(settings.footerCustomHtml);
+const themeToggleEnabled = settings.showThemeToggleButton;
 const searchEnabled = settings.showHomeSearchButton;
 const adminEntryEnabled = settings.showAdminEntryButton;
 const categories = sidebarData.categories.slice(0, 8);
@@ -88,6 +89,7 @@ const footerLinks = [
         ))}
       </nav>
       <div class="warm-header__tools" aria-label="快捷入口">
+        {themeToggleEnabled && (
         <div class="warm-theme-control">
           <button type="button" class="warm-search-trigger warm-theme-trigger" data-warm-theme-toggle aria-label="显示模式：跟随系统" title="显示模式：跟随系统" aria-expanded="false">
             <svg data-warm-theme-icon-light viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -106,6 +108,7 @@ const footerLinks = [
             </button>
           </div>
         </div>
+        )}
         {searchEnabled && (
           <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
             <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
