@@ -112,13 +112,18 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M7.3 7.7 13.7 1.3a1 1 0 0 1 1.4 0l1.1 1.1-1.7 5.6H21v2l-3 9H8v-1l-1-1V8.4zM2 9h3v12H2z"/></svg>
       </button>` : '';
       const dialog = (kind, title, message, inputName, buttonText) => `
-        <dialog class="warm-search-dialog" data-warm-dialog="${kind}">
-          <div class="warm-search-dialog__panel">
-            <button type="button" class="warm-search-dialog__close" data-warm-dialog-cancel aria-label="关闭">×</button>
-            <h2 data-warm-dialog-title>${title}</h2><p data-warm-dialog-message>${message}</p><p>请输入中文“确认”以继续。</p>
-            <input type="text" class="warm-search-input" data-warm-confirm-input ${inputName} placeholder="请输入确认" autocomplete="off">
-            <p data-warm-dialog-error role="alert"></p>
-            <div class="warm-search-form"><button type="button" class="warm-search-submit" data-warm-dialog-confirm disabled>${buttonText}</button></div>
+        <dialog class="warm-manage-dialog" data-warm-dialog="${kind}">
+          <div class="warm-manage-dialog__panel">
+            <h2 data-warm-dialog-title>${title}</h2>
+            <p data-warm-dialog-message>${message}</p>
+            <p>请输入中文“确认”以继续。</p>
+            <input type="text" class="warm-manage-dialog__input" data-warm-confirm-input ${inputName}
+              placeholder="请输入确认" autocomplete="off">
+            <p class="warm-manage-dialog__error" data-warm-dialog-error role="alert"></p>
+            <div class="warm-manage-dialog__actions">
+              <button type="button" data-warm-dialog-cancel>取消</button>
+              <button type="button" data-warm-dialog-confirm disabled>${buttonText}</button>
+            </div>
           </div>
         </dialog>`;
       return `
@@ -414,7 +419,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       root.addEventListener('click', async event => {
         const el = event.target instanceof Element ? event.target : null;
         if (!el) return;
-        if (el instanceof HTMLDialogElement && el.classList.contains('warm-search-dialog')) { el.close(); return; }
+        if (el instanceof HTMLDialogElement && el.classList.contains('warm-manage-dialog')) { el.close(); return; }
         const cancel = el.closest('[data-warm-dialog-cancel]');
         if (cancel) { cancel.closest('dialog')?.close(); return; }
 
