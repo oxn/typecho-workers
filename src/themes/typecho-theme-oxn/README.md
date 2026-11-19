@@ -418,7 +418,7 @@ OXN 后台主题设置页在原有保存按钮旁提供：
 
 多行代码：
 
-```markdown
+````markdown
 ```ts
 interface User {
   id: number;
@@ -430,7 +430,7 @@ const user: User = {
   name: "Oxn",
 };
 ```
-```
+````
 
 代码围栏后面的 `ts`、`js`、`html`、`css`、`bash` 等语言标识会作为代码块 class 信息保留，供代码高亮样式或相关工具识别。主题会为代码块添加复制按钮。
 
@@ -547,7 +547,7 @@ const user: User = {
 
 因此，不要把下面的写法当作已经可用的主题功能：
 
-```text
+````text
 ```mermaid
 flowchart TD
   A --> B
@@ -555,8 +555,8 @@ flowchart TD
 
 $$
 E = mc^2
-$$
-```
+$
+````
 
 如果没有另外安装并接入相应插件或渲染器，上述内容不会自动变成流程图或排版后的数学公式。SVG 也不在文章正文共享 HTML 清理配置的明确允许标签中。
 
