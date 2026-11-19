@@ -169,8 +169,84 @@ function optionId(key: string, value: string): string {
         );
       })}
       <ul class="typecho-option typecho-option-submit" id={`typecho-option-item--${Object.keys(configDef).length}`}>
-        <li><button type="submit" class="btn primary">保存设置</button></li>
+        <li>
+          <button type="submit" class="btn primary">保存设置</button>
+          {theme.id === 'typecho-theme-oxn' && (
+            <>
+              <button type="button" class="btn primary" id="oxn-export-settings">导出设置</button>
+              <button type="button" class="btn primary" id="oxn-import-settings">导入设置</button>
+              <input type="file" id="oxn-import-file" accept="application/json,.json" hidden />
+            </>
+          )}
+        </li>
       </ul>
     </form>
   </div>
+<script>
+  const exportButton = document.getElementById('oxn-export-settings');
+  const importButton = document.getElementById('oxn-import-settings');
+  const importFile = document.getElementById('oxn-import-file');
+  const csrfToken = document.querySelector<HTMLInputElement>('input[name="_"]')?.value || '';
+
+  exportButton?.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/api/admin/theme-config');
+      if (!response.ok) throw new Error('读取主题设置失败');
+      const data = await response.json();
+      if (data.theme !== 'typecho-theme-oxn') throw new Error('当前主题不是 OXN');
+      const backup = {
+        format: 'oxn-theme-settings',
+        version: 1,
+        theme: data.theme,
+        settings: data.values,
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'oxn-theme-settings.json';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '导出设置失败');
+    }
+  });
+
+  importButton?.addEventListener('click', () => importFile?.click());
+
+  importFile?.addEventListener('change', async () => {
+    const file = importFile.files?.[0];
+    if (!file) return;
+    try {
+      const backup = JSON.parse(await file.text());
+      if (
+        backup?.format !== 'oxn-theme-settings' ||
+        backup?.version !== 1 ||
+        backup?.theme !== 'typecho-theme-oxn' ||
+        !backup?.settings ||
+        typeof backup.settings !== 'object' ||
+        Array.isArray(backup.settings)
+      ) {
+        throw new Error('文件格式不正确，或不是 OXN 主题设置备份');
+      }
+      if (!confirm('导入设置将覆盖当前 OXN 主题设置，是否继续？')) return;
+      const response = await fetch('/api/admin/theme-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ settings: backup.settings }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '导入设置失败');
+      alert('OXN 主题设置导入成功');
+      window.location.reload();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '导入设置失败');
+    } finally {
+      importFile.value = '';
+    }
+  });
+</script>
 </Admin>
