@@ -17,9 +17,9 @@ const { options, urls, pages, sidebarData, currentPath, pluginCtx, errorTitle } 
   <section class="warm-not-found">
     <h1>{errorTitle}</h1>
     <p>这页内容可能已被移动，或者从未写下。</p>
-    <form method="get" action={`${urls.siteUrl}/`} role="search">
-      <label for="warm-search">搜索站内内容</label>
-      <div><input id="warm-search" name="s" type="search" placeholder="输入关键词" /><button type="submit">搜索</button></div>
+    <form class="warm-compact-form" method="get" action={`${urls.siteUrl}/`} role="search">
+      <label class="warm-compact-form__label" for="warm-search">搜索站内内容</label>
+      <div class="warm-compact-form__row"><input class="warm-compact-form__input" id="warm-search" name="s" type="search" placeholder="输入关键词" /><button class="warm-compact-form__submit" type="submit">搜索</button></div>
     </form>
     <a class="warm-read-more" href={`${urls.siteUrl}/`}>返回首页 <span aria-hidden="true">→</span></a>
   </section>
