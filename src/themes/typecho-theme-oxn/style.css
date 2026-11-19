@@ -366,11 +366,6 @@ body.warm-theme {
   margin: 0 0 18px;
   text-align: center;
 }
-.warm-password-gate__form {
-  width: min(100%, 430px);
-  margin: 28px auto;
-  text-align: left;
-}
 .warm-prose > :last-child {
   margin-bottom: 0;
 }
@@ -1362,8 +1357,7 @@ body.warm-theme {
 
 .warm-comment-form input,
 .warm-comment-form textarea,
-.warm-not-found input,
-.warm-password-gate__input {
+.warm-compact-form__input {
   width: 100%;
   border: 1px solid var(--warm-border);
   border-radius: 0;
@@ -1385,8 +1379,7 @@ body.warm-theme {
 
 .warm-comment-form input:focus,
 .warm-comment-form textarea:focus,
-.warm-not-found input:focus,
-.warm-password-gate__input:focus {
+.warm-compact-form__input:focus {
   border-color: var(--warm-accent);
   background: var(--warm-bg);
   outline: 0;
@@ -1433,8 +1426,7 @@ body.warm-theme {
 }
 
 .warm-comment-form button,
-.warm-not-found button,
-.warm-password-gate__form button {
+.warm-compact-form__submit {
   min-height: 39px;
   padding: 7px 18px;
   border: 0;
@@ -1448,8 +1440,7 @@ body.warm-theme {
 }
 
 .warm-comment-form button:hover,
-.warm-not-found button:hover,
-.warm-password-gate__form button:hover {
+.warm-compact-form__submit:hover {
   background: var(--warm-text);
   color: #fff;
 }
@@ -1650,30 +1641,26 @@ body.warm-theme {
   border-radius: 0;
 }
 
-.warm-not-found form,
-.warm-password-gate__form {
+.warm-compact-form {
   width: min(100%, 430px);
   margin: 28px auto;
   text-align: left;
 }
 
-.warm-not-found label,
-.warm-password-gate__form label {
+.warm-compact-form__label {
   display: block;
   margin-bottom: 6px;
   color: var(--warm-muted);
   font-size: 12px;
 }
 
-.warm-not-found form > div,
-.warm-password-gate__form > div {
+.warm-compact-form__row {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 7px;
 }
 
-.warm-not-found input,
-.warm-password-gate__input {
+.warm-compact-form__input {
   min-width: 0;
   min-height: 42px;
   padding: 8px 11px;
@@ -2405,7 +2392,7 @@ html.dark {
   color: var(--warm-text);
 }
 
-.dark .warm-password-gate__input,
+.dark .warm-compact-form__input,
 .dark .warm-search-input,
 .dark .warm-manage-dialog__input {
   border-color: var(--warm-border);
@@ -2413,7 +2400,7 @@ html.dark {
   color: var(--warm-text);
 }
 
-.dark .warm-password-gate__input::placeholder,
+.dark .warm-compact-form__input::placeholder,
 .dark .warm-search-input::placeholder,
 .dark .warm-manage-dialog__input::placeholder {
   color: var(--warm-faint);
@@ -2595,9 +2582,8 @@ html.dark {
   border-left-color: #e3c16c;
 }
 
-.dark .warm-password-gate__form button,
+.dark .warm-compact-form__submit,
 .dark .warm-comment-form button,
-.dark .warm-not-found button,
 .dark .warm-search-submit,
 .dark .warm-manage-dialog__actions [data-warm-dialog-confirm] {
   color: #171819;
