@@ -60,6 +60,174 @@
         "auto-2": "滚动加载 2 次",
         "infinite": "无限滚动加载"
       }
+    },
+    "pinnedIds": {
+      "type": "text",
+      "label": "首页置顶文章 ID",
+      "description": "<style>/* CY 服务插件设置界面：移植到 OXN 主题设置，保留原有布局与视觉样式。 */\n.cy-service-settings,\n#typecho-option-item-pinnedIds-5,\n#typecho-option-item-linktxt01-6,\\n#typecho-option-item-links01-7,\\n#typecho-option-item-linkblank01-8,\\n#typecho-option-item-linktxt02-9,\\n#typecho-option-item-links02-10,\\n#typecho-option-item-linkblank02-11,\\n#typecho-option-item-linktxt03-12,\\n#typecho-option-item-links03-13,\\n#typecho-option-item-linkblank03-14,\\n#typecho-option-item-linktxt04-15,\\n#typecho-option-item-links04-16,\\n#typecho-option-item-linkblank04-17,\\n#typecho-option-item-linktxt05-18,\\n#typecho-option-item-links05-19,\\n#typecho-option-item-linkblank05-20,\\n#typecho-option-item-linktxt06-21,\\n#typecho-option-item-links06-22,\\n#typecho-option-item-linkblank06-23,\\n#typecho-option-item-linktxt07-24,\\n#typecho-option-item-links07-25,\\n#typecho-option-item-linkblank07-26,\\n#typecho-option-item-linktxt08-27,\\n#typecho-option-item-links08-28,\\n#typecho-option-item-linkblank08-29,\\n#typecho-option-item-linktxt09-30,\\n#typecho-option-item-links09-31,\\n#typecho-option-item-linkblank09-32,\\n#typecho-option-item-linktxt10-33,\\n#typecho-option-item-links10-34,\\n#typecho-option-item-linkblank10-35 ,\n#typecho-option-item-articleDeclarationHtml-35,\n#typecho-option-item-footerCustomHtml-36 {\n  box-sizing: border-box;\n}\n#typecho-option-item-pinnedIds-5,\n#typecho-option-item-articleDeclarationHtml-35,\n#typecho-option-item-footerCustomHtml-36 {\n  margin: 0 0 16px !important;\n  padding: 16px 18px !important;\n  border: 1px solid #e5e9e7 !important;\n  border-radius: 9px !important;\n  background: #fff !important;\n  box-shadow: 0 2px 9px rgba(20, 40, 30, .035) !important;\n}\n#typecho-option-item-pinnedIds-5 > li,\n#typecho-option-item-articleDeclarationHtml-35 > li,\n#typecho-option-item-footerCustomHtml-36 > li {\n  padding: 0 !important;\n}\n#typecho-option-item-pinnedIds-5 .typecho-label,\n#typecho-option-item-articleDeclarationHtml-35 .typecho-label,\n#typecho-option-item-footerCustomHtml-36 .typecho-label {\n  display: block;\n  margin: 0 0 5px !important;\n  color: #26352d;\n  font-size: 14px;\n  font-weight: 650;\n  line-height: 1.6;\n}\n#typecho-option-item-pinnedIds-5 .description,\n#typecho-option-item-articleDeclarationHtml-35 .description,\n#typecho-option-item-footerCustomHtml-36 .description {\n  margin: 0 0 9px;\n  color: #77817b;\n  font-size: 12px;\n  line-height: 1.7;\n}\n#typecho-option-item-linktxt01-6,\n#typecho-option-item-links01-7,\n#typecho-option-item-linkblank01-8,\\n#typecho-option-item-linktxt02-9,\n#typecho-option-item-links02-10,\n#typecho-option-item-linkblank02-11,\\n#typecho-option-item-linktxt03-12,\n#typecho-option-item-links03-13,\n#typecho-option-item-linkblank03-14,\\n#typecho-option-item-linktxt04-15,\n#typecho-option-item-links04-16,\n#typecho-option-item-linkblank04-17,\\n#typecho-option-item-linktxt05-18,\n#typecho-option-item-links05-19,\n#typecho-option-item-linkblank05-20,\\n#typecho-option-item-linktxt06-21,\n#typecho-option-item-links06-22,\n#typecho-option-item-linkblank06-23,\\n#typecho-option-item-linktxt07-24,\n#typecho-option-item-links07-25,\n#typecho-option-item-linkblank07-26,\\n#typecho-option-item-linktxt08-27,\n#typecho-option-item-links08-28,\n#typecho-option-item-linkblank08-29,\\n#typecho-option-item-linktxt09-30,\n#typecho-option-item-links09-31,\n#typecho-option-item-linkblank09-32,\\n#typecho-option-item-linktxt10-33,\n#typecho-option-item-links10-34,\n#typecho-option-item-linkblank10-35 {\n  margin: 0 !important;\n  padding: 10px 18px !important;\n  border-right: 1px solid #e5e9e7 !important;\n  border-left: 1px solid #e5e9e7 !important;\n  background: #fff !important;\n}\n#typecho-option-item-linktxt01-6,\\n#typecho-option-item-linktxt02-9,\\n#typecho-option-item-linktxt03-12,\\n#typecho-option-item-linktxt04-15,\\n#typecho-option-item-linktxt05-18,\\n#typecho-option-item-linktxt06-21,\\n#typecho-option-item-linktxt07-24,\\n#typecho-option-item-linktxt08-27,\\n#typecho-option-item-linktxt09-30,\\n#typecho-option-item-linktxt10-33 {\n  padding-top: 13px !important;\n  border-top: 1px solid #e5e9e7 !important;\n  border-radius: 9px 9px 0 0;\n}\n#typecho-option-item-linkblank01-8,\\n#typecho-option-item-linkblank02-11,\\n#typecho-option-item-linkblank03-14,\\n#typecho-option-item-linkblank04-17,\\n#typecho-option-item-linkblank05-20,\\n#typecho-option-item-linkblank06-23,\\n#typecho-option-item-linkblank07-26,\\n#typecho-option-item-linkblank08-29,\\n#typecho-option-item-linkblank09-32,\\n#typecho-option-item-linkblank10-35 {\n  padding-bottom: 13px !important;\n  border-bottom: 1px solid #e5e9e7 !important;\n  border-radius: 0 0 9px 9px;\n}\n#typecho-option-item-linktxt01-6 .typecho-label,\\n#typecho-option-item-links01-7 .typecho-label,\\n#typecho-option-item-linkblank01-8 .typecho-label,\\n#typecho-option-item-linktxt02-9 .typecho-label,\\n#typecho-option-item-links02-10 .typecho-label,\\n#typecho-option-item-linkblank02-11 .typecho-label,\\n#typecho-option-item-linktxt03-12 .typecho-label,\\n#typecho-option-item-links03-13 .typecho-label,\\n#typecho-option-item-linkblank03-14 .typecho-label,\\n#typecho-option-item-linktxt04-15 .typecho-label,\\n#typecho-option-item-links04-16 .typecho-label,\\n#typecho-option-item-linkblank04-17 .typecho-label,\\n#typecho-option-item-linktxt05-18 .typecho-label,\\n#typecho-option-item-links05-19 .typecho-label,\\n#typecho-option-item-linkblank05-20 .typecho-label,\\n#typecho-option-item-linktxt06-21 .typecho-label,\\n#typecho-option-item-links06-22 .typecho-label,\\n#typecho-option-item-linkblank06-23 .typecho-label,\\n#typecho-option-item-linktxt07-24 .typecho-label,\\n#typecho-option-item-links07-25 .typecho-label,\\n#typecho-option-item-linkblank07-26 .typecho-label,\\n#typecho-option-item-linktxt08-27 .typecho-label,\\n#typecho-option-item-links08-28 .typecho-label,\\n#typecho-option-item-linkblank08-29 .typecho-label,\\n#typecho-option-item-linktxt09-30 .typecho-label,\\n#typecho-option-item-links09-31 .typecho-label,\\n#typecho-option-item-linkblank09-32 .typecho-label,\\n#typecho-option-item-linktxt10-33 .typecho-label,\\n#typecho-option-item-links10-34 .typecho-label,\\n#typecho-option-item-linkblank10-35 .typecho-label {\n  display: block;\n  margin: 0 0 5px !important;\n  color: #46534b;\n  font-size: 13px;\n  font-weight: 500;\n}\n#typecho-option-item-pinnedIds-5 input.text,\n#typecho-option-item-linktxt01-6 input.text,\n#typecho-option-item-links01-7 input.text,\\n#typecho-option-item-linktxt02-9 input.text,\n#typecho-option-item-links02-10 input.text,\\n#typecho-option-item-linktxt03-12 input.text,\n#typecho-option-item-links03-13 input.text,\\n#typecho-option-item-linktxt04-15 input.text,\n#typecho-option-item-links04-16 input.text,\\n#typecho-option-item-linktxt05-18 input.text,\n#typecho-option-item-links05-19 input.text,\\n#typecho-option-item-linktxt06-21 input.text,\n#typecho-option-item-links06-22 input.text,\\n#typecho-option-item-linktxt07-24 input.text,\n#typecho-option-item-links07-25 input.text,\\n#typecho-option-item-linktxt08-27 input.text,\n#typecho-option-item-links08-28 input.text,\\n#typecho-option-item-linktxt09-30 input.text,\n#typecho-option-item-links09-31 input.text,\\n#typecho-option-item-linktxt10-33 input.text,\n#typecho-option-item-links10-34 input.text,\n#typecho-option-item-articleDeclarationHtml-35 textarea,\n#typecho-option-item-footerCustomHtml-36 textarea {\n  display: block;\n  box-sizing: border-box;\n  width: 100%;\n  max-width: 100%;\n  min-width: 0;\n  min-height: 34px;\n  padding: 6px 9px;\n  border: 1px solid #dce4df;\n  border-radius: 6px;\n  background: #fff;\n  color: #34433a;\n  font: inherit;\n  line-height: 1.6;\n  box-shadow: none;\n}\n#typecho-option-item-articleDeclarationHtml-35 textarea,\n#typecho-option-item-footerCustomHtml-36 textarea { min-height: 150px; resize: vertical; }\n#typecho-option-item-pinnedIds-5 input:focus,\n#typecho-option-item-linktxt01-6 input:focus,\n#typecho-option-item-links01-7 input:focus,\\n#typecho-option-item-linktxt02-9 input:focus,\n#typecho-option-item-links02-10 input:focus,\\n#typecho-option-item-linktxt03-12 input:focus,\n#typecho-option-item-links03-13 input:focus,\\n#typecho-option-item-linktxt04-15 input:focus,\n#typecho-option-item-links04-16 input:focus,\\n#typecho-option-item-linktxt05-18 input:focus,\n#typecho-option-item-links05-19 input:focus,\\n#typecho-option-item-linktxt06-21 input:focus,\n#typecho-option-item-links06-22 input:focus,\\n#typecho-option-item-linktxt07-24 input:focus,\n#typecho-option-item-links07-25 input:focus,\\n#typecho-option-item-linktxt08-27 input:focus,\n#typecho-option-item-links08-28 input:focus,\\n#typecho-option-item-linktxt09-30 input:focus,\n#typecho-option-item-links09-31 input:focus,\\n#typecho-option-item-linktxt10-33 input:focus,\n#typecho-option-item-links10-34 input:focus,\n#typecho-option-item-articleDeclarationHtml-35 textarea:focus,\n#typecho-option-item-footerCustomHtml-36 textarea:focus {\n  border-color: #269b63 !important;\n  outline: 1px solid rgba(38, 155, 99, .16);\n  box-shadow: 0 0 0 2px rgba(38, 155, 99, .08) !important;\n}\n#typecho-option-item-linkblank01-8 input,\n#typecho-option-item-linkblank02-11 input,\n#typecho-option-item-linkblank03-14 input,\n#typecho-option-item-linkblank04-17 input,\n#typecho-option-item-linkblank05-20 input,\n#typecho-option-item-linkblank06-23 input,\n#typecho-option-item-linkblank07-26 input,\n#typecho-option-item-linkblank08-29 input,\n#typecho-option-item-linkblank09-32 input,\n#typecho-option-item-linkblank10-35 input { accent-color: #269b63; }\n@media (max-width: 767px) {\n  #typecho-option-item-pinnedIds-5,\n  #typecho-option-item-articleDeclarationHtml-35,\n  #typecho-option-item-footerCustomHtml-36 { padding: 14px !important; }\n  #typecho-option-item-linktxt01-6,\n#typecho-option-item-links01-7,\n#typecho-option-item-linkblank01-8,\\n#typecho-option-item-linktxt02-9,\n#typecho-option-item-links02-10,\n#typecho-option-item-linkblank02-11,\\n#typecho-option-item-linktxt03-12,\n#typecho-option-item-links03-13,\n#typecho-option-item-linkblank03-14,\\n#typecho-option-item-linktxt04-15,\n#typecho-option-item-links04-16,\n#typecho-option-item-linkblank04-17,\\n#typecho-option-item-linktxt05-18,\n#typecho-option-item-links05-19,\n#typecho-option-item-linkblank05-20,\\n#typecho-option-item-linktxt06-21,\n#typecho-option-item-links06-22,\n#typecho-option-item-linkblank06-23,\\n#typecho-option-item-linktxt07-24,\n#typecho-option-item-links07-25,\n#typecho-option-item-linkblank07-26,\\n#typecho-option-item-linktxt08-27,\n#typecho-option-item-links08-28,\n#typecho-option-item-linkblank08-29,\\n#typecho-option-item-linktxt09-30,\n#typecho-option-item-links09-31,\n#typecho-option-item-linkblank09-32,\\n#typecho-option-item-linktxt10-33,\n#typecho-option-item-links10-34,\n#typecho-option-item-linkblank10-35 { padding-right: 14px !important; padding-left: 14px !important; }\n}</style><p class=\"cy-service-description\">首页置顶文章 ID：填写文章 ID，多个 ID 用英文逗号分隔；其他页面不受影响。</p>",
+      "default": ""
+    },
+    "linktxt01": {
+      "type": "text",
+      "label": "文字1",
+      "default": ""
+    },
+    "links01": {
+      "type": "text",
+      "label": "网址1",
+      "default": ""
+    },
+    "linkblank01": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 1）",
+      "default": "0"
+    },
+    "linktxt02": {
+      "type": "text",
+      "label": "文字2",
+      "default": ""
+    },
+    "links02": {
+      "type": "text",
+      "label": "网址2",
+      "default": ""
+    },
+    "linkblank02": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 2）",
+      "default": "0"
+    },
+    "linktxt03": {
+      "type": "text",
+      "label": "文字3",
+      "default": ""
+    },
+    "links03": {
+      "type": "text",
+      "label": "网址3",
+      "default": ""
+    },
+    "linkblank03": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 3）",
+      "default": "0"
+    },
+    "linktxt04": {
+      "type": "text",
+      "label": "文字4",
+      "default": ""
+    },
+    "links04": {
+      "type": "text",
+      "label": "网址4",
+      "default": ""
+    },
+    "linkblank04": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 4）",
+      "default": "0"
+    },
+    "linktxt05": {
+      "type": "text",
+      "label": "文字5",
+      "default": ""
+    },
+    "links05": {
+      "type": "text",
+      "label": "网址5",
+      "default": ""
+    },
+    "linkblank05": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 5）",
+      "default": "0"
+    },
+    "linktxt06": {
+      "type": "text",
+      "label": "文字6",
+      "default": ""
+    },
+    "links06": {
+      "type": "text",
+      "label": "网址6",
+      "default": ""
+    },
+    "linkblank06": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 6）",
+      "default": "0"
+    },
+    "linktxt07": {
+      "type": "text",
+      "label": "文字7",
+      "default": ""
+    },
+    "links07": {
+      "type": "text",
+      "label": "网址7",
+      "default": ""
+    },
+    "linkblank07": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 7）",
+      "default": "0"
+    },
+    "linktxt08": {
+      "type": "text",
+      "label": "文字8",
+      "default": ""
+    },
+    "links08": {
+      "type": "text",
+      "label": "网址8",
+      "default": ""
+    },
+    "linkblank08": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 8）",
+      "default": "0"
+    },
+    "linktxt09": {
+      "type": "text",
+      "label": "文字9",
+      "default": ""
+    },
+    "links09": {
+      "type": "text",
+      "label": "网址9",
+      "default": ""
+    },
+    "linkblank09": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 9）",
+      "default": "0"
+    },
+    "linktxt10": {
+      "type": "text",
+      "label": "文字10",
+      "default": ""
+    },
+    "links10": {
+      "type": "text",
+      "label": "网址10",
+      "default": ""
+    },
+    "linkblank10": {
+      "type": "checkbox",
+      "label": "新窗口打开（链接 10）",
+      "default": "0"
+    },
+    "articleDeclarationHtml": {
+      "type": "textarea",
+      "label": "文章内容声明",
+      "description": "仅在文章详情页显示，位于正文末尾、评论区之前；笔记页不显示。留空则不显示。支持 HTML。变量：{site.name}、{site.url}、{site.description}、{post.title}、{post.url}。声明内 CSS 仅作用于声明区块。",
+      "default": ""
+    },
+    "footerCustomHtml": {
+      "type": "textarea",
+      "label": "站点底部内容",
+      "description": "设置显示于站点底部的内容（HTML）。",
+      "default": ""
     }
   }
 }
