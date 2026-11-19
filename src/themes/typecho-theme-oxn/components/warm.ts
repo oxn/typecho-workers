@@ -40,6 +40,12 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
   // CY-derived controls are stored under the OXN theme's own configuration.
   const oxnSettings = loadThemeConfig(options, 'typecho-theme-oxn');
   const savedSettings = readSavedWarmSettings(options);
+  const savedOxnSettings = readSavedThemeSettings(options, 'typecho-theme-oxn');
+  const savedContinuousLoadMode = Object.prototype.hasOwnProperty.call(savedOxnSettings || {}, 'continuousLoadMode')
+    ? savedOxnSettings?.continuousLoadMode
+    : Object.prototype.hasOwnProperty.call(savedSettings || {}, 'continuousLoadMode')
+      ? savedSettings?.continuousLoadMode
+      : settings.continuousLoadMode;
   const legacyCommentMode = savedSettings?.commentInitialLoadMode;
   const componentLoadMode = Object.prototype.hasOwnProperty.call(savedSettings || {}, 'commentComponentLoadMode')
     ? settings.commentComponentLoadMode
@@ -73,7 +79,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     githubUrl: safeExternalUrl(settings.githubUrl),
     socialUrl: safeExternalUrl(settings.socialUrl),
     email: safeEmail(settings.email),
-    continuousLoadMode: normalizeContinuousLoadMode(settings.continuousLoadMode),
+    continuousLoadMode: normalizeContinuousLoadMode(savedContinuousLoadMode),
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
     commentInitialLoadMode: normalizeCommentInitialLoadMode(settings.commentInitialLoadMode),
     imageOptimizeParams,
@@ -428,7 +434,14 @@ export function parsePinnedIds(value: unknown): number[] {
 
 
 function readSavedWarmSettings(options: ThemeBaseProps['options']): Record<string, unknown> | null {
-  const raw = options?.[`theme:${WARM_THEME_ID}`];
+  return readSavedThemeSettings(options, WARM_THEME_ID);
+}
+
+function readSavedThemeSettings(
+  options: ThemeBaseProps['options'],
+  themeId: string,
+): Record<string, unknown> | null {
+  const raw = options?.[`theme:${themeId}`];
   if (!raw) return null;
   try {
     const saved = typeof raw === 'string' ? JSON.parse(raw) : raw;
