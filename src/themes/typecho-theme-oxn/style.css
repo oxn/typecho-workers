@@ -1923,8 +1923,8 @@ body.warm-theme {
 .warm-search-dialog__panel h2 {
   margin: 0 0 20px;
   color: var(--warm-text);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 700;
   line-height: 1.4;
 }
 .warm-search-dialog__close {
@@ -2051,7 +2051,7 @@ body.warm-theme {
   position: fixed; inset: 0; width: min(420px, calc(100% - 32px));
   max-width: 420px; max-height: calc(100% - 40px); margin: auto;
   padding: 0; overflow: auto; border: 1px solid var(--warm-border);
-  border-radius: 12px; background: var(--warm-bg); color: var(--warm-text);
+  border-radius: 14px; background: var(--warm-bg); color: var(--warm-text);
   box-shadow: 0 24px 80px rgb(0 0 0 / 18%), 0 4px 16px rgb(0 0 0 / 8%);
   font-family: var(--warm-font);
 }
@@ -2067,7 +2067,7 @@ body.warm-theme {
 .warm-manage-dialog__panel h2,
 .warm-manage-dialog__panel [data-warm-dialog-title] {
   margin: 0 0 16px; color: var(--warm-text); font-family: var(--warm-font);
-  font-size: 20px; font-weight: 700; line-height: 28px; letter-spacing: -.02em;
+  font-size: 1.2rem; font-weight: 700; line-height: 1.4; letter-spacing: -.02em;
 }
 .warm-manage-dialog__panel p,
 .warm-manage-dialog__panel [data-warm-dialog-message] {
@@ -2086,7 +2086,7 @@ body.warm-theme {
 }
 .warm-manage-dialog__actions button {
   display: inline-flex; min-width: 82px; min-height: 38px; align-items: center; justify-content: center;
-  padding: 8px 16px; border: 1px solid var(--warm-border); border-radius: 7px;
+  padding: 8px 16px; border: 1px solid var(--warm-border); border-radius: 8px;
   background: var(--warm-bg); color: var(--warm-muted); font-family: var(--warm-font);
   font-size: 16px; font-weight: 500; line-height: 20px; cursor: pointer;
   transition: color .2s ease, border-color .2s ease, background-color .2s ease, opacity .2s ease;
