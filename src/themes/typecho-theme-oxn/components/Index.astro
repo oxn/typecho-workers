@@ -23,6 +23,7 @@ type WarmPostItem = {
   excerpt: string;
   created: number;
   categories: PostListItem['categories'];
+  pinned?: boolean;
 };
 type WarmNoteItem = NoteListItem & { type: 'note' };
 
@@ -130,12 +131,12 @@ const settings = warmSettings(options);
 const baseUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 
 // 首页置顶直接按 ID 查询数据库，避免只调整当前页数据导致后续页文章无法置顶。
-const isHomeListing = Astro.url.pathname === '/' && !topic && !requestedStream;
+const isHomeListing = (Astro.url.pathname === '/' || /^\/page\/\d+\/?$/.test(Astro.url.pathname)) && !topic && !requestedStream;
 const isHomepage = isHomeListing && pagination.currentPage === 1;
 const pinnedIds = isHomeListing ? settings.pinnedIds : [];
 const pinnedIdSet = new Set(pinnedIds);
 let pinnedItems: WarmPostItem[] = [];
-if (pinnedIds.length > 0) {
+if (isHomepage && pinnedIds.length > 0) {
   const pinDb = getDb(env.DB);
   const now = Math.floor(Date.now() / 1000);
   const pinnedRows = await pinDb.select({
@@ -190,11 +191,11 @@ if (pinnedIds.length > 0) {
       excerpt: plainExcerpt(renderContentExcerpt(row.text || '', ' - 阅读剩余部分 -', permalink)),
       created: Number(row.created || 0),
       categories: categoryById.get(cid) || [],
+      pinned: true,
     };
   });
 }
-// 从首页普通/混合流中排除置顶文章，避免加载更多时重复；第一页按设置顺序置顶。
-items = items.filter(item => item.type !== 'post' || !pinnedIdSet.has(Number(item.cid)));
+// 首页第一页按设置顺序显示置顶文章；普通分页保留原始结果，由隐藏判定避免重复显示。
 if (isHomepage && pinnedItems.length > 0) {
   items = [...pinnedItems, ...items];
 }
@@ -239,7 +240,7 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
     </div>
   )}
 
-  <div class="warm-stream" data-warm-stream>
+  <div class="warm-stream" data-warm-stream data-warm-pinned-ids={isHomeListing ? pinnedIds.join(',') : undefined}>
     {items.length === 0 ? (
       <section class="warm-empty">
         <h1>这里还很安静</h1>
@@ -262,13 +263,13 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
         />
       </article>
     ) : (
-      <article class="warm-stream-item warm-post-card" data-content-type="post">
+      <article class="warm-stream-item warm-post-card" data-content-type="post" data-post-id={item.cid} hidden={!item.pinned && isHomeListing && pinnedIdSet.has(Number(item.cid))}>
         <a class="warm-stream-item__hit" href={item.permalink} aria-label={`阅读：${item.title}`}></a>
         <div class="warm-item-meta">
           <time datetime={new Date(item.created * 1000).toISOString()}>{formatWarmDate(item.created, options.postDateFormat, options.timezone)}</time>
           {item.categories[0] ? <span aria-hidden="true">·</span> : null}
           {item.categories[0] ? <a class="warm-category" href={item.categories[0].permalink}>{item.categories[0].name}</a> : null}
-          {isHomepage && pinnedIdSet.has(Number(item.cid)) && <span class="warm-pinned-badge" aria-label="置顶文章"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2.5h6l-.7 3.1 2.2 2.2v1H8.8v4.7l-.8.8-.8-.8V8.8H3.5v-1l2.2-2.2L5 2.5Z" fill="currentColor"/></svg>置顶</span>}
+          {item.pinned && <span class="warm-pinned-badge" aria-label="置顶文章"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2.5h6l-.7 3.1 2.2 2.2v1H8.8v4.7l-.8.8-.8-.8V8.8H3.5v-1l2.2-2.2L5 2.5Z" fill="currentColor"/></svg>置顶</span>}
         </div>
         <h2><a href={item.permalink}>{item.title}</a></h2>
         {item.excerpt && <p>{item.excerpt}</p>}
