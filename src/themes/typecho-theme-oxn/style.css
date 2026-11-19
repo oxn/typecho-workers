@@ -1761,6 +1761,20 @@ body.warm-theme {
   width: 18px;
   height: 18px;
 }
+
+/* 顶部导航功能图标统一显示参数 */
+.warm-header__tools .warm-search-trigger > svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* 后台入口图标线条较密，轻微缩小视觉占比 */
+.warm-header__tools .warm-nav__account > svg {
+  transform: scale(0.92);
+}
 .warm-search-dialog {
   position: fixed;
   inset: 0;
