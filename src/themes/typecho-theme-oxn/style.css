@@ -354,9 +354,16 @@ body.warm-theme {
 .warm-prose hr {
   width: 42px;
   height: 1px;
-  margin: 2.8em auto;
   border: none;
   background: #dfdbd5;
+}
+
+.warm-note__content hr {
+  margin: 3.7em auto;
+}
+
+.warm-prose hr {
+  margin: 2.8em auto;
 }
 
 .warm-note__content p {
@@ -775,9 +782,16 @@ body.warm-theme {
   text-align: center;
 }
 
+.warm-prose blockquote {
+  margin: 1.4em 0;
+}
+
+.warm-note__content blockquote {
+  margin: 1.7em 0;
+}
+
 .warm-prose blockquote,
 .warm-note__content blockquote {
-  margin: 1.4em 0;
   padding: 1em 1em 1em 1.35em;
   border-left: 1px solid #d9d5cf;
   color: #625d57;
