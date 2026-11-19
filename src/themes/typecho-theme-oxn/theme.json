@@ -16,22 +16,6 @@
     "single-column"
   ],
   "config": {
-    "githubUrl": {
-      "type": "text",
-      "label": "GitHub 地址",
-      "description": "<style>\n#typecho-option-item-githubUrl-0,\n#typecho-option-item-socialUrl-1,\n#typecho-option-item-email-2 {\n  box-sizing: border-box !important;\n  margin: 0 0 14px !important;\n  padding: 16px 18px !important;\n  border: 1px solid #e5e9e7 !important;\n  border-radius: 10px !important;\n  background: #fff !important;\n  box-shadow: 0 2px 9px rgba(20, 40, 30, .035) !important;\n}\n#typecho-option-item-githubUrl-0 > li,\n#typecho-option-item-socialUrl-1 > li,\n#typecho-option-item-email-2 > li { padding: 0 !important; }\n#typecho-option-item-githubUrl-0 .typecho-label,\n#typecho-option-item-socialUrl-1 .typecho-label,\n#typecho-option-item-email-2 .typecho-label {\n  display: block;\n  margin: 0 0 8px !important;\n  color: #26352d;\n  font-size: 14px;\n  font-weight: 650;\n  line-height: 1.6;\n}\n#typecho-option-item-githubUrl-0 input.text,\n#typecho-option-item-socialUrl-1 input.text,\n#typecho-option-item-email-2 input.text {\n  box-sizing: border-box;\n  display: block;\n  width: 100%;\n  max-width: 100%;\n  min-height: 36px;\n  padding: 7px 10px;\n  border: 1px solid #dce4df;\n  border-radius: 6px;\n  background: #fff;\n  color: #34433a;\n  box-shadow: none;\n}\n#typecho-option-item-githubUrl-0 input.text:focus,\n#typecho-option-item-socialUrl-1 input.text:focus,\n#typecho-option-item-email-2 input.text:focus {\n  border-color: #269b63 !important;\n  outline: 1px solid rgba(38, 155, 99, .16);\n  box-shadow: 0 0 0 2px rgba(38, 155, 99, .08) !important;\n}\n@media (max-width: 767px) {\n  #typecho-option-item-githubUrl-0,\n  #typecho-option-item-socialUrl-1,\n  #typecho-option-item-email-2 { padding: 14px !important; }\n}\n</style>",
-      "default": ""
-    },
-    "socialUrl": {
-      "type": "text",
-      "label": "社交主页地址",
-      "default": ""
-    },
-    "email": {
-      "type": "text",
-      "label": "联系邮箱",
-      "default": ""
-    },
     "imageOptimizeParams": {
       "type": "text",
       "label": "图片优化参数",
