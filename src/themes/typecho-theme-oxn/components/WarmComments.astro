@@ -115,7 +115,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         <dialog class="warm-search-dialog" data-warm-dialog="${kind}">
           <div class="warm-search-dialog__panel">
             <button type="button" class="warm-search-dialog__close" data-warm-dialog-cancel aria-label="关闭">×</button>
-            <h2>${title}</h2><p>${message}</p><p>请输入中文“确认”以继续。</p>
+            <h2 data-warm-dialog-title>${title}</h2><p data-warm-dialog-message>${message}</p><p>请输入中文“确认”以继续。</p>
             <input type="text" class="warm-search-input" data-warm-confirm-input ${inputName} placeholder="请输入确认" autocomplete="off">
             <p data-warm-dialog-error role="alert"></p>
             <div class="warm-search-form"><button type="button" class="warm-search-submit" data-warm-dialog-confirm disabled>${buttonText}</button></div>
@@ -424,11 +424,16 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           const input = dialog?.querySelector('[data-warm-pin-confirm-input]');
           const confirm = dialog?.querySelector('[data-warm-dialog-confirm]');
           const error = dialog?.querySelector('[data-warm-dialog-error]');
+          const targetPinned = pinButton.getAttribute('aria-pressed') !== 'true';
+          const title = dialog?.querySelector('[data-warm-dialog-title]');
+          const message = dialog?.querySelector('[data-warm-dialog-message]');
           if (input) input.value = '';
+          if (title) title.textContent = targetPinned ? '文章置顶' : '取消置顶';
+          if (message) message.textContent = targetPinned ? '确定要置顶这篇文章吗？' : '确定要取消这篇文章的置顶吗？';
           if (confirm) {
             confirm.disabled = true;
-            confirm.textContent = pinButton.getAttribute('aria-pressed') === 'true' ? '取消置顶' : '确定置顶';
-            confirm.dataset.targetPinned = String(pinButton.getAttribute('aria-pressed') !== 'true');
+            confirm.textContent = targetPinned ? '确定置顶' : '取消置顶';
+            confirm.dataset.targetPinned = String(targetPinned);
           }
           if (error) error.textContent = '';
           dialog?.showModal(); input?.focus(); return;
@@ -474,6 +479,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             });
             const result = await response.json();
             if (!response.ok || !result.success) throw new Error(result.error || '置顶操作失败，请稍后重试');
+            pinControl?.classList.toggle('is-pinned', targetPinned);
             pinControl?.setAttribute('aria-pressed', String(targetPinned));
             pinControl?.setAttribute('aria-label', targetPinned ? '取消置顶' : '置顶文章');
             pinControl?.setAttribute('title', targetPinned ? '取消置顶' : '置顶文章');
