@@ -892,9 +892,10 @@ body.warm-theme {
 }
 
 .warm-prose pre {
+  position: relative;
   overflow-x: auto;
   margin: 2em 0;
-  padding: 30px 34px;
+  padding: 44px 34px 30px;
   background: var(--warm-surface);
   color: #403d39;
   font-family: var(--warm-mono);
@@ -902,6 +903,25 @@ body.warm-theme {
   line-height: 1.8;
   tab-size: 2;
 }
+
+
+.warm-prose pre [data-warm-copy] {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--warm-border);
+  border-radius: 4px;
+  background: var(--warm-bg);
+  color: var(--warm-muted);
+  font: 12px/1.4 var(--warm-font);
+  cursor: pointer;
+  opacity: .75;
+}
+.warm-prose pre [data-warm-copy]:hover { opacity: 1; }
 
 .warm-prose pre code {
   padding: 0;
