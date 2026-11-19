@@ -9,10 +9,18 @@ import { jsonError, jsonOk } from '@/lib/http';
 const THEME_ID = 'typecho-theme-oxn';
 
 function parsePinnedIds(value: unknown): number[] {
-  if (typeof value !== 'string') return [];
-  return [...new Set(value.split(/[\\s,]+/)
-    .map(value => Number(value))
-    .filter(id => Number.isSafeInteger(id) && id > 0))];
+  if (typeof value !== 'string' && typeof value !== 'number') return [];
+  const parts = String(value).split(/[，,\\s]+/);
+  const result: number[] = [];
+  const seen = new Set<number>();
+  for (const part of parts) {
+    if (!/^\\d+$/.test(part.trim())) continue;
+    const cid = Number(part.trim());
+    if (!Number.isSafeInteger(cid) || cid <= 0 || seen.has(cid)) continue;
+    seen.add(cid);
+    result.push(cid);
+  }
+  return result;
 }
 
 export const POST: APIRoute = async ({ request }) => {
