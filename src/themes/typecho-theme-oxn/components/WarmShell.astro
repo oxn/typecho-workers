@@ -191,6 +191,7 @@ const footerLinks = [
         const applyThemeMode = () => {
           const isDark = themeMode === 'dark' || (themeMode === 'system' && themeMedia.matches);
           document.documentElement.classList.toggle('dark', isDark);
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#171819' : '#ffffff');
           const lightIcon = document.querySelector('[data-warm-theme-icon-light]');
           const systemIcon = document.querySelector('[data-warm-theme-icon-system]');
           const darkIcon = document.querySelector('[data-warm-theme-icon-dark]');
@@ -360,6 +361,7 @@ const footerLinks = [
     })();
   </script>
   <Fragment slot="head">
+    <meta name="theme-color" content="#ffffff" />
     <script is:inline>
       (() => {
         const storageKey = 'warm-theme-mode';
@@ -370,13 +372,11 @@ const footerLinks = [
           if (validModes.includes(savedMode)) mode = savedMode;
         } catch {}
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.classList.toggle(
-          'dark',
-          mode === 'dark' || (mode === 'system' && systemPrefersDark)
-        );
+        const isDark = mode === 'dark' || (mode === 'system' && systemPrefersDark);
+        document.documentElement.classList.toggle('dark', isDark);
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#171819' : '#ffffff');
       })();
     </script>
-    <meta name="theme-color" content="#ffffff" />
     <script is:inline data-instant-track data-no-instant set:html={instantClickSource}></script>
     <script is:inline data-instant-track data-no-instant set:html={viewImageSource}></script>
   </Fragment>
