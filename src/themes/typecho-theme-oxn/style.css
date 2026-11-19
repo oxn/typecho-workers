@@ -1119,6 +1119,20 @@ body.warm-theme {
   margin-bottom: 24px;
 }
 
+.warm-comment-management {
+  position: static;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 32px;
+}
+.warm-comment-management [data-warm-action="pin"].is-pinned {
+  background: var(--warm-hover);
+  color: var(--warm-accent);
+}
+
 .warm-comments__heading h2 {
   margin: 0;
   font-size: 20px;
@@ -2006,4 +2020,14 @@ body.warm-theme {
 @media (max-width: 639px) {
   .warm-header__right { width: 100%; align-items: stretch; }
   .warm-header__tools { top: 12px; justify-content: flex-end; }
+}
+
+
+/* Keep the backend entry icon on the same theme-aware ink color as other header actions. */
+.warm-header__tools > .warm-nav__account {
+  color: var(--warm-muted) !important;
+}
+.warm-header__tools > .warm-nav__account svg {
+  color: inherit;
+  stroke: currentColor;
 }
