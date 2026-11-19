@@ -1,10 +1,63 @@
 import type { ThemeBaseProps, ThemePostProps } from '@/lib/theme-props';
 import { loadThemeConfig } from '@/lib/theme';
-import { normalizeOptimizeParams } from '@/lib/image-transform';
+import { normalizeOptimizeParams, optimizeImageUrl, optimizeContentImages } from '@/lib/image-transform';
 import { formatDate, generateSlug } from '@/lib/content';
 import { escapeHtml } from '@/lib/escape';
 import sanitizeHtml from 'sanitize-html';
 import postcss from 'postcss';
+
+/**
+ * Convert the theme's friendly image parameters to EdgeOne's URL syntax.
+ * Width/height are translated to eo-img.resize; format is translated to
+ * eo-img.format. Quality remains untouched because EdgeOne quality is
+ * configured in its image-slimming settings, not as a URL transform option.
+ */
+function edgeOneImageParams(value: unknown): string {
+  const clean = normalizeOptimizeParams(value);
+  if (!clean) return '';
+
+  const pairs = clean.split('&').filter(Boolean);
+  const hasNativeResize = pairs.some(pair => /^eo-img\.resize=/i.test(pair));
+  const hasNativeFormat = pairs.some(pair => /^eo-img\.format=/i.test(pair));
+  const widthPair = pairs.find(pair => /^width=\d{1,5}$/i.test(pair));
+  const heightPair = pairs.find(pair => /^height=\d{1,5}$/i.test(pair));
+  const formatPair = pairs.find(pair => /^format=[a-z0-9-]+$/i.test(pair));
+  const width = widthPair ? Number(widthPair.slice(widthPair.indexOf('=') + 1)) : 0;
+  const height = heightPair ? Number(heightPair.slice(heightPair.indexOf('=') + 1)) : 0;
+  const validWidth = width > 0 && width <= 10000 ? width : 0;
+  const validHeight = height > 0 && height <= 10000 ? height : 0;
+  const format = formatPair?.slice(formatPair.indexOf('=') + 1).toLowerCase();
+  const canMapFormat = !!format && /^(webp|avif|jpg|jpeg|png)$/.test(format);
+
+  const mappedWidth = !hasNativeResize && validWidth > 0;
+  const mappedHeight = !hasNativeResize && validHeight > 0;
+  const mappedFormat = !hasNativeFormat && canMapFormat;
+  const remaining = pairs.filter(pair => {
+    if (mappedWidth && /^width=/i.test(pair) && /^width=\d{1,5}$/i.test(pair)) return false;
+    if (mappedHeight && /^height=/i.test(pair) && /^height=\d{1,5}$/i.test(pair)) return false;
+    if (mappedFormat && /^format=/i.test(pair) && /^format=[a-z0-9-]+$/i.test(pair)) return false;
+    return true;
+  });
+
+  if (mappedWidth || mappedHeight) {
+    const resize = [
+      ...(mappedWidth ? ['w', String(validWidth)] : []),
+      ...(mappedHeight ? ['h', String(validHeight)] : []),
+    ].join('%2F');
+    remaining.push('eo-img.resize=' + resize);
+  }
+  if (mappedFormat) remaining.push('eo-img.format=' + format);
+  return remaining.join('&');
+}
+
+/** Theme-local wrappers keep the core image transformer unchanged. */
+export function warmOptimizeImageUrl(url: string, params: string, siteUrl: string): string {
+  return optimizeImageUrl(url, edgeOneImageParams(params), siteUrl);
+}
+
+export function warmOptimizeContentImages(html: string, params: string, siteUrl: string): string {
+  return optimizeContentImages(html, edgeOneImageParams(params), siteUrl);
+}
 
 export const WARM_THEME_ID = 'typecho-theme-warm';
 
