@@ -354,7 +354,7 @@ body.warm-theme {
 .warm-prose hr {
   width: 42px;
   height: 1px;
-  margin: 3.7em auto;
+  margin: 2.8em auto;
   border: none;
   background: #dfdbd5;
 }
@@ -696,12 +696,12 @@ body.warm-theme {
 .warm-prose {
   color: var(--warm-body);
   font-size: 17px;
-  line-height: 2;
+  line-height: 1.85;
   overflow-wrap: anywhere;
 }
 
 .warm-prose p {
-  margin: 0 0 1.65em;
+  margin: 0 0 1.2em;
 }
 
 .warm-prose h2,
@@ -713,9 +713,9 @@ body.warm-theme {
   scroll-margin-top: 40px;
 }
 
-.warm-prose h2 { margin: 3em 0 .95em; font-size: 1.48em; line-height: 1.5; }
-.warm-prose h3 { margin: 2.4em 0 .8em; font-size: 1.18em; line-height: 1.55; }
-.warm-prose h4 { margin: 2em 0 .7em; font-size: 1em; line-height: 1.6; }
+.warm-prose h2 { margin: 2.4em 0 .85em; font-size: 1.48em; line-height: 1.5; }
+.warm-prose h3 { margin: 1.9em 0 .7em; font-size: 1.18em; line-height: 1.55; }
+.warm-prose h4 { margin: 1.7em 0 .7em; font-size: 1em; line-height: 1.6; }
 
 .warm-prose a {
   color: #5f554d;
@@ -757,7 +757,7 @@ body.warm-theme {
 }
 
 .warm-prose figure {
-  margin: 2.9em 0;
+  margin: 2.2em 0;
 }
 
 .warm-prose figure img {
@@ -777,7 +777,7 @@ body.warm-theme {
 
 .warm-prose blockquote,
 .warm-note__content blockquote {
-  margin: 1.7em 0;
+  margin: 1.4em 0;
   padding: 1em 1em 1em 1.35em;
   border-left: 1px solid #d9d5cf;
   color: #625d57;
@@ -860,7 +860,7 @@ body.warm-theme {
 
 .warm-prose pre {
   overflow-x: auto;
-  margin: 2.5em 0;
+  margin: 2em 0;
   padding: 30px 34px;
   background: var(--warm-surface);
   color: #403d39;
@@ -881,7 +881,7 @@ body.warm-theme {
   min-width: stretch;
   width: max-content !important;
   overflow-x: auto;
-  margin: 2.5em 0;
+  margin: 2em 0;
   border-collapse: collapse;
   font-size: 14px;
   line-height: 1.75;
