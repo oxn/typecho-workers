@@ -1814,3 +1814,74 @@ body.warm-theme {
   .warm-search-form { gap: 8px; }
   .warm-search-submit { min-width: 82px; padding-inline: 12px; }
 }
+
+
+/* CY 管理弹窗：沿用 1119d 布局，保留 OXN 当前配色。 */
+.warm-manage-dialog {
+  position: fixed; inset: 0; width: min(420px, calc(100% - 32px));
+  max-width: 420px; max-height: calc(100% - 40px); margin: auto;
+  padding: 0; overflow: auto; border: 1px solid var(--warm-border);
+  border-radius: 12px; background: var(--warm-bg); color: var(--warm-text);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 18%), 0 4px 16px rgb(0 0 0 / 8%);
+  font-family: var(--warm-font);
+}
+.warm-manage-dialog[open] { display: block; animation: warm-manage-dialog-in .2s ease-out; }
+.warm-manage-dialog::backdrop {
+  background: rgb(20 19 18 / 55%); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.warm-manage-dialog__panel { padding: 28px; }
+@keyframes warm-manage-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.warm-manage-dialog__panel h2,
+.warm-manage-dialog__panel [data-warm-dialog-title] {
+  margin: 0 0 16px; color: var(--warm-text); font-family: var(--warm-font);
+  font-size: 20px; font-weight: 700; line-height: 28px; letter-spacing: -.02em;
+}
+.warm-manage-dialog__panel p,
+.warm-manage-dialog__panel [data-warm-dialog-message] {
+  margin: 0 0 12px; color: var(--warm-muted); font-family: var(--warm-font);
+  font-size: 16px; font-weight: 400; line-height: 24px; overflow-wrap: anywhere;
+}
+.warm-manage-dialog[data-warm-dialog="delete"] .warm-manage-dialog__panel p:not(.warm-manage-dialog__error) { margin-bottom: 12px; }
+.warm-manage-dialog__input {
+  display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px;
+  margin: 16px 0 8px; padding: 10px 12px; border: 1px solid var(--warm-border);
+  border-radius: 7px; outline: none; background: var(--warm-surface); color: var(--warm-text);
+  font-family: var(--warm-font); font-size: 16px; line-height: 22px;
+  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+}
+.warm-manage-dialog__input::placeholder { color: var(--warm-faint); }
+.warm-manage-dialog__input:focus {
+  border-color: var(--warm-accent); background: var(--warm-bg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warm-accent) 12%, transparent);
+}
+.warm-manage-dialog__error {
+  min-height: 0; margin: 8px 0 0 !important;
+  color: var(--warm-danger, #dc4545) !important; font-size: 12px !important; line-height: 20px !important;
+}
+.warm-manage-dialog__error:empty { display: none; }
+.warm-manage-dialog__actions {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 24px;
+}
+.warm-manage-dialog__actions button {
+  display: inline-flex; min-width: 82px; min-height: 38px; align-items: center; justify-content: center;
+  padding: 8px 16px; border: 1px solid var(--warm-border); border-radius: 7px;
+  background: var(--warm-bg); color: var(--warm-muted); font-family: var(--warm-font);
+  font-size: 16px; font-weight: 500; line-height: 20px; cursor: pointer;
+  transition: color .2s ease, border-color .2s ease, background-color .2s ease, opacity .2s ease;
+}
+.warm-manage-dialog__actions button:hover:not(:disabled) {
+  border-color: var(--warm-accent); background: var(--warm-surface); color: var(--warm-text);
+}
+.warm-manage-dialog__actions [data-warm-dialog-confirm] {
+  border-color: var(--warm-accent); background: var(--warm-accent); color: #fff;
+}
+.warm-manage-dialog__actions [data-warm-dialog-confirm]:hover:not(:disabled) { filter: brightness(.92); }
+.warm-manage-dialog__actions button:disabled { cursor: not-allowed; opacity: .4; }
+@media (max-width: 639px) {
+  .warm-manage-dialog__panel { padding: 26px 18px 20px; }
+  .warm-manage-dialog__actions { gap: 8px; }
+  .warm-manage-dialog__actions button { min-width: 76px; padding-inline: 12px; }
+}
