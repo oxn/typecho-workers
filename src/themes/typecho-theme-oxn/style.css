@@ -334,10 +334,19 @@ body.warm-theme {
 
 .warm-note__content {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
   color: #45413d;
   font-size: 17px;
   line-height: 2;
   overflow-wrap: anywhere;
+}
+
+.warm-note__content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
 }
 
 .warm-note__content > :first-child,
