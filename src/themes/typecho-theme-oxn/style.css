@@ -720,9 +720,11 @@ body.warm-theme {
   scroll-margin-top: 40px;
 }
 
-.warm-prose h2 { margin: 2.4em 0 .85em; font-size: 1.48em; line-height: 1.5; }
-.warm-prose h3 { margin: 1.9em 0 .7em; font-size: 1.18em; line-height: 1.55; }
-.warm-prose h4 { margin: 1.7em 0 .7em; font-size: 1em; line-height: 1.6; }
+.warm-prose h2 { margin: 2.4em 0 .85em; font-size: 1.4em; line-height: 1.5; }
+.warm-prose h3 { margin: 1.9em 0 .7em; font-size: 1.25em; line-height: 1.55; }
+.warm-prose h4 { margin: 1.7em 0 .7em; font-size: 1.1em; line-height: 1.6; }
+.warm-prose h5 { font-size: 1.08em; }
+.warm-prose h6 { font-size: 1.08em; }
 
 .warm-prose a {
   color: #5f554d;
