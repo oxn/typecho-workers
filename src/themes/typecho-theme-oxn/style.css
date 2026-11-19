@@ -1805,25 +1805,42 @@ body.warm-theme {
   align-items: stretch;
   gap: 10px;
 }
-.warm-search-input {
+/* Search and management-dialog inputs share one visual definition. */
+.warm-search-input,
+.warm-manage-dialog__input {
   display: block;
+  box-sizing: border-box;
+  width: 100%;
   min-width: 0;
   min-height: 46px;
-  flex: 1 1 auto;
   padding: 10px 13px;
   border: 1px solid var(--warm-border);
   border-radius: 8px;
   outline: none;
   background: var(--warm-bg);
   color: var(--warm-text);
+  font-family: var(--warm-font);
   font-size: 15px;
+  line-height: 22px;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
+.warm-search-input {
+  flex: 1 1 auto;
+}
+.warm-manage-dialog__input {
+  margin: 16px 0 8px;
+}
 .warm-search-input:focus,
-.warm-search-input:focus-visible {
+.warm-search-input:focus-visible,
+.warm-manage-dialog__input:focus,
+.warm-manage-dialog__input:focus-visible {
   border-color: var(--warm-accent);
   outline: none;
   box-shadow: 0 0 0 2px rgba(104, 95, 87, .12);
+}
+.warm-search-input::placeholder,
+.warm-manage-dialog__input::placeholder {
+  color: var(--warm-faint);
 }
 .warm-search-submit {
   display: inline-flex;
@@ -1910,18 +1927,7 @@ body.warm-theme {
   font-size: 16px; font-weight: 400; line-height: 24px; overflow-wrap: anywhere;
 }
 .warm-manage-dialog[data-warm-dialog="delete"] .warm-manage-dialog__panel p:not(.warm-manage-dialog__error) { margin-bottom: 12px; }
-.warm-manage-dialog__input {
-  display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px;
-  margin: 16px 0 8px; padding: 10px 12px; border: 1px solid var(--warm-border);
-  border-radius: 7px; outline: none; background: var(--warm-surface); color: var(--warm-text);
-  font-family: var(--warm-font); font-size: 16px; line-height: 22px;
-  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
-}
-.warm-manage-dialog__input::placeholder { color: var(--warm-faint); }
-.warm-manage-dialog__input:focus {
-  border-color: var(--warm-accent); background: var(--warm-bg);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warm-accent) 12%, transparent);
-}
+
 .warm-manage-dialog__error {
   min-height: 0; margin: 8px 0 0 !important;
   color: var(--warm-danger, #dc4545) !important; font-size: 12px !important; line-height: 20px !important;
