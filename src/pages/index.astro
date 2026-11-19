@@ -53,7 +53,7 @@ const templates = themeTemplates[activeTheme] ?? {};
 const defaultTemplates = themeTemplates['typecho-theme-warm']!;
 let Component = templates.Index ?? defaultTemplates.Index!;
 const requestedStream = Astro.url.searchParams.get('stream');
-const isWarmNotesStream = activeTheme === 'typecho-theme-warm' &&
+const isWarmNotesStream =
   ctx.activatedPlugins.has('typecho-plugin-notes') &&
   (Astro.url.searchParams.has('topic') || requestedStream !== 'posts');
 let data = await prepareIndexData(ctx, Astro.request.url, Astro.locals, Astro.url, {
