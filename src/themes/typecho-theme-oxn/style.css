@@ -1119,18 +1119,69 @@ body.warm-theme {
   margin-bottom: 24px;
 }
 
-.warm-comment-management {
+/* 1119d 评论区管理员操作按钮：沿用成熟版结构与状态样式。 */
+.warm-article__actions {
   position: static;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
   min-height: 32px;
+  margin-left: auto;
 }
-.warm-comment-management [data-warm-action="pin"].is-pinned {
-  background: var(--warm-hover);
+
+.warm-action-button {
+  position: static;
+  display: inline-flex;
+  width: 32px;
+  height: 30px;
+  min-width: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--warm-border);
+  border-radius: 6px;
+  background: var(--warm-bg);
+  color: var(--warm-muted);
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.warm-action-button:hover {
+  border-color: var(--warm-accent);
+  background: var(--warm-surface);
   color: var(--warm-accent);
+}
+
+.warm-action-button svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.warm-action-button.is-pinned {
+  border-color: var(--warm-accent);
+  color: var(--warm-accent);
+}
+
+.warm-action-button[data-warm-action="delete"] {
+  color: #f59e0b;
+}
+
+@media (max-width: 640px) {
+  .warm-article__actions { gap: 5px; }
+  .warm-action-button {
+    width: 30px;
+    height: 29px;
+    min-width: 30px;
+  }
+  .warm-action-button svg {
+    width: 15px;
+    height: 15px;
+    flex-basis: 15px;
+  }
 }
 
 .warm-comments__heading h2 {
