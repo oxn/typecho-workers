@@ -18,6 +18,7 @@ export interface WarmSettings {
   footerLinks: Array<{ text: string; url: string; newWindow: boolean }>;
   footerCustomHtml: string;
   articleDeclarationHtml: string;
+  showThemeToggleButton: boolean;
   showHomeSearchButton: boolean;
   showAdminEntryButton: boolean;
   githubUrl: string;
@@ -64,6 +65,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     footerLinks,
     footerCustomHtml,
     articleDeclarationHtml,
+    showThemeToggleButton: enabled(oxnSettings.showThemeToggleButton),
     showHomeSearchButton: enabled(oxnSettings.showHomeSearchButton),
     showAdminEntryButton: enabled(oxnSettings.showAdminEntryButton),
     githubUrl: safeExternalUrl(settings.githubUrl),
