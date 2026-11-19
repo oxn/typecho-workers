@@ -354,8 +354,7 @@ body.warm-theme {
   margin-top: 0;
 }
 
-.warm-note__content > :last-child,
-.warm-password-gate__form {
+.warm-note__content > :last-child {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -363,43 +362,20 @@ body.warm-theme {
   max-width: 100%;
   margin-top: 16px;
 }
+.warm-password-gate > p {
+  margin: 0 0 18px;
+  text-align: center;
+}
+.warm-password-gate__form {
+  width: min(100%, 430px);
+  margin: 28px auto;
+  text-align: left;
+}
 .warm-password-gate__form label {
-  flex: 0 0 auto;
+  display: block;
+  margin-bottom: 6px;
   color: var(--warm-muted);
-  font-size: 16px;
-  font-weight: 400;
-  white-space: nowrap;
-}
-.warm-password-gate__input {
-  width: auto;
-  min-width: 0;
-  min-height: 42px;
-  flex: 1 1 auto;
-  padding: 8px 11px;
-  border: 1px solid var(--warm-border);
-  border-radius: 0;
-  background: var(--warm-bg);
-  color: var(--warm-text);
-  font: inherit;
-}
-.warm-password-gate__input:focus {
-  border-color: var(--warm-accent);
-  outline: 0;
-}
-.warm-password-gate__form button {
-  min-height: 42px;
-  flex: 0 0 auto;
-  padding: 7px 18px;
-  border: 0;
-  border-radius: 0;
-  background: var(--warm-accent);
-  color: #fff;
-  cursor: pointer;
-  transition: background-color 200ms ease;
-}
-.warm-password-gate__form button:hover {
-  background: var(--warm-text);
-  color: #fff;
+  font-size: 12px;
 }
 
 .warm-prose > :last-child {
@@ -1393,7 +1369,8 @@ body.warm-theme {
 
 .warm-comment-form input,
 .warm-comment-form textarea,
-.warm-not-found input {
+.warm-not-found input,
+.warm-password-gate__input {
   width: 100%;
   border: 1px solid var(--warm-border);
   border-radius: 0;
@@ -1415,7 +1392,8 @@ body.warm-theme {
 
 .warm-comment-form input:focus,
 .warm-comment-form textarea:focus,
-.warm-not-found input:focus {
+.warm-not-found input:focus,
+.warm-password-gate__input:focus {
   border-color: var(--warm-accent);
   background: var(--warm-bg);
   outline: 0;
@@ -1678,20 +1656,23 @@ body.warm-theme {
   border-radius: 0;
 }
 
-.warm-not-found form {
+.warm-not-found form,
+.warm-password-gate__form {
   width: min(100%, 430px);
   margin: 28px auto;
   text-align: left;
 }
 
-.warm-not-found label {
+.warm-not-found label,
+.warm-password-gate__form label {
   display: block;
   margin-bottom: 6px;
   color: var(--warm-muted);
   font-size: 12px;
 }
 
-.warm-not-found form > div {
+.warm-not-found form > div,
+.warm-password-gate__form > div {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 7px;
