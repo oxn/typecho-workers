@@ -7,9 +7,17 @@ interface Props {
   initialLoadMode: WarmCommentInitialLoadMode;
   /** Seconds the submit button stays locked after a submit attempt (0 disables). */
   cooldownSeconds?: number;
+  management?: {
+    canManage: boolean;
+    showManagementButtons: boolean;
+    adminUrl: string;
+    contentType: 'post' | 'page';
+    isPinned: boolean;
+    csrfToken: string;
+  } | null;
 }
 
-const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0 } = Astro.props;
+const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0, management } = Astro.props;
 const requestedCommentPage = Astro.url.searchParams.get('commentPage');
 ---
 <section
@@ -21,6 +29,12 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
   data-comment-component-load={componentLoadMode}
   data-current-page={requestedCommentPage || undefined}
   data-comment-initial-load={initialLoadMode}
+  data-can-manage={management?.canManage ? 'true' : undefined}
+  data-show-management-buttons={management?.showManagementButtons === false ? 'false' : 'true'}
+  data-admin-url={management?.adminUrl}
+  data-content-type={management?.contentType}
+  data-is-pinned={management?.isPinned ? 'true' : 'false'}
+  data-csrf-token={management?.csrfToken}
 ></section>
 
 <script is:inline>
@@ -201,7 +215,14 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
     const renderFrame = (root, data) => {
       const password = new URL(window.location.href).searchParams.get('password') || '';
       root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
-          ${renderManagement(data.management, root.dataset.cid)}
+          ${renderManagement(root.dataset.canManage === 'true' ? {
+            canManage: true,
+            showManagementButtons: root.dataset.showManagementButtons !== 'false',
+            adminUrl: root.dataset.adminUrl || '/admin/',
+            contentType: root.dataset.contentType,
+            isPinned: root.dataset.isPinned === 'true',
+            csrfToken: root.dataset.csrfToken || '',
+          } : null, root.dataset.cid)}
         </div>
         ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken)}
         <div class="warm-comment-list" data-comment-list aria-live="polite">
@@ -582,21 +603,33 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           showError('');
 
           try {
-            const response = await fetch('/api/admin/theme-pin', {
+            const configResponse = await fetch('/api/admin/theme-config', {
+              credentials: 'same-origin',
+              headers: { Accept: 'application/json' },
+            });
+            const config = await configResponse.json();
+            if (!configResponse.ok || config.theme !== 'typecho-theme-oxn' || !config.values) {
+              throw new Error(config.error || '无法读取 OXN 主题设置');
+            }
+
+            const pinnedIds = String(config.values.pinnedIds || '')
+              .split(/[，,\s]+/)
+              .map(value => Number(value.trim()))
+              .filter(value => Number.isSafeInteger(value) && value > 0 && value !== Number(cid));
+            if (targetPinned) pinnedIds.unshift(Number(cid));
+
+            const response = await fetch('/api/admin/theme-config', {
               method: 'POST',
+              credentials: 'same-origin',
               headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfToken,
               },
               body: JSON.stringify({
-                cid: Number(cid),
-                pinned: targetPinned,
-                confirmation: '确认',
+                settings: { ...config.values, pinnedIds: [...new Set(pinnedIds)].join(',') },
               }),
             });
-
             const result = await response.json();
-
             if (!response.ok || !result.success) {
               throw new Error(result.error || '置顶操作失败，请稍后重试');
             }

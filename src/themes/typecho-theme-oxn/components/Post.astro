@@ -4,6 +4,7 @@ import { getDb } from 'typecho/db';
 import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
 import { createContext } from '@/lib/context';
+import { hasPermission } from '@/lib/auth';
 import { optimizeContentImages } from '@/lib/image-transform';
 import type { ThemePostProps } from '@/lib/theme-props';
 import WarmShell from './WarmShell.astro';
@@ -15,19 +16,29 @@ import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmAr
 type Props = ThemePostProps;
 
 const {
-  options, urls, pages, sidebarData, currentPath, pluginCtx,
+  options, urls, pages, sidebarData, currentPath, pluginCtx, user,
   post, author, categories, tags, commentPagination,
 } = Astro.props;
 
 const db = getDb(env.DB);
-const noteContext = pluginCtx.activatedPlugins.has('typecho-plugin-notes')
+const isAdmin = !!user && hasPermission(user.group || 'visitor', 'administrator');
+const requestContext = isAdmin || pluginCtx.activatedPlugins.has('typecho-plugin-notes')
   ? await createContext(Astro.locals, Astro.request)
   : null;
+const noteContext = pluginCtx.activatedPlugins.has('typecho-plugin-notes') ? requestContext : null;
 const note = noteContext
   ? await getNoteForTheme(noteContext.db ?? db, post.cid, urls.siteUrl)
   : null;
 const isNote = note?.type === 'note';
 const settings = warmSettings(options);
+const commentManagement = isAdmin && requestContext ? {
+  canManage: true,
+  showManagementButtons: settings.showCommentManagementButtons,
+  adminUrl: urls.adminUrl,
+  contentType: 'post' as const,
+  isPinned: settings.pinnedIds.includes(post.cid),
+  csrfToken: requestContext.csrfToken || '',
+} : null;
 const optimizedContent = optimizeContentImages(
   isNote ? note.html : post.content,
   settings.imageOptimizeParams,
@@ -122,6 +133,7 @@ const articleDeclarationHtml = !isNote
       componentLoadMode={settings.commentComponentLoadMode}
       initialLoadMode={settings.commentInitialLoadMode}
       cooldownSeconds={options.commentsPostIntervalEnable ? (options.commentsPostInterval || 60) : 0}
+      management={commentManagement}
     />
   )}
 

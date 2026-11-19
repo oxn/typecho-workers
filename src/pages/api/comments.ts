@@ -2,14 +2,11 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '@/db';
-import { computeUrls, loadOptions } from '@/lib/options';
-import { loadThemeConfig } from '@/lib/theme';
+import { loadOptions } from '@/lib/options';
 import {
   getAuthCookies,
   getCookieValue,
   generateCommentToken,
-  generateSecurityToken,
-  hasPermission,
   validateAuthToken,
   validateUnapprovedCommentToken,
 } from '@/lib/auth';
@@ -117,40 +114,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   }
   if (!isPublicContent) return jsonError(404, '内容不存在', PRIVATE_HEADERS);
 
-  let management: Record<string, unknown> | undefined;
-  if (
-    authResult
-    && authResult.user.authCode
-    && hasPermission(authResult.user.group || 'visitor', 'administrator')
-    && options.theme === 'typecho-theme-oxn'
-    && (content.type === 'post' || content.type === 'page')
-  ) {
-    const themeSettings = loadThemeConfig(options, 'typecho-theme-oxn');
-    const setting = themeSettings.showCommentManagementButtons;
-    const showManagementButtons = setting === undefined || setting === null || setting === ''
-      ? true
-      : !(setting === false || setting === 0 || setting === '0');
-    const pinnedIds = String(themeSettings.pinnedIds || '')
-      .split(/[\s,]+/)
-      .map(value => Number(value))
-      .filter(value => Number.isSafeInteger(value) && value > 0);
-    management = {
-      canManage: true,
-      showManagementButtons,
-      adminUrl: computeUrls(options).adminUrl,
-      contentType: content.type,
-      isPinned: content.type === 'post' && pinnedIds.includes(cid),
-      csrfToken: await generateSecurityToken(options.secret as string, authResult.user.authCode, authResult.uid),
-    };
-  }
-
-  const extendCommentPayload = async (payload: CommentListPayload) => {
-    const extended = await applyFilterSafely(
-      pluginCtx, 'comment:list', payload, { request, options, cid },
-    ) ?? payload;
-    return management ? { ...extended, management } : extended;
-  };
-
   const includeComments = url.searchParams.get('includeComments') !== '0';
   const securityToken = options.commentsAntiSpam
     ? await generateCommentToken(options.secret, cid)
@@ -175,7 +138,9 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
       options: { ...buildCommentOptions(options, securityToken), allowComment },
       commenter,
     };
-    const extendedPayload = await extendCommentPayload(payload);
+    const extendedPayload = await applyFilterSafely(
+      pluginCtx, 'comment:list', payload, { request, options, cid },
+    ) ?? payload;
     return finishResponse(jsonOk(extendedPayload, {
       ...PRIVATE_HEADERS,
       'X-Typecho-Comment-Cache': 'BYPASS',
@@ -254,7 +219,9 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     options: { ...buildCommentOptions(options, securityToken), allowComment },
     commenter,
   };
-  const extendedPayload = await extendCommentPayload(payload);
+  const extendedPayload = await applyFilterSafely(
+    pluginCtx, 'comment:list', payload, { request, options, cid },
+  ) ?? payload;
   const response = jsonOk(extendedPayload, {
     ...PRIVATE_HEADERS,
     'X-Typecho-Comment-Cache': includeComments ? cacheStatus : 'BYPASS',

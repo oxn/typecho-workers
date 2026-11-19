@@ -21,6 +21,7 @@ export interface WarmSettings {
   showThemeToggleButton: boolean;
   showHomeSearchButton: boolean;
   showAdminEntryButton: boolean;
+  showCommentManagementButtons: boolean;
   githubUrl: string;
   socialUrl: string;
   email: string;
@@ -68,6 +69,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     showThemeToggleButton: enabled(oxnSettings.showThemeToggleButton),
     showHomeSearchButton: enabled(oxnSettings.showHomeSearchButton),
     showAdminEntryButton: enabled(oxnSettings.showAdminEntryButton),
+    showCommentManagementButtons: enabled(oxnSettings.showCommentManagementButtons),
     githubUrl: safeExternalUrl(settings.githubUrl),
     socialUrl: safeExternalUrl(settings.socialUrl),
     email: safeEmail(settings.email),
