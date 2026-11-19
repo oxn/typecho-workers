@@ -919,9 +919,21 @@ body.warm-theme {
   color: var(--warm-muted);
   font: 12px/1.4 var(--warm-font);
   cursor: pointer;
-  opacity: .75;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms ease, visibility 150ms ease;
 }
-.warm-prose pre [data-warm-copy]:hover { opacity: 1; }
+.warm-prose pre:hover [data-warm-copy],
+.warm-prose pre:focus-within [data-warm-copy] {
+  opacity: .85;
+  visibility: visible;
+}
+@media (hover: none), (pointer: coarse) {
+  .warm-prose pre [data-warm-copy] {
+    opacity: .85;
+    visibility: visible;
+  }
+}
 
 .warm-prose pre code {
   padding: 0;
@@ -1737,7 +1749,7 @@ body.warm-theme {
   }
 
   .warm-prose pre {
-    padding: 24px 28px;
+    padding: 44px 28px 24px;
     font-size: 13px;
   }
 
