@@ -360,6 +360,22 @@ const footerLinks = [
     })();
   </script>
   <Fragment slot="head">
+    <script is:inline>
+      (() => {
+        const storageKey = 'warm-theme-mode';
+        const validModes = ['light', 'system', 'dark'];
+        let mode = 'system';
+        try {
+          const savedMode = window.localStorage.getItem(storageKey);
+          if (validModes.includes(savedMode)) mode = savedMode;
+        } catch {}
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle(
+          'dark',
+          mode === 'dark' || (mode === 'system' && systemPrefersDark)
+        );
+      })();
+    </script>
     <meta name="theme-color" content="#ffffff" />
     <script is:inline data-instant-track data-no-instant set:html={instantClickSource}></script>
     <script is:inline data-instant-track data-no-instant set:html={viewImageSource}></script>
