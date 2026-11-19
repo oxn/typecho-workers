@@ -1583,6 +1583,30 @@ body.warm-theme {
   gap: 20px;
 }
 
+/* 页脚链接 */
+.warm-footer__meta nav > a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--warm-faint);
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+/* 页脚图标容器 */
+.warm-footer__meta nav > a > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 页脚 SVG 图标 */
+.warm-footer__meta nav > a > span > svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
 .warm-footer__meta a:hover {
   color: var(--warm-accent);
 }
