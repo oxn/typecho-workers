@@ -371,13 +371,6 @@ body.warm-theme {
   margin: 28px auto;
   text-align: left;
 }
-.warm-password-gate__form label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--warm-muted);
-  font-size: 12px;
-}
-
 .warm-prose > :last-child {
   margin-bottom: 0;
 }
@@ -1455,7 +1448,8 @@ body.warm-theme {
 }
 
 .warm-comment-form button:hover,
-.warm-not-found button:hover {
+.warm-not-found button:hover,
+.warm-password-gate__form button:hover {
   background: var(--warm-text);
   color: #fff;
 }
@@ -1678,7 +1672,8 @@ body.warm-theme {
   gap: 7px;
 }
 
-.warm-not-found input {
+.warm-not-found input,
+.warm-password-gate__input {
   min-width: 0;
   min-height: 42px;
   padding: 8px 11px;
