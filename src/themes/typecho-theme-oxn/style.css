@@ -414,7 +414,7 @@ body.warm-theme {
   width: auto;
   max-width: 100%;
   aspect-ratio: 4 / 3;
-  border-radius: 0;
+  border-radius: 4px;
   background: var(--warm-surface-strong);
   object-fit: cover;
 }
@@ -769,8 +769,10 @@ body.warm-theme {
   color: #aaa59f;
 }
 
-.warm-prose img {
+.warm-prose img,
+.warm-article__declaration img {
   max-width: 100%;
+  height: auto;
   border-radius: 4px;
 }
 
@@ -979,7 +981,6 @@ body.warm-theme {
 }
 
 /* Only top-level article blocks break out: never notes, comments or nested lists. */
-.warm-article:not(.is-note) .warm-prose img,
 .warm-article:not(.is-note) .warm-prose table {
   position: relative;
   left: 50%;
@@ -990,7 +991,6 @@ body.warm-theme {
   transform: translateX(-50%);
 }
 
-.warm-article:not(.is-note) .warm-prose img:not([width]),
 .warm-article:not(.is-note) .warm-prose table {
   width: auto;
 }
