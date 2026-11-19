@@ -2613,3 +2613,33 @@ html.dark {
 .dark .warm-theme .warm-header__tools > a.warm-nav__account:focus-visible {
   color: var(--warm-text);
 }
+
+
+/* Dark mode: unify theme headings and emphasized body text to the softer body tone. */
+.dark .warm-brand__title,
+.dark .warm-post-card h2 a,
+.dark .warm-post-card:hover h2 a,
+.dark .warm-article__header h1,
+.dark .warm-empty h1,
+.dark .warm-empty h2,
+.dark .warm-not-found h1,
+.dark .warm-prose h1,
+.dark .warm-prose h2,
+.dark .warm-prose h3,
+.dark .warm-prose h4,
+.dark .warm-prose h5,
+.dark .warm-prose h6,
+.dark .warm-note__content h1,
+.dark .warm-note__content h2,
+.dark .warm-note__content h3,
+.dark .warm-note__content h4,
+.dark .warm-note__content h5,
+.dark .warm-note__content h6,
+.dark .warm-prose strong,
+.dark .warm-prose b,
+.dark .warm-note__content strong,
+.dark .warm-note__content b,
+.dark .warm-prose blockquote > strong:first-child,
+.dark .warm-prose table th {
+  color: var(--warm-body);
+}
