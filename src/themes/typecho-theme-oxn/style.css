@@ -2417,3 +2417,65 @@ html.dark {
   color: var(--warm-text);
 }
 
+/* Dark-mode contrast audit: cover theme elements with fixed light-mode text colors. */
+.dark .warm-article__header h1,
+.dark .warm-empty h1,
+.dark .warm-empty h2,
+.dark .warm-not-found h1 {
+  color: var(--warm-text);
+}
+
+.dark .warm-article__summary {
+  color: var(--warm-muted);
+}
+
+.dark .warm-note__content h1,
+.dark .warm-note__content h2,
+.dark .warm-note__content h3,
+.dark .warm-note__content h4,
+.dark .warm-note__content h5,
+.dark .warm-note__content h6 {
+  color: var(--warm-text);
+}
+
+.dark .warm-prose .markdown-alert,
+.dark .warm-note__content .markdown-alert {
+  color: var(--warm-body);
+}
+
+.dark .warm-prose .markdown-alert-note .markdown-alert-title,
+.dark .warm-note__content .markdown-alert-note .markdown-alert-title {
+  color: #8db9e5;
+}
+
+.dark .warm-prose .markdown-alert-note,
+.dark .warm-note__content .markdown-alert-note {
+  border-left-color: #8db9e5;
+}
+
+.dark .warm-prose .markdown-alert-tip .markdown-alert-title,
+.dark .warm-note__content .markdown-alert-tip .markdown-alert-title {
+  color: #91c99a;
+}
+
+.dark .warm-prose .markdown-alert-tip,
+.dark .warm-note__content .markdown-alert-tip {
+  border-left-color: #91c99a;
+}
+
+.dark .warm-prose .markdown-alert-warning .markdown-alert-title,
+.dark .warm-note__content .markdown-alert-warning .markdown-alert-title {
+  color: #e3c16c;
+}
+
+.dark .warm-prose .markdown-alert-warning,
+.dark .warm-note__content .markdown-alert-warning {
+  border-left-color: #e3c16c;
+}
+
+.dark .warm-comment-form button,
+.dark .warm-not-found button,
+.dark .warm-search-submit,
+.dark .warm-manage-dialog__actions [data-warm-dialog-confirm] {
+  color: #171819;
+}
