@@ -2429,6 +2429,11 @@ html.dark {
 }
 
 .dark .warm-search-dialog__panel h2,
+.dark .warm-manage-dialog__panel h2,
+.dark .warm-manage-dialog__panel [data-warm-dialog-title] {
+  color: var(--warm-body);
+}
+
 .dark .warm-search-input {
   color: var(--warm-text);
 }
