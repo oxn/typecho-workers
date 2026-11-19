@@ -821,17 +821,19 @@ body.warm-theme {
 /* GitHub-style markdown alerts (`> [!NOTE]` …) — same panel as quote, plus title */
 .warm-prose .markdown-alert,
 .warm-note__content .markdown-alert {
-  line-height: 1.6;
+  font-size: 0.95em;
+  line-height: 1.65;
   letter-spacing: 0;
   color: #403d39;
 }
 
 .warm-prose .markdown-alert-title,
 .warm-note__content .markdown-alert-title {
-  margin: 0 0 .5rem !important;
-  font-weight: 650;
+  margin: 0 0 8px !important;
+  font-weight: 700;
   font-size: .92rem;
-  letter-spacing: .02em;
+  line-height: 1.25em;
+  letter-spacing: 0;
 }
 
 .warm-prose .markdown-alert p,
