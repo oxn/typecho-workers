@@ -394,7 +394,6 @@ body.warm-theme {
   border-radius: 0;
   background: var(--warm-accent);
   color: #fff;
-  font-weight: 500;
   cursor: pointer;
   transition: background-color 200ms ease;
 }
@@ -1472,7 +1471,7 @@ body.warm-theme {
   background: var(--warm-accent);
   color: #fff;
   cursor: pointer;
-  font-size: inherit;
+  font-size: 12px;
   font-weight: 700;
   transition: background-color 200ms ease;
 }
