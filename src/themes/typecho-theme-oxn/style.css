@@ -762,7 +762,7 @@ body.warm-theme {
 
 .warm-prose img {
   max-width: 100%;
-  height: auto;
+  border-radius: 4px;
 }
 
 .warm-prose iframe {
@@ -783,8 +783,11 @@ body.warm-theme {
 
 .warm-prose figure img {
   display: block;
-  width: 100%;
   background: var(--warm-surface);
+}
+
+.warm-prose figure img:not([width]):not([height]) {
+  width: 100%;
 }
 
 .warm-prose figcaption {
@@ -943,8 +946,12 @@ body.warm-theme {
     var(--warm-breakout-width),
     calc(100% + 2 * var(--warm-gutter) + max(0px, 100vw - var(--warm-page-width)))
   );
-  width: auto;
   transform: translateX(-50%);
+}
+
+.warm-article:not(.is-note) .warm-prose img:not([width]),
+.warm-article:not(.is-note) .warm-prose table {
+  width: auto;
 }
 
 .warm-article__body {
