@@ -5,13 +5,12 @@ import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
 import { createContext } from '@/lib/context';
 import { hasPermission } from '@/lib/auth';
-import { optimizeContentImages } from '@/lib/image-transform';
 import type { ThemePostProps } from '@/lib/theme-props';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
-import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings, renderArticleDeclaration } from './warm';
+import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings, renderArticleDeclaration, warmOptimizeContentImages } from './warm';
 
 type Props = ThemePostProps;
 
@@ -39,7 +38,7 @@ const commentManagement = isAdmin && requestContext ? {
   isPinned: settings.pinnedIds.includes(post.cid),
   csrfToken: requestContext.csrfToken || '',
 } : null;
-const optimizedContent = optimizeContentImages(
+const optimizedContent = warmOptimizeContentImages(
   isNote ? note.html : post.content,
   settings.imageOptimizeParams,
   urls.siteUrl,
