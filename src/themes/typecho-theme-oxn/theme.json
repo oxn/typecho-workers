@@ -1,0 +1,80 @@
+{
+  "id": "typecho-theme-oxn",
+  "name": "typecho-theme-oxn",
+  "description": "静谧温润的单栏写作主题，支持文章与笔记混合时间线。",
+  "author": "Tokinx",
+  "version": "1.0.0",
+  "stylesheet": "style.css",
+  "homepage": "https://github.com/oxn/typecho-workers/tree/1119j/src/themes/typecho-theme-oxn",
+  "license": "MIT",
+  "commentsMode": "api",
+  "publicHtml": true,
+  "tags": [
+    "warm",
+    "minimal",
+    "notes",
+    "single-column"
+  ],
+  "config": {
+    "githubUrl": {
+      "type": "text",
+      "label": "GitHub 地址",
+      "default": ""
+    },
+    "socialUrl": {
+      "type": "text",
+      "label": "社交主页地址",
+      "default": ""
+    },
+    "email": {
+      "type": "text",
+      "label": "联系邮箱",
+      "default": ""
+    },
+    "imageOptimizeParams": {
+      "type": "text",
+      "label": "图片优化参数",
+      "description": "适用于站内所有图片，示例：?quality=80",
+      "default": ""
+    },
+    "thumbOptimizeParams": {
+      "type": "text",
+      "label": "缩略图优化参数",
+      "description": "适用于主题所有缩略图位置，示例：?quality=80&width=500",
+      "default": ""
+    },
+    "continuousLoadMode": {
+      "type": "select",
+      "label": "内容列表",
+      "description": "控制首页、分类和笔记内容列表后续页的加载方式。",
+      "default": "manual",
+      "options": {
+        "manual": "手动加载",
+        "auto-2": "滚动加载 2 次",
+        "infinite": "无限滚动加载"
+      }
+    },
+    "commentComponentLoadMode": {
+      "type": "select",
+      "label": "评论组件",
+      "description": "控制评论框及其表单配置的加载方式。",
+      "default": "manual",
+      "options": {
+        "manual": "手动加载",
+        "dwell": "停留 3 秒加载",
+        "auto": "自动加载"
+      }
+    },
+    "commentInitialLoadMode": {
+      "type": "select",
+      "label": "评论列表",
+      "default": "manual",
+      "options": {
+        "manual": "手动加载",
+        "auto-first": "加载第一页",
+        "auto-2": "滚动加载 2 次",
+        "infinite": "无限滚动加载"
+      }
+    }
+  }
+}
