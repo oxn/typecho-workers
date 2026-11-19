@@ -385,7 +385,7 @@ body.warm-theme {
   font-weight: 600;
 }
 
-/* Note media retains the existing grid, sizing, expansion and lightbox layout; all surfaces are hard-edged. */
+/* Note media keeps its existing grid, sizing, expansion and lightbox layout. */
 
 .warm-note__images {
   position: relative;
@@ -980,19 +980,16 @@ body.warm-theme {
   color: #68635e;
 }
 
-/* Only top-level article blocks break out: never notes, comments or nested lists. */
+/* Tables may break out; article images stay within the reading column. */
 .warm-article:not(.is-note) .warm-prose table {
   position: relative;
   left: 50%;
+  width: auto;
   max-width: min(
     var(--warm-breakout-width),
     calc(100% + 2 * var(--warm-gutter) + max(0px, 100vw - var(--warm-page-width)))
   );
   transform: translateX(-50%);
-}
-
-.warm-article:not(.is-note) .warm-prose table {
-  width: auto;
 }
 
 .warm-article__body {
