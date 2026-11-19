@@ -1,7 +1,7 @@
 {
   "id": "typecho-theme-oxn",
-  "name": "typecho-theme-oxn",
-  "description": "静谧温润的单栏写作主题，支持文章与笔记混合时间线。",
+  "name": "Oxn Simple",
+  "description": "启用此主题需将 src/pages/index.astro 文件中的 `activeTheme === 'typecho-theme-warm' &&` 修改成 `activeTheme === '你的主题ID' &&`，否则无法正常使用笔记。",
   "author": "Tokinx",
   "version": "1.0.0",
   "stylesheet": "style.css",
