@@ -106,7 +106,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       const isPost = type === 'post';
       const adminUrl = String(management.adminUrl || '/admin/').replace(/\/?$/, '/');
       const editUrl = `${adminUrl}${isPost ? 'write-post' : 'write-page'}?cid=${escapeHtml(cid)}`;
-      const pin = isPost ? `<button type="button" class="warm-search-trigger" data-warm-action="pin"
+      const pin = isPost ? `<button type="button" class="warm-search-trigger${management.isPinned ? ' is-pinned' : ''}" data-warm-action="pin"
         aria-label="${management.isPinned ? '取消置顶' : '置顶文章'}" aria-pressed="${management.isPinned ? 'true' : 'false'}"
         title="${management.isPinned ? '取消置顶' : '置顶文章'}">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M7.3 7.7 13.7 1.3a1 1 0 0 1 1.4 0l1.1 1.1-1.7 5.6H21v2l-3 9H8v-1l-1-1V8.4zM2 9h3v12H2z"/></svg>
@@ -127,7 +127,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           </div>
         </dialog>`;
       return `
-        <div class="warm-header__tools" data-warm-actions data-cid="${escapeHtml(cid)}"
+        <div class="warm-comment-management" data-warm-actions data-cid="${escapeHtml(cid)}"
           data-csrf-token="${escapeHtml(management.csrfToken || '')}" data-admin-url="${escapeHtml(adminUrl)}" data-content-type="${type}">
           ${pin}
           <a class="warm-search-trigger" href="${escapeHtml(editUrl)}" data-no-instant aria-label="${isPost ? '编辑文章' : '编辑独立页面'}" title="${isPost ? '编辑文章' : '编辑独立页面'}">
