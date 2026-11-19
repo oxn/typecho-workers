@@ -41,18 +41,28 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
   const oxnSettings = loadThemeConfig(options, 'typecho-theme-oxn');
   const savedSettings = readSavedWarmSettings(options);
   const savedOxnSettings = readSavedThemeSettings(options, 'typecho-theme-oxn');
-  const savedContinuousLoadMode = Object.prototype.hasOwnProperty.call(savedOxnSettings || {}, 'continuousLoadMode')
-    ? savedOxnSettings?.continuousLoadMode
-    : Object.prototype.hasOwnProperty.call(savedSettings || {}, 'continuousLoadMode')
-      ? savedSettings?.continuousLoadMode
-      : settings.continuousLoadMode;
+  const hasSavedSetting = (saved: Record<string, unknown> | null, key: string) =>
+    Object.prototype.hasOwnProperty.call(saved || {}, key);
+  const savedContinuousLoadMode = hasSavedSetting(savedOxnSettings, 'continuousLoadMode')
+    ? oxnSettings.continuousLoadMode
+    : hasSavedSetting(savedSettings, 'continuousLoadMode')
+      ? settings.continuousLoadMode
+      : oxnSettings.continuousLoadMode ?? settings.continuousLoadMode;
+  const preferredSetting = (key: string) =>
+    hasSavedSetting(savedOxnSettings, key)
+      ? oxnSettings[key]
+      : hasSavedSetting(savedSettings, key)
+        ? settings[key]
+        : oxnSettings[key] ?? settings[key];
   const legacyCommentMode = savedSettings?.commentInitialLoadMode;
-  const componentLoadMode = Object.prototype.hasOwnProperty.call(savedSettings || {}, 'commentComponentLoadMode')
-    ? settings.commentComponentLoadMode
-    : legacyCommentMode === 'dwell' || legacyCommentMode === 'dwell-auto-2'
-      ? 'dwell'
-      : settings.commentComponentLoadMode;
-  const imageOptimizeParams = normalizeOptimizeParams(settings.imageOptimizeParams);
+  const componentLoadMode = hasSavedSetting(savedOxnSettings, 'commentComponentLoadMode')
+    ? oxnSettings.commentComponentLoadMode
+    : hasSavedSetting(savedSettings, 'commentComponentLoadMode')
+      ? settings.commentComponentLoadMode
+      : legacyCommentMode === 'dwell' || legacyCommentMode === 'dwell-auto-2'
+        ? 'dwell'
+        : oxnSettings.commentComponentLoadMode ?? settings.commentComponentLoadMode;
+  const imageOptimizeParams = normalizeOptimizeParams(preferredSetting('imageOptimizeParams'));
   const pinnedIds = parsePinnedIds(oxnSettings.pinnedIds);
   const footerCustomHtml = typeof oxnSettings.footerCustomHtml === 'string' ? oxnSettings.footerCustomHtml : '';
   const articleDeclarationHtml = typeof oxnSettings.articleDeclarationHtml === 'string' ? oxnSettings.articleDeclarationHtml : '';
@@ -81,9 +91,9 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     email: safeEmail(settings.email),
     continuousLoadMode: normalizeContinuousLoadMode(savedContinuousLoadMode),
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
-    commentInitialLoadMode: normalizeCommentInitialLoadMode(settings.commentInitialLoadMode),
+    commentInitialLoadMode: normalizeCommentInitialLoadMode(preferredSetting('commentInitialLoadMode')),
     imageOptimizeParams,
-    thumbOptimizeParams: normalizeOptimizeParams(settings.thumbOptimizeParams) || imageOptimizeParams,
+    thumbOptimizeParams: normalizeOptimizeParams(preferredSetting('thumbOptimizeParams')) || imageOptimizeParams,
   };
 }
 
