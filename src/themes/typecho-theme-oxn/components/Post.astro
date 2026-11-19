@@ -29,6 +29,7 @@ const note = noteContext
   ? await getNoteForTheme(noteContext.db ?? db, post.cid, urls.siteUrl)
   : null;
 const isNote = note?.type === 'note';
+const isPasswordLocked = !isNote && post.hasPassword && !post.passwordVerified;
 const settings = warmSettings(options);
 const commentManagement = isAdmin && requestContext ? {
   canManage: true,
@@ -97,8 +98,34 @@ const articleDeclarationHtml = !isNote
     </header>
 
     <div class:list={["warm-article__body", { "warm-article__body--toc": tocItems.length > 0 }]}>
-      <div class:list={["warm-prose", { "warm-note-prose": isNote }]} view-image itemprop="articleBody" set:html={displayContent} />
-      {tocItems.length > 0 && <WarmToc items={tocItems} />}
+      {isPasswordLocked ? (
+        <div class="warm-prose warm-password-gate" itemprop="articleBody">
+          <p>此内容已加密，请输入密码访问。</p>
+          <form class="warm-comment-form" method="get" action={Astro.url.pathname}>
+            <label>
+              <span>文章密码</span>
+              <input
+                class="warm-password-gate__input"
+                type="password"
+                id={`warm-post-password-${post.cid}`}
+                name="password"
+                autocomplete="current-password"
+                placeholder="请输入文章密码"
+                required
+              />
+            </label>
+            <div class="warm-comment-form__actions">
+              <span></span>
+              <button type="submit">打开</button>
+            </div>
+          </form>
+        </div>
+      ) : (
+        <>
+          <div class:list={["warm-prose", { "warm-note-prose": isNote }]} view-image itemprop="articleBody" set:html={displayContent} />
+          {tocItems.length > 0 && <WarmToc items={tocItems} />}
+        </>
+      )}
     </div>
 
     {isNote && (
