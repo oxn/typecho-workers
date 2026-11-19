@@ -930,7 +930,8 @@ body.warm-theme {
   border-radius: 4px;
   background: var(--warm-bg);
   color: var(--warm-muted);
-  font: 12px/1.4 var(--warm-font);
+  font-size: 0;
+  line-height: 0;
   cursor: pointer;
   opacity: 0;
   visibility: hidden;
