@@ -295,12 +295,28 @@ const footerLinks = [
           if (!pre) return;
           const clone = pre.cloneNode(true);
           clone.querySelector('[data-warm-copy]')?.remove();
+          const text = clone.textContent || '';
+          let copied = false;
           try {
-            await navigator.clipboard.writeText(clone.textContent || '');
-            button.textContent = '已复制';
-          } catch {
-            button.textContent = '复制失败';
+            if (navigator.clipboard?.writeText && window.isSecureContext) {
+              await navigator.clipboard.writeText(text);
+              copied = true;
+            }
+          } catch {}
+          if (!copied) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.pointerEvents = 'none';
+            document.body.append(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+            try { copied = document.execCommand('copy'); } catch {}
+            textarea.remove();
           }
+          button.textContent = copied ? '已复制' : '复制失败';
           window.setTimeout(() => { if (button.isConnected) button.textContent = '复制'; }, 1200);
         });
       }
