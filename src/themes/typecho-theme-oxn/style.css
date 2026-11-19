@@ -355,6 +355,55 @@ body.warm-theme {
 }
 
 .warm-note__content > :last-child,
+.warm-password-gate__form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 16px;
+}
+.warm-password-gate__form label {
+  flex: 0 0 auto;
+  color: var(--warm-muted);
+  font-size: 16px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.warm-password-gate__input {
+  width: auto;
+  min-width: 0;
+  min-height: 42px;
+  flex: 1 1 auto;
+  padding: 8px 11px;
+  border: 1px solid var(--warm-border);
+  border-radius: 0;
+  background: var(--warm-bg);
+  color: var(--warm-text);
+  font: inherit;
+}
+.warm-password-gate__input:focus {
+  border-color: var(--warm-accent);
+  outline: 0;
+}
+.warm-password-gate__form button {
+  min-height: 42px;
+  flex: 0 0 auto;
+  padding: 7px 18px;
+  border: 0;
+  border-radius: 0;
+  background: var(--warm-accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 200ms ease;
+}
+.warm-password-gate__form button:hover {
+  background: var(--warm-text);
+  color: #fff;
+}
+
 .warm-prose > :last-child {
   margin-bottom: 0;
 }
@@ -2571,6 +2620,7 @@ html.dark {
   border-left-color: #e3c16c;
 }
 
+.dark .warm-password-gate__form button,
 .dark .warm-comment-form button,
 .dark .warm-not-found button,
 .dark .warm-search-submit,
