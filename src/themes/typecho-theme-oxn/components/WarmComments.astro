@@ -257,9 +257,6 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       let dwellTimer = null;
       let componentObserver = null;
       let componentVisible = false;
-      let componentScrollStarted = false;
-      let componentScrollHandler = null;
-      const componentInitialScrollTop = window.scrollY;
       const autoLimit = initialMode === 'auto-2' ? 2 : initialMode === 'infinite' ? Infinity : 0;
 
       const cooldownMs = Math.max(0, Number(root.dataset.commentCooldown || 0) * 1000);
@@ -326,8 +323,6 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       const stopInitialLoader = () => {
         componentObserver?.disconnect();
         componentObserver = null;
-        if (componentScrollHandler) window.removeEventListener('scroll', componentScrollHandler);
-        componentScrollHandler = null;
         if (dwellTimer) window.clearTimeout(dwellTimer);
         dwellTimer = null;
         paginationObserver?.disconnect();
@@ -481,7 +476,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           list = root.querySelector('[data-comment-list]');
           if (!list) throw new Error('评论组件加载失败');
           list.setAttribute('aria-busy', 'true');
-          renderComments(data, list, false, true);
+          renderComments(data, list, false, false);
           return true;
         } catch (error) {
           renderComponentPrompt(root, error instanceof Error ? error.message : '评论加载失败，点击重试。', true, false);
@@ -815,7 +810,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           setDwellLoading(false);
         };
         const startDwellTimer = () => {
-          if (!componentScrollStarted || dwellTimer || metadataLoaded || metadataRequest) return;
+          if (dwellTimer || metadataLoaded || metadataRequest) return;
           setDwellLoading(true);
           dwellTimer = window.setTimeout(() => {
             dwellTimer = null;
@@ -824,17 +819,9 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           }, 3_000);
         };
 
-        componentScrollHandler = () => {
-          if (window.scrollY === componentInitialScrollTop) return;
-          componentScrollStarted = true;
-          window.removeEventListener('scroll', componentScrollHandler);
-          componentScrollHandler = null;
-          if (!componentObserver || componentVisible) startDwellTimer();
-        };
-        window.addEventListener('scroll', componentScrollHandler, { passive: true });
-
         if (!('IntersectionObserver' in window)) {
           componentVisible = true;
+          startDwellTimer();
           return;
         }
         componentObserver = new IntersectionObserver(entries => {
@@ -848,17 +835,24 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         componentObserver.observe(deferred);
       };
 
+      const onPageShow = event => {
+        if (event.persisted) restoreCooldown();
+      };
+
       const cleanupStalePage = () => {
         if (root.isConnected) return;
         stopInitialLoader();
+        if (cooldownTimer) {
+          window.clearTimeout(cooldownTimer);
+          cooldownTimer = null;
+        }
+        window.removeEventListener('pageshow', onPageShow);
         window.removeEventListener('instantclick:newpage', cleanupStalePage);
       };
 
       startComponentLoader();
       restoreCooldown();
-      window.addEventListener('pageshow', event => {
-        if (event.persisted) restoreCooldown();
-      });
+      window.addEventListener('pageshow', onPageShow);
       window.addEventListener('instantclick:newpage', cleanupStalePage);
     });
   })();
