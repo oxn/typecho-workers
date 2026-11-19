@@ -128,7 +128,7 @@ const footerLinks = [
             target={link.newWindow ? '_blank' : undefined}
             rel={link.newWindow ? 'noopener noreferrer' : undefined}
           >
-            {/<[a-z][\\s\\S]*>/i.test(link.label)
+            {/<[a-z][\s\S]*>/i.test(link.label)
               ? <span set:html={link.label}></span>
               : link.label}
           </a>

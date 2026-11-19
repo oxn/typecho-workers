@@ -110,6 +110,16 @@ function safeFooterUrl(value: unknown): string {
     }
   }
 
+  const isDomain = /^(?:localhost|(?:[a-z0-9-]+\.)+[a-z]{2,})(?::\d+)?(?:[/?#].*)?$/i.test(input);
+  if (isDomain) {
+    try {
+      const url = new URL(`https://${input}`);
+      return url.protocol === 'https:' ? url.toString() : '';
+    } catch {
+      return '';
+    }
+  }
+
   if (/^[a-z][a-z\d+.-]*:/i.test(input)) return '';
   try {
     const path = input.startsWith('/') ? input : `/${input.replace(/^\.\/+/, '')}`;
