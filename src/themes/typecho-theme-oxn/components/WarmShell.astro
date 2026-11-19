@@ -3,7 +3,7 @@ import Base from '@/layouts/Base.astro';
 import type { ThemeBaseProps } from '@/lib/theme-props';
 import type { PageContext } from '@/lib/plugin';
 import { PUBLIC_HTML_HEADER } from '@/lib/cache';
-import { warmSettings, renderFooterCustomHtml, type WarmSection } from './warm';
+import { warmSettings, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
 
@@ -32,7 +32,7 @@ const {
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
-const footerCustomHtml = renderFooterCustomHtml(settings.footerCustomHtml);
+const footerCustomHtml = settings.footerCustomHtml;
 const themeToggleEnabled = settings.showThemeToggleButton;
 const searchEnabled = settings.showHomeSearchButton;
 const adminEntryEnabled = settings.showAdminEntryButton;
@@ -133,7 +133,7 @@ const footerLinks = [
   </main>
 
   <footer class="warm-footer">
-    {footerCustomHtml.trim() && (
+    {footerCustomHtml && (
       <div class="warm-footer__custom" set:html={footerCustomHtml}></div>
     )}
     <div class="warm-footer__meta">
