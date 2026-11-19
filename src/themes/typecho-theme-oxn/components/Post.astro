@@ -101,23 +101,18 @@ const articleDeclarationHtml = !isNote
       {isPasswordLocked ? (
         <div class="warm-prose warm-password-gate" itemprop="articleBody">
           <p>此内容已加密，请输入密码访问。</p>
-          <form class="warm-comment-form" method="get" action={Astro.url.pathname}>
-            <label>
-              <span>文章密码</span>
-              <input
-                class="warm-password-gate__input"
-                type="password"
-                id={`warm-post-password-${post.cid}`}
-                name="password"
-                autocomplete="current-password"
-                placeholder="请输入文章密码"
-                required
-              />
-            </label>
-            <div class="warm-comment-form__actions">
-              <span></span>
-              <button type="submit">打开</button>
-            </div>
+          <form class="warm-password-gate__form" method="get" action={Astro.url.pathname}>
+            <label for={`warm-post-password-${post.cid}`}>文章密码</label>
+            <input
+              class="warm-password-gate__input"
+              type="password"
+              id={`warm-post-password-${post.cid}`}
+              name="password"
+              autocomplete="current-password"
+              placeholder="请输入文章密码"
+              required
+            />
+            <button type="submit">打开</button>
           </form>
         </div>
       ) : (
