@@ -3,7 +3,6 @@ import { loadThemeConfig } from '@/lib/theme';
 import { normalizeOptimizeParams, optimizeImageUrl, optimizeContentImages } from '@/lib/image-transform';
 import { formatDate, generateSlug } from '@/lib/content';
 import { escapeHtml } from '@/lib/escape';
-import sanitizeHtml from 'sanitize-html';
 import postcss from 'postcss';
 
 /**
@@ -362,85 +361,6 @@ function escapeRegExp(value: string): string {
 }
 
 /**
- * Normalize and constrain an administrator-authored HTML fragment.
- *
- * HTML is parsed and repaired by sanitize-html. Style blocks are parsed as CSS,
- * scoped to this declaration and emitted after the theme stylesheet so author
- * declarations can override theme defaults without escaping the container.
- */
-export function sanitizeArticleDeclarationHtml(html: string): string {
-  const sanitized = sanitizeHtml(html, {
-    allowedTags: [
-      'a', 'abbr', 'b', 'blockquote', 'br', 'caption', 'cite', 'code', 'dd', 'del',
-      'div', 'dl', 'dt', 'em', 'figcaption', 'figure', 'h1', 'h2', 'h3', 'h4',
-      'h5', 'h6', 'hr', 'i', 'img', 'ins', 'kbd', 'li', 'mark', 'ol', 'p',
-      'pre', 'q', 's', 'samp', 'small', 'span', 'style', 'sub', 'summary',
-      'sup', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'u', 'ul',
-    ],
-    allowedAttributes: {
-      '*': ['class', 'id', 'title', 'role', 'style'],
-      a: ['href', 'target', 'rel'],
-      img: ['src', 'alt', 'width', 'height', 'loading'],
-      td: ['colspan', 'rowspan', 'headers'],
-      th: ['colspan', 'rowspan', 'scope', 'headers'],
-    },
-    allowedSchemes: ['http', 'https', 'mailto', 'tel'],
-    allowedSchemesByTag: {
-      img: ['http', 'https', 'data'],
-    },
-    allowProtocolRelative: false,
-  });
-
-  const cssBlocks: string[] = [];
-  let htmlWithPlaceholders = sanitized.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (_match, css: string) => {
-    const token = 'WARM_DECLARATION_STYLE_BLOCK_' + cssBlocks.length + '_TOKEN';
-    cssBlocks.push(css);
-    return token;
-  });
-
-  let inlineIndex = 0;
-  htmlWithPlaceholders = htmlWithPlaceholders.replace(/<([a-z][\w:-]*)([^>]*)>/gi, (tag, name: string, rawAttributes: string) => {
-    const styleMatch = /\sstyle="([^"]*)"/i.exec(rawAttributes);
-    if (!styleMatch) return tag;
-
-    const styleValue = styleMatch[1];
-    const className = 'warm-declaration-inline-' + (++inlineIndex);
-    try {
-      const parsed = postcss.parse('.inline { ' + styleValue + ' }');
-      const declarations: string[] = [];
-      parsed.walkDecls(decl => {
-        decl.important = false;
-        if (!/expression\s*\(|javascript\s*:|vbscript\s*:|behavior\s*:|-moz-binding/i.test(decl.value)) {
-          declarations.push(decl.toString());
-        }
-      });
-      if (declarations.length) cssBlocks.push('.' + className + ' { ' + declarations.join('; ') + ' }');
-    } catch {
-      // Malformed inline CSS is discarded rather than emitted unprocessed.
-    }
-
-    let attributes = rawAttributes.replace(styleMatch[0], '');
-    const classMatch = /\sclass="([^"]*)"/i.exec(attributes);
-    if (classMatch) {
-      attributes = attributes.replace(classMatch[0], ' class="' + classMatch[1] + ' ' + className + '"');
-    } else {
-      attributes += ' class="' + className + '"';
-    }
-    return '<' + name + attributes + '>';
-  });
-
-  const scopedCss = cssBlocks
-    .map(css => scopeArticleDeclarationCss(css))
-    .filter(Boolean)
-    .join('\n');
-  const restoredHtml = htmlWithPlaceholders.replace(/WARM_DECLARATION_STYLE_BLOCK_(\d+)_TOKEN/g, '');
-
-  return scopedCss
-    ? '<style>' + scopedCss + '</style>' + restoredHtml
-    : restoredHtml;
-}
-
-/**
  * Process CSS embedded in the site-wide footer HTML without changing its HTML,
  * scripts, or inline styles. Footer stylesheet selectors stay inside the custom
  * footer container and are emitted after the theme stylesheet.
@@ -477,7 +397,7 @@ export function renderArticleDeclaration(
   const expanded = template.replace(/\{(site\.name|site\.url|site\.description|post\.title|post\.url)\}/g, (_match, key: string) =>
     escapeHtml(replacements[key] ?? ''),
   );
-  return sanitizeArticleDeclarationHtml(expanded);
+  return expanded;
 }
 
 export function parsePinnedIds(value: unknown): number[] {
