@@ -166,13 +166,15 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 (function(){
   var link=document.querySelector('.typecho-head-nav nav > menu > li > menu a[href="/admin/manage-posts"]');
   if(!link)return;
+  var menu=link.parentElement;
+  if(!menu)return;
   var item=document.createElement('li');
   item.className=${active ? "'focus'" : "''"};
   var anchor=document.createElement('a');
   anchor.href='/admin/plugin/wordpress-import';
   anchor.textContent='WordPress 导入';
   item.appendChild(anchor);
-  link.parentElement.insertAdjacentElement('afterend',item);
+  menu.appendChild(item);
   if(${active ? 'true' : 'false'})link.closest('li').parentElement.parentElement.classList.add('focus');
 })();
 </script>`;
