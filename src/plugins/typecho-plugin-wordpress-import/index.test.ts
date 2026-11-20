@@ -60,12 +60,13 @@ describe('WordPress import plugin', () => {
     expect(html).toContain('MAX_PART_BYTES=24*1024*1024');
     expect(html).toContain("childText(item,'post_parent')");
     expect(html).toContain("key!=='_thumbnail_id'");
-    expect(html).toContain('crypto.subtle.digest');
+    expect(html).not.toContain('crypto.subtle');
+    expect(html).toContain('currentXml!==lastPreview.sourceXml');
     expect(html).toContain('重新选择同一原始文件并重新分析');
     expect(html).toContain('D1 实际写入行数');
     expect(html).toContain('已确认提交');
     expect(html).toContain('function hasImportableItems');
-    expect(html).toContain('lastPreview={hash:hash,selection:chosenTypes.join(','),parts:parts,reports:reports}');
+    expect(html).toContain('lastPreview={sourceXml:sourceXml,selection:chosenTypes.join(','),parts:parts,reports:reports}');
     expect(html).toContain('当前分片只写入尚未成功导入的所选内容及其附件');
   });
 
