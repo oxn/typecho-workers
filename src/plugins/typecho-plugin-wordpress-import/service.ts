@@ -10,13 +10,50 @@ import {
 // D1 allows at most 100 bound parameters in each SQL statement.
 const MAX_BOUND_PARAMETERS = 100;
 
+export interface WordPressDatabaseWriteMetrics {
+  rowsWritten: number;
+  statementCount: number;
+  batchDurationMs: number;
+  sqlDurationMs: number;
+}
+
 export interface WordPressImportReport {
   siteTitle: string;
   totalItems: number;
   alreadyImported: number;
   imported: Record<string, number>;
   skipped: Record<string, number>;
+  databaseWrite?: WordPressDatabaseWriteMetrics;
   preview: boolean;
+}
+
+/** Read the per-statement D1 metadata returned by Drizzle's D1 batch adapter. */
+export function summarizeD1BatchResults(
+  results: unknown[],
+  statementCount: number,
+  batchDurationMs: number,
+): WordPressDatabaseWriteMetrics {
+  let rowsWritten = 0;
+  let sqlDurationMs = 0;
+
+  for (const result of results) {
+    if (!result || typeof result !== 'object') continue;
+    const meta = (result as { meta?: { rows_written?: unknown; duration?: unknown } }).meta;
+    if (!meta) continue;
+    if (typeof meta.rows_written === 'number' && Number.isFinite(meta.rows_written)) {
+      rowsWritten += meta.rows_written;
+    }
+    if (typeof meta.duration === 'number' && Number.isFinite(meta.duration)) {
+      sqlDurationMs += meta.duration;
+    }
+  }
+
+  return {
+    rowsWritten,
+    statementCount,
+    batchDurationMs,
+    sqlDurationMs,
+  };
 }
 
 export function normalizeWordPressSource(siteUrl: string): string {
@@ -139,7 +176,10 @@ function insertStatements(db: Database, table: unknown, rows: Record<string, unk
   return statements;
 }
 
-async function writeDataset(db: Database, dataset: WordPressMigrationDataset): Promise<void> {
+async function writeDataset(
+  db: Database,
+  dataset: WordPressMigrationDataset,
+): Promise<WordPressDatabaseWriteMetrics> {
   const writer = db as any;
   const statements = [
     ...insertStatements(db, schema.metas, dataset.metas),
@@ -154,7 +194,9 @@ async function writeDataset(db: Database, dataset: WordPressMigrationDataset): P
 
   // D1 batch executes the ordered statements transactionally. A failed write
   // cannot leave an incomplete set of imported content and relationships.
-  if (statements.length) await writer.batch(statements);
+  const startedAt = Date.now();
+  const results = statements.length ? await writer.batch(statements) : [];
+  return summarizeD1BatchResults(results, statements.length, Date.now() - startedAt);
 }
 
 export async function previewWordPressImport(
@@ -181,7 +223,9 @@ export async function importWordPressExport(
 ): Promise<WordPressImportReport> {
   const source = parseWordPressExport(xml);
   const { dataset, alreadyImported } = await buildDataset(db, source, authorId);
-  if (dataset.contents.length) await writeDataset(db, dataset);
+  const databaseWrite = dataset.contents.length
+    ? await writeDataset(db, dataset)
+    : undefined;
 
   return {
     siteTitle: source.siteTitle,
@@ -189,6 +233,7 @@ export async function importWordPressExport(
     alreadyImported,
     imported: dataset.imported,
     skipped: skippedCounts(dataset, alreadyImported),
+    ...(databaseWrite ? { databaseWrite } : {}),
     preview: false,
   };
 }
