@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import init from './index';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
+import { normalizeWordPressSource } from './service';
 
 function collectHooks() {
   const hooks = new Map<string, Function>();
@@ -36,5 +37,18 @@ describe('WordPress import plugin', () => {
     const handler = hooks.get('route:request')!;
     const original = { handled: false };
     await expect(handler(original, { path: '/api/admin/notes' })).resolves.toBe(original);
+  });
+});
+
+
+describe('WordPress source identity', () => {
+  it('normalizes host and removes query/hash while preserving subdirectory paths', () => {
+    expect(normalizeWordPressSource('HTTPS://Example.COM/blog/?export=1#top'))
+      .toBe('https://example.com/blog');
+  });
+
+  it('rejects exports without a valid source URL', () => {
+    expect(() => normalizeWordPressSource('')).toThrow('缺少 WordPress 站点地址');
+    expect(() => normalizeWordPressSource('ftp://example.com')).toThrow('站点地址无效');
   });
 });
