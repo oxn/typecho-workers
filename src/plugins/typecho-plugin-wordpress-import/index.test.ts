@@ -19,11 +19,13 @@ function collectHooks() {
 describe('WordPress importer generated browser script', () => {
   it('keeps generated JavaScript valid and preserves digit regexes after template rendering', () => {
     const html = wordpressImportAdminPageHtml('test-token');
-    const script = html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+    const scriptStart = html.indexOf('<script>') + '<script>'.length;
+    const scriptEnd = html.indexOf('</script>', scriptStart);
+    const script = scriptStart >= '<script>'.length && scriptEnd >= scriptStart ? html.slice(scriptStart, scriptEnd) : null;
     expect(script).toBeTruthy();
     expect(() => new Function(script!)).not.toThrow();
     expect(script!.match(/match\\(\\/\\\\d\\+\\/g\\)/g)).toHaveLength(2);
-    expect(script).toContain("filename.replace(/\\\\.xml$/i");
+    expect(script).toContain("filename.replace(/\\.xml$/i");
   });
 
   it('reports non-JSON server responses as readable request errors', () => {
