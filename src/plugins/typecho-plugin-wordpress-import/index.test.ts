@@ -34,7 +34,9 @@ describe('WordPress import plugin', () => {
     expect(html).toContain('/api/admin/wordpress-import');
     expect(html).toContain('csrf-value');
     expect(html).toContain('确认导入');
-    expect(html).toContain('function splitWxr');
+    expect(html).toContain('function splitWxr(xml,filename,selectedTypes)');
+    expect(html).toContain('var selectedTypeSet=new Set(selectedTypes)');
+    expect(html).toContain('selectionKey');
     expect(html).toContain('MAX_PART_BYTES=24*1024*1024');
     expect(html).toContain("childText(item,'post_parent')");
     expect(html).toContain("key!=='_thumbnail_id'");
