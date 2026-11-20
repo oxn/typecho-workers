@@ -29,6 +29,8 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     'svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon',
     'ellipse', 'text', 'tspan', 'defs', 'use', 'symbol', 'mask', 'clippath',
     'filter', 'lineargradient', 'radialgradient', 'stop',
+    'style', 'image', 'title', 'desc', 'marker', 'pattern',
+    'fegaussianblur', 'feoffset', 'fecomponenttransfer', 'fefunca', 'femerge', 'femergenode',
   ]),
   allowedAttributes: {
     ...sanitizeHtml.defaults.allowedAttributes,
@@ -77,6 +79,18 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     lineargradient: ['id', 'x1', 'y1', 'x2', 'y2', 'gradientunits', 'gradienttransform'],
     radialgradient: ['id', 'cx', 'cy', 'r', 'fx', 'fy', 'gradientunits', 'gradienttransform'],
     stop: ['offset', 'stop-color', 'stop-opacity'],
+    style: ['type', 'media'],
+    image: ['href', 'xlink:href', 'x', 'y', 'width', 'height', 'preserveaspectratio'],
+    title: [],
+    desc: [],
+    marker: ['id', 'markerwidth', 'markerheight', 'refx', 'refy', 'orient', 'markerunits', 'viewbox', 'preserveaspectratio'],
+    pattern: ['id', 'x', 'y', 'width', 'height', 'patternunits', 'patterncontentunits', 'patterntransform', 'viewbox', 'preserveaspectratio'],
+    fegaussianblur: ['in', 'stddeviation', 'x', 'y', 'width', 'height', 'result'],
+    feoffset: ['in', 'dx', 'dy', 'result'],
+    fecomponenttransfer: ['in', 'result'],
+    fefunca: ['type', 'slope', 'intercept', 'amplitude', 'exponent', 'offset', 'tablevalues'],
+    femerge: [],
+    femergenode: ['in'],
   },
   allowedStyles: {
     '*': {
