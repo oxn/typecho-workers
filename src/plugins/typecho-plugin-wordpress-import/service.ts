@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { schema, type Database } from 'typecho/db';
 import {
   buildWordPressMigrationDataset,
