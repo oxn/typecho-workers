@@ -17,6 +17,38 @@ export interface WordPressDatabaseWriteMetrics {
   sqlDurationMs: number;
 }
 
+export type WordPressImportContentType = 'post' | 'page' | 'note';
+
+export function selectWordPressImportItems(
+  source: WordPressExport,
+  selectedTypes: readonly WordPressImportContentType[],
+): WordPressExport {
+  const selectedTypeSet = new Set(selectedTypes);
+  const selectedItems = source.items.filter(item => selectedTypeSet.has(item.postType as WordPressImportContentType));
+  const selectedContentIds = new Set(selectedItems.map(item => item.oldId));
+  const referencedAttachmentIds = new Set<number>();
+
+  for (const item of selectedItems) {
+    for (const meta of item.postMeta) {
+      if (meta.key !== '_thumbnail_id' && meta.key !== 'images' && meta.key !== 'attachment') continue;
+      for (const rawId of meta.value.match(/\\d+/g) || []) {
+        const id = Number(rawId);
+        if (Number.isSafeInteger(id) && id > 0) referencedAttachmentIds.add(id);
+      }
+    }
+  }
+
+  // Keep attachments referenced by selected content, plus attachment children
+  // whose WXR parent is selected. Unrelated media and unselected content stay out.
+  const selectedItemsWithAttachments = source.items.filter(item =>
+    selectedTypeSet.has(item.postType as WordPressImportContentType)
+    || (item.postType === 'attachment'
+      && (referencedAttachmentIds.has(item.oldId) || selectedContentIds.has(item.parentId))),
+  );
+
+  return { ...source, items: selectedItemsWithAttachments };
+}
+
 export interface WordPressImportReport {
   siteTitle: string;
   totalItems: number;
@@ -76,7 +108,13 @@ export function normalizeWordPressSource(siteUrl: string): string {
   }
 }
 
-async function buildDataset(db: Database, source: WordPressExport, authorId: number) {
+async function buildDataset(
+  db: Database,
+  source: WordPressExport,
+  authorId: number,
+  selectedTypes: readonly WordPressImportContentType[],
+) {
+  const selectedSource = selectWordPressImportItems(source, selectedTypes);
   const sourceKey = normalizeWordPressSource(source.siteUrl);
   const [maxContent, maxComment, maxMeta, slugRows, metaRows, markerRows] = await Promise.all([
     db.select({ value: sql<number>`coalesce(max(${schema.contents.cid}), 0)` }).from(schema.contents),
@@ -110,11 +148,11 @@ async function buildDataset(db: Database, source: WordPressExport, authorId: num
     else legacyImportedIds.add(oldId);
   }
 
-  const pendingItems = source.items.filter(item =>
+  const pendingItems = selectedSource.items.filter(item =>
     !legacyImportedIds.has(item.oldId) && !importedSourceIds.has(`${sourceKey}#${item.oldId}`),
   );
-  const alreadyImported = source.items.length - pendingItems.length;
-  const pendingSource: WordPressExport = { ...source, items: pendingItems };
+  const alreadyImported = selectedSource.items.length - pendingItems.length;
+  const pendingSource: WordPressExport = { ...selectedSource, items: pendingItems };
 
   const dataset = buildWordPressMigrationDataset(pendingSource, {
     maxContentId: Number(maxContent[0]?.value || 0),
@@ -266,12 +304,14 @@ export async function previewWordPressImport(
   db: Database,
   xml: string,
   authorId: number,
+  selectedTypes: readonly WordPressImportContentType[] = ['post', 'page', 'note'],
 ): Promise<WordPressImportReport> {
   const source = parseWordPressExport(xml);
-  const { dataset, alreadyImported } = await buildDataset(db, source, authorId);
+  const selectedSource = selectWordPressImportItems(source, selectedTypes);
+  const { dataset, alreadyImported } = await buildDataset(db, source, authorId, selectedTypes);
   return {
     siteTitle: source.siteTitle,
-    totalItems: source.items.length,
+    totalItems: selectedSource.items.length,
     alreadyImported,
     imported: dataset.imported,
     skipped: skippedCounts(dataset, alreadyImported),
@@ -283,16 +323,18 @@ export async function importWordPressExport(
   db: Database,
   xml: string,
   authorId: number,
+  selectedTypes: readonly WordPressImportContentType[] = ['post', 'page', 'note'],
 ): Promise<WordPressImportReport> {
   const source = parseWordPressExport(xml);
-  const { dataset, alreadyImported } = await buildDataset(db, source, authorId);
+  const selectedSource = selectWordPressImportItems(source, selectedTypes);
+  const { dataset, alreadyImported } = await buildDataset(db, source, authorId, selectedTypes);
   const databaseWrite = dataset.contents.length
     ? await writeDataset(db, dataset)
     : undefined;
 
   return {
     siteTitle: source.siteTitle,
-    totalItems: source.items.length,
+    totalItems: selectedSource.items.length,
     alreadyImported,
     imported: dataset.imported,
     skipped: skippedCounts(dataset, alreadyImported),
