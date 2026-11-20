@@ -112,7 +112,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       Array.prototype.filter.call(item.children,function(node){return localName(node)==='postmeta';}).forEach(function(meta){
         var key=childText(meta,'meta_key');
         if(key!=='_thumbnail_id'&&key!=='images'&&key!=='attachment')return;
-        (childText(meta,'meta_value').match(/\d+/g)||[]).forEach(function(rawId){
+        (childText(meta,'meta_value').match(/\\d+/g)||[]).forEach(function(rawId){
           var id=parseInteger(rawId);
           if(id)attachmentIds.add(id);
         });
@@ -163,7 +163,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         var key=childText(meta,'meta_key');
         if(key!=='_thumbnail_id'&&key!=='images'&&key!=='attachment')return;
         var value=childText(meta,'meta_value');
-        (value.match(/\d+/g)||[]).forEach(function(rawId){
+        (value.match(/\\d+/g)||[]).forEach(function(rawId){
           var referencedId=parseInteger(rawId);
           if(referencedId&&idToIndex.has(referencedId))unite(index,idToIndex.get(referencedId));
         });
@@ -294,8 +294,18 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     body.set('file',file,file.name);
     body.set('action',action);
     var response=await fetch('/api/admin/wordpress-import',{method:'POST',body:body,credentials:'same-origin'});
-    var data=await response.json();
-    if(!response.ok)throw new Error(data.error||'请求失败（HTTP '+response.status+'）');
+    var responseText=await response.text();
+    var data=null;
+    try{
+      data=JSON.parse(responseText);
+    }catch(parseError){
+      var detail=responseText.replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim().slice(0,240);
+      throw new Error(response.ok
+        ? '服务器返回了无法识别的数据，请检查后台服务日志。'
+        : '请求失败（HTTP '+response.status+'），服务器未返回有效 JSON。'+(detail?' '+detail:''));
+    }
+    if(!response.ok)throw new Error(data&&data.error||'请求失败（HTTP '+response.status+'）');
+    if(!data||typeof data!=='object')throw new Error('服务器返回的数据格式不正确。');
     return data;
   }
   async function prepare(){
