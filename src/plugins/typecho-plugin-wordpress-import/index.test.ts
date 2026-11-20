@@ -24,7 +24,7 @@ describe('WordPress importer generated browser script', () => {
     const script = scriptStart >= '<script>'.length && scriptEnd >= scriptStart ? html.slice(scriptStart, scriptEnd) : null;
     expect(script).toBeTruthy();
     expect(() => new Function(script!)).not.toThrow();
-    expect(script!.match(/match\\(\\/\\\\d\\+\\/g\\)/g)).toHaveLength(2);
+    expect(script!.match(/match\(\/\\d\+\/g\)/g)).toHaveLength(2);
     expect(script).toContain("filename.replace(/\\.xml$/i");
   });
 
