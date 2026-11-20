@@ -112,7 +112,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       Array.prototype.filter.call(item.children,function(node){return localName(node)==='postmeta';}).forEach(function(meta){
         var key=childText(meta,'meta_key');
         if(key!=='_thumbnail_id'&&key!=='images'&&key!=='attachment')return;
-        (childText(meta,'meta_value').match(/\\d+/g)||[]).forEach(function(rawId){
+        (childText(meta,'meta_value').match(/\d+/g)||[]).forEach(function(rawId){
           var id=parseInteger(rawId);
           if(id)attachmentIds.add(id);
         });
