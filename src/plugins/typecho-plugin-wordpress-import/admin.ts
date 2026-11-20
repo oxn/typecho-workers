@@ -96,15 +96,46 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     var number=Number.parseInt(value,10);
     return Number.isSafeInteger(number)&&number>0?number:0;
   }
-  function splitWxr(xml,filename){
+  function splitWxr(xml,filename,selectedTypes){
     var documentNode=new DOMParser().parseFromString(xml,'application/xml');
     if(documentNode.getElementsByTagName('parsererror').length)throw new Error('XML 格式错误，浏览器无法安全解析此文件。');
     var rss=documentNode.documentElement;
     if(!rss||localName(rss)!=='rss')throw new Error('文件不是有效的 WordPress WXR（缺少 rss 根节点）。');
     var channel=directChild(rss,'channel');
     if(!channel)throw new Error('WordPress WXR 缺少 channel 节点。');
-    var items=Array.prototype.filter.call(channel.children,function(node){return localName(node)==='item';});
-    if(!items.length)throw new Error('WXR 文件中没有可导入的 item 文章节点。');
+    var allItems=Array.prototype.filter.call(channel.children,function(node){return localName(node)==='item';});
+    var selectedTypeSet=new Set(selectedTypes);
+    var selectedContentItems=allItems.filter(function(item){return selectedTypeSet.has(childText(item,'post_type'));});
+    var selectedContentIds=new Set(selectedContentItems.map(function(item){return parseInteger(childText(item,'post_id'));}).filter(Boolean));
+    var attachmentIds=new Set();
+    selectedContentItems.forEach(function(item){
+      Array.prototype.filter.call(item.children,function(node){return localName(node)==='postmeta';}).forEach(function(meta){
+        var key=childText(meta,'meta_key');
+        if(key!=='_thumbnail_id'&&key!=='images'&&key!=='attachment')return;
+        (childText(meta,'meta_value').match(/\\d+/g)||[]).forEach(function(rawId){
+          var id=parseInteger(rawId);
+          if(id)attachmentIds.add(id);
+        });
+      });
+    });
+    var addedAttachment=true;
+    while(addedAttachment){
+      addedAttachment=false;
+      allItems.forEach(function(item){
+        if(childText(item,'post_type')!=='attachment')return;
+        var id=parseInteger(childText(item,'post_id'));
+        var parentId=parseInteger(childText(item,'post_parent'));
+        if(id&&!attachmentIds.has(id)&&(selectedContentIds.has(parentId)||attachmentIds.has(parentId))){
+          attachmentIds.add(id);
+          addedAttachment=true;
+        }
+      });
+    }
+    var items=allItems.filter(function(item){
+      var type=childText(item,'post_type');
+      return selectedTypeSet.has(type)||(type==='attachment'&&attachmentIds.has(parseInteger(childText(item,'post_id'))));
+    });
+    if(!items.length)throw new Error('WXR 文件中没有符合所选类型的文章、页面或笔记。');
 
     var idToIndex=new Map();
     var itemIds=[];
@@ -279,7 +310,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     try{
       setStatus('正在读取原始 XML 并检查文章关联…');
       var sourceXml=await file.text();
-      var parts=splitWxr(sourceXml,file.name);
+      var parts=splitWxr(sourceXml,file.name,chosenTypes);
       var hash=await fingerprint(file);
       var reports=[];
       for(var index=0;index<parts.length;index++){
