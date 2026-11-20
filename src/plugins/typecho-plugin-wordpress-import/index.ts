@@ -86,20 +86,16 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     const active = extra?.activeMenu === 'wordpress-import';
     return html + `<script>
 (function(){
-  var roots=document.querySelectorAll('.typecho-head-nav nav > menu > li');
-  for(var i=0;i<roots.length;i++){
-    var link=roots[i].querySelector(':scope > a[href="/admin/manage-posts"]');
-    if(!link)continue;
-    var item=document.createElement('li');
-    item.className=${active ? "'focus'" : "''"};
-    var anchor=document.createElement('a');
-    anchor.href='/admin/plugin/wordpress-import';
-    anchor.textContent='WordPress 导入';
-    item.appendChild(anchor);
-    roots[i].insertAdjacentElement('afterend',item);
-    if(${active ? 'true' : 'false'})roots[i].classList.add('focus');
-    break;
-  }
+  var link=document.querySelector('.typecho-head-nav nav > menu > li > menu a[href="/admin/manage-posts"]');
+  if(!link)return;
+  var item=document.createElement('li');
+  item.className=${active ? "'focus'" : "''"};
+  var anchor=document.createElement('a');
+  anchor.href='/admin/plugin/wordpress-import';
+  anchor.textContent='WordPress 导入';
+  item.appendChild(anchor);
+  link.parentElement.insertAdjacentElement('afterend',item);
+  if(${active ? 'true' : 'false'})link.closest('li').parentElement.parentElement.classList.add('focus');
 })();
 </script>`;
   });
