@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import init, { classifyWordPressImportError } from './index';
 import { wordpressImportAdminPageHtml } from './admin';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
-import { addWordPressTermAncestors, isWordPressImportDuplicate, mapWordPressContentStatus, normalizeWordPressSource, selectWordPressImportItems, summarizeD1BatchResults } from './service';
+import { addWordPressTermAncestors, buildWordPressImportDedupeKey, mapWordPressContentStatus, normalizeWordPressSource, selectWordPressImportItems, summarizeD1BatchResults } from './service';
 
 function collectHooks() {
   const hooks = new Map<string, Function>();
@@ -88,28 +88,45 @@ describe('WordPress import plugin', () => {
 
 describe('WordPress duplicate matching options', () => {
   const item = { title: 'Same title', slug: 'same-slug', oldId: 12 };
-  const existing = { title: 'Same title', slug: 'same-slug', wordpressId: 99, source: 'https://other.example' };
 
-  it('requires every selected field to match the same existing content row', () => {
-    expect(isWordPressImportDuplicate(item, existing, 'https://source.example', ['title', 'slug'])).toBe(true);
-    expect(isWordPressImportDuplicate(item, { ...existing, slug: 'different-slug' }, 'https://source.example', ['title', 'slug'])).toBe(false);
-    expect(isWordPressImportDuplicate(item, { ...existing, title: 'Different title' }, 'https://source.example', ['title', 'slug'])).toBe(false);
+  it('uses all selected fields as one composite key', () => {
+    const fields = ['title', 'slug'] as const;
+    const candidate = buildWordPressImportDedupeKey(item, fields, 'https://source.example');
+    expect(candidate).toBe(buildWordPressImportDedupeKey(
+      { ...item, oldId: 99 }, fields, 'https://other.example',
+    ));
+    expect(candidate).not.toBe(buildWordPressImportDedupeKey(
+      { ...item, slug: 'different-slug', oldId: 99 }, fields, 'https://other.example',
+    ));
+    expect(candidate).not.toBe(buildWordPressImportDedupeKey(
+      { ...item, title: 'Different title', oldId: 99 }, fields, 'https://other.example',
+    ));
   });
 
   it('supports title-only and slug-only matching independently', () => {
-    expect(isWordPressImportDuplicate(item, { ...existing, slug: 'different-slug' }, 'https://source.example', ['title'])).toBe(true);
-    expect(isWordPressImportDuplicate(item, { ...existing, title: 'Different title' }, 'https://source.example', ['slug'])).toBe(true);
+    expect(buildWordPressImportDedupeKey(item, ['title'], 'https://source.example'))
+      .toBe(buildWordPressImportDedupeKey({ ...item, slug: 'different-slug' }, ['title'], 'https://other.example'));
+    expect(buildWordPressImportDedupeKey(item, ['slug'], 'https://source.example'))
+      .toBe(buildWordPressImportDedupeKey({ ...item, title: 'Different title' }, ['slug'], 'https://other.example'));
   });
 
-  it('matches IDs within the same source and keeps legacy source-less ID markers compatible', () => {
-    expect(isWordPressImportDuplicate(item, { ...existing, wordpressId: 12 }, 'https://other.example', ['id'])).toBe(true);
-    expect(isWordPressImportDuplicate(item, { ...existing, wordpressId: 12 }, 'https://source.example', ['id'])).toBe(false);
-    expect(isWordPressImportDuplicate(item, { title: '', slug: '', wordpressId: 12 }, 'https://source.example', ['id'])).toBe(true);
+  it('scopes ID matching to the source and supports legacy source-less markers', () => {
+    const fields = ['id'] as const;
+    const candidate = buildWordPressImportDedupeKey(item, fields, 'https://source.example');
+    expect(candidate).toBe(buildWordPressImportDedupeKey(item, fields, 'https://source.example'));
+    expect(candidate).not.toBe(buildWordPressImportDedupeKey(item, fields, 'https://other.example'));
+    expect(buildWordPressImportDedupeKey(item, fields, '', true)).not.toBe(candidate);
+    expect(buildWordPressImportDedupeKey(item, fields, '', true))
+      .toBe(buildWordPressImportDedupeKey(item, fields, '', true));
   });
 
-  it('requires ID and the other selected fields to match together', () => {
-    expect(isWordPressImportDuplicate(item, { ...existing, wordpressId: 12 }, 'https://other.example', ['title', 'id'])).toBe(true);
-    expect(isWordPressImportDuplicate(item, { ...existing, wordpressId: 99 }, 'https://other.example', ['title', 'id'])).toBe(false);
+  it('combines ID with title or slug when multiple options are selected', () => {
+    const fields = ['title', 'id'] as const;
+    const candidate = buildWordPressImportDedupeKey(item, fields, 'https://source.example');
+    expect(candidate).toBe(buildWordPressImportDedupeKey(item, fields, 'https://source.example'));
+    expect(candidate).not.toBe(buildWordPressImportDedupeKey(
+      { ...item, oldId: 99 }, fields, 'https://source.example',
+    ));
   });
 });
 
