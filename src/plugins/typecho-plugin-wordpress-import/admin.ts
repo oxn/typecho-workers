@@ -295,9 +295,9 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       var completedRows=reports.reduce(function(total,report){return total+Number(report.databaseWrite&&report.databaseWrite.rowsWritten||0);},0);
       lastPreview=null;
       var progress=completed
-        ? '\\n已确认提交 '+completed+' 个分片，D1 实际写入 '+completedRows+' 行。'
-        : '\\n目前没有收到已成功提交分片的确认。';
-      setStatus((error instanceof Error?error.message:'导入失败')+progress+'\\n请重新选择同一原始文件并重新分析；系统会根据来源站点和 WordPress 原文章 ID 核对已写入内容，再跳过已导入记录。若是网络中断导致响应丢失，失败分片的最终提交状态也会通过重新分析核实。',true);
+        ? '\n已确认提交 '+completed+' 个分片，D1 实际写入 '+completedRows+' 行。'
+        : '\n目前没有收到已成功提交分片的确认。';
+      setStatus((error instanceof Error?error.message:'导入失败')+progress+'\n请重新选择同一原始文件并重新分析；系统会根据来源站点和 WordPress 原文章 ID 核对已写入内容，再跳过已导入记录。若是网络中断导致响应丢失，失败分片的最终提交状态也会通过重新分析核实。',true);
     }finally{
       previewButton.disabled=false;
       importButton.disabled=true;
