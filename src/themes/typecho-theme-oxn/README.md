@@ -790,6 +790,28 @@ Vimeo：
 </dl>
 ~~~
 
+HTML 语义结构标签示例：
+
+~~~html
+<article>
+  <header>
+    <hgroup>
+      <h2>文章分区标题</h2>
+      <p>副标题或补充说明</p>
+    </hgroup>
+  </header>
+  <section>
+    <p>这是文章中的一个内容分区。</p>
+  </section>
+  <aside>
+    <p>这是与正文相关的补充说明。</p>
+  </aside>
+  <footer>
+    <address>作者联系信息：author@example.com</address>
+  </footer>
+</article>
+~~~
+
 其他语义文字标签示例：
 
 ~~~html
@@ -797,7 +819,11 @@ Vimeo：
 <p><q>这是一段短引用。</q> <cite>来源名称</cite></p>
 <p><time datetime="2026-11-20">2026 年 11 月 20 日</time></p>
 <p><del>旧内容</del> <ins>新增内容</ins></p>
-<p>按下 <kbd>Ctrl</kbd> + <kbd>C</kbd> 复制。</p>
+<p>按下 <kbd>Ctrl</kbd> + <kbd>C</kbd> 复制，输出 <samp>OK</samp>。</p>
+<p>变量示例：<var>x</var>；数据示例：<data value="42">四十二</data>。</p>
+<p><bdi>用户名</bdi>；<bdo dir="rtl">从右向左显示</bdo>。</p>
+<p><ruby>汉<rp>(</rp><rt>hàn</rt><rp>)</rp></ruby> 字音注释。</p>
+<p>这一行末尾有<wbr>一个可选换行位置。</p>
 ~~~
 
 ### 6.17 转义字符与 HTML 实体
