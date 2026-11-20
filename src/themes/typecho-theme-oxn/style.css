@@ -873,6 +873,11 @@ body.warm-theme {
   margin-bottom: .85em;
 }
 
+.warm-prose .markdown-alert > :last-child,
+.warm-note__content .markdown-alert > :last-child {
+  margin-bottom: 0;
+}
+
 .warm-prose .markdown-alert-note,
 .warm-note__content .markdown-alert-note {
   border-left-color: #5b8ab5;
