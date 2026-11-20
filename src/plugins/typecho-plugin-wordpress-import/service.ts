@@ -236,7 +236,7 @@ async function buildDataset(
     db.select({ value: sql<number>`coalesce(max(${schema.contents.cid}), 0)` }).from(schema.contents),
     db.select({ value: sql<number>`coalesce(max(${schema.comments.coid}), 0)` }).from(schema.comments),
     db.select({ value: sql<number>`coalesce(max(${schema.metas.mid}), 0)` }).from(schema.metas),
-    db.select({ cid: schema.contents.cid, title: schema.contents.title, slug: schema.contents.slug }).from(schema.contents),
+    db.select({ cid: schema.contents.cid, type: schema.contents.type, title: schema.contents.title, slug: schema.contents.slug }).from(schema.contents),
     requiredMetaSlugs.length
       ? Promise.all(splitIntoChunks(requiredMetaSlugs).map(slugs =>
         db.select({ mid: schema.metas.mid, type: schema.metas.type, slug: schema.metas.slug })
@@ -279,11 +279,16 @@ async function buildDataset(
       oldId: wordpressIdByContentId.get(cid) || 0,
     };
     const existingSource = sourceByContentId.get(cid) || '';
+    if (row.type === 'attachment') {
+      existingAttachmentIdKeys.add(buildWordPressImportDedupeKey(existing, ['id'], existingSource));
+      if (!existingSource && existing.oldId) {
+        existingAttachmentIdKeys.add(buildWordPressImportDedupeKey(existing, ['id'], '', true));
+      }
+      continue;
+    }
     existingDedupeKeys.add(buildWordPressImportDedupeKey(existing, dedupeFields, existingSource));
-    existingAttachmentIdKeys.add(buildWordPressImportDedupeKey(existing, ['id'], existingSource));
     if (!existingSource && existing.oldId) {
       existingDedupeKeys.add(buildWordPressImportDedupeKey(existing, dedupeFields, '', true));
-      existingAttachmentIdKeys.add(buildWordPressImportDedupeKey(existing, ['id'], '', true));
     }
   }
 
