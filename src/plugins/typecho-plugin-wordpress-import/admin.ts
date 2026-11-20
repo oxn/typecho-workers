@@ -11,7 +11,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         <p class="description">单个文件最大 25 MB。较大的站点请在 WordPress 中分批导出。</p>
       </div>
       <div class="wordpress-import-warning">
-        默认增量导入，不会删除或覆盖现有文章。已导入过的 WordPress 内容会按原文章 ID 自动跳过。
+        默认增量导入，不会删除或覆盖现有文章。已导入过的 WordPress 内容会按来源站点地址和原文章 ID 自动跳过。
         发布状态会按 WordPress 原状态保留；公开文章导入后会出现在本站前台。
       </div>
       <p class="description">目前保留正文中的原始媒体地址，不会自动把 WordPress 图片和附件文件复制到本站 R2。</p>
