@@ -19,10 +19,10 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       </fieldset>
       <fieldset class="wordpress-import-dedupe">
         <legend>重复判断方式</legend>
-        <label><input type="checkbox" name="dedupeFields" value="title" checked> 标题</label>
-        <label><input type="checkbox" name="dedupeFields" value="slug" checked> 别名</label>
-        <label><input type="checkbox" name="dedupeFields" value="id" checked> ID</label>
-        <p class="description">默认同时匹配标题、别名和 ID。勾选多项时，所选字段必须全部相同才会跳过；附件仍按来源站点和原 ID 识别。</p>
+        <label><input type="checkbox" name="dedupeFields" value="title"> 标题</label>
+        <label><input type="checkbox" name="dedupeFields" value="slug"> 别名</label>
+        <label><input type="checkbox" name="dedupeFields" value="id" checked> ID（wordpress_post_id）</label>
+        <p class="description">统一网站导入默认选择 ID（wordpress_post_id）。这是 WordPress 原始内容 ID，适合同一个网站重复导入，判重依据明确，也能识别没有标题和别名的笔记，减少重复导入。多个网站合并导入时，可根据实际情况选择标题、别名两项，或只选择其中任意一项进行判重。勾选多项时，所有选中的字段必须全部匹配才会跳过；只勾选一项时，仅按该项判断。不建议同时勾选标题、别名和 ID：选择的字段越多，必须同时满足的条件越多，越容易将实际重复的内容判定为不重复，从而再次导入。使用标题或别名判重时，没有对应字段的笔记也无法通过该字段识别重复。附件仍按来源站点和原 ID 独立识别。</p>
       </fieldset>
       <div class="wordpress-import-warning">
         默认增量导入，不会删除或覆盖现有文章。系统会按上方选择的字段判断重复内容。
