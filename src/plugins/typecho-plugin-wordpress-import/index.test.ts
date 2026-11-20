@@ -61,6 +61,7 @@ describe('WordPress post status mapping', () => {
     expect(mapWordPressContentStatus('post', 'future')).toEqual({ type: 'post', status: 'hidden' });
     expect(mapWordPressContentStatus('post', 'draft')).toEqual({ type: 'post_draft', status: 'draft' });
     expect(mapWordPressContentStatus('post', 'auto-draft')).toEqual({ type: 'post_draft', status: 'draft' });
+    expect(mapWordPressContentStatus('post', ' PENDING ')).toEqual({ type: 'post', status: 'waiting' });
   });
 
   it('keeps trashed and unknown statuses unpublished', () => {
