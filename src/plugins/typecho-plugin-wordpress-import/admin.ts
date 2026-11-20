@@ -218,11 +218,6 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     return parts;
   }
 
-  async function fingerprint(file){
-    if(!window.crypto||!crypto.subtle)throw new Error('当前浏览器不支持文件校验，请使用最新版浏览器和 HTTPS 后台。');
-    var digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
-    return Array.from(new Uint8Array(digest)).map(function(byte){return byte.toString(16).padStart(2,'0');}).join('');
-  }
   function addReports(reports){
     var result={siteTitle:reports[0].siteTitle,totalItems:0,alreadyImported:0,imported:{},skipped:{}};
     var databaseWrite={rowsWritten:0,statementCount:0,batchDurationMs:0,sqlDurationMs:0};
@@ -321,7 +316,6 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       setStatus('正在读取原始 XML 并检查内容关联…');
       var sourceXml=await file.text();
       var parts=splitWxr(sourceXml,file.name,chosenTypes);
-      var hash=await fingerprint(file);
       var reports=[];
       for(var index=0;index<parts.length;index++){
         setStatus('正在分析分片 '+(index+1)+' / '+parts.length+'…');
@@ -329,7 +323,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       }
       var combined=addReports(reports);
       renderReport(combined,parts.length,true);
-      lastPreview={hash:hash,selection:chosenTypes.join(','),parts:parts,reports:reports};
+      lastPreview={sourceXml:sourceXml,selection:chosenTypes.join(','),parts:parts,reports:reports};
       var importable=Number(combined.imported.posts||0)+Number(combined.imported.pages||0)+Number(combined.imported.notes||0)+Number(combined.imported.attachments||0);
       importButton.disabled=importable===0;
       setStatus('分析完成：原文件已安全分为 '+parts.length+' 片。请核对合并统计，再确认导入。');
@@ -346,8 +340,8 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     importButton.disabled=true;
     var reports=[];
     try{
-      var hash=await fingerprint(file);
-      if(hash!==lastPreview.hash)throw new Error('原始文件内容已变化，请重新分析。');
+      var currentXml=await file.text();
+      if(currentXml!==lastPreview.sourceXml)throw new Error('原始文件内容已变化，请重新分析。');
       if(selectionKey()!==lastPreview.selection)throw new Error('导入类型选择已变化，请重新分析文件。');
       var confirmedParts=0;
       var skippedParts=0;
