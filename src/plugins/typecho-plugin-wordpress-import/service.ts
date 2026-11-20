@@ -53,27 +53,10 @@ async function buildDataset(db: Database, source: WordPressExport, authorId: num
   return { dataset, alreadyImported };
 }
 
-function countSkipped(dataset: WordPressMigrationDataset, alreadyImported: number) {
+function skippedCounts(dataset: WordPressMigrationDataset, alreadyImported: number) {
   return {
     ...dataset.skipped,
     ...(alreadyImported ? { alreadyImported } : {}),
-  };
-}
-
-export async function previewWordPressImport(
-  db: Database,
-  xml: string,
-  authorId: number,
-): Promise<WordPressImportReport> {
-  const source = parseWordPressExport(xml);
-  const { dataset, alreadyImported } = await buildDataset(db, source, authorId);
-  return {
-    siteTitle: source.siteTitle,
-    totalItems: source.items.length,
-    alreadyImported,
-    imported: dataset.imported,
-    skipped: countSkipped(dataset, alreadyImported),
-    preview: true,
   };
 }
 
@@ -85,8 +68,8 @@ function insertStatements(db: Database, table: unknown, rows: Record<string, unk
   }
   return statements;
 }
-  // D1 batch runs the ordered statements in one transaction. A failed row
-  // therefore cannot leave a half-imported set of posts, fields or comments.
+
+async function writeDataset(db: Database, dataset: WordPressMigrationDataset): Promise<void> {
   const writer = db as any;
   const statements = [
     ...insertStatements(db, schema.metas, dataset.metas),
@@ -98,16 +81,10 @@ function insertStatements(db: Database, table: unknown, rows: Record<string, unk
       .set({ count: sql`(SELECT COUNT(*) FROM ${schema.relationships} WHERE ${schema.relationships.mid} = ${mid})` })
       .where(eq(schema.metas.mid, mid))),
   ];
+
+  // D1 batch executes the ordered statements transactionally. A failed write
+  // cannot leave an incomplete set of imported content and relationships.
   if (statements.length) await writer.batch(statements);
-
-  return { dataset, alreadyImported };
-}
-
-function countSkipped(dataset: WordPressMigrationDataset, alreadyImported: number) {
-  return {
-    ...dataset.skipped,
-    ...(alreadyImported ? { alreadyImported } : {}),
-  };
 }
 
 export async function previewWordPressImport(
@@ -122,17 +99,26 @@ export async function previewWordPressImport(
     totalItems: source.items.length,
     alreadyImported,
     imported: dataset.imported,
-    skipped: countSkipped(dataset, alreadyImported),
+    skipped: skippedCounts(dataset, alreadyImported),
     preview: true,
   };
 }
 
-function insertStatements(db: Database, table: unknown, rows: Record<string, unknown>[]) {
-  const writer = db as any;
-  const statements: unknown[] = [];
-  for (let offset = 0; offset < rows.length; offset += INSERT_CHUNK_SIZE) {
-    statements.push(writer.insert(table).values(rows.slice(offset, offset + INSERT_CHUNK_SIZE)));
-  }
-  return statements;
-}
+export async function importWordPressExport(
+  db: Database,
+  xml: string,
+  authorId: number,
+): Promise<WordPressImportReport> {
+  const source = parseWordPressExport(xml);
+  const { dataset, alreadyImported } = await buildDataset(db, source, authorId);
+  if (dataset.contents.length) await writeDataset(db, dataset);
 
+  return {
+    siteTitle: source.siteTitle,
+    totalItems: source.items.length,
+    alreadyImported,
+    imported: dataset.imported,
+    skipped: skippedCounts(dataset, alreadyImported),
+    preview: false,
+  };
+}
