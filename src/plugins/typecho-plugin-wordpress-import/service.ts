@@ -270,6 +270,7 @@ async function buildDataset(
   // Build composite keys once so analysis/import stay efficient on large databases.
   // Legacy ID markers without a source remain compatible with any source URL.
   const existingDedupeKeys = new Set<string>();
+  const existingAttachmentIdKeys = new Set<string>();
   for (const row of contentRows) {
     const cid = Number(row.cid);
     const existing = {
@@ -279,12 +280,19 @@ async function buildDataset(
     };
     const existingSource = sourceByContentId.get(cid) || '';
     existingDedupeKeys.add(buildWordPressImportDedupeKey(existing, dedupeFields, existingSource));
+    existingAttachmentIdKeys.add(buildWordPressImportDedupeKey(existing, ['id'], existingSource));
     if (!existingSource && existing.oldId) {
       existingDedupeKeys.add(buildWordPressImportDedupeKey(existing, dedupeFields, '', true));
+      existingAttachmentIdKeys.add(buildWordPressImportDedupeKey(existing, ['id'], '', true));
     }
   }
 
   const pendingItems = selectedSource.items.filter(item => {
+    if (item.postType === 'attachment') {
+      const idKey = buildWordPressImportDedupeKey(item, ['id'], sourceKey);
+      const legacyIdKey = buildWordPressImportDedupeKey(item, ['id'], '', true);
+      return !existingAttachmentIdKeys.has(idKey) && !existingAttachmentIdKeys.has(legacyIdKey);
+    }
     const key = buildWordPressImportDedupeKey(item, dedupeFields, sourceKey);
     const legacyKey = buildWordPressImportDedupeKey(item, dedupeFields, '', true);
     return !existingDedupeKeys.has(key) && !existingDedupeKeys.has(legacyKey);
