@@ -113,11 +113,15 @@ describe('WordPress duplicate matching options', () => {
   it('scopes ID matching to the source and supports legacy source-less markers', () => {
     const fields = ['id'] as const;
     const candidate = buildWordPressImportDedupeKey(item, fields, 'https://source.example');
-    expect(candidate).toBe(buildWordPressImportDedupeKey(item, fields, 'https://source.example'));
+    expect(candidate).toBe(buildWordPressImportDedupeKey(
+      { ...item, title: 'Other title', slug: 'other-slug' }, fields, 'https://source.example',
+    ));
     expect(candidate).not.toBe(buildWordPressImportDedupeKey(item, fields, 'https://other.example'));
-    expect(buildWordPressImportDedupeKey(item, fields, '', true)).not.toBe(candidate);
-    expect(buildWordPressImportDedupeKey(item, fields, '', true))
-      .toBe(buildWordPressImportDedupeKey(item, fields, '', true));
+    const legacyKey = buildWordPressImportDedupeKey(item, fields, '', true);
+    expect(legacyKey).not.toBe(candidate);
+    expect(legacyKey).toBe(buildWordPressImportDedupeKey(
+      { ...item, title: 'Legacy title', slug: 'legacy-slug' }, fields, '', true,
+    ));
   });
 
   it('combines ID with title or slug when multiple options are selected', () => {
