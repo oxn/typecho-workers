@@ -29,6 +29,7 @@ export function defaultCspDirectives(): CspDirectives {
     'frame-src': [
       "'self'",
       'https://www.youtube.com',
+      'https://www.bilibili.com',
       'https://player.bilibili.com',
       'https://player.vimeo.com',
     ],
