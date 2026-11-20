@@ -793,6 +793,7 @@ Markdown 正文可以直接混合 HTML。块级 HTML 示例：
 文章正文允许以下 iframe 主机：
 
 - www.youtube.com
+- www.bilibili.com
 - player.bilibili.com
 - player.vimeo.com
 
