@@ -282,6 +282,8 @@ bun run db:migrate:wordpress -- \
 
 导入完成后，后台会显示 D1 返回的实际写入行数、SQL 语句数、批次请求耗时和 SQL 执行耗时。D1 免费计划每日读写行额度耗尽、数据库容量不足、执行超时和数据库过载会分别给出不同提示。每个 XML 分片仍通过一次 D1 `batch()` 事务提交；任一语句失败时整批回滚。若浏览器网络中断导致响应丢失，重新分析同一文件会根据来源站点和 WordPress 原文章 ID 核对已提交记录。
 
+如需观察整个站点的 D1 使用情况，可在 Cloudflare Dashboard → Storage & databases → D1 → 选择数据库 → Metrics 查看 Read Queries、Write Queries、Rows read、Rows written、Query Latency 和 Storage。D1 指标保留最近 31 天；平台在 SQL 执行前就失败的过载请求可能不会出现在查询分析指标中。
+
 **注意：后台插件当前只迁移附件记录，不会把媒体文件复制到本站 R2，正文图片仍保留 WordPress 原始地址。** 如需下载媒体并重写图片 URL，请继续使用上方命令行迁移工具的 `--download-media` 选项。
 
 
