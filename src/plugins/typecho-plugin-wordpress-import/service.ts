@@ -77,52 +77,62 @@ export async function previewWordPressImport(
   };
 }
 
-async function insertRows(db: Database, table: unknown, rows: Record<string, unknown>[]) {
+function insertStatements(db: Database, table: unknown, rows: Record<string, unknown>[]) {
   const writer = db as any;
+  const statements: unknown[] = [];
   for (let offset = 0; offset < rows.length; offset += INSERT_CHUNK_SIZE) {
-    await writer.insert(table).values(rows.slice(offset, offset + INSERT_CHUNK_SIZE)).run();
+    statements.push(writer.insert(table).values(rows.slice(offset, offset + INSERT_CHUNK_SIZE)));
   }
+  return statements;
+}
+  // D1 batch runs the ordered statements in one transaction. A failed row
+  // therefore cannot leave a half-imported set of posts, fields or comments.
+  const writer = db as any;
+  const statements = [
+    ...insertStatements(db, schema.metas, dataset.metas),
+    ...insertStatements(db, schema.contents, dataset.contents),
+    ...insertStatements(db, schema.fields, dataset.fields),
+    ...insertStatements(db, schema.relationships, dataset.relationships),
+    ...insertStatements(db, schema.comments, dataset.comments),
+    ...dataset.affectedMetaIds.map(mid => writer.update(schema.metas)
+      .set({ count: sql`(SELECT COUNT(*) FROM ${schema.relationships} WHERE ${schema.relationships.mid} = ${mid})` })
+      .where(eq(schema.metas.mid, mid))),
+  ];
+  if (statements.length) await writer.batch(statements);
+
+  return { dataset, alreadyImported };
 }
 
-export async function importWordPressExport(
+function countSkipped(dataset: WordPressMigrationDataset, alreadyImported: number) {
+  return {
+    ...dataset.skipped,
+    ...(alreadyImported ? { alreadyImported } : {}),
+  };
+}
+
+export async function previewWordPressImport(
   db: Database,
   xml: string,
   authorId: number,
 ): Promise<WordPressImportReport> {
   const source = parseWordPressExport(xml);
   const { dataset, alreadyImported } = await buildDataset(db, source, authorId);
-
-  if (dataset.contents.length === 0) {
-    return {
-      siteTitle: source.siteTitle,
-      totalItems: source.items.length,
-      alreadyImported,
-      imported: dataset.imported,
-      skipped: countSkipped(dataset, alreadyImported),
-      preview: false,
-    };
-  }
-
-  // Keep the same dependency order as the CLI migrator. The WordPress ID marker
-  // is stored with each content row so a repeated WXR upload skips those rows.
-  await insertRows(db, schema.metas, dataset.metas);
-  await insertRows(db, schema.contents, dataset.contents);
-  await insertRows(db, schema.fields, dataset.fields);
-  await insertRows(db, schema.relationships, dataset.relationships);
-  await insertRows(db, schema.comments, dataset.comments);
-
-  for (const mid of dataset.affectedMetaIds) {
-    await db.update(schema.metas)
-      .set({ count: sql`(SELECT COUNT(*) FROM ${schema.relationships} WHERE ${schema.relationships.mid} = ${mid})` })
-      .where(eq(schema.metas.mid, mid));
-  }
-
   return {
     siteTitle: source.siteTitle,
     totalItems: source.items.length,
     alreadyImported,
     imported: dataset.imported,
     skipped: countSkipped(dataset, alreadyImported),
-    preview: false,
+    preview: true,
   };
 }
+
+function insertStatements(db: Database, table: unknown, rows: Record<string, unknown>[]) {
+  const writer = db as any;
+  const statements: unknown[] = [];
+  for (let offset = 0; offset < rows.length; offset += INSERT_CHUNK_SIZE) {
+    statements.push(writer.insert(table).values(rows.slice(offset, offset + INSERT_CHUNK_SIZE)));
+  }
+  return statements;
+}
+
