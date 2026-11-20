@@ -346,10 +346,10 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         if(!hasImportableItems(previewReport)){
           skippedParts++;
           reports.push(previewReport);
-          setStatus('已跳过已完成的第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\n已跳过 '+skippedParts+' 个，无需重复写入。');
+          setStatus('已跳过已完成的第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\\n已跳过 '+skippedParts+' 个，无需重复写入。');
           continue;
         }
-        setStatus('正在导入第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\n已确认提交 '+confirmedParts+' 个，已跳过 '+skippedParts+' 个。当前分片只写入尚未成功导入的所选内容及其附件。');
+        setStatus('正在导入第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\\n已确认提交 '+confirmedParts+' 个，已跳过 '+skippedParts+' 个。当前分片只写入尚未成功导入的所选内容及其附件。');
         reports.push(await requestPart(lastPreview.parts[index],'import'));
         confirmedParts++;
         renderReport(addReports(reports),lastPreview.parts.length,false);
@@ -363,7 +363,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         : '\\n本次没有收到新的分片提交确认。';
       var skippedProgress=skippedParts?'\\n另有 '+skippedParts+' 个此前已完成的分片已安全跳过。':'';
       lastPreview=null;
-      setStatus((error instanceof Error?error.message:'导入失败')+progress+skippedProgress+'\n请重新选择同一原始文件并重新分析。系统会逐片核对数据库中的来源站点和 WordPress 原文章 ID，从第一个仍有未导入内容的分片继续；分片内部也只写入尚未成功的文章。',true);
+      setStatus((error instanceof Error?error.message:'导入失败')+progress+skippedProgress+'\\n请重新选择同一原始文件并重新分析。系统会逐片核对数据库中的来源站点和 WordPress 原文章 ID，从第一个仍有未导入内容的分片继续；分片内部也只写入尚未成功的文章。',true);
     }finally{
       setBusy(false);
       importButton.disabled=true;
