@@ -50,9 +50,9 @@ describe('WordPress import plugin', () => {
     expect(html).toContain('name="contentTypes" value="post"');
     expect(html).toContain('name="contentTypes" value="page"');
     expect(html).toContain('name="contentTypes" value="note"');
-    expect(html).toContain('name="dedupeFields" value="title" checked');
-    expect(html).toContain('name="dedupeFields" value="slug" checked');
-    expect(html).toContain('name="dedupeFields" value="id"');
+    expect(html).toContain('name="dedupeFields" value="title"> 标题');
+    expect(html).toContain('name="dedupeFields" value="slug"> 别名');
+    expect(html).toContain('name="dedupeFields" value="id" checked');
     expect(html).toContain('selectedDedupeFields');
     expect(html).toContain('dedupeSelectionKey');
 
