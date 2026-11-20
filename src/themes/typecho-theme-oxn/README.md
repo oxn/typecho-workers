@@ -54,22 +54,44 @@ OXN 保留 Warm 的单栏、简洁阅读方向和主要页面结构，但后台�
 
 > 注意：Markdown 转换和文章 HTML 清理仍属于项目共享内容处理流程，不是 OXN 自己重新实现的一套 Markdown 引擎。OXN 使用处理后的文章 HTML，并在主题内部完成排版和展示。
 
-### 2.4 当前 1119j 测试版本的同步文件
+### 2.4 使用 OXN 时必须同步的文件
 
-如果要在另一个 Cloudflare 环境手动测试当前 `1119j`，需要同步以下内容：
+如果要在另一个 Cloudflare 环境中使用当前 `1119j` 版本，不能只替换主题目录。OXN 有部分功能依赖项目共享核心文件；这些核心文件仍使用上游原版时，对应功能会缺失或被安全策略拦截。
 
-| 类型 | 路径 | 操作 |
+#### 必须同步的主题与核心文件
+
+| 类型 | 路径 | 必须同步的原因 |
 | --- | --- | --- |
-| 拼音插件 | `src/plugins/typecho-plugin-pinyin/` | 替换整个目录，保留目录内全部文件 |
-| OXN 主题 | `src/themes/typecho-theme-oxn/` | 替换整个目录，保留目录内全部文件 |
-| 共享 Markdown 处理文件 | `src/lib/markdown.ts` | 替换当前使用文件 |
-| 构建配置 | `astro.config.mjs` | 替换根目录同名文件 |
-| 依赖清单 | `package.json` | 替换根目录同名文件 |
-| 依赖锁定文件 | `bun.lock` | 替换根目录同名文件 |
+| OXN 主题 | `src/themes/typecho-theme-oxn/` | OXN 的主题组件、样式、设置界面和前台功能；替换整个目录 |
+| 核心路由 | `src/pages/index.astro` | 增加 OXN 笔记/话题流入口兼容，避免核心路由在主题组件运行前因普通文章列表为空而提前返回 404 |
+| Markdown/HTML 处理 | `src/lib/markdown.ts` | 扩展文章、独立页面和笔记正文的 HTML/SVG 标签、属性及受限内联样式白名单；增加 iframe 主机白名单和图片尺寸参数处理 |
+| CSP 安全策略 | `src/lib/security-headers.ts` | 默认 CSP 的 `frame-src` 必须与 Markdown iframe 主机白名单对应；包含 Bilibili 页面域名和播放器域名，否则 iframe 即使通过 Markdown 清理也会被浏览器拦截 |
+| 构建配置 | `astro.config.mjs` | 同步当前分支的 Vite workspace 依赖优化配置，避免继续使用上游已不匹配的工作区排除项 |
+| 依赖清单 | `package.json` | 声明当前分支使用的 OXN 主题及插件 workspace 依赖 |
+| 依赖锁定文件 | `bun.lock` | 与当前 workspace 依赖清单保持一致，确保安装和构建解析到对应版本 |
 
-以上是两个完整目录、一个核心文件和三个根目录文件。不要把整个仓库覆盖到测试环境，也不要把下面两个 Markdown 备份文件作为部署文件。
+#### 按需同步的插件目录
 
-**项目级 Workers 日志配置（非主题功能）：** `scripts/generate-wrangler-config.ts` 生成的配置和 `wrangler.toml.example` 均已将 Workers Observability 及其日志默认设为关闭。当前结果是默认不采集这类日志，并不是“只记录错误”；这项配置不属于 OXN 主题功能，也不改变主题页面逻辑。
+| 类型 | 路径 | 说明 |
+| --- | --- | --- |
+| 拼音插件 | `src/plugins/typecho-plugin-pinyin/` | 需要拼音转换、编辑器拼音功能时，替换整个目录；这是插件功能，不是 OXN 主题本身的必需组件 |
+
+以上核心文件应从同一维护版本同步，不能只挑选主题目录。若仍使用上游的 `src/pages/index.astro`、`src/lib/markdown.ts` 或 `src/lib/security-headers.ts`，OXN 的笔记流入口、扩展内容格式和第三方 iframe 嵌入可能无法完整工作。
+
+#### 两套 iframe 白名单必须同时匹配
+
+Bilibili iframe 需要经过两道独立检查：
+
+1. `src/lib/markdown.ts` 的 `allowedIframeHostnames`：决定 Markdown/HTML 清理时是否保留 iframe 地址主机名。
+2. `src/lib/security-headers.ts` 的 CSP `frame-src`：决定浏览器是否允许页面加载该 iframe。
+
+当前维护版本在两处均允许 `www.bilibili.com` 和 `player.bilibili.com`。只配置其中一处是不够的：Markdown 放行但 CSP 未放行时，浏览器仍会阻止嵌入；CSP 放行但 Markdown 未放行时，iframe 会在输出前被清理。
+
+#### 不需要为 OXN 功能替换的文件
+
+当前 `1119j` 的 `scripts/generate-wrangler-config.ts` 和 `wrangler.toml.example` 与上游 `master` 内容一致，不属于 OXN 功能所需的差异文件。不要因为它们出现在历史比较结果中就额外覆盖。
+
+`src/lib/markdown.ts.sim` 和 `src/lib/markdown.ts.bak` 仅用于对照和回查，不是部署文件；部署时只替换实际运行的 `src/lib/markdown.ts`。
 
 #### 三个 markdown.ts 文件的用途与差异
 
