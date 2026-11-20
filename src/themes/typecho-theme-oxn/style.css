@@ -2057,7 +2057,7 @@ body.warm-theme {
 
 /* 自定义页脚紧跟内容分页，避免加载更多按钮与页脚之间留白过大。 */
 .warm-footer:has(> .warm-footer__custom) {
-  margin-top: 24px;
+  margin-top: 36px;
 }
 .warm-article__declaration {
   margin-top: 24px;
