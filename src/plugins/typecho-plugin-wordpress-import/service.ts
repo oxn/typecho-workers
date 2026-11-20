@@ -45,7 +45,7 @@ export function addWordPressTermAncestors(
   const metaIds = new Map<string, number>();
   for (const meta of existingMetas) metaIds.set(wordpressMetaKey(meta.type, meta.slug), meta.mid);
   for (const meta of dataset.metas) metaIds.set(wordpressMetaKey(String(meta.type), String(meta.slug)), Number(meta.mid));
-  let nextMetaId = maxMetaId + 1;
+  // The shared builder has already allocated IDs for dataset.metas.
   const ensureAncestor = (type: string, slug: string, trail: Set<string>): number => {
     if (!slug) return 0;
     const key = wordpressMetaKey(type, slug);
