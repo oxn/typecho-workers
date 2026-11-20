@@ -97,6 +97,7 @@ if (items.length < 2) return;
       const onClick = event => {
         const link = event.target.closest(`[${LINK_ATTR}]`);
         if (!link || !nav.contains(link)) return;
+        nav.classList.add('is-expanded');
         const id = decodeURIComponent((link.getAttribute('href') || '').replace(/^#/, ''));
         const heading = id ? document.getElementById(id) : null;
         if (!heading) return;
@@ -106,7 +107,16 @@ if (items.length < 2) return;
         setActive(id);
       };
 
+      const onDocumentPointerDown = event => {
+        if (nav.contains(event.target)) return;
+        nav.classList.remove('is-expanded');
+        if (nav.contains(document.activeElement)) {
+          document.activeElement.blur();
+        }
+      };
+
       nav.addEventListener('click', onClick);
+      document.addEventListener('pointerdown', onDocumentPointerDown, true);
       window.addEventListener('scroll', onScroll, { passive: true });
       window.addEventListener('resize', syncFromScroll);
       syncFromScroll();
@@ -116,6 +126,7 @@ if (items.length < 2) return;
       const cleanupStalePage = () => {
         if (nav.isConnected) return;
         nav.removeEventListener('click', onClick);
+        document.removeEventListener('pointerdown', onDocumentPointerDown, true);
         window.removeEventListener('scroll', onScroll);
         if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
         window.removeEventListener('resize', syncFromScroll);
