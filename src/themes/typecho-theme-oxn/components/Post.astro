@@ -1,0 +1,163 @@
+---
+import { env } from 'cloudflare:workers';
+import { getDb } from 'typecho/db';
+import { readSummary } from 'typecho-plugin-intelligence';
+import { getNoteForTheme } from 'typecho-plugin-notes';
+import { createContext } from '@/lib/context';
+import { hasPermission } from '@/lib/auth';
+import type { ThemePostProps } from '@/lib/theme-props';
+import WarmShell from './WarmShell.astro';
+import WarmComments from './WarmComments.astro';
+import WarmNoteMedia from './WarmNoteMedia.astro';
+import WarmToc from './WarmToc.astro';
+import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings, renderArticleDeclaration, warmOptimizeContentImages } from './warm';
+
+type Props = ThemePostProps;
+
+const {
+  options, urls, pages, sidebarData, currentPath, pluginCtx, user,
+  post, author, categories, tags, commentPagination,
+} = Astro.props;
+
+const db = getDb(env.DB);
+const isAdmin = !!user && hasPermission(user.group || 'visitor', 'administrator');
+const requestContext = isAdmin || pluginCtx.activatedPlugins.has('typecho-plugin-notes')
+  ? await createContext(Astro.locals, Astro.request)
+  : null;
+const noteContext = pluginCtx.activatedPlugins.has('typecho-plugin-notes') ? requestContext : null;
+const note = noteContext
+  ? await getNoteForTheme(noteContext.db ?? db, post.cid, urls.siteUrl)
+  : null;
+const isNote = note?.type === 'note';
+const isPasswordLocked = !isNote && post.hasPassword && !post.passwordVerified;
+const settings = warmSettings(options);
+const commentManagement = isAdmin && requestContext ? {
+  canManage: true,
+  showManagementButtons: settings.showCommentManagementButtons,
+  adminUrl: urls.adminUrl,
+  contentType: 'post' as const,
+  isPinned: settings.pinnedIds.includes(post.cid),
+  csrfToken: requestContext.csrfToken || '',
+} : null;
+const optimizedContent = warmOptimizeContentImages(
+  isNote ? note.html : post.content,
+  settings.imageOptimizeParams,
+  urls.siteUrl,
+);
+const toc = isNote ? { html: optimizedContent, items: [] } : prepareArticleToc(optimizedContent);
+const displayContent = toc.html;
+const tocItems = toc.items;
+const intelligenceSummary = !isNote && pluginCtx.activatedPlugins.has('typecho-plugin-intelligence')
+  ? await readSummary(db, post.cid)
+  : null;
+const summary = isNote ? '' : warmArticleSummary(post, intelligenceSummary);
+const description = isNote
+  ? plainExcerpt(note.source, 160)
+  : (summary || (!(post.hasPassword && !post.passwordVerified) ? plainExcerpt(post.content, 160) : ''));
+const articleDeclarationHtml = !isNote
+  ? renderArticleDeclaration(settings.articleDeclarationHtml, {
+    siteName: options.title,
+    siteUrl: urls.siteUrl,
+    siteDescription: options.description || '',
+    postTitle: post.title,
+    postUrl: post.permalink,
+  })
+  : '';
+---
+<WarmShell
+  title={isNote ? '笔记' : post.title}
+  description={description}
+  options={options}
+  urls={urls}
+  pages={pages}
+  sidebarData={sidebarData}
+  currentPath={currentPath}
+  pageContext={{ hasComments: post.allowComment, pageType: 'post' }}
+  pluginCtx={pluginCtx}
+  section={isNote ? 'notes' : 'articles'}
+  detail={!isNote}
+>
+  <article class:list={["warm-article", { "is-note": isNote, "has-toc": tocItems.length > 0 }]} itemscope itemtype="https://schema.org/BlogPosting">
+    <header class:list={["warm-article__header", { "warm-article__hero": !isNote }]}>
+      <div class:list={{ "warm-article__hero-inner": !isNote }}>
+        <div class="warm-item-meta">
+          {isNote ? (
+            <span class="warm-note-label">笔记</span>
+          ) : categories[0] ? (
+            <a class="warm-category" href={categories[0].permalink}>{categories[0].name}</a>
+          ) : (
+            <span>文章</span>
+          )}
+          <span aria-hidden="true">·</span>
+          <time datetime={new Date(post.created * 1000).toISOString()} itemprop="datePublished">{formatWarmDate(post.created, options.postDateFormat, options.timezone, isNote)}</time>
+          {!isNote && <><span aria-hidden="true">·</span><span>约 {readingMinutes(post.content)} 分钟阅读</span></>}
+        </div>
+        {!isNote && <h1 itemprop="headline">{post.title}</h1>}
+        {summary && <p class="warm-article__summary">{summary}</p>}
+      </div>
+    </header>
+
+    <div class:list={["warm-article__body", { "warm-article__body--toc": tocItems.length > 0 }]}>
+      {isPasswordLocked ? (
+        <div class="warm-prose warm-password-gate" itemprop="articleBody">
+          <p>此内容已加密，请输入密码访问。</p>
+          <form class="warm-compact-form" method="get" action={Astro.url.pathname}>
+            <label class="warm-compact-form__label" for={`warm-post-password-${post.cid}`}>输入加密文章密码</label>
+            <div class="warm-compact-form__row">
+              <input
+                class="warm-compact-form__input"
+                type="password"
+                id={`warm-post-password-${post.cid}`}
+                name="password"
+                autocomplete="current-password"
+                placeholder="请输入密码"
+                required
+              />
+              <button class="warm-compact-form__submit" type="submit">打开</button>
+            </div>
+          </form>
+        </div>
+      ) : (
+        <>
+          <div class:list={["warm-prose", { "warm-note-prose": isNote }]} view-image itemprop="articleBody" set:html={displayContent} />
+          {tocItems.length > 0 && <WarmToc items={tocItems} />}
+        </>
+      )}
+    </div>
+
+    {isNote && (
+      <WarmNoteMedia
+        note={note}
+        detail
+        optimizeParams={settings.imageOptimizeParams}
+        thumbParams={settings.thumbOptimizeParams}
+        siteUrl={urls.siteUrl}
+      />
+    )}
+
+    {!isNote && (
+      <footer class="warm-article__footer">
+        {tags.length > 0 && (
+          <div class="warm-article__tags">
+            {tags.map(tag => <a href={tag.permalink}>#{tag.name}</a>)}
+          </div>
+        )}
+      </footer>
+    )}
+  </article>
+
+  {articleDeclarationHtml && (
+    <div class="warm-article__declaration" set:html={articleDeclarationHtml}></div>
+  )}
+
+  {(post.allowComment || commentPagination.totalComments > 0) && (
+    <WarmComments
+      cid={post.cid}
+      componentLoadMode={settings.commentComponentLoadMode}
+      initialLoadMode={settings.commentInitialLoadMode}
+      cooldownSeconds={options.commentsPostIntervalEnable ? (options.commentsPostInterval || 60) : 0}
+      management={commentManagement}
+    />
+  )}
+
+</WarmShell>
