@@ -147,17 +147,14 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         current=[];
         currentSize=baseBytes+512;
       }
-      current=current.concat(component);
+      component.forEach(function(index){current.push(index);});
       currentSize+=componentSize;
     });
     if(current.length)groups.push(current);
 
     var parts=groups.map(function(indexes,partIndex){
-      var partDocument=documentNode.cloneNode(true);
+      var partDocument=baseDocument.cloneNode(true);
       var partChannel=directChild(partDocument.documentElement,'channel');
-      Array.prototype.slice.call(partChannel.children).forEach(function(node){
-        if(localName(node)==='item')partChannel.removeChild(node);
-      });
       indexes.sort(function(a,b){return a-b;}).forEach(function(index){
         partChannel.appendChild(partDocument.importNode(items[index],true));
       });
