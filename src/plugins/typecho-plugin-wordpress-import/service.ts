@@ -133,6 +133,42 @@ async function buildDataset(db: Database, source: WordPressExport, authorId: num
     rewriteMedia: false,
   });
 
+  // The shared migration builder predates Typecho's native "waiting" state
+  // and treats unknown WordPress statuses as publish. Correct each imported
+  // post/page from the original WXR status before any database write.
+  const sourceItemById = new Map(source.items.map(item => [item.oldId, item]));
+  const importedIdByContentId = new Map<number, number>();
+  for (const field of dataset.fields) {
+    if (field.name === 'wordpress_post_id') {
+      importedIdByContentId.set(Number(field.cid), Number(field.int_value));
+    }
+  }
+  for (const content of dataset.contents) {
+    const item = sourceItemById.get(importedIdByContentId.get(Number(content.cid)) || 0);
+    if (!item) continue;
+    const mapped = mapWordPressContentStatus(item.postType, item.status);
+    if (mapped) {
+      content.type = mapped.type;
+      content.status = mapped.status;
+    }
+    dataset.fields.push({
+      cid: Number(content.cid),
+      name: 'wordpress:post_type',
+      type: 'str',
+      str_value: item.postType,
+      int_value: 0,
+      float_value: 0,
+    });
+    dataset.fields.push({
+      cid: Number(content.cid),
+      name: 'wordpress:post_status',
+      type: 'str',
+      str_value: item.status,
+      int_value: 0,
+      float_value: 0,
+    });
+  }
+
   // Mark each imported content row with its source site. This keeps IDs from
   // unrelated WordPress installations from colliding during later imports.
   for (const marker of dataset.fields.filter(row => row.name === 'wordpress_post_id')) {
@@ -151,6 +187,33 @@ async function buildDataset(db: Database, source: WordPressExport, authorId: num
   for (const comment of dataset.comments) comment.authorId = 0;
 
   return { dataset, alreadyImported };
+}
+
+/**
+ * Map WordPress post statuses to Typecho's native content types/statuses.
+ * Unknown and trashed content is kept as a draft, never published by default.
+ */
+export function mapWordPressContentStatus(
+  postType: string,
+  sourceStatus: string,
+): { type: string; status: string } | null {
+  if (postType !== 'post' && postType !== 'page') return null;
+  const type = postType;
+  switch (sourceStatus) {
+    case 'publish':
+      return { type, status: 'publish' };
+    case 'pending':
+      return { type, status: 'waiting' };
+    case 'private':
+      return { type, status: 'private' };
+    case 'future':
+      return { type, status: 'hidden' };
+    case 'draft':
+    case 'auto-draft':
+    case 'trash':
+    default:
+      return { type: `${type}_draft`, status: 'draft' };
+  }
 }
 
 function skippedCounts(dataset: WordPressMigrationDataset, alreadyImported: number) {
