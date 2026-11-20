@@ -635,7 +635,6 @@ body.warm-theme {
   color: var(--warm-accent);
   font-family: inherit;
   font-size: 12px;
-  font-weight: 500;
 }
 
 .warm-pagination--progressive a[data-warm-load-more]:hover,
