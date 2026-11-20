@@ -199,7 +199,7 @@ export function mapWordPressContentStatus(
 ): { type: string; status: string } | null {
   if (postType !== 'post' && postType !== 'page') return null;
   const type = postType;
-  switch (sourceStatus) {
+  switch (sourceStatus.trim().toLowerCase()) {
     case 'publish':
       return { type, status: 'publish' };
     case 'pending':
