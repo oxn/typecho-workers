@@ -173,13 +173,27 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
   }
   function addReports(reports){
     var result={siteTitle:reports[0].siteTitle,totalItems:0,alreadyImported:0,imported:{},skipped:{}};
+    var databaseWrite={rowsWritten:0,statementCount:0,batchDurationMs:0,sqlDurationMs:0};
+    var hasDatabaseWrite=false;
     reports.forEach(function(report){
       result.totalItems+=Number(report.totalItems||0);
       result.alreadyImported+=Number(report.alreadyImported||0);
       Object.keys(report.imported||{}).forEach(function(key){result.imported[key]=(result.imported[key]||0)+Number(report.imported[key]||0);});
       Object.keys(report.skipped||{}).forEach(function(key){result.skipped[key]=(result.skipped[key]||0)+Number(report.skipped[key]||0);});
+      if(report.databaseWrite){
+        hasDatabaseWrite=true;
+        databaseWrite.rowsWritten+=Number(report.databaseWrite.rowsWritten||0);
+        databaseWrite.statementCount+=Number(report.databaseWrite.statementCount||0);
+        databaseWrite.batchDurationMs+=Number(report.databaseWrite.batchDurationMs||0);
+        databaseWrite.sqlDurationMs+=Number(report.databaseWrite.sqlDurationMs||0);
+      }
     });
+    if(hasDatabaseWrite)result.databaseWrite=databaseWrite;
     return result;
+  }
+  function formatDuration(value){
+    value=Number(value||0);
+    return value<1000?Math.round(value)+' ms':(value/1000).toFixed(2)+' 秒';
   }
   function renderReport(data,partCount,isPreview){
     reportBox.replaceChildren();
@@ -202,6 +216,20 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     var partsItem=document.createElement('li');
     partsItem.textContent='XML 分片：'+partCount+' 个';
     list.appendChild(partsItem);
+    if(!isPreview&&data.databaseWrite){
+      var writesItem=document.createElement('li');
+      writesItem.textContent='D1 实际写入行数：'+Number(data.databaseWrite.rowsWritten||0);
+      list.appendChild(writesItem);
+      var statementsItem=document.createElement('li');
+      statementsItem.textContent='SQL 语句数：'+Number(data.databaseWrite.statementCount||0);
+      list.appendChild(statementsItem);
+      var durationItem=document.createElement('li');
+      durationItem.textContent='数据库批次耗时：'+formatDuration(data.databaseWrite.batchDurationMs);
+      list.appendChild(durationItem);
+      var sqlDurationItem=document.createElement('li');
+      sqlDurationItem.textContent='SQL 执行耗时合计：'+formatDuration(data.databaseWrite.sqlDurationMs);
+      list.appendChild(sqlDurationItem);
+    }
     reportBox.appendChild(list);
     reportBox.hidden=false;
   }
@@ -264,8 +292,12 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       setStatus('全部导入完成。共成功处理 '+reports.length+' 个分片。');
     }catch(error){
       var completed=reports.length;
+      var completedRows=reports.reduce(function(total,report){return total+Number(report.databaseWrite&&report.databaseWrite.rowsWritten||0);},0);
       lastPreview=null;
-      setStatus((error instanceof Error?error.message:'导入失败')+'\n已成功完成 '+completed+' 个分片；此前成功写入的内容不会回滚。请重新选择同一原始文件并重新分析，系统会自动跳过已导入内容。',true);
+      var progress=completed
+        ? '\\n已确认提交 '+completed+' 个分片，D1 实际写入 '+completedRows+' 行。'
+        : '\\n目前没有收到已成功提交分片的确认。';
+      setStatus((error instanceof Error?error.message:'导入失败')+progress+'\\n请重新选择同一原始文件并重新分析；系统会根据来源站点和 WordPress 原文章 ID 核对已写入内容，再跳过已导入记录。若是网络中断导致响应丢失，失败分片的最终提交状态也会通过重新分析核实。',true);
     }finally{
       previewButton.disabled=false;
       importButton.disabled=true;
