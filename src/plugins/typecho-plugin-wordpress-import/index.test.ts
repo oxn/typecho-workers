@@ -46,7 +46,7 @@ describe('WordPress import plugin', () => {
     expect(html).toContain('已确认提交');
     expect(html).toContain('function hasImportableItems');
     expect(html).toContain('lastPreview={hash:hash,selection:chosenTypes.join(','),parts:parts,reports:reports}');
-    expect(html).toContain('当前分片只写入尚未成功导入的文章');
+    expect(html).toContain('当前分片只写入尚未成功导入的所选内容及其附件');
   });
 
   it('leaves unrelated plugin requests untouched', async () => {
