@@ -52,7 +52,8 @@
     "typecho-plugin-pinyin": "workspace:*",
     "typecho-plugin-turnstile": "workspace:*",
     "typecho-theme-oxn": "workspace:*",
-    "typecho-theme-warm": "workspace:*"
+    "typecho-theme-warm": "workspace:*",
+    "typecho-plugin-wordpress-import": "workspace:*"
   },
   "devDependencies": {
     "@libsql/client": "^0.17.4",
