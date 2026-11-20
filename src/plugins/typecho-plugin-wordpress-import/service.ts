@@ -51,11 +51,22 @@ export function buildWordPressImportDedupeKey(
  * and import compare the same logical note slug on subsequent runs.
  */
 function normalizeImportedNoteSlug(slug: string, oldId: number): string {
-  const base = `note-${oldId}`;
-  const storedSlugPattern = new RegExp(`^note-${oldId}(?:-wp-${oldId}(?:-\\d+)?)?$`, 'i');
+  const base = \`note-\${oldId}\`;
+  const storedSlugPattern = new RegExp(\`^note-\${oldId}(?:-wp-\${oldId}(?:-\\d+)?)?$\`, 'i');
   return storedSlugPattern.test(slug) ? base : slug;
 }
 
+/**
+ * Posts and pages with an empty WordPress post_name are stored by the migration
+ * builder as post-<oldId>. Account for that generated slug during both preview
+ * and import so a blank source alias does not make the same item look new again.
+ * Collision suffixes are normalized only for rows carrying a WordPress ID marker.
+ */
+export function normalizeImportedPostSlug(slug: string, oldId: number): string {
+  const base = \`post-\${oldId}\`;
+  const storedSlugPattern = new RegExp(\`^post-\${oldId}(?:-wp-\${oldId}(?:-\\d+)?)?$\`, 'i');
+  return storedSlugPattern.test(slug) ? base : slug;
+}
 function wordpressMetaType(domain: string): string | null {
   if (domain === 'category') return 'category';
   if (domain === 'post_tag') return 'tag';
@@ -292,8 +303,10 @@ async function buildDataset(
       slug: String(row.slug || ''),
       oldId: wordpressIdByContentId.get(cid) || 0,
     };
-    if (row.type === 'note' && existing.oldId) {
+    if (existing.oldId && row.type === 'note') {
       existing.slug = normalizeImportedNoteSlug(existing.slug, existing.oldId);
+    } else if (existing.oldId && ['post', 'page', 'post_draft', 'page_draft'].includes(String(row.type))) {
+      existing.slug = normalizeImportedPostSlug(existing.slug, existing.oldId);
     }
     const existingSource = sourceByContentId.get(cid) || '';
     if (row.type === 'attachment') {
@@ -317,7 +330,9 @@ async function buildDataset(
     }
     const dedupeItem = item.postType === 'note'
       ? { ...item, slug: normalizeImportedNoteSlug(`note-${item.oldId}`, item.oldId) }
-      : item;
+      : (item.postType === 'post' || item.postType === 'page') && !item.slug.trim()
+        ? { ...item, slug: normalizeImportedPostSlug('', item.oldId) }
+        : item;
     const key = buildWordPressImportDedupeKey(dedupeItem, dedupeFields, sourceKey);
     const legacyKey = buildWordPressImportDedupeKey(dedupeItem, dedupeFields, '', true);
     return !existingDedupeKeys.has(key) && !existingDedupeKeys.has(legacyKey);
