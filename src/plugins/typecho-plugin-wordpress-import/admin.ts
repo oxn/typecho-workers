@@ -263,36 +263,37 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
   function renderReport(data,partCount,isPreview){
     reportBox.replaceChildren();
     var title=document.createElement('h3');
-    title.textContent=(data.siteTitle||'WordPress 网站')+'：导入统计';
+    title.textContent=(data.siteTitle||'WordPress 网站')+(isPreview?'：分析预览（尚未导入）':'：本次导入结果');
     reportBox.appendChild(title);
     var list=document.createElement('ul');
     Object.keys(labels).forEach(function(key){
       var count=Number(data.imported&&data.imported[key]||0);
       if(!count)return;
       var item=document.createElement('li');
-      item.textContent=labels[key]+'：'+count+(isPreview&&key==='metas'?'（预估，跨分片可能重复）':'');
+      item.textContent=(isPreview?'预计新增':'本次写入')+labels[key]+'：'+count+(isPreview&&key==='metas'?'（预估，跨分片可能重复）':'');
       list.appendChild(item);
     });
     if(data.alreadyImported){
       var skippedItem=document.createElement('li');
-      skippedItem.textContent='已导入并跳过：'+data.alreadyImported;
+      skippedItem.textContent='数据库中已存在，本次跳过：'+data.alreadyImported;
       list.appendChild(skippedItem);
     }
     var partsItem=document.createElement('li');
     partsItem.textContent='XML 分片：'+partCount+' 个';
     list.appendChild(partsItem);
-    if(!isPreview&&data.databaseWrite){
+    if(!isPreview){
+      var writeMetrics=data.databaseWrite||{rowsWritten:0,statementCount:0,batchDurationMs:0,sqlDurationMs:0};
       var writesItem=document.createElement('li');
-      writesItem.textContent='D1 实际写入行数：'+Number(data.databaseWrite.rowsWritten||0);
+      writesItem.textContent='D1 实际写入行数：'+Number(writeMetrics.rowsWritten||0);
       list.appendChild(writesItem);
       var statementsItem=document.createElement('li');
-      statementsItem.textContent='SQL 语句数：'+Number(data.databaseWrite.statementCount||0);
+      statementsItem.textContent='SQL 语句数：'+Number(writeMetrics.statementCount||0);
       list.appendChild(statementsItem);
       var durationItem=document.createElement('li');
-      durationItem.textContent='数据库批次耗时：'+formatDuration(data.databaseWrite.batchDurationMs);
+      durationItem.textContent='数据库批次耗时：'+formatDuration(writeMetrics.batchDurationMs);
       list.appendChild(durationItem);
       var sqlDurationItem=document.createElement('li');
-      sqlDurationItem.textContent='SQL 执行耗时合计：'+formatDuration(data.databaseWrite.sqlDurationMs);
+      sqlDurationItem.textContent='SQL 执行耗时合计：'+formatDuration(writeMetrics.sqlDurationMs);
       list.appendChild(sqlDurationItem);
     }
     reportBox.appendChild(list);
@@ -369,7 +370,8 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         var previewReport=lastPreview.reports[index];
         if(!hasImportableItems(previewReport)){
           skippedParts++;
-          reports.push(previewReport);
+          reports.push({siteTitle:previewReport.siteTitle,totalItems:previewReport.totalItems,alreadyImported:previewReport.alreadyImported,imported:{},skipped:previewReport.skipped||{},databaseWrite:{rowsWritten:0,statementCount:0,batchDurationMs:0,sqlDurationMs:0}});
+          renderReport(addReports(reports),lastPreview.parts.length,false);
           setStatus('已跳过已完成的第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\\n已跳过 '+skippedParts+' 个，无需重复写入。');
           continue;
         }
@@ -378,6 +380,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         confirmedParts++;
         renderReport(addReports(reports),lastPreview.parts.length,false);
       }
+      renderReport(addReports(reports),lastPreview.parts.length,false);
       lastPreview=null;
       setStatus('导入处理完成。新提交 '+confirmedParts+' 个分片，跳过已完成分片 '+skippedParts+' 个。');
     }catch(error){
