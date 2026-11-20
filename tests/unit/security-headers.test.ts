@@ -40,6 +40,8 @@ describe('CSP directive helpers', () => {
     const csp = serializeCsp(defaultCspDirectives());
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("frame-src 'self'");
+    expect(directiveSources(csp, 'frame-src')).toContain('https://www.bilibili.com');
+    expect(directiveSources(csp, 'frame-src')).toContain('https://player.bilibili.com');
     expect(csp).toContain("script-src 'self'");
     expect(csp).not.toContain('https://challenges.cloudflare.com');
     expect(csp).not.toContain('https://static.cloudflareinsights.com');
