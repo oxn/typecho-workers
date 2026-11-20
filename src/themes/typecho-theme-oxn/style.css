@@ -61,9 +61,15 @@ body.warm-theme {
   text-decoration: none;
 }
 
-.warm-theme button,
-.warm-theme input,
-.warm-theme textarea {
+/* Low-specificity defaults: component classes can still define their own typography. */
+:where(.warm-theme) button {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+:where(.warm-theme) input,
+:where(.warm-theme) textarea {
   font: inherit;
   letter-spacing: 0;
 }
