@@ -7,7 +7,8 @@ import {
   type WordPressMigrationDataset,
 } from '../../../scripts/wordpress';
 
-const INSERT_CHUNK_SIZE = 40;
+// D1 allows at most 100 bound parameters in each SQL statement.
+const MAX_BOUND_PARAMETERS = 100;
 
 export interface WordPressImportReport {
   siteTitle: string;
@@ -63,8 +64,15 @@ function skippedCounts(dataset: WordPressMigrationDataset, alreadyImported: numb
 function insertStatements(db: Database, table: unknown, rows: Record<string, unknown>[]) {
   const writer = db as any;
   const statements: unknown[] = [];
-  for (let offset = 0; offset < rows.length; offset += INSERT_CHUNK_SIZE) {
-    statements.push(writer.insert(table).values(rows.slice(offset, offset + INSERT_CHUNK_SIZE)));
+  if (rows.length === 0) return statements;
+
+  // Count the union of supplied columns so every multi-row INSERT stays
+  // within D1's per-statement bound-parameter limit.
+  const columnCount = new Set(rows.flatMap(row => Object.keys(row))).size;
+  const chunkSize = Math.max(1, Math.floor(MAX_BOUND_PARAMETERS / columnCount));
+
+  for (let offset = 0; offset < rows.length; offset += chunkSize) {
+    statements.push(writer.insert(table).values(rows.slice(offset, offset + chunkSize)));
   }
   return statements;
 }
