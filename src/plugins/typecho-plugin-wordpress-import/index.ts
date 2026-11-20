@@ -10,11 +10,66 @@ import { wordpressImportAdminPageHtml } from './admin';
 const API_PATH = '/api/admin/wordpress-import';
 const MAX_WXR_BYTES = 25 * 1024 * 1024;
 
-function importErrorStatus(error: unknown): number {
-  const message = error instanceof Error ? error.message : String(error);
-  if (/timeout|timed out|overloaded|temporarily unavailable/i.test(message)) return 503;
-  if (/D1_ERROR|SQLITE_ERROR|SQLITE_CONSTRAINT|database|too many SQL variables/i.test(message)) return 500;
-  return 422;
+function collectErrorMessages(error: unknown): string {
+  const messages: string[] = [];
+  const pending: unknown[] = [error];
+  const seen = new Set<unknown>();
+
+  while (pending.length) {
+    const current = pending.pop();
+    if (current == null || seen.has(current)) continue;
+    if (typeof current === 'string') {
+      messages.push(current);
+      continue;
+    }
+    if (typeof current !== 'object' && typeof current !== 'function') {
+      messages.push(String(current));
+      continue;
+    }
+    seen.add(current);
+    const value = current as { message?: unknown; cause?: unknown };
+    if (typeof value.message === 'string') messages.push(value.message);
+    if (value.cause !== undefined) pending.push(value.cause);
+  }
+
+  return messages.join('\n') || 'WordPress 导入失败';
+}
+
+export function classifyWordPressImportError(error: unknown): { status: number; message: string } {
+  const detail = collectErrorMessages(error);
+
+  if (/free tier daily row (?:read|write) limit/i.test(detail)) {
+    return {
+      status: 429,
+      message: 'Cloudflare D1 免费计划的每日读写行额度已用尽。请等待 UTC 午夜额度重置，或升级 Workers 计划；之后重新分析同一 XML 即可继续，已成功导入的内容会自动跳过。',
+    };
+  }
+  if (/maximum db size|maximum account storage limit|exceeded maximum db size/i.test(detail)) {
+    return {
+      status: 507,
+      message: 'Cloudflare D1 数据库存储空间已达到上限。本次分片未能确认完成，请先处理数据库容量问题，再重新分析 XML。',
+    };
+  }
+  if (/storage operation exceeded timeout|timed?\s*out|timeout/i.test(detail)) {
+    return {
+      status: 504,
+      message: 'Cloudflare D1 数据库写入超时。本次分片的 batch 事务会整体回滚；请稍后重试，若仍失败，需要减小导入分片。',
+    };
+  }
+  if (/overloaded|too many requests queued|network connection lost|temporarily unavailable|transient issue|object was reset|isolate exceeded its memory|cpu time limit/i.test(detail)) {
+    return {
+      status: 503,
+      message: 'Cloudflare D1 当前繁忙或正在恢复，暂时无法完成本次写入。请稍后重新分析并继续导入，不要同时启动多个导入任务。',
+    };
+  }
+  if (/D1_ERROR|D1_EXEC_ERROR|SQLITE_ERROR|SQLITE_CONSTRAINT|too many SQL variables|database/i.test(detail)) {
+    return {
+      status: 500,
+      message: 'Cloudflare D1 拒绝了本次数据库操作。请查看服务器日志中的 [wordpress-import] 详细错误；本次失败的 batch 事务不会只提交一部分。',
+    };
+  }
+
+  return { status: 422, message: detail };
 }
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
@@ -87,10 +142,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
       return { handled: true, response: jsonOk(report) };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'WordPress 导入失败';
-      const status = importErrorStatus(error);
+      const failure = classifyWordPressImportError(error);
       console.error('[wordpress-import] request failed:', error);
-      return { handled: true, response: jsonError(status, message) };
+      return { handled: true, response: jsonError(failure.status, failure.message) };
     }
   }, 20);
 
