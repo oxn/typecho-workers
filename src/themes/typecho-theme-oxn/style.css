@@ -852,6 +852,7 @@ body.warm-theme {
 /* GitHub-style markdown alerts (`> [!NOTE]` …) — same panel as quote, plus title */
 .warm-prose .markdown-alert,
 .warm-note__content .markdown-alert {
+  margin: 1.5em 0;
   font-size: 0.95em;
   line-height: 1.65;
   letter-spacing: 0;
