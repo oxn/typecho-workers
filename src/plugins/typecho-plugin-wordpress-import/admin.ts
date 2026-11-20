@@ -266,9 +266,10 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     title.textContent=(data.siteTitle||'WordPress 网站')+(isPreview?'：分析预览（尚未导入）':'：本次导入结果');
     reportBox.appendChild(title);
     var list=document.createElement('ul');
+    var selectedTypeByCount={posts:'post',pages:'page',notes:'note'};
     Object.keys(labels).forEach(function(key){
       var count=Number(data.imported&&data.imported[key]||0);
-      if(!count)return;
+      if(!count&&(!selectedTypeByCount[key]||selectedTypes().indexOf(selectedTypeByCount[key])===-1))return;
       var item=document.createElement('li');
       item.textContent=(isPreview?'预计新增':'本次写入')+labels[key]+'：'+count+(isPreview&&key==='metas'?'（预估，跨分片可能重复）':'');
       list.appendChild(item);
