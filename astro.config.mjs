@@ -65,6 +65,7 @@ export default defineConfig({
         'typecho-plugin-notes',
         'typecho-plugin-intelligence',
         'typecho-plugin-turnstile',
+        'typecho-plugin-wordpress-import',
         'typecho-theme-warm',
       ],
     },
