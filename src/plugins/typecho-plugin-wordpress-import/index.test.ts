@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import init, { classifyWordPressImportError } from './index';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
-import { normalizeWordPressSource, summarizeD1BatchResults } from './service';
+import { mapWordPressContentStatus, normalizeWordPressSource, summarizeD1BatchResults } from './service';
 
 function collectHooks() {
   const hooks = new Map<string, Function>();
@@ -51,6 +51,28 @@ describe('WordPress import plugin', () => {
   });
 });
 
+
+describe('WordPress post status mapping', () => {
+  it('maps native WordPress statuses to Typecho post states', () => {
+    expect(mapWordPressContentStatus('post', 'publish')).toEqual({ type: 'post', status: 'publish' });
+    expect(mapWordPressContentStatus('post', 'pending')).toEqual({ type: 'post', status: 'waiting' });
+    expect(mapWordPressContentStatus('page', 'pending')).toEqual({ type: 'page', status: 'waiting' });
+    expect(mapWordPressContentStatus('post', 'private')).toEqual({ type: 'post', status: 'private' });
+    expect(mapWordPressContentStatus('post', 'future')).toEqual({ type: 'post', status: 'hidden' });
+    expect(mapWordPressContentStatus('post', 'draft')).toEqual({ type: 'post_draft', status: 'draft' });
+    expect(mapWordPressContentStatus('post', 'auto-draft')).toEqual({ type: 'post_draft', status: 'draft' });
+  });
+
+  it('keeps trashed and unknown statuses unpublished', () => {
+    expect(mapWordPressContentStatus('post', 'trash')).toEqual({ type: 'post_draft', status: 'draft' });
+    expect(mapWordPressContentStatus('post', 'future-custom-status')).toEqual({ type: 'post_draft', status: 'draft' });
+  });
+
+  it('does not rewrite attachment or note status handling in the shared builder', () => {
+    expect(mapWordPressContentStatus('attachment', 'inherit')).toBeNull();
+    expect(mapWordPressContentStatus('note', 'publish')).toBeNull();
+  });
+});
 
 describe('WordPress source identity', () => {
   it('normalizes host and removes query/hash while preserving subdirectory paths', () => {
