@@ -230,22 +230,22 @@ const IMAGE_DIMENSION_MAX = 16384;
  */
 function normalizeMarkdownImageDimensionSyntax(source: string): string {
   return source.replace(
-    /(!\\[[^\\]]*\\]\\()(<[^>]+>|[^)\\s]+)(\\))\\{([^{}\\n]*)\\}/g,
+    /(!\[[^\]]*\]\()(<[^>]+>|[^)\s]+)(\))\{([^{}\n]*)\}/g,
     (match, prefix: string, destination: string, suffix: string, attributes: string) => {
       const dimensions: string[] = [];
-      const attributePattern = /(?:^|\\s)(width|height)\\s*=\\s*(\\d+)(?=\\s|$)/g;
+      const attributePattern = /(?:^|\s)(width|height)\s*=\s*(\d+)(?=\s|$)/g;
       let attributeMatch: RegExpExecArray | null;
       while ((attributeMatch = attributePattern.exec(attributes)) !== null) {
         const value = Number(attributeMatch[2]);
         if (!Number.isSafeInteger(value) || value < 1 || value > IMAGE_DIMENSION_MAX) {
           return match;
         }
-        dimensions.push(`${attributeMatch[1]}=${value}`);
+        dimensions.push(attributeMatch[1] + '=' + value);
       }
       if (dimensions.length === 0 || attributes.replace(attributePattern, '').trim()) {
         return match;
       }
-      return `${prefix}${destination}&${dimensions.join('&')}${suffix}`;
+      return prefix + destination + '&' + dimensions.join('&') + suffix;
     },
   );
 }
@@ -256,8 +256,8 @@ function normalizeMarkdownImageDimensionSyntax(source: string): string {
  * Fragment data is discarded because image fragments may contain metadata.
  */
 function applyMarkdownImageDimensions(html: string): string {
-  return html.replace(/<img\\b[^>]*>/gi, (imageTag) => {
-    const srcMatch = imageTag.match(/\\bsrc=(["'])(.*?)\\1/i);
+  return html.replace(/<img\b[^>]*>/gi, (imageTag) => {
+    const srcMatch = imageTag.match(/\bsrc=(["'])(.*?)\1/i);
     if (!srcMatch) return imageTag;
 
     const originalSrc = srcMatch[2].replace(/&amp;/g, '&');
@@ -267,7 +267,7 @@ function applyMarkdownImageDimensions(html: string): string {
     const dimensions: Record<string, string> = {};
 
     const readDimensions = (value: string) => {
-      const pattern = /(?:^|[?&])(?:width|height)=(\\d+)(?=&|$)/gi;
+      const pattern = /(?:^|[?&])(?:width|height)=(\d+)(?=&|$)/gi;
       let match: RegExpExecArray | null;
       while ((match = pattern.exec(value)) !== null) {
         const name = /height/i.test(match[0]) ? 'height' : 'width';
@@ -280,16 +280,16 @@ function applyMarkdownImageDimensions(html: string): string {
 
     readDimensions(src);
     readDimensions(fragment);
-    src = src.replace(/([?&])(?:width|height)=\\d+(?=&|$)/gi, '');
-    src = src.replace(/\\?&/g, '?').replace(/[?&]+$/g, '');
+    src = src.replace(/([?&])(?:width|height)=\d+(?=&|$)/gi, '');
+    src = src.replace(/\?&/g, '?').replace(/[?&]+$/g, '');
 
     let result = imageTag.replace(
       srcMatch[0],
-      `src=${srcMatch[1]}${src.replace(/&/g, '&amp;')}${srcMatch[1]}`,
+      'src=' + srcMatch[1] + src.replace(/&/g, '&amp;') + srcMatch[1],
     );
     for (const name of ['width', 'height'] as const) {
-      if (dimensions[name] && !new RegExp('\\\\b' + name + '\\\\s*=', 'i').test(result)) {
-        result = result.replace(/\\s*\\/?>(?=$)/, (ending) => ` ${name}="${dimensions[name]}"${ending}`);
+      if (dimensions[name] && !new RegExp('\\b' + name + '\\s*=', 'i').test(result)) {
+        result = result.replace(/\s*\/?>$/, (ending) => ' ' + name + '="' + dimensions[name] + '"' + ending);
       }
     }
     return result;
