@@ -32,7 +32,8 @@ describe('WordPress import plugin', () => {
     expect(html).toContain('确认导入');
     expect(html).toContain('function splitWxr');
     expect(html).toContain('MAX_PART_BYTES=24*1024*1024');
-    expect(html).toContain('wp:post_parent');
+    expect(html).toContain("childText(item,'post_parent')");
+    expect(html).toContain("key!=='_thumbnail_id'");
     expect(html).toContain('crypto.subtle.digest');
     expect(html).toContain('重新选择同一原始文件并重新分析');
   });
