@@ -220,88 +220,6 @@ export function stripHtmlTags(html: string): string {
   return html.replace(HTML_TAG_RE, ' ').replace(WHITESPACE_RE, ' ').trim();
 }
 
-// ─── Markdown image dimensions ────────────────────────────────────────────────
-
-const IMAGE_DIMENSION_MAX = 16384;
-
-/**
- * Convert the optional Markdown image suffix into URL parameters so the
- * regular image renderer can keep handling alt text and titles as usual.
- */
-function normalizeMarkdownImageDimensionSyntax(source: string): string {
-  return source.replace(
-    /(!\[[^\]]*\]\()(<[^>]+>|[^)\s]+)(\))\{([^{}\n]*)\}/g,
-    (match, prefix: string, destination: string, suffix: string, attributes: string) => {
-      const dimensions: string[] = [];
-      const attributePattern = /(?:^|\s)(width|height)\s*=\s*(\d+)(?=\s|$)/g;
-      let attributeMatch: RegExpExecArray | null;
-      while ((attributeMatch = attributePattern.exec(attributes)) !== null) {
-        const value = Number(attributeMatch[2]);
-        if (!Number.isSafeInteger(value) || value < 1 || value > IMAGE_DIMENSION_MAX) {
-          return match;
-        }
-        dimensions.push(attributeMatch[1] + '=' + value);
-      }
-      if (dimensions.length === 0 || attributes.replace(attributePattern, '').trim()) {
-        return match;
-      }
-      return prefix + destination + '&' + dimensions.join('&') + suffix;
-    },
-  );
-}
-
-/**
- * Pull width/height out of Markdown-rendered image URLs. Only those two
- * parameters are removed from the URL; ordinary query parameters survive.
- * Fragment data is discarded because image fragments may contain metadata.
- */
-function applyMarkdownImageDimensions(html: string): string {
-  return html.replace(/<img\b[^>]*>/gi, (imageTag) => {
-    const srcMatch = imageTag.match(/\bsrc=(["'])(.*?)\1/i);
-    if (!srcMatch) return imageTag;
-
-    const originalSrc = srcMatch[2].replace(/&amp;/g, '&');
-    const hashIndex = originalSrc.indexOf('#');
-    const fragment = hashIndex >= 0 ? originalSrc.slice(hashIndex + 1) : '';
-    let src = hashIndex >= 0 ? originalSrc.slice(0, hashIndex) : originalSrc;
-    const dimensions: Record<string, string> = {};
-
-    const readDimensions = (value: string) => {
-      const pattern = /(?:^|[?&])(?:width|height)=(\d+)(?=&|$)/gi;
-      let match: RegExpExecArray | null;
-      while ((match = pattern.exec(value)) !== null) {
-        const name = /height/i.test(match[0]) ? 'height' : 'width';
-        const size = Number(match[1]);
-        if (Number.isSafeInteger(size) && size >= 1 && size <= IMAGE_DIMENSION_MAX) {
-          dimensions[name] = String(size);
-        }
-      }
-    };
-
-    readDimensions(src);
-    readDimensions(fragment);
-    src = src.replace(/([?&])(?:width|height)=\d+(?=&|$)/gi, '');
-    src = src.replace(/\?&/g, '?').replace(/[?&]+$/g, '');
-
-    let result = imageTag.replace(
-      srcMatch[0],
-      'src=' + srcMatch[1] + src.replace(/&/g, '&amp;') + srcMatch[1],
-    );
-    for (const name of ['width', 'height'] as const) {
-      if (dimensions[name] && !new RegExp('\\b' + name + '\\s*=', 'i').test(result)) {
-        result = result.replace(/\s*\/?>$/, (ending) => ' ' + name + '="' + dimensions[name] + '"' + ending);
-      }
-    }
-    return result;
-  });
-}
-
-function parseArticleMarkdown(source: string): string {
-  const normalized = normalizeMarkdownImageDimensionSyntax(source);
-  const parsed = marked.parse(normalized, { async: false }) as string;
-  return applyMarkdownImageDimensions(parsed);
-}
-
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
@@ -329,7 +247,7 @@ export function renderContent(text: string, maxExcerptLength = 200): RenderedCon
   }
 
   const content = stripMarkdownPrefix(text).replace(MORE_COMMENT_RE, '');
-  const parsed = transformGithubAlerts(parseArticleMarkdown(content));
+  const parsed = transformGithubAlerts(marked.parse(content, { async: false }) as string);
   const html = sanitizeHtml(parsed, SANITIZE_OPTIONS);
   const plain = stripHtmlTags(parsed);
   const plainExcerpt = plain.length <= maxExcerptLength
@@ -399,7 +317,7 @@ export async function renderMarkdownFiltered(ctx: HookContext, text: string): Pr
     console.error('[markdown] content:markdown filter failed:', error);
   }
 
-  const html = transformGithubAlerts(parseArticleMarkdown(content));
+  const html = transformGithubAlerts(marked.parse(content, { async: false }) as string);
   let sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   try {
@@ -453,7 +371,7 @@ export function renderContentExcerpt(
   // regardless of whether the author placed <!--more--> inline or between
   // paragraphs — enabling a clean split on the rendered output.
   const withPlaceholder = content.replace(MORE_COMMENT_RE, '\n\n' + MORE_PLACEHOLDER + '\n\n');
-  const html = transformGithubAlerts(parseArticleMarkdown(withPlaceholder));
+  const html = transformGithubAlerts(marked.parse(withPlaceholder, { async: false }) as string);
   const sanitized = sanitizeHtml(html, SANITIZE_OPTIONS);
 
   // Split on the rendered placeholder and keep only the excerpt (part before it).
