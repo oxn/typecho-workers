@@ -98,6 +98,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       const form = await request.formData();
       const file = form.get('file');
       const action = String(form.get('action') || 'preview');
+      const allowedContentTypes = new Set(['post', 'page', 'note']);
+      const rawContentTypes = form.getAll('contentTypes').map(value => String(value));
+      const contentTypes = [...new Set(rawContentTypes)];
+      if (!contentTypes.length || contentTypes.some(type => !allowedContentTypes.has(type))) {
+        return { handled: true, response: jsonError(400, '请至少选择一种导入内容类型（文章、页面或笔记）') };
+      }
       if (action !== 'preview' && action !== 'import') {
         return { handled: true, response: jsonError(400, '无效的导入操作') };
       }
@@ -116,8 +122,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
       const xml = await file.text();
       const report = action === 'import'
-        ? await importWordPressExport(auth.db, xml, auth.uid)
-        : await previewWordPressImport(auth.db, xml, auth.uid);
+        ? await importWordPressExport(auth.db, xml, auth.uid, contentTypes as ('post' | 'page' | 'note')[])
+        : await previewWordPressImport(auth.db, xml, auth.uid, contentTypes as ('post' | 'page' | 'note')[]);
 
       if (action === 'import') {
         await invalidatePublicCache(auth.db, {
