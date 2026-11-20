@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import init, { classifyWordPressImportError } from './index';
 import { wordpressImportAdminPageHtml } from './admin';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
-import { addWordPressTermAncestors, mapWordPressContentStatus, normalizeWordPressSource, selectWordPressImportItems, summarizeD1BatchResults } from './service';
+import { addWordPressTermAncestors, isWordPressImportDuplicate, mapWordPressContentStatus, normalizeWordPressSource, selectWordPressImportItems, summarizeD1BatchResults } from './service';
 
 function collectHooks() {
   const hooks = new Map<string, Function>();
@@ -50,6 +50,12 @@ describe('WordPress import plugin', () => {
     expect(html).toContain('name="contentTypes" value="post"');
     expect(html).toContain('name="contentTypes" value="page"');
     expect(html).toContain('name="contentTypes" value="note"');
+    expect(html).toContain('name="dedupeFields" value="title" checked');
+    expect(html).toContain('name="dedupeFields" value="slug" checked');
+    expect(html).toContain('name="dedupeFields" value="id"');
+    expect(html).toContain('selectedDedupeFields');
+    expect(html).toContain('dedupeSelectionKey');
+
     expect(html).toContain('selectionKey');
     expect(html).toContain('/api/admin/wordpress-import');
     expect(html).toContain('csrf-value');
@@ -66,7 +72,7 @@ describe('WordPress import plugin', () => {
     expect(html).toContain('D1 实际写入行数');
     expect(html).toContain('已确认提交');
     expect(html).toContain('function hasImportableItems');
-    expect(html).toContain('lastPreview={sourceXml:sourceXml,selection:chosenTypes.join(','),parts:parts,reports:reports}');
+    expect(html).toContain("lastPreview={sourceXml:sourceXml,selection:chosenTypes.join(',')+'|'+chosenDedupeFields.join(','),parts:parts,reports:reports}");
     expect(html).toContain('当前分片只写入尚未成功导入的所选内容及其附件');
   });
 
@@ -78,6 +84,34 @@ describe('WordPress import plugin', () => {
   });
 });
 
+
+
+describe('WordPress duplicate matching options', () => {
+  const item = { title: 'Same title', slug: 'same-slug', oldId: 12 };
+  const existing = { title: 'Same title', slug: 'same-slug', wordpressId: 99, source: 'https://other.example' };
+
+  it('requires every selected field to match the same existing content row', () => {
+    expect(isWordPressImportDuplicate(item, existing, 'https://source.example', ['title', 'slug'])).toBe(true);
+    expect(isWordPressImportDuplicate(item, { ...existing, slug: 'different-slug' }, 'https://source.example', ['title', 'slug'])).toBe(false);
+    expect(isWordPressImportDuplicate(item, { ...existing, title: 'Different title' }, 'https://source.example', ['title', 'slug'])).toBe(false);
+  });
+
+  it('supports title-only and slug-only matching independently', () => {
+    expect(isWordPressImportDuplicate(item, { ...existing, slug: 'different-slug' }, 'https://source.example', ['title'])).toBe(true);
+    expect(isWordPressImportDuplicate(item, { ...existing, title: 'Different title' }, 'https://source.example', ['slug'])).toBe(true);
+  });
+
+  it('matches IDs within the same source and keeps legacy source-less ID markers compatible', () => {
+    expect(isWordPressImportDuplicate(item, { ...existing, wordpressId: 12 }, 'https://other.example', ['id'])).toBe(true);
+    expect(isWordPressImportDuplicate(item, { ...existing, wordpressId: 12 }, 'https://source.example', ['id'])).toBe(false);
+    expect(isWordPressImportDuplicate(item, { title: '', slug: '', wordpressId: 12 }, 'https://source.example', ['id'])).toBe(true);
+  });
+
+  it('requires ID and the other selected fields to match together', () => {
+    expect(isWordPressImportDuplicate(item, { ...existing, wordpressId: 12 }, 'https://other.example', ['title', 'id'])).toBe(true);
+    expect(isWordPressImportDuplicate(item, { ...existing, wordpressId: 99 }, 'https://other.example', ['title', 'id'])).toBe(false);
+  });
+});
 
 describe('WordPress post status mapping', () => {
   it('maps native WordPress statuses to Typecho post states', () => {
