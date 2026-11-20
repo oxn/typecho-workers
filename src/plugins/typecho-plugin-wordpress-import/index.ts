@@ -4,7 +4,7 @@ import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { invalidatePublicCache } from '@/lib/cache';
 import { jsonError, jsonOk } from '@/lib/http';
 import { escapeAttr } from 'typecho/plugin-sdk';
-import { importWordPressExport, previewWordPressImport } from './service';
+import { importWordPressExport, previewWordPressImport, type WordPressImportDedupeField } from './service';
 import { wordpressImportAdminPageHtml } from './admin';
 
 const API_PATH = '/api/admin/wordpress-import';
@@ -100,6 +100,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       const action = String(form.get('action') || 'preview');
       const allowedContentTypes = new Set(['post', 'page', 'note']);
       const rawContentTypes = form.getAll('contentTypes').map(value => String(value));
+      const allowedDedupeFields = new Set<WordPressImportDedupeField>(['title', 'slug', 'id']);
+      const rawDedupeFields = form.getAll('dedupeFields').map(value => String(value));
+      const dedupeFields = [...new Set(rawDedupeFields)] as WordPressImportDedupeField[];
+      if (!dedupeFields.length || dedupeFields.some(field => !allowedDedupeFields.has(field))) {
+        return { handled: true, response: jsonError(400, '请至少选择一种重复判断方式（标题、别名或 ID）') };
+      }
       const contentTypes = [...new Set(rawContentTypes)];
       if (!contentTypes.length || contentTypes.some(type => !allowedContentTypes.has(type))) {
         return { handled: true, response: jsonError(400, '请至少选择一种导入内容类型（文章、页面或笔记）') };
@@ -122,8 +128,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
       const xml = await file.text();
       const report = action === 'import'
-        ? await importWordPressExport(auth.db, xml, auth.uid, contentTypes as ('post' | 'page' | 'note')[])
-        : await previewWordPressImport(auth.db, xml, auth.uid, contentTypes as ('post' | 'page' | 'note')[]);
+        ? await importWordPressExport(auth.db, xml, auth.uid, contentTypes as ('post' | 'page' | 'note')[], dedupeFields)
+        : await previewWordPressImport(auth.db, xml, auth.uid, contentTypes as ('post' | 'page' | 'note')[], dedupeFields);
 
       if (action === 'import') {
         await invalidatePublicCache(auth.db, {
