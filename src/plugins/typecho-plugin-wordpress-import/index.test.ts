@@ -95,6 +95,7 @@ describe('WordPress selective content filtering', () => {
         item('page', 20),
         item('note', 30, 0, [{ key: 'images', value: '[91, 92]' }]),
         item('attachment', 90, 10),
+        item('attachment', 95, 90),
         item('attachment', 91),
         item('attachment', 92),
         item('attachment', 93, 20),
@@ -103,7 +104,7 @@ describe('WordPress selective content filtering', () => {
     } as any;
 
     const postsOnly = selectWordPressImportItems(source, ['post']);
-    expect(postsOnly.items.map((entry: any) => entry.oldId)).toEqual([10, 90]);
+    expect(postsOnly.items.map((entry: any) => entry.oldId)).toEqual([10, 90, 95]);
 
     const notesOnly = selectWordPressImportItems(source, ['note']);
     expect(notesOnly.items.map((entry: any) => entry.oldId)).toEqual([30, 91, 92]);
