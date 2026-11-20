@@ -32,8 +32,8 @@ export function normalizeWordPressSource(siteUrl: string): string {
     url.hostname = url.hostname.toLowerCase();
     url.hash = '';
     url.search = '';
-    url.pathname = url.pathname.replace(/\\/+$/, '') || '/';
-    return url.toString().replace(/\\/$/, '').toLowerCase();
+    url.pathname = url.pathname.replace(/\/+$/, '') || '/';
+    return url.toString().replace(/\/$/, '');
   } catch {
     throw new Error('WXR 文件中的 WordPress 站点地址无效，无法安全识别重复内容');
   }
@@ -98,7 +98,7 @@ async function buildDataset(db: Database, source: WordPressExport, authorId: num
 
   // Mark each imported content row with its source site. This keeps IDs from
   // unrelated WordPress installations from colliding during later imports.
-  for ( (const marker of dataset.fields.filter(row => row.name === 'wordpress_post_id')) ) {
+  for (const marker of dataset.fields.filter(row => row.name === 'wordpress_post_id')) {
     dataset.fields.push({
       cid: Number(marker.cid),
       name: 'wordpress_source',
