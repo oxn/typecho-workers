@@ -53,7 +53,8 @@
     "typecho-plugin-turnstile": "workspace:*",
     "typecho-theme-oxn": "workspace:*",
     "typecho-theme-warm": "workspace:*",
-    "typecho-plugin-wordpress-import": "workspace:*"
+    "typecho-plugin-wordpress-import": "workspace:*",
+    "fast-xml-parser": "^5.10.1"
   },
   "devDependencies": {
     "@libsql/client": "^0.17.4",
@@ -61,7 +62,6 @@
     "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^0.31.10",
     "esbuild": "^0.28.1",
-    "fast-xml-parser": "^5.10.1",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10",
     "wrangler": "^4.114.0"
