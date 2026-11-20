@@ -905,21 +905,21 @@ body.warm-theme {
   color: #c4a035;
 }
 
-.warm-prose .markdown-alert-important,
-.warm-note__content .markdown-alert-important {
+.warm-prose .markdown-alert[data-alert="IMPORTANT" i],
+.warm-note__content .markdown-alert[data-alert="IMPORTANT" i] {
   border-left-color: rgb(192, 132, 252);
 }
-.warm-prose .markdown-alert-important .markdown-alert-title,
-.warm-note__content .markdown-alert-important .markdown-alert-title {
+.warm-prose .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title {
   color: rgb(192, 132, 252);
 }
 
-.warm-prose .markdown-alert-caution,
-.warm-note__content .markdown-alert-caution {
+.warm-prose .markdown-alert[data-alert="CAUTION" i],
+.warm-note__content .markdown-alert[data-alert="CAUTION" i] {
   border-left-color: rgb(248, 113, 113);
 }
-.warm-prose .markdown-alert-caution .markdown-alert-title,
-.warm-note__content .markdown-alert-caution .markdown-alert-title {
+.warm-prose .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title {
   color: rgb(248, 113, 113);
 }
 
@@ -2620,18 +2620,18 @@ html.dark {
   border-left-color: #e3c16c;
 }
 
-.dark .warm-prose .markdown-alert-important .markdown-alert-title,
-.dark .warm-note__content .markdown-alert-important .markdown-alert-title,
-.dark .warm-prose .markdown-alert-important,
-.dark .warm-note__content .markdown-alert-important {
+.dark .warm-prose .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title,
+.dark .warm-note__content .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title,
+.dark .warm-prose .markdown-alert[data-alert="IMPORTANT" i],
+.dark .warm-note__content .markdown-alert[data-alert="IMPORTANT" i] {
   color: rgb(192, 132, 252);
   border-left-color: rgb(192, 132, 252);
 }
 
-.dark .warm-prose .markdown-alert-caution .markdown-alert-title,
-.dark .warm-note__content .markdown-alert-caution .markdown-alert-title,
-.dark .warm-prose .markdown-alert-caution,
-.dark .warm-note__content .markdown-alert-caution {
+.dark .warm-prose .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title,
+.dark .warm-note__content .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title,
+.dark .warm-prose .markdown-alert[data-alert="CAUTION" i],
+.dark .warm-note__content .markdown-alert[data-alert="CAUTION" i] {
   color: rgb(248, 113, 113);
   border-left-color: rgb(248, 113, 113);
 }
