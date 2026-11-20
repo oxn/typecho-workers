@@ -1,0 +1,503 @@
+---
+import Base from '@/layouts/Base.astro';
+import type { ThemeBaseProps } from '@/lib/theme-props';
+import type { PageContext } from '@/lib/plugin';
+import { PUBLIC_HTML_HEADER } from '@/lib/cache';
+import { warmSettings, renderFooterCustomHtml, type WarmSection } from './warm';
+import { instantClickSource } from './instantclick';
+import { viewImageSource } from './viewimage';
+
+interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
+  title?: string;
+  description?: string;
+  section?: WarmSection;
+  pageContext?: PageContext;
+  detail?: boolean;
+}
+
+const {
+  title,
+  description,
+  section = 'none',
+  detail = false,
+  options,
+  urls,
+  pages,
+  sidebarData,
+  pluginCtx,
+  pageContext,
+  currentPath
+} = Astro.props;
+
+Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
+
+const settings = warmSettings(options);
+const footerCustomHtml = renderFooterCustomHtml(settings.footerCustomHtml);
+const themeToggleEnabled = settings.showThemeToggleButton;
+const searchEnabled = settings.showHomeSearchButton;
+const adminEntryEnabled = settings.showAdminEntryButton;
+const categories = sidebarData.categories.slice(0, 8);
+const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
+const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
+const socialLinks = [
+  { label: 'RSS', href: urls.feedUrl },
+  { label: 'GitHub', href: settings.githubUrl },
+  { label: '社交主页', href: settings.socialUrl },
+  { label: 'Email', href: settings.email ? `mailto:${settings.email}` : '' },
+].filter(link => link.href);
+const footerLinks = [
+  ...settings.footerLinks.map(link => ({ label: link.text, href: link.url, newWindow: link.newWindow })),
+  ...socialLinks.map(link => ({ ...link, newWindow: false })),
+];
+---
+<Base
+  title={title}
+  description={description}
+  options={options}
+  urls={urls}
+  pageContext={pageContext}
+  pluginCtx={pluginCtx}
+  bodyClass="warm-theme"
+>
+  <a class="warm-skip-link" href="#warm-content" data-no-instant>跳至正文</a>
+  <header class="warm-header">
+    <div class="warm-header__inner">
+      <a href={homeUrl} class="warm-brand" aria-label={`${options.title} 首页`}>
+        <span class="warm-brand__title">{options.title}</span>
+        {options.description && <span class="warm-brand__description">{options.description}</span>}
+      </a>
+      <div class="warm-header__right">
+      <nav class="warm-nav" aria-label="主导航">
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
+        <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
+          <summary>
+            文章
+            <svg class="warm-nav__chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+          </summary>
+          <div class="warm-nav__menu">
+            <a href={`${homeUrl}?stream=posts`}>全部文章</a>
+            {categories.map(category => (<a href={category.permalink}>{category.name}</a>))}
+          </div>
+        </details>
+        {notesEnabled && (
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
+        )}
+        {pages.map((page) => (
+          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && page.permalink.includes(currentPath) }]} href={page.permalink}>{page.title}</a>
+        ))}
+      </nav>
+      <div class="warm-header__tools" aria-label="快捷入口">
+        {themeToggleEnabled && (
+        <div class="warm-theme-control">
+          <button type="button" class="warm-search-trigger warm-theme-trigger" data-warm-theme-toggle aria-label="显示模式：跟随系统" title="显示模式：跟随系统" aria-expanded="false">
+            <svg data-warm-theme-icon-light viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <svg data-warm-theme-icon-system viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 16H20V5H4V16ZM13 18V20H17V22H7V20H11V18H13Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 16.5h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <svg data-warm-theme-icon-dark viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="warm-theme-menu" data-warm-theme-menu hidden aria-label="显示模式">
+            <button type="button" data-warm-theme-choice="light" aria-label="明亮模式" title="明亮模式" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"/></svg>
+            </button>
+            <button type="button" data-warm-theme-choice="system" aria-label="跟随系统" title="跟随系统" aria-pressed="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M4 16H20V5H4V16ZM13 18V20H17V22H7V20H11V18H2.9918C2.44405 18 2 17.5511 2 16.9925V4.00748C2 3.45107 2.45531 3 2.9918 3H21.0082C21.556 3 22 3.44892 22 4.00748V16.9925C22 17.5489 21.5447 18 21.0082 18H13Z"/></svg>
+            </button>
+            <button type="button" data-warm-theme-choice="dark" aria-label="暗黑模式" title="暗黑模式" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M10 7C10 10.866 13.134 14 17 14C18.9584 14 20.729 13.1957 21.9995 11.8995C22 11.933 22 11.9665 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C12.0335 2 12.067 2 12.1005 2.00049C10.8043 3.27098 10 5.04157 10 7Z"/></svg>
+            </button>
+          </div>
+        </div>
+        )}
+        {searchEnabled && (
+          <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          </button>
+        )}
+        {adminEntryEnabled && (
+          <a class="warm-search-trigger warm-nav__account" href={urls.adminUrl} data-no-instant aria-label="进入后台" title="进入后台">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
+              <path d="M3 12h12" />
+              <path d="m10 7 5 5-5 5" />
+            </svg>
+          </a>
+        )}
+      </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="warm-content" class:list={["warm-main", { "warm-main--detail": detail }]} tabindex="-1">
+    <slot />
+  </main>
+
+  <footer class="warm-footer">
+    {footerCustomHtml.trim() && (
+      <div class="warm-footer__custom" set:html={footerCustomHtml}></div>
+    )}
+    <div class="warm-footer__meta">
+      <div class="warm-footer__copyright">
+        <span>© {new Date().getFullYear()} {options.title}</span>
+        {options.description && <><span aria-hidden="true">·</span><span class="warm-footer__tagline">{options.description}</span></>}
+      </div>
+      <nav aria-label="页脚链接">
+        {footerLinks.map(link => (
+          <a
+            href={link.href}
+            target={link.newWindow ? '_blank' : undefined}
+            rel={link.newWindow ? 'noopener noreferrer' : undefined}
+          >
+            {/<[a-z][\s\S]*>/i.test(link.label)
+              ? <span set:html={link.label}></span>
+              : link.label}
+          </a>
+        ))}
+      </nav>
+    </div>
+  </footer>
+  {searchEnabled && (
+    <dialog class="warm-search-dialog" data-warm-search-dialog aria-labelledby="warm-search-title">
+      <div class="warm-search-dialog__panel">
+        <button type="button" class="warm-search-dialog__close" data-warm-search-close aria-label="关闭搜索">×</button>
+        <h2 id="warm-search-title">搜索文章</h2>
+        <form class="warm-search-form" data-warm-search-form method="get" action={homeUrl}>
+          <input type="search" class="warm-search-input" data-warm-search-input name="s" placeholder="输入关键词…" autocomplete="off" aria-label="搜索关键词" />
+          <button type="submit" class="warm-search-submit" aria-label="搜索">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+            <span>搜索</span>
+          </button>
+        </form>
+      </div>
+    </dialog>
+  )}
+  <script is:inline>
+    (() => {
+      const themeStorageKey = 'warm-theme-mode';
+      const validThemeModes = ['light', 'system', 'dark'];
+
+      // The controller lives on window because InstantClick replaces <body>
+      // and re-executes this script while the document itself remains alive.
+      // Keep theme state and document/media listeners stable across swaps.
+      let themeController = window.__warmThemeController;
+      if (!themeController) {
+        const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+        let themeMode = 'system';
+        try {
+          const savedMode = window.localStorage.getItem(themeStorageKey);
+          if (validThemeModes.includes(savedMode)) themeMode = savedMode;
+        } catch {}
+
+        const applyThemeMode = () => {
+          const isDark = themeMode === 'dark' || (themeMode === 'system' && themeMedia.matches);
+          document.documentElement.classList.toggle('dark', isDark);
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#171819' : '#ffffff');
+          const lightIcon = document.querySelector('[data-warm-theme-icon-light]');
+          const systemIcon = document.querySelector('[data-warm-theme-icon-system]');
+          const darkIcon = document.querySelector('[data-warm-theme-icon-dark]');
+          // Use inline display so the selected icon wins over theme-wide SVG rules.
+          if (lightIcon) lightIcon.style.display = themeMode === 'light' ? 'block' : 'none';
+          if (systemIcon) systemIcon.style.display = themeMode === 'system' ? 'block' : 'none';
+          if (darkIcon) darkIcon.style.display = themeMode === 'dark' ? 'block' : 'none';
+          const themeToggle = document.querySelector('[data-warm-theme-toggle]');
+          const modeLabels = { light: '明亮模式', system: '跟随系统', dark: '暗黑模式' };
+          if (themeToggle) {
+            themeToggle.setAttribute('aria-label', `显示模式：${modeLabels[themeMode]}`);
+            themeToggle.setAttribute('title', `显示模式：${modeLabels[themeMode]}`);
+          }
+          document.querySelectorAll('[data-warm-theme-choice]').forEach(option => {
+            option.setAttribute('aria-pressed', option.getAttribute('data-warm-theme-choice') === themeMode ? 'true' : 'false');
+          });
+        };
+
+        themeController = {
+          apply: applyThemeMode,
+          setMode: selectedMode => {
+            if (!validThemeModes.includes(selectedMode)) return;
+            themeMode = selectedMode;
+            try { window.localStorage.setItem(themeStorageKey, themeMode); } catch {}
+            applyThemeMode();
+          },
+        };
+        window.__warmThemeController = themeController;
+
+        themeMedia.addEventListener?.('change', () => {
+          if (themeMode === 'system') applyThemeMode();
+        });
+
+        document.addEventListener('click', event => {
+          const target = event.target instanceof Element ? event.target : null;
+          if (!target) return;
+
+          const themeToggle = target.closest('[data-warm-theme-toggle]');
+          if (themeToggle) {
+            const menu = document.querySelector('[data-warm-theme-menu]');
+            if (menu) {
+              const opening = menu.hidden;
+              menu.hidden = !opening;
+              themeToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+            }
+            return;
+          }
+
+          const themeChoice = target.closest('[data-warm-theme-choice]');
+          if (themeChoice) {
+            themeController.setMode(themeChoice.getAttribute('data-warm-theme-choice'));
+            const menu = document.querySelector('[data-warm-theme-menu]');
+            const toggle = document.querySelector('[data-warm-theme-toggle]');
+            if (menu) menu.hidden = true;
+            if (toggle) {
+              toggle.setAttribute('aria-expanded', 'false');
+              toggle.focus();
+            }
+            return;
+          }
+
+          if (!target.closest('[data-warm-theme-menu]')) {
+            const menu = document.querySelector('[data-warm-theme-menu]');
+            const toggle = document.querySelector('[data-warm-theme-toggle]');
+            if (menu) menu.hidden = true;
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
+          }
+
+          if (target.closest('[data-warm-search-open]')) {
+            const dialog = document.querySelector('[data-warm-search-dialog]');
+            if (dialog instanceof HTMLDialogElement && !dialog.open) {
+              dialog.showModal();
+              dialog.querySelector('[data-warm-search-input]')?.focus();
+            }
+          } else if (target.closest('[data-warm-search-close]')) {
+            const dialog = target.closest('[data-warm-search-dialog]');
+            if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
+          } else {
+            const dialog = target.closest('[data-warm-search-dialog]');
+            if (dialog instanceof HTMLDialogElement && target === dialog && dialog.open) dialog.close();
+          }
+        });
+      }
+
+      // Add one delegated copy control to each block code element.
+      document.querySelectorAll('.warm-prose pre:not([data-warm-copy-ready])').forEach(pre => {
+        pre.dataset.warmCopyReady = '1';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.warmCopy = '';
+        button.setAttribute('aria-label', '复制代码');
+        button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>';
+        pre.append(button);
+      });
+      if (!window.__warmCodeCopyListener) {
+        window.__warmCodeCopyListener = true;
+        document.addEventListener('click', async event => {
+          const button = event.target instanceof Element ? event.target.closest('[data-warm-copy]') : null;
+          if (!button) return;
+          const pre = button.closest('pre');
+          if (!pre) return;
+          const clone = pre.cloneNode(true);
+          clone.querySelector('[data-warm-copy]')?.remove();
+          const text = clone.textContent || '';
+          let copied = false;
+          try {
+            if (navigator.clipboard?.writeText && window.isSecureContext) {
+              await navigator.clipboard.writeText(text);
+              copied = true;
+            }
+          } catch {}
+          if (!copied) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.pointerEvents = 'none';
+            document.body.append(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+            try { copied = document.execCommand('copy'); } catch {}
+            textarea.remove();
+          }
+          button.dataset.copied = copied ? 'true' : 'false';
+          button.setAttribute('aria-label', copied ? '复制成功' : '复制失败');
+          button.innerHTML = copied
+            ? '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 3.2 3.2L13 4.5"></path></svg>'
+            : '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>';
+          window.setTimeout(() => {
+            if (!button.isConnected) return;
+            button.dataset.copied = 'false';
+            button.setAttribute('aria-label', '复制代码');
+            button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>';
+          }, 1200);
+        });
+      }
+
+      // Re-apply the persistent preference to the newly swapped page's controls.
+      themeController.apply();
+
+      // Page-bound listeners and observers must not retain the previous body.
+      window.__warmThemePageCleanup?.();
+      const pageAbort = new AbortController();
+      let headerLayoutObserver = null;
+      window.__warmThemePageCleanup = () => {
+        pageAbort.abort();
+        headerLayoutObserver?.disconnect();
+      };
+
+      // Keep quick actions beside the navigation only when the full row fits.
+      const header = document.querySelector('.warm-header');
+      const headerInner = header?.querySelector('.warm-header__inner');
+      const headerBrand = headerInner?.querySelector('.warm-brand');
+      const headerRight = headerInner?.querySelector('.warm-header__right');
+      const headerTools = headerRight?.querySelector('.warm-header__tools');
+      const headerNav = headerRight?.querySelector('.warm-nav');
+      const compactHeader = window.matchMedia('(max-width: 639px)');
+      const updateHeaderToolsLayout = () => {
+        if (!header || !headerInner || !headerBrand || !headerRight || !headerTools || !headerNav) return;
+        if (compactHeader.matches) {
+          header.classList.remove('warm-header--tools-inline');
+          return;
+        }
+        const innerStyle = window.getComputedStyle(headerInner);
+        const navStyle = window.getComputedStyle(headerNav);
+        const innerGap = Number.parseFloat(innerStyle.columnGap) || 0;
+        const rightGap = 12;
+        const navGap = Number.parseFloat(navStyle.columnGap) || 0;
+        const navItems = Array.from(headerNav.children);
+        const navItemsWidth = navItems.reduce((total, item) => total + item.getBoundingClientRect().width, 0)
+          + Math.max(0, navItems.length - 1) * navGap;
+        const availableRightWidth = headerInner.clientWidth - headerBrand.getBoundingClientRect().width - innerGap;
+        const requiredRightWidth = headerTools.getBoundingClientRect().width + rightGap + navItemsWidth;
+        header.classList.toggle('warm-header--tools-inline', requiredRightWidth <= availableRightWidth + 1);
+      };
+      updateHeaderToolsLayout();
+      if ('ResizeObserver' in window && headerInner) {
+        headerLayoutObserver = new ResizeObserver(updateHeaderToolsLayout);
+        headerLayoutObserver.observe(headerInner);
+        if (headerBrand) headerLayoutObserver.observe(headerBrand);
+        if (headerNav) headerLayoutObserver.observe(headerNav);
+        if (headerTools) headerLayoutObserver.observe(headerTools);
+      } else {
+        window.addEventListener('resize', updateHeaderToolsLayout, { passive: true, signal: pageAbort.signal });
+      }
+      compactHeader.addEventListener?.('change', updateHeaderToolsLayout, { signal: pageAbort.signal });
+      window.addEventListener('load', updateHeaderToolsLayout, { once: true, signal: pageAbort.signal });
+
+      const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)');
+      document.querySelectorAll('.warm-nav__dropdown').forEach(dropdown => {
+        let openedByHover = false;
+        dropdown.addEventListener('mouseenter', () => {
+          if (hoverCapable.matches && !dropdown.open) {
+            dropdown.open = true;
+            openedByHover = true;
+          }
+        }, { signal: pageAbort.signal });
+        dropdown.addEventListener('click', event => {
+          if (!event.target.closest('summary')) return;
+          // The first pointer click must not undo the preceding hover-open.
+          // Keyboard activation (detail=0) keeps the native details toggle.
+          if (openedByHover && event.detail > 0) event.preventDefault();
+          openedByHover = false;
+        }, { signal: pageAbort.signal });
+        dropdown.addEventListener('mouseleave', () => {
+          openedByHover = false;
+          if (hoverCapable.matches && !dropdown.contains(document.activeElement)) dropdown.open = false;
+        }, { signal: pageAbort.signal });
+        dropdown.addEventListener('keydown', event => {
+          if (event.key !== 'Escape') return;
+          dropdown.open = false;
+          dropdown.querySelector('summary')?.focus();
+        }, { signal: pageAbort.signal });
+        dropdown.addEventListener('focusout', event => {
+          // iOS Safari can report a null relatedTarget while a touch tap moves
+          // from <summary> to a menu link. Keep the menu until outside-click handles it.
+          if (event.relatedTarget && !dropdown.contains(event.relatedTarget)) dropdown.open = false;
+        }, { signal: pageAbort.signal });
+      });
+    })();
+  </script>
+  <Fragment slot="head">
+    <link rel="icon" href="/themes/typecho-theme-oxn/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/themes/typecho-theme-oxn/assets/favicon.ico" sizes="any" />
+    <meta name="theme-color" content="#ffffff" />
+    <script is:inline>
+      (() => {
+        const storageKey = 'warm-theme-mode';
+        const validModes = ['light', 'system', 'dark'];
+        let mode = 'system';
+        try {
+          const savedMode = window.localStorage.getItem(storageKey);
+          if (validModes.includes(savedMode)) mode = savedMode;
+        } catch {}
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = mode === 'dark' || (mode === 'system' && systemPrefersDark);
+        document.documentElement.classList.toggle('dark', isDark);
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#171819' : '#ffffff');
+      })();
+    </script>
+    <script is:inline data-instant-track data-no-instant set:html={instantClickSource}></script>
+    <script is:inline data-instant-track data-no-instant set:html={viewImageSource}></script>
+  </Fragment>
+  <script is:inline data-no-instant>
+    (() => {
+      // Delegation also covers navigation inserted by InstantClick.
+      document.addEventListener('click', event => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        document.querySelectorAll('.warm-nav__dropdown[open]').forEach(dropdown => {
+          if (!dropdown.contains(target)) dropdown.open = false;
+        });
+
+        if (target.closest('[data-warm-search-open]')) {
+          const dialog = document.querySelector('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && !dialog.open) {
+            dialog.showModal();
+            dialog.querySelector('[data-warm-search-input]')?.focus();
+          }
+        } else if (target.closest('[data-warm-search-close]')) {
+          const dialog = target.closest('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && dialog.open) dialog.close();
+        } else {
+          const dialog = target.closest('[data-warm-search-dialog]');
+          if (dialog instanceof HTMLDialogElement && target === dialog && dialog.open) dialog.close();
+        }
+      });
+      // ViewImage lightbox: click any note image to view it fullscreen.
+      // init() re-registers its document-level listener idempotently, so
+      // re-running it after an InstantClick page swap is safe.
+      const expandNoteImages = event => {
+        const button = event.target.closest('[data-warm-images-more]');
+        if (!button) return;
+        const grid = button.closest('.warm-note__images');
+        if (!grid) return;
+        grid.classList.add('is-expanded');
+        button.setAttribute('aria-expanded', 'true');
+        grid.querySelectorAll('[data-warm-images-rest]').forEach(item => {
+          item.hidden = false;
+        });
+      };
+      // Collect lightbox targets from image links (a wrapping an img — the
+      // note-grid thumbnails) and bare content images. Plain text links must
+      // keep navigating, so only `a:has(> img)` qualifies. Engines without
+      // :has() fall back to collecting bare images, which keeps the lightbox
+      // working and never hijacks links.
+      const viewImageSelector = CSS.supports('selector(a:has(> img))')
+        ? '[view-image] a:has(> img), [view-image] img:not(a img)'
+        : '[view-image] img';
+      if (window.ViewImage) ViewImage.init(viewImageSelector);
+      document.addEventListener('click', expandNoteImages);
+      const repairNoteMedia = root => {
+        const scope = root && root.querySelectorAll ? root : document;
+        scope.querySelectorAll('.warm-note__media video, .warm-note__media audio').forEach(media => {
+          if (typeof media.load !== 'function') return;
+          const reused = media.dataset.warmRepaired === '1';
+          if (media.readyState === 0 || reused) {
+            media.dataset.warmRepaired = '1';
+            media.load();
+          }
+        });
+      };
+      window.warmRepairNoteMedia = repairNoteMedia;
+      window.addEventListener('instantclick:newpage', () => repairNoteMedia(document));
+      if (window.InstantClick?.supported) window.InstantClick.init('mousedown');
+    })();
+  </script>
+</Base>

@@ -1,0 +1,33 @@
+{
+  "name": "typecho-plugin-wordpress-import",
+  "version": "1.0.0",
+  "description": "Import WordPress WXR exports from the Typecho-Workers admin panel.",
+  "keywords": [
+    "typecho",
+    "plugin",
+    "wordpress",
+    "import",
+    "migration"
+  ],
+  "author": "怸歪",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-wordpress-import",
+      "name": "WordPress 导入",
+      "description": "从 WordPress WXR XML 导入文章、页面、分类、标签、评论和附件记录",
+      "adminPage": "wordpress-import",
+      "author": "怸歪",
+      "version": "1.0.0",
+      "tags": [
+        "wordpress",
+        "migration",
+        "import"
+      ],
+      "homepage": "https://347777.xyz"
+    }
+  },
+  "homepage": "https://347777.xyz"
+}

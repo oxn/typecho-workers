@@ -1,0 +1,141 @@
+---
+import type { WarmTocItem } from './warm';
+
+interface Props {
+  items: WarmTocItem[];
+}
+
+const { items } = Astro.props;
+if (items.length < 2) return;
+---
+<nav class="warm-toc" data-warm-toc aria-label="文章目录">
+  <div class="warm-toc__inner">
+    <ol class="warm-toc__list">
+      {items.map((item) => (
+        <li class="warm-toc__item">
+          <a class="warm-toc__link" href={`#${item.id}`} data-warm-toc-link>
+            <span class="warm-toc__label">{item.text}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </div>
+</nav>
+<script is:inline>
+  (() => {
+    const ROOT_ATTR = 'data-warm-toc';
+    const LINK_ATTR = 'data-warm-toc-link';
+    const ACTIVE = 'is-active';
+
+    function initialise(nav) {
+      if (!(nav instanceof HTMLElement) || nav.dataset.warmTocReady === '1') return;
+      const links = [...nav.querySelectorAll(`[${LINK_ATTR}]`)];
+      if (links.length < 2) return;
+
+      const headings = links
+        .map(link => {
+          const id = decodeURIComponent((link.getAttribute('href') || '').replace(/^#/, ''));
+          const heading = id ? document.getElementById(id) : null;
+          return heading ? { link, heading } : null;
+        })
+        .filter(Boolean);
+
+      if (headings.length < 2) return;
+      nav.dataset.warmTocReady = '1';
+
+      let activeId = '';
+      const tocScroller = nav.querySelector('.warm-toc__inner');
+      const setActive = id => {
+        if (id === activeId) return;
+        activeId = id;
+        let activeLink = null;
+        for (const { link, heading } of headings) {
+          const isActive = heading.id === id;
+          link.classList.toggle(ACTIVE, isActive);
+          if (isActive) activeLink = link;
+        }
+
+        // Keep the current section around the vertical center of the visible TOC.
+        // Scroll only the TOC viewport, never the article/document itself.
+        if (activeLink && tocScroller) {
+          const scrollerRect = tocScroller.getBoundingClientRect();
+          const linkRect = activeLink.getBoundingClientRect();
+          const targetTop = tocScroller.scrollTop
+            + linkRect.top - scrollerRect.top
+            - (tocScroller.clientHeight - linkRect.height) / 2;
+          tocScroller.scrollTo({ top: Math.max(0, targetTop), behavior: 'auto' });
+        }
+      };
+
+      const syncFromScroll = () => {
+        // The heading crossing the viewport's vertical midpoint represents
+        // the section currently being read.
+        const marker = window.innerHeight * 0.5;
+        let current = headings[0].heading.id;
+        for (const { heading } of headings) {
+          if (heading.getBoundingClientRect().top <= marker) current = heading.id;
+          else break;
+        }
+        // Always expose the final section when the reader reaches the end
+        // of the article, even if that section is shorter than half a viewport.
+        const documentElement = document.documentElement;
+        if (window.scrollY + window.innerHeight >= documentElement.scrollHeight - 2) {
+          current = headings[headings.length - 1].heading.id;
+        }
+        setActive(current);
+      };
+
+      let scrollFrame = 0;
+      const onScroll = () => {
+        if (scrollFrame) return;
+        scrollFrame = window.requestAnimationFrame(() => {
+          scrollFrame = 0;
+          syncFromScroll();
+        });
+      };
+
+      const onClick = event => {
+        const link = event.target.closest(`[${LINK_ATTR}]`);
+        if (!link || !nav.contains(link)) return;
+        nav.classList.add('is-expanded');
+        const id = decodeURIComponent((link.getAttribute('href') || '').replace(/^#/, ''));
+        const heading = id ? document.getElementById(id) : null;
+        if (!heading) return;
+        event.preventDefault();
+        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', `#${encodeURIComponent(id)}`);
+        setActive(id);
+      };
+
+      const onDocumentPointerDown = event => {
+        if (nav.contains(event.target)) return;
+        nav.classList.remove('is-expanded');
+        if (nav.contains(document.activeElement)) {
+          document.activeElement.blur();
+        }
+      };
+
+      nav.addEventListener('click', onClick);
+      document.addEventListener('pointerdown', onDocumentPointerDown, true);
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', syncFromScroll);
+      syncFromScroll();
+
+      // InstantClick re-runs body scripts without data-no-instant; drop listeners
+      // from the previous page once its nav is detached.
+      const cleanupStalePage = () => {
+        if (nav.isConnected) return;
+        nav.removeEventListener('click', onClick);
+        document.removeEventListener('pointerdown', onDocumentPointerDown, true);
+        window.removeEventListener('scroll', onScroll);
+        if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
+        window.removeEventListener('resize', syncFromScroll);
+        window.removeEventListener('instantclick:newpage', cleanupStalePage);
+        delete nav.dataset.warmTocReady;
+      };
+      window.addEventListener('instantclick:newpage', cleanupStalePage);
+    }
+
+    document.querySelectorAll(`[${ROOT_ATTR}]`).forEach(initialise);
+  })();
+</script>
