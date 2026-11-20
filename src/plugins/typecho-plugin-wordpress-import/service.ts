@@ -42,6 +42,65 @@ export function buildWordPressImportDedupeKey(
   }));
 }
 
+
+
+/**
+ * Notes are stored with a generated slug rather than the WXR slug.
+ * makeUniqueSlug may append "-wp-<oldId>" (and a numeric suffix) when the
+ * generated note slug already exists. Normalize those stored forms so preview
+ * and import compare the same logical note slug on subsequent runs.
+ */
+function normalizeImportedNoteSlug(slug: string, oldId: number): string {
+  const base = `note-${oldId}`;
+  const escapedId = String(oldId).replace(/[.*+?^${}()|[\\]\\\\]/g, '\\function wordpressMetaType(domain: string): string | null {');
+  const storedSlugPattern = new RegExp(`^note-${escapedId}(?:-wp-${escapedId}(?:-\\d+)?)?import { and, eq, inArray, sql } from 'drizzle-orm';
+import { schema, type Database } from 'typecho/db';
+import {
+  buildWordPressMigrationDataset,
+  parseWordPressExport,
+  type WordPressExport,
+  type WordPressMigrationDataset,
+} from '../../../scripts/wordpress';
+
+// D1 allows at most 100 bound parameters in each SQL statement.
+const MAX_BOUND_PARAMETERS = 100;
+
+function splitIntoChunks<T>(values: T[], size = MAX_BOUND_PARAMETERS - 1): T[][] {
+  const chunks: T[][] = [];
+  for (let offset = 0; offset < values.length; offset += size) {
+    chunks.push(values.slice(offset, offset + size));
+  }
+  return chunks;
+}
+
+export interface WordPressDatabaseWriteMetrics {
+  rowsWritten: number;
+  statementCount: number;
+  batchDurationMs: number;
+  sqlDurationMs: number;
+}
+
+export type WordPressImportContentType = 'post' | 'page' | 'note';
+
+export type WordPressImportDedupeField = 'title' | 'slug' | 'id';
+
+export function buildWordPressImportDedupeKey(
+  item: { title: string; slug: string; oldId: number },
+  fields: readonly WordPressImportDedupeField[],
+  sourceKey: string,
+  legacySource = false,
+): string {
+  return JSON.stringify(fields.map(field => {
+    if (field === 'title') return item.title;
+    if (field === 'slug') return item.slug;
+    return [item.oldId, legacySource ? '*' : sourceKey];
+  }));
+}
+
+, 'i');
+  return storedSlugPattern.test(slug) ? base : slug;
+}
+
 function wordpressMetaType(domain: string): string | null {
   if (domain === 'category') return 'category';
   if (domain === 'post_tag') return 'tag';
@@ -278,6 +337,9 @@ async function buildDataset(
       slug: String(row.slug || ''),
       oldId: wordpressIdByContentId.get(cid) || 0,
     };
+    if (row.type === 'note' && existing.oldId) {
+      existing.slug = normalizeImportedNoteSlug(existing.slug, existing.oldId);
+    }
     const existingSource = sourceByContentId.get(cid) || '';
     if (row.type === 'attachment') {
       existingAttachmentIdKeys.add(buildWordPressImportDedupeKey(existing, ['id'], existingSource));
@@ -298,8 +360,11 @@ async function buildDataset(
       const legacyIdKey = buildWordPressImportDedupeKey(item, ['id'], '', true);
       return !existingAttachmentIdKeys.has(idKey) && !existingAttachmentIdKeys.has(legacyIdKey);
     }
-    const key = buildWordPressImportDedupeKey(item, dedupeFields, sourceKey);
-    const legacyKey = buildWordPressImportDedupeKey(item, dedupeFields, '', true);
+    const dedupeItem = item.postType === 'note'
+      ? { ...item, slug: normalizeImportedNoteSlug(`note-${item.oldId}`, item.oldId) }
+      : item;
+    const key = buildWordPressImportDedupeKey(dedupeItem, dedupeFields, sourceKey);
+    const legacyKey = buildWordPressImportDedupeKey(dedupeItem, dedupeFields, '', true);
     return !existingDedupeKeys.has(key) && !existingDedupeKeys.has(legacyKey);
   });
   const alreadyImported = selectedSource.items.length - pendingItems.length;
