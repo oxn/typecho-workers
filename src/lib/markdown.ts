@@ -147,23 +147,25 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   parser: { lowerCaseTags: false },
   transformTags: {
     img: (tagName, attribs) => {
-      const hashIndex = attribs.src?.indexOf('#') ?? -1;
-      if (hashIndex < 0) return { tagName, attribs };
-
-      const fragment = attribs.src.slice(hashIndex + 1);
-      const widthMatch = fragment.match(/(?:^|&)width=(\d{1,5})(?=&|$)/);
-      const heightMatch = fragment.match(/(?:^|&)height=(\d{1,5})(?=&|$)/);
+      const src = attribs.src || '';
+      const widthMatch = src.match(/[&#]width=(\d{1,5})(?=[&#]|$)/);
+      const heightMatch = src.match(/[&#]height=(\d{1,5})(?=[&#]|$)/);
       const width = widthMatch ? Number(widthMatch[1]) : 0;
       const height = heightMatch ? Number(heightMatch[1]) : 0;
       if ((!width || width > 16384) && (!height || height > 16384)) {
         return { tagName, attribs };
       }
 
+      const hashIndex = src.indexOf('#');
+      const cleanSrc = hashIndex >= 0
+        ? src.slice(0, hashIndex)
+        : src.replace(/[?&](?:width|height)=\d{1,5}(?=[&#]|$)/g, '').replace(/[?&]$/, '');
+
       return {
         tagName,
         attribs: {
           ...attribs,
-          src: attribs.src.slice(0, hashIndex),
+          src: cleanSrc,
           ...(width > 0 && width <= 16384 ? { width: String(width) } : {}),
           ...(height > 0 && height <= 16384 ? { height: String(height) } : {}),
         },
