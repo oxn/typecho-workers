@@ -31,7 +31,7 @@ export function selectWordPressImportItems(
   for (const item of selectedItems) {
     for (const meta of item.postMeta) {
       if (meta.key !== '_thumbnail_id' && meta.key !== 'images' && meta.key !== 'attachment') continue;
-      for (const rawId of meta.value.match(/\\d+/g) || []) {
+      for (const rawId of meta.value.match(/\d+/g) || []) {
         const id = Number(rawId);
         if (Number.isSafeInteger(id) && id > 0) referencedAttachmentIds.add(id);
       }
