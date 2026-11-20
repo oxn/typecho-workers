@@ -2036,7 +2036,6 @@ body.warm-theme {
   border-radius: 8px;
   background: var(--warm-accent);
   color: #fff;
-  font-size: 14px;
   cursor: pointer;
   transition: filter 160ms ease;
 }
@@ -2121,7 +2120,7 @@ body.warm-theme {
   display: inline-flex; min-width: 82px; min-height: 38px; align-items: center; justify-content: center;
   padding: 8px 16px; border: 1px solid var(--warm-border); border-radius: 8px;
   background: var(--warm-bg); color: var(--warm-muted); font-family: var(--warm-font);
-  font-size: 16px; font-weight: 500; line-height: 20px; cursor: pointer;
+  line-height: 20px; cursor: pointer;
   transition: color .2s ease, border-color .2s ease, background-color .2s ease, opacity .2s ease;
 }
 .warm-manage-dialog__actions button:hover:not(:disabled) {
@@ -2132,6 +2131,13 @@ body.warm-theme {
 }
 .warm-manage-dialog__actions [data-warm-dialog-confirm]:hover:not(:disabled) { filter: brightness(.92); }
 .warm-manage-dialog__actions button:disabled { cursor: not-allowed; opacity: .4; }
+
+/* Keep all foreground form and dialog action labels consistent with the original theme. */
+.warm-search-submit,
+.warm-manage-dialog__actions button {
+  font-size: 12px;
+  font-weight: 700;
+}
 @media (max-width: 639px) {
   .warm-manage-dialog__panel { padding: 26px 18px 20px; }
   .warm-manage-dialog__actions { gap: 8px; }
