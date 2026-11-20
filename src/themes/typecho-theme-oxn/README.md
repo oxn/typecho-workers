@@ -622,7 +622,7 @@ Markdown 正文可以直接混合 HTML。块级 HTML 示例：
 <p>普通文字中插入 <strong>加粗</strong>、<code>代码</code> 和 <a href="https://example.com">链接</a>。</p>
 ~~~
 
-当前文章清理配置继承 sanitize-html 默认允许标签，并增加图片、标题、表格、媒体和折叠内容等标签。按用途整理后的完整允许标签如下：
+本表对应 `src/lib/markdown.ts` 中的 `SANITIZE_OPTIONS`，适用范围是普通文章、独立页面和笔记正文的共享 Markdown/HTML 清理流程；它不是 OXN 主题专属白名单，也不是 Typecho 全系统所有 HTML 输出的统一白名单。该配置继承 sanitize-html 默认允许标签，并增加图片、标题、表格、媒体和折叠内容等标签。按用途整理后的完整允许标签如下：
 
 | 类型 | 允许的标签 |
 | --- | --- |
@@ -651,7 +651,14 @@ Markdown 正文可以直接混合 HTML。块级 HTML 示例：
 | audio | src、controls |
 | source | src、type |
 
-链接和媒体地址仍受安全协议校验；iframe 还会校验主机名。任意 style、事件处理器（例如 onclick）和未列入对应标签白名单的属性不会保留。主题页脚自定义 HTML、文章声明 HTML 有各自独立的处理规则，不应将本节文章正文白名单直接套用到这两项设置。
+**白名单适用范围需要区分：**
+
+- **文章、独立页面和笔记正文：** 使用上表对应的 `SANITIZE_OPTIONS`。笔记正文由笔记插件调用共享 `renderMarkdown()`，因此也走这套正文清理规则。
+- **评论 Markdown：** 使用 `COMMENT_MARKDOWN_OPTIONS`，是单独的一套较窄规则，不继承正文白名单增加的全部标签和属性。
+- **评论自定义 HTML：** 另根据后台 `commentsHTMLTagAllowed` 配置动态构建评论清理选项；它与评论 Markdown 的固定规则也不是同一套配置。
+- **页脚自定义 HTML、文章内容声明：** 各自有独立处理流程，不应将本节正文白名单直接套用到这两项设置。
+
+链接和媒体地址仍受安全协议校验；iframe 还会校验主机名。任意 style、事件处理器（例如 onclick）和未列入对应标签白名单的属性不会保留。
 
 ### 6.12 HTML 折叠内容（details / summary）
 
