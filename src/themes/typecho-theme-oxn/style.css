@@ -1008,6 +1008,7 @@ body.warm-theme {
   padding: 12px 14px;
   border-bottom: 1px solid var(--warm-border);
   vertical-align: top;
+  text-align: left;
 }
 
 .warm-prose th[align="left"],
