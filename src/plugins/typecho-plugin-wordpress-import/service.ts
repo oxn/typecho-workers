@@ -218,6 +218,7 @@ async function buildDataset(
   source: WordPressExport,
   authorId: number,
   selectedTypes: readonly WordPressImportContentType[],
+  dedupeFields: readonly WordPressImportDedupeField[],
 ) {
   const selectedSource = selectWordPressImportItems(source, selectedTypes);
   const sourceKey = normalizeWordPressSource(source.siteUrl);
@@ -460,6 +461,7 @@ export async function previewWordPressImport(
   xml: string,
   authorId: number,
   selectedTypes: readonly WordPressImportContentType[] = ['post', 'page', 'note'],
+  dedupeFields: readonly WordPressImportDedupeField[] = ['title', 'slug'],
 ): Promise<WordPressImportReport> {
   const source = parseWordPressExport(xml);
   const selectedSource = selectWordPressImportItems(source, selectedTypes);
@@ -479,10 +481,11 @@ export async function importWordPressExport(
   xml: string,
   authorId: number,
   selectedTypes: readonly WordPressImportContentType[] = ['post', 'page', 'note'],
+  dedupeFields: readonly WordPressImportDedupeField[] = ['title', 'slug'],
 ): Promise<WordPressImportReport> {
   const source = parseWordPressExport(xml);
   const selectedSource = selectWordPressImportItems(source, selectedTypes);
-  const { dataset, alreadyImported } = await buildDataset(db, source, authorId, selectedTypes);
+  const { dataset, alreadyImported } = await buildDataset(db, source, authorId, selectedTypes, dedupeFields);
   const databaseWrite = dataset.contents.length
     ? await writeDataset(db, dataset)
     : undefined;
