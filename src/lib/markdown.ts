@@ -99,7 +99,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
       'stroke': [/^(?:none|currentcolor|transparent|#[0-9a-f]{3,8}|[a-z]+|url\(\s*#[\w:.-]+\s*\))$/i],
       'fill-opacity': [/^(?:0?\.\d+|1(?:\.0+)?|100%?)$/i],
       'stroke-opacity': [/^(?:0?\.\d+|1(?:\.0+)?|100%?)$/i],
-      'opacity': [/^(?:\d+(?:\.\d+)?%?)$/i],
+      'opacity': [/^(?:0(?:\.\d+)?|1(?:\.0+)?|(?:\d{1,2}(?:\.\d+)?|100(?:\.0+)?)%)$/i],
       'background': [/^(?!.*(?:url\s*\(|expression\s*\(|javascript:|@import|behavior\s*:|-moz-binding)).*$/i],
       'background-color': [/^(?!.*(?:url\s*\(|expression\s*\(|javascript:|@import|behavior\s*:|-moz-binding)).*$/i],
       'background-image': [/^(?!.*(?:url\s*\(|expression\s*\(|javascript:|@import|behavior\s*:|-moz-binding)).*$/i],
