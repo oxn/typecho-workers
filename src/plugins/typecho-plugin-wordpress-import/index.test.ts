@@ -43,7 +43,7 @@ describe('WordPress import plugin', () => {
     expect(html).toContain('D1 实际写入行数');
     expect(html).toContain('已确认提交');
     expect(html).toContain('function hasImportableItems');
-    expect(html).toContain('lastPreview={hash:hash,parts:parts,reports:reports}');
+    expect(html).toContain('lastPreview={hash:hash,selection:chosenTypes.join(','),parts:parts,reports:reports}');
     expect(html).toContain('当前分片只写入尚未成功导入的文章');
   });
 
