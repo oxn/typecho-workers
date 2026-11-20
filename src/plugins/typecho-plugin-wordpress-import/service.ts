@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { schema, type Database } from 'typecho/db';
 import {
   buildWordPressMigrationDataset,
@@ -19,18 +19,63 @@ export interface WordPressImportReport {
   preview: boolean;
 }
 
+export function normalizeWordPressSource(siteUrl: string): string {
+  const value = siteUrl.trim();
+  if (!value) {
+    throw new Error('WXR 文件缺少 WordPress 站点地址，无法安全识别重复内容');
+  }
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error('unsupported protocol');
+    }
+    url.hostname = url.hostname.toLowerCase();
+    url.hash = '';
+    url.search = '';
+    url.pathname = url.pathname.replace(/\\/+$/, '') || '/';
+    return url.toString().replace(/\\/$/, '').toLowerCase();
+  } catch {
+    throw new Error('WXR 文件中的 WordPress 站点地址无效，无法安全识别重复内容');
+  }
+}
+
 async function buildDataset(db: Database, source: WordPressExport, authorId: number) {
+  const sourceKey = normalizeWordPressSource(source.siteUrl);
   const [maxContent, maxComment, maxMeta, slugRows, metaRows, markerRows] = await Promise.all([
     db.select({ value: sql<number>`coalesce(max(${schema.contents.cid}), 0)` }).from(schema.contents),
     db.select({ value: sql<number>`coalesce(max(${schema.comments.coid}), 0)` }).from(schema.comments),
     db.select({ value: sql<number>`coalesce(max(${schema.metas.mid}), 0)` }).from(schema.metas),
     db.select({ slug: schema.contents.slug }).from(schema.contents),
     db.select({ mid: schema.metas.mid, type: schema.metas.type, slug: schema.metas.slug }).from(schema.metas),
-    db.select({ id: schema.fields.int_value }).from(schema.fields).where(eq(schema.fields.name, 'wordpress_post_id')),
+    db.select({
+      cid: schema.fields.cid,
+      name: schema.fields.name,
+      id: schema.fields.int_value,
+      source: schema.fields.str_value,
+    }).from(schema.fields).where(inArray(schema.fields.name, ['wordpress_post_id', 'wordpress_source'])),
   ]);
 
-  const importedIds = new Set(markerRows.map(row => Number(row.id)).filter(id => id > 0));
-  const pendingItems = source.items.filter(item => !importedIds.has(item.oldId));
+  const sourceByContentId = new Map<number, string>();
+  const wordpressIdByContentId = new Map<number, number>();
+  for (const row of markerRows) {
+    const cid = Number(row.cid);
+    if (row.name === 'wordpress_source') sourceByContentId.set(cid, String(row.source || ''));
+    if (row.name === 'wordpress_post_id') wordpressIdByContentId.set(cid, Number(row.id));
+  }
+
+  // Keep compatibility with imports made before source-aware markers existed.
+  // New imports are deduplicated by the pair (normalized source URL, WP post ID).
+  const legacyImportedIds = new Set<number>();
+  const importedSourceIds = new Set<string>();
+  for (const [cid, oldId] of wordpressIdByContentId) {
+    const existingSource = sourceByContentId.get(cid);
+    if (existingSource) importedSourceIds.add(`${existingSource}#${oldId}`);
+    else legacyImportedIds.add(oldId);
+  }
+
+  const pendingItems = source.items.filter(item =>
+    !legacyImportedIds.has(item.oldId) && !importedSourceIds.has(`${sourceKey}#${item.oldId}`),
+  );
   const alreadyImported = source.items.length - pendingItems.length;
   const pendingSource: WordPressExport = { ...source, items: pendingItems };
 
@@ -50,6 +95,23 @@ async function buildDataset(db: Database, source: WordPressExport, authorId: num
     siteUrl: '',
     rewriteMedia: false,
   });
+
+  // Mark each imported content row with its source site. This keeps IDs from
+  // unrelated WordPress installations from colliding during later imports.
+  for ( (const marker of dataset.fields.filter(row => row.name === 'wordpress_post_id')) ) {
+    dataset.fields.push({
+      cid: Number(marker.cid),
+      name: 'wordpress_source',
+      type: 'str',
+      str_value: sourceKey,
+      int_value: 0,
+      float_value: 0,
+    });
+  }
+
+  // WordPress user IDs are not Typecho user IDs. Preserve commenter identity
+  // in the author/name fields, but do not falsely associate them with importer.
+  for (const comment of dataset.comments) comment.authorId = 0;
 
   return { dataset, alreadyImported };
 }
