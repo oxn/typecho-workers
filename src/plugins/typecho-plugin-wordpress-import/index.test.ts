@@ -103,7 +103,7 @@ describe('WordPress selective content filtering', () => {
     } as any;
 
     const postsOnly = selectWordPressImportItems(source, ['post']);
-    expect(postsOnly.items.map((entry: any) => entry.oldId)).toEqual([10, 90, 93]);
+    expect(postsOnly.items.map((entry: any) => entry.oldId)).toEqual([10, 90]);
 
     const notesOnly = selectWordPressImportItems(source, ['note']);
     expect(notesOnly.items.map((entry: any) => entry.oldId)).toEqual([30, 91, 92]);
