@@ -191,6 +191,10 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     if(hasDatabaseWrite)result.databaseWrite=databaseWrite;
     return result;
   }
+  function hasImportableItems(report){
+    var imported=report&&report.imported||{};
+    return Number(imported.posts||0)+Number(imported.pages||0)+Number(imported.notes||0)+Number(imported.attachments||0)>0;
+  }
   function formatDuration(value){
     value=Number(value||0);
     return value<1000?Math.round(value)+' ms':(value/1000).toFixed(2)+' 秒';
@@ -262,7 +266,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       }
       var combined=addReports(reports);
       renderReport(combined,parts.length,true);
-      lastPreview={hash:hash,parts:parts};
+      lastPreview={hash:hash,parts:parts,reports:reports};
       var importable=Number(combined.imported.posts||0)+Number(combined.imported.pages||0)+Number(combined.imported.notes||0)+Number(combined.imported.attachments||0);
       importButton.disabled=importable===0;
       setStatus('分析完成：原文件已安全分为 '+parts.length+' 片。请核对合并统计，再确认导入。');
@@ -283,21 +287,31 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     try{
       var hash=await fingerprint(file);
       if(hash!==lastPreview.hash)throw new Error('原始文件内容已变化，请重新分析。');
+      var confirmedParts=0;
+      var skippedParts=0;
       for(var index=0;index<lastPreview.parts.length;index++){
-        setStatus('正在导入第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\n已完成 '+index+' / '+lastPreview.parts.length+' 个。');
+        var previewReport=lastPreview.reports[index];
+        if(!hasImportableItems(previewReport)){
+          skippedParts++;
+          reports.push(previewReport);
+          setStatus('已跳过已完成的第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\n已跳过 '+skippedParts+' 个，无需重复写入。');
+          continue;
+        }
+        setStatus('正在导入第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\n已确认提交 '+confirmedParts+' 个，已跳过 '+skippedParts+' 个。当前分片只写入尚未成功导入的文章。');
         reports.push(await requestPart(lastPreview.parts[index],'import'));
+        confirmedParts++;
         renderReport(addReports(reports),lastPreview.parts.length,false);
       }
       lastPreview=null;
-      setStatus('全部导入完成。共成功处理 '+reports.length+' 个分片。');
+      setStatus('导入处理完成。新提交 '+confirmedParts+' 个分片，跳过已完成分片 '+skippedParts+' 个。');
     }catch(error){
-      var completed=reports.length;
       var completedRows=reports.reduce(function(total,report){return total+Number(report.databaseWrite&&report.databaseWrite.rowsWritten||0);},0);
+      var progress=confirmedParts
+        ? '\n本次已确认提交 '+confirmedParts+' 个分片，D1 实际写入 '+completedRows+' 行。'
+        : '\n本次没有收到新的分片提交确认。';
+      var skippedProgress=skippedParts?'\n另有 '+skippedParts+' 个此前已完成的分片已安全跳过。':'';
       lastPreview=null;
-      var progress=completed
-        ? '\n已确认提交 '+completed+' 个分片，D1 实际写入 '+completedRows+' 行。'
-        : '\n目前没有收到已成功提交分片的确认。';
-      setStatus((error instanceof Error?error.message:'导入失败')+progress+'\n请重新选择同一原始文件并重新分析；系统会根据来源站点和 WordPress 原文章 ID 核对已写入内容，再跳过已导入记录。若是网络中断导致响应丢失，失败分片的最终提交状态也会通过重新分析核实。',true);
+      setStatus((error instanceof Error?error.message:'导入失败')+progress+skippedProgress+'\n请重新选择同一原始文件并重新分析。系统会逐片核对数据库中的来源站点和 WordPress 原文章 ID，从第一个仍有未导入内容的分片继续；分片内部也只写入尚未成功的文章。',true);
     }finally{
       previewButton.disabled=false;
       importButton.disabled=true;
