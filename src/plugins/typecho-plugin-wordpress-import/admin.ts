@@ -21,8 +21,8 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         <legend>重复判断方式</legend>
         <label><input type="checkbox" name="dedupeFields" value="title" checked> 标题</label>
         <label><input type="checkbox" name="dedupeFields" value="slug" checked> 别名</label>
-        <label><input type="checkbox" name="dedupeFields" value="id"> ID</label>
-        <p class="description">默认同时匹配标题和别名。勾选多项时，所选字段必须全部相同才会跳过；附件仍按来源站点和原 ID 识别。</p>
+        <label><input type="checkbox" name="dedupeFields" value="id" checked> ID</label>
+        <p class="description">默认同时匹配标题、别名和 ID。勾选多项时，所选字段必须全部相同才会跳过；附件仍按来源站点和原 ID 识别。</p>
       </fieldset>
       <div class="wordpress-import-warning">
         默认增量导入，不会删除或覆盖现有文章。系统会按上方选择的字段判断重复内容。
