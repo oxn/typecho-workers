@@ -88,9 +88,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 (function(){
   var roots=document.querySelectorAll('.typecho-head-nav nav > menu > li');
   for(var i=0;i<roots.length;i++){
-    var menu=roots[i].querySelector(':scope > menu');
-    if(!menu)continue;
-    var link=menu.querySelector('a[href="/admin/manage-posts"]');
+    var link=roots[i].querySelector(':scope > a[href="/admin/manage-posts"]');
     if(!link)continue;
     var item=document.createElement('li');
     item.className=${active ? "'focus'" : "''"};
@@ -98,7 +96,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     anchor.href='/admin/plugin/wordpress-import';
     anchor.textContent='WordPress 导入';
     item.appendChild(anchor);
-    link.parentElement.insertAdjacentElement('afterend',item);
+    roots[i].insertAdjacentElement('afterend',item);
     if(${active ? 'true' : 'false'})roots[i].classList.add('focus');
     break;
   }
