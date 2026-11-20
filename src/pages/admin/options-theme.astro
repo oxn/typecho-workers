@@ -169,14 +169,26 @@ function optionId(key: string, value: string): string {
         );
       })}
       <ul class="typecho-option typecho-option-submit" id={`typecho-option-item--${Object.keys(configDef).length}`}>
-        <li>
+        <li class="oxn-settings-actions">
           <button type="submit" class="btn primary">保存设置</button>
           {theme.id === 'typecho-theme-oxn' && (
-            <>
-              <button type="button" class="btn primary" id="oxn-export-settings">导出设置</button>
-              <button type="button" class="btn primary" id="oxn-import-settings">导入设置</button>
+            <div class="oxn-settings-tools">
+              <button type="button" class="btn primary" id="oxn-export-settings">
+                <svg class="oxn-settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3v12m-4-4 4 4 4-4" />
+                  <path d="M5 17v3h14v-3" />
+                </svg>
+                导出设置
+              </button>
+              <button type="button" class="btn primary" id="oxn-import-settings">
+                <svg class="oxn-settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 15V3m-4 4 4-4 4 4" />
+                  <path d="M5 17v3h14v-3" />
+                </svg>
+                导入设置
+              </button>
               <input type="file" id="oxn-import-file" accept="application/json,.json" hidden />
-            </>
+            </div>
           )}
         </li>
       </ul>
@@ -195,9 +207,9 @@ function optionId(key: string, value: string): string {
       const data = await response.json();
       if (data.theme !== 'typecho-theme-oxn') throw new Error('当前主题不是 OXN');
       const backup = {
-        format: 'oxn-theme-settings',
+        format: 'oxn-theme-config',
         version: 1,
-        theme: data.theme,
+        sourceTheme: data.theme,
         settings: data.values,
       };
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -219,17 +231,24 @@ function optionId(key: string, value: string): string {
     if (!file) return;
     try {
       const backup = JSON.parse(await file.text());
+      const isCurrentBackup =
+        backup?.format === 'oxn-theme-config' &&
+        backup?.version === 1 &&
+        typeof backup?.sourceTheme === 'string' &&
+        backup.sourceTheme.length > 0;
+      const isLegacyBackup =
+        backup?.format === 'oxn-theme-settings' &&
+        backup?.version === 1 &&
+        backup?.theme === 'typecho-theme-oxn';
       if (
-        backup?.format !== 'oxn-theme-settings' ||
-        backup?.version !== 1 ||
-        backup?.theme !== 'typecho-theme-oxn' ||
+        (!isCurrentBackup && !isLegacyBackup) ||
         !backup?.settings ||
         typeof backup.settings !== 'object' ||
         Array.isArray(backup.settings)
       ) {
-        throw new Error('文件格式不正确，或不是 OXN 主题设置备份');
+        throw new Error('文件格式不正确，无法识别主题设置备份');
       }
-      if (!confirm('导入设置将覆盖当前 OXN 主题设置，是否继续？')) return;
+      if (!confirm('导入设置将覆盖当前 OXN 主题中对应的设置项，是否继续？')) return;
       const response = await fetch('/api/admin/theme-config', {
         method: 'POST',
         headers: {
@@ -249,4 +268,34 @@ function optionId(key: string, value: string): string {
     }
   });
 </script>
+
+<style>
+  .oxn-settings-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .oxn-settings-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .oxn-settings-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    color: #999;
+    vertical-align: -3px;
+  }
+
+  @media (max-width: 480px) {
+    .oxn-settings-tools {
+      margin-left: 0;
+    }
+  }
+</style>
 </Admin>
