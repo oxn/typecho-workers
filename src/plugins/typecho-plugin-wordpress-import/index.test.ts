@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import init from './index';
+import init, { classifyWordPressImportError } from './index';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
 import { normalizeWordPressSource, summarizeD1BatchResults } from './service';
-import { classifyWordPressImportError } from './index';
 
 function collectHooks() {
   const hooks = new Map<string, Function>();
@@ -37,6 +36,8 @@ describe('WordPress import plugin', () => {
     expect(html).toContain("key!=='_thumbnail_id'");
     expect(html).toContain('crypto.subtle.digest');
     expect(html).toContain('重新选择同一原始文件并重新分析');
+    expect(html).toContain('D1 实际写入行数');
+    expect(html).toContain('已确认提交');
   });
 
   it('leaves unrelated plugin requests untouched', async () => {
