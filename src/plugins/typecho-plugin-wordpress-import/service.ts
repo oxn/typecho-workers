@@ -52,7 +52,11 @@ export function buildWordPressImportDedupeKey(
  */
 function normalizeImportedNoteSlug(slug: string, oldId: number): string {
   const base = `note-${oldId}`;
-  const escapedId = String(oldId).replace(/[.*+?^${}()|[\\]\\\\]/g, '\\function wordpressMetaType(domain: string): string | null {');
+  const storedSlugPattern = new RegExp(`^note-${oldId}(?:-wp-${oldId}(?:-\\d+)?)?$`, 'i');
+  return storedSlugPattern.test(slug) ? base : slug;
+}
+
+function wordpressMetaType(domain: string): string | null {');
   const storedSlugPattern = new RegExp(`^note-${escapedId}(?:-wp-${escapedId}(?:-\\d+)?)?import { and, eq, inArray, sql } from 'drizzle-orm';
 import { schema, type Database } from 'typecho/db';
 import {
