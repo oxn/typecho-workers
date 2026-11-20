@@ -51,8 +51,8 @@ export function buildWordPressImportDedupeKey(
  * and import compare the same logical note slug on subsequent runs.
  */
 function normalizeImportedNoteSlug(slug: string, oldId: number): string {
-  const base = \`note-\${oldId}\`;
-  const storedSlugPattern = new RegExp(\`^note-\${oldId}(?:-wp-\${oldId}(?:-\\d+)?)?$\`, 'i');
+  const base = 'note-' + oldId;
+  const storedSlugPattern = new RegExp('^note-' + oldId + '(?:-wp-' + oldId + '(?:-\\d+)?)?$', 'i');
   return storedSlugPattern.test(slug) ? base : slug;
 }
 
@@ -63,10 +63,11 @@ function normalizeImportedNoteSlug(slug: string, oldId: number): string {
  * Collision suffixes are normalized only for rows carrying a WordPress ID marker.
  */
 export function normalizeImportedPostSlug(slug: string, oldId: number): string {
-  const base = \`post-\${oldId}\`;
-  const storedSlugPattern = new RegExp(\`^post-\${oldId}(?:-wp-\${oldId}(?:-\\d+)?)?$\`, 'i');
+  const base = 'post-' + oldId;
+  const storedSlugPattern = new RegExp('^post-' + oldId + '(?:-wp-' + oldId + '(?:-\\d+)?)?$', 'i');
   return storedSlugPattern.test(slug) ? base : slug;
 }
+
 function wordpressMetaType(domain: string): string | null {
   if (domain === 'category') return 'category';
   if (domain === 'post_tag') return 'tag';
