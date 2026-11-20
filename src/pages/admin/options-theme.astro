@@ -23,6 +23,7 @@ if (!hasPermission(ctx.user!.group || 'visitor', 'administrator')) {
 const { options, urls, user, csrfToken } = ctx;
 const themeId = String(options.theme || 'typecho-theme-warm');
 const theme = getActiveTheme(themeId);
+const isOxnTheme = theme.packageName === 'typecho-theme-oxn';
 const configDef = getThemeConfigDefinition(theme.id);
 
 if (!themeHasConfig(theme.id) || !configDef) {
@@ -171,7 +172,7 @@ function optionId(key: string, value: string): string {
       <ul class="typecho-option typecho-option-submit" id={`typecho-option-item--${Object.keys(configDef).length}`}>
         <li class="oxn-settings-actions">
           <button type="submit" class="btn primary">保存设置</button>
-          {theme.id === 'typecho-theme-oxn' && (
+          {isOxnTheme && (
             <div class="oxn-settings-tools">
               <button type="button" class="btn primary" id="oxn-export-settings">
                 <svg class="oxn-settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
