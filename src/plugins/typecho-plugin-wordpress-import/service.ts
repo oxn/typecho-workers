@@ -56,55 +56,6 @@ function normalizeImportedNoteSlug(slug: string, oldId: number): string {
   return storedSlugPattern.test(slug) ? base : slug;
 }
 
-function wordpressMetaType(domain: string): string | null {');
-  const storedSlugPattern = new RegExp(`^note-${escapedId}(?:-wp-${escapedId}(?:-\\d+)?)?import { and, eq, inArray, sql } from 'drizzle-orm';
-import { schema, type Database } from 'typecho/db';
-import {
-  buildWordPressMigrationDataset,
-  parseWordPressExport,
-  type WordPressExport,
-  type WordPressMigrationDataset,
-} from '../../../scripts/wordpress';
-
-// D1 allows at most 100 bound parameters in each SQL statement.
-const MAX_BOUND_PARAMETERS = 100;
-
-function splitIntoChunks<T>(values: T[], size = MAX_BOUND_PARAMETERS - 1): T[][] {
-  const chunks: T[][] = [];
-  for (let offset = 0; offset < values.length; offset += size) {
-    chunks.push(values.slice(offset, offset + size));
-  }
-  return chunks;
-}
-
-export interface WordPressDatabaseWriteMetrics {
-  rowsWritten: number;
-  statementCount: number;
-  batchDurationMs: number;
-  sqlDurationMs: number;
-}
-
-export type WordPressImportContentType = 'post' | 'page' | 'note';
-
-export type WordPressImportDedupeField = 'title' | 'slug' | 'id';
-
-export function buildWordPressImportDedupeKey(
-  item: { title: string; slug: string; oldId: number },
-  fields: readonly WordPressImportDedupeField[],
-  sourceKey: string,
-  legacySource = false,
-): string {
-  return JSON.stringify(fields.map(field => {
-    if (field === 'title') return item.title;
-    if (field === 'slug') return item.slug;
-    return [item.oldId, legacySource ? '*' : sourceKey];
-  }));
-}
-
-, 'i');
-  return storedSlugPattern.test(slug) ? base : slug;
-}
-
 function wordpressMetaType(domain: string): string | null {
   if (domain === 'category') return 'category';
   if (domain === 'post_tag') return 'tag';
