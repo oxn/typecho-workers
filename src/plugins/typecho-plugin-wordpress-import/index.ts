@@ -10,6 +10,13 @@ import { wordpressImportAdminPageHtml } from './admin';
 const API_PATH = '/api/admin/wordpress-import';
 const MAX_WXR_BYTES = 25 * 1024 * 1024;
 
+function importErrorStatus(error: unknown): number {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/timeout|timed out|overloaded|temporarily unavailable/i.test(message)) return 503;
+  if (/D1_ERROR|SQLITE_ERROR|SQLITE_CONSTRAINT|database|too many SQL variables/i.test(message)) return 500;
+  return 422;
+}
+
 export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(API_PATH);
 
@@ -36,6 +43,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       const form = await request.formData();
       const file = form.get('file');
       const action = String(form.get('action') || 'preview');
+      if (action !== 'preview' && action !== 'import') {
+        return { handled: true, response: jsonError(400, '无效的导入操作') };
+      }
       if (!(file instanceof File)) {
         return { handled: true, response: jsonError(400, '请选择 WordPress WXR XML 文件') };
       }
@@ -57,16 +67,30 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       if (action === 'import') {
         await invalidatePublicCache(auth.db, {
           reason: 'wordpress-import',
-          domains: ['home', 'post', 'page', 'archive'],
-          sharedDomains: ['admin-content'],
+          domains: ['home', 'post', 'page', 'note', 'archive', 'other'],
+          sharedDomains: [
+            'navigation',
+            'sidebar',
+            'metas',
+            'comments',
+            'notes',
+            'archive',
+            'content',
+            'admin-dashboard',
+            'admin-content',
+            'admin-comments',
+            'admin-metas',
+            'admin-media',
+          ],
         });
       }
 
       return { handled: true, response: jsonOk(report) };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'WordPress 导入失败';
+      const status = importErrorStatus(error);
       console.error('[wordpress-import] request failed:', error);
-      return { handled: true, response: jsonError(400, message) };
+      return { handled: true, response: jsonError(status, message) };
     }
   }, 20);
 
