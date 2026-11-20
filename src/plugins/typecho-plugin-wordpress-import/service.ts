@@ -10,6 +10,14 @@ import {
 // D1 allows at most 100 bound parameters in each SQL statement.
 const MAX_BOUND_PARAMETERS = 100;
 
+function splitIntoChunks<T>(values: T[], size = MAX_BOUND_PARAMETERS - 1): T[][] {
+  const chunks: T[][] = [];
+  for (let offset = 0; offset < values.length; offset += size) {
+    chunks.push(values.slice(offset, offset + size));
+  }
+  return chunks;
+}
+
 export interface WordPressDatabaseWriteMetrics {
   rowsWritten: number;
   statementCount: number;
@@ -214,18 +222,24 @@ async function buildDataset(
     db.select({ value: sql<number>`coalesce(max(${schema.metas.mid}), 0)` }).from(schema.metas),
     db.select({ slug: schema.contents.slug }).from(schema.contents),
     requiredMetaSlugs.length
-      ? db.select({ mid: schema.metas.mid, type: schema.metas.type, slug: schema.metas.slug })
-        .from(schema.metas).where(inArray(schema.metas.slug, requiredMetaSlugs))
+      ? Promise.all(splitIntoChunks(requiredMetaSlugs).map(slugs =>
+        db.select({ mid: schema.metas.mid, type: schema.metas.type, slug: schema.metas.slug })
+          .from(schema.metas).where(inArray(schema.metas.slug, slugs)),
+      )).then(rows => rows.flat())
       : Promise.resolve([]),
     selectedWordPressIds.length
-      ? db.select({ cid: schema.fields.cid, name: schema.fields.name, id: schema.fields.int_value, source: schema.fields.str_value })
-        .from(schema.fields).where(and(eq(schema.fields.name, 'wordpress_post_id'), inArray(schema.fields.int_value, selectedWordPressIds)))
+      ? Promise.all(splitIntoChunks(selectedWordPressIds).map(ids =>
+        db.select({ cid: schema.fields.cid, name: schema.fields.name, id: schema.fields.int_value, source: schema.fields.str_value })
+          .from(schema.fields).where(and(eq(schema.fields.name, 'wordpress_post_id'), inArray(schema.fields.int_value, ids))),
+      )).then(rows => rows.flat())
       : Promise.resolve([]),
   ]);
   const importedCids = [...new Set(postMarkerRows.map(row => Number(row.cid)).filter(Number.isSafeInteger))];
   const sourceMarkerRows = importedCids.length
-    ? await db.select({ cid: schema.fields.cid, name: schema.fields.name, id: schema.fields.int_value, source: schema.fields.str_value })
-      .from(schema.fields).where(and(eq(schema.fields.name, 'wordpress_source'), inArray(schema.fields.cid, importedCids)))
+    ? (await Promise.all(splitIntoChunks(importedCids).map(cids =>
+      db.select({ cid: schema.fields.cid, name: schema.fields.name, id: schema.fields.int_value, source: schema.fields.str_value })
+        .from(schema.fields).where(and(eq(schema.fields.name, 'wordpress_source'), inArray(schema.fields.cid, cids))),
+    ))).flat()
     : [];
   const markerRows = [...postMarkerRows, ...sourceMarkerRows];
   const relevantMetaRows = metaRows.filter(row => row.slug && requiredMetaKeys.has(wordpressMetaKey(String(row.type), row.slug)));
