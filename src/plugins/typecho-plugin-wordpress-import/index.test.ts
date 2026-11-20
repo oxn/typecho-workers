@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import init, { classifyWordPressImportError } from './index';
 import { wordpressImportAdminPageHtml } from './admin';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
-import { mapWordPressContentStatus, normalizeWordPressSource, selectWordPressImportItems, summarizeD1BatchResults } from './service';
+import { addWordPressTermAncestors, mapWordPressContentStatus, normalizeWordPressSource, selectWordPressImportItems, summarizeD1BatchResults } from './service';
 
 function collectHooks() {
   const hooks = new Map<string, Function>();
@@ -205,5 +205,63 @@ describe('WordPress import D1 error classification', () => {
       cause: new Error('D1_ERROR: Network connection lost.'),
     })).status).toBe(503);
     expect(classifyWordPressImportError(new Error('WXR XML 格式无效')).message).toBe('WXR XML 格式无效');
+  });
+});
+
+describe('WordPress taxonomy hierarchy', () => {
+  it('creates missing parent and grandparent terms without changing shared migration code', () => {
+    const dataset: any = {
+      metas: [{ mid: 11, name: 'Child', slug: 'child', type: 'category', description: null, count: 0, order: 0, parent: 0 }],
+    };
+    const source: any = {
+      terms: [
+        { domain: 'category', slug: 'root', name: 'Root', parentSlug: '', description: 'root description' },
+        { domain: 'category', slug: 'parent', name: 'Parent', parentSlug: 'root', description: '' },
+        { domain: 'category', slug: 'child', name: 'Child', parentSlug: 'parent', description: '' },
+      ],
+    };
+
+    addWordPressTermAncestors(dataset, source, [], 10);
+
+    expect(dataset.metas).toHaveLength(3);
+    expect(dataset.metas[0].parent).toBe(12);
+    expect(dataset.metas.find((meta: any) => meta.slug === 'parent')).toMatchObject({ mid: 12, parent: 13 });
+    expect(dataset.metas.find((meta: any) => meta.slug === 'root')).toMatchObject({ mid: 13, parent: 0 });
+  });
+
+  it('reuses an existing parent term instead of inserting a duplicate', () => {
+    const dataset: any = {
+      metas: [{ mid: 21, name: 'Child', slug: 'child', type: 'category', description: null, count: 0, order: 0, parent: 0 }],
+    };
+    const source: any = {
+      terms: [
+        { domain: 'category', slug: 'parent', name: 'Parent', parentSlug: '', description: '' },
+        { domain: 'category', slug: 'child', name: 'Child', parentSlug: 'parent', description: '' },
+      ],
+    };
+
+    addWordPressTermAncestors(dataset, source, [{ mid: 7, type: 'category', slug: 'parent' }], 20);
+
+    expect(dataset.metas).toHaveLength(1);
+    expect(dataset.metas[0].parent).toBe(7);
+  });
+
+  it('keeps note topics in their own taxonomy and breaks malformed parent cycles', () => {
+    const dataset: any = {
+      metas: [{ mid: 31, name: 'Topic B', slug: 'topic-b', type: 'note_topic', description: null, count: 0, order: 0, parent: 0 }],
+    };
+    const source: any = {
+      terms: [
+        { domain: 'topic', slug: 'topic-a', name: 'Topic A', parentSlug: 'topic-b', description: '' },
+        { domain: 'topic', slug: 'topic-b', name: 'Topic B', parentSlug: 'topic-a', description: '' },
+        { domain: 'category', slug: 'topic-a', name: 'Category A', parentSlug: '', description: '' },
+      ],
+    };
+
+    addWordPressTermAncestors(dataset, source, [], 30);
+
+    expect(dataset.metas.filter((meta: any) => meta.type === 'note_topic')).toHaveLength(2);
+    expect(dataset.metas.find((meta: any) => meta.slug === 'topic-a' && meta.type === 'note_topic')).toBeTruthy();
+    expect(dataset.metas.find((meta: any) => meta.slug === 'topic-a' && meta.type === 'category')).toBeUndefined();
   });
 });
