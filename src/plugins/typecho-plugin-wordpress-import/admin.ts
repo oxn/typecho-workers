@@ -181,7 +181,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     });
     return result;
   }
-  function renderReport(data,partCount){
+  function renderReport(data,partCount,isPreview){
     reportBox.replaceChildren();
     var title=document.createElement('h3');
     title.textContent=(data.siteTitle||'WordPress 网站')+'：导入统计';
@@ -191,7 +191,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       var count=Number(data.imported&&data.imported[key]||0);
       if(!count)return;
       var item=document.createElement('li');
-      item.textContent=labels[key]+'：'+count;
+      item.textContent=labels[key]+'：'+count+(isPreview&&key==='metas'?'（预估，跨分片可能重复）':'');
       list.appendChild(item);
     });
     if(data.alreadyImported){
@@ -233,7 +233,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         reports.push(await requestPart(parts[index],'preview'));
       }
       var combined=addReports(reports);
-      renderReport(combined,parts.length);
+      renderReport(combined,parts.length,true);
       lastPreview={hash:hash,parts:parts};
       var importable=Number(combined.imported.posts||0)+Number(combined.imported.pages||0)+Number(combined.imported.notes||0)+Number(combined.imported.attachments||0);
       importButton.disabled=importable===0;
@@ -258,7 +258,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       for(var index=0;index<lastPreview.parts.length;index++){
         setStatus('正在导入第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\n已完成 '+index+' / '+lastPreview.parts.length+' 个。');
         reports.push(await requestPart(lastPreview.parts[index],'import'));
-        renderReport(addReports(reports),lastPreview.parts.length);
+        renderReport(addReports(reports),lastPreview.parts.length,false);
       }
       lastPreview=null;
       setStatus('全部导入完成。共成功处理 '+reports.length+' 个分片。');
