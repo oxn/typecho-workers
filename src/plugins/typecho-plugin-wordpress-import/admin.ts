@@ -17,8 +17,15 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         <label><input type="checkbox" name="contentTypes" value="note" checked> 笔记</label>
         <p class="description">默认全部导入。附件、评论及分类等关联数据会根据所选内容自动处理。</p>
       </fieldset>
+      <fieldset class="wordpress-import-dedupe">
+        <legend>重复判断方式</legend>
+        <label><input type="checkbox" name="dedupeFields" value="title" checked> 标题</label>
+        <label><input type="checkbox" name="dedupeFields" value="slug" checked> 别名</label>
+        <label><input type="checkbox" name="dedupeFields" value="id"> ID</label>
+        <p class="description">默认同时匹配标题和别名。勾选多项时，所选字段必须全部相同才会跳过；至少选择一项。</p>
+      </fieldset>
       <div class="wordpress-import-warning">
-        默认增量导入，不会删除或覆盖现有文章。已导入过的 WordPress 内容会按来源站点地址和原文章 ID 自动跳过。
+        默认增量导入，不会删除或覆盖现有文章。系统会按上方选择的字段判断重复内容。
         发布状态会按 WordPress 原状态保留；公开文章导入后会出现在本站前台。
       </div>
       <p class="description">分割会保持文章与评论、页面父子关系及文章引用附件的关联。正文中的原始媒体地址仍会保留，不会自动复制到本站 R2。</p>
@@ -42,7 +49,10 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
 .wordpress-import-types{margin:18px 0;padding:12px 14px;border:1px solid var(--border-color,#ddd);border-radius:3px}
 .wordpress-import-types legend{padding:0 6px;font-weight:600}
 .wordpress-import-types label{display:inline-flex;align-items:center;gap:6px;margin:4px 20px 4px 0;font-weight:400}
-.wordpress-import-types input{margin:0}
+.wordpress-import-types input,.wordpress-import-dedupe input{margin:0}
+.wordpress-import-dedupe{margin:18px 0;padding:12px 14px;border:1px solid var(--border-color,#ddd);border-radius:3px}
+.wordpress-import-dedupe legend{padding:0 6px;font-weight:600}
+.wordpress-import-dedupe label{display:inline-flex;align-items:center;gap:6px;margin:4px 20px 4px 0;font-weight:400}
 .wordpress-import-warning{margin:18px 0;padding:12px 14px;border-left:3px solid #c99b43;background:rgba(201,155,67,.09);line-height:1.7}
 .wordpress-import-actions{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}
 .wordpress-import-actions button:disabled{opacity:.45;cursor:not-allowed}
@@ -60,6 +70,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
   form.dataset.ready='1';
   var fileInput=document.getElementById('wordpress-import-file');
   var typeInputs=Array.prototype.slice.call(form.querySelectorAll('input[name="contentTypes"]'));
+  var dedupeInputs=Array.prototype.slice.call(form.querySelectorAll('input[name="dedupeFields"]'));
   var previewButton=document.getElementById('wordpress-import-preview');
   var importButton=document.getElementById('wordpress-import-confirm');
   var status=document.getElementById('wordpress-import-status');
@@ -69,10 +80,13 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     return typeInputs.filter(function(input){return input.checked;}).map(function(input){return input.value;}).sort();
   }
   function selectionKey(){return selectedTypes().join(',');}
+  function selectedDedupeFields(){return dedupeInputs.filter(function(input){return input.checked;}).map(function(input){return input.value;}).sort();}
+  function dedupeSelectionKey(){return selectedDedupeFields().join(',');}
   function setBusy(busy){
     previewButton.disabled=busy;
     fileInput.disabled=busy;
     typeInputs.forEach(function(input){input.disabled=busy;});
+    dedupeInputs.forEach(function(input){input.disabled=busy;});
   }
   var TARGET_BYTES=4*1024*1024;
   var MAX_PART_BYTES=24*1024*1024;
@@ -288,6 +302,8 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     var body=new FormData(form);
     body.delete('contentTypes');
     selectedTypes().forEach(function(type){body.append('contentTypes',type);});
+    body.delete('dedupeFields');
+    selectedDedupeFields().forEach(function(field){body.append('dedupeFields',field);});
     body.set('file',file,file.name);
     body.set('action',action);
     var response=await fetch('/api/admin/wordpress-import',{method:'POST',body:body,credentials:'same-origin'});
@@ -310,6 +326,8 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     if(!file){setStatus('请先选择 WordPress XML 文件。',true);return;}
     var chosenTypes=selectedTypes();
     if(!chosenTypes.length){setStatus('请至少选择一种导入内容类型。',true);return;}
+    var chosenDedupeFields=selectedDedupeFields();
+    if(!chosenDedupeFields.length){setStatus('请至少选择一种重复判断方式（标题、别名或 ID）。',true);return;}
     setBusy(true);
     importButton.disabled=true;
     lastPreview=null;
@@ -325,7 +343,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       }
       var combined=addReports(reports);
       renderReport(combined,parts.length,true);
-      lastPreview={sourceXml:sourceXml,selection:chosenTypes.join(','),parts:parts,reports:reports};
+      lastPreview={sourceXml:sourceXml,selection:chosenTypes.join(',')+'|'+chosenDedupeFields.join(','),parts:parts,reports:reports};
       var importable=Number(combined.imported.posts||0)+Number(combined.imported.pages||0)+Number(combined.imported.notes||0)+Number(combined.imported.attachments||0);
       importButton.disabled=importable===0;
       setStatus('分析完成：原文件已安全分为 '+parts.length+' 片。请核对合并统计，再确认导入。');
@@ -344,7 +362,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     try{
       var currentXml=await file.text();
       if(currentXml!==lastPreview.sourceXml)throw new Error('原始文件内容已变化，请重新分析。');
-      if(selectionKey()!==lastPreview.selection)throw new Error('导入类型选择已变化，请重新分析文件。');
+      if(selectionKey()+'|'+dedupeSelectionKey()!==lastPreview.selection)throw new Error('导入类型或重复判断方式已变化，请重新分析文件。');
       var confirmedParts=0;
       var skippedParts=0;
       for(var index=0;index<lastPreview.parts.length;index++){
@@ -369,7 +387,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         : '\\n本次没有收到新的分片提交确认。';
       var skippedProgress=skippedParts?'\\n另有 '+skippedParts+' 个此前已完成的分片已安全跳过。':'';
       lastPreview=null;
-      setStatus((error instanceof Error?error.message:'导入失败')+progress+skippedProgress+'\\n请重新选择同一原始文件并重新分析。系统会逐片核对数据库中的来源站点和 WordPress 原文章 ID，从第一个仍有未导入内容的分片继续；分片内部也只写入尚未成功的文章。',true);
+      setStatus((error instanceof Error?error.message:'导入失败')+progress+skippedProgress+'\\n请重新选择同一原始文件并重新分析。系统会按当前选择的重复判断方式逐片核对数据库，从第一个仍有未导入内容的分片继续；分片内部也只写入尚未成功的文章。',true);
     }finally{
       setBusy(false);
       importButton.disabled=true;
@@ -381,7 +399,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     reportBox.hidden=true;
     setStatus('');
   });
-  typeInputs.forEach(function(input){
+  typeInputs.concat(dedupeInputs).forEach(function(input){
     input.addEventListener('change',function(){
       lastPreview=null;
       importButton.disabled=true;
