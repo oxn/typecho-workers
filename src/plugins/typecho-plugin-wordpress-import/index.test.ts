@@ -38,6 +38,9 @@ describe('WordPress import plugin', () => {
     expect(html).toContain('重新选择同一原始文件并重新分析');
     expect(html).toContain('D1 实际写入行数');
     expect(html).toContain('已确认提交');
+    expect(html).toContain('function hasImportableItems');
+    expect(html).toContain('lastPreview={hash:hash,parts:parts,reports:reports}');
+    expect(html).toContain('当前分片只写入尚未成功导入的文章');
   });
 
   it('leaves unrelated plugin requests untouched', async () => {
