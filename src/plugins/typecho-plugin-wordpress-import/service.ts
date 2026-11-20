@@ -29,21 +29,7 @@ export type WordPressImportContentType = 'post' | 'page' | 'note';
 
 export type WordPressImportDedupeField = 'title' | 'slug' | 'id';
 
-export function isWordPressImportDuplicate(
-  item: { title: string; slug: string; oldId: number },
-  existing: { title: string; slug: string; wordpressId?: number; source?: string },
-  sourceKey: string,
-  fields: readonly WordPressImportDedupeField[],
-): boolean {
-  if (!fields.length) return false;
-  return fields.every(field => {
-    if (field === 'title') return item.title === existing.title;
-    if (field === 'slug') return item.slug === existing.slug;
-    return existing.wordpressId === item.oldId && (!existing.source || existing.source === sourceKey);
-  });
-}
-
-function wordpressDedupeKey(
+export function buildWordPressImportDedupeKey(
   item: { title: string; slug: string; oldId: number },
   fields: readonly WordPressImportDedupeField[],
   sourceKey: string,
@@ -292,15 +278,15 @@ async function buildDataset(
       oldId: wordpressIdByContentId.get(cid) || 0,
     };
     const existingSource = sourceByContentId.get(cid) || '';
-    existingDedupeKeys.add(wordpressDedupeKey(existing, dedupeFields, existingSource));
+    existingDedupeKeys.add(buildWordPressImportDedupeKey(existing, dedupeFields, existingSource));
     if (!existingSource && existing.oldId) {
-      existingDedupeKeys.add(wordpressDedupeKey(existing, dedupeFields, '', true));
+      existingDedupeKeys.add(buildWordPressImportDedupeKey(existing, dedupeFields, '', true));
     }
   }
 
   const pendingItems = selectedSource.items.filter(item => {
-    const key = wordpressDedupeKey(item, dedupeFields, sourceKey);
-    const legacyKey = wordpressDedupeKey(item, dedupeFields, '', true);
+    const key = buildWordPressImportDedupeKey(item, dedupeFields, sourceKey);
+    const legacyKey = buildWordPressImportDedupeKey(item, dedupeFields, '', true);
     return !existingDedupeKeys.has(key) && !existingDedupeKeys.has(legacyKey);
   });
   const alreadyImported = selectedSource.items.length - pendingItems.length;
