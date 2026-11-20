@@ -19,6 +19,62 @@ export interface WordPressDatabaseWriteMetrics {
 
 export type WordPressImportContentType = 'post' | 'page' | 'note';
 
+function wordpressMetaType(domain: string): string | null {
+  if (domain === 'category') return 'category';
+  if (domain === 'post_tag') return 'tag';
+  if (domain === 'topic') return 'note_topic';
+  return null;
+}
+
+function wordpressMetaKey(type: string, slug: string): string {
+  return type + '\u0000' + slug.toLocaleLowerCase();
+}
+
+/** Add missing taxonomy ancestors without changing the shared migration builder. */
+export function addWordPressTermAncestors(
+  dataset: WordPressMigrationDataset,
+  source: WordPressExport,
+  existingMetas: Array<{ mid: number; type: string; slug: string }>,
+  maxMetaId: number,
+): void {
+  const definitions = new Map<string, WordPressExport['terms'][number]>();
+  for (const term of source.terms) {
+    const type = wordpressMetaType(term.domain);
+    if (type) definitions.set(wordpressMetaKey(type, term.slug || term.name), term);
+  }
+  const metaIds = new Map<string, number>();
+  for (const meta of existingMetas) metaIds.set(wordpressMetaKey(meta.type, meta.slug), meta.mid);
+  for (const meta of dataset.metas) metaIds.set(wordpressMetaKey(String(meta.type), String(meta.slug)), Number(meta.mid));
+  let nextMetaId = maxMetaId + 1;
+  const ensureAncestor = (type: string, slug: string, trail: Set<string>): number => {
+    if (!slug) return 0;
+    const key = wordpressMetaKey(type, slug);
+    if (trail.has(key)) return 0;
+    const existing = metaIds.get(key);
+    if (existing) return existing;
+    const definition = definitions.get(key);
+    if (!definition) return 0;
+    const mid = nextMetaId++;
+    metaIds.set(key, mid);
+    const meta: Record<string, string | number | null> = {
+      mid, name: definition.name || slug, slug, type,
+      description: definition.description || null, count: 0, order: 0, parent: 0,
+    };
+    dataset.metas.push(meta);
+    const nextTrail = new Set(trail);
+    nextTrail.add(key);
+    if (definition.parentSlug) meta.parent = ensureAncestor(type, definition.parentSlug, nextTrail);
+    return mid;
+  };
+  for (const meta of dataset.metas.slice()) {
+    const type = String(meta.type);
+    const slug = String(meta.slug);
+    const definition = definitions.get(wordpressMetaKey(type, slug));
+    if (!definition?.parentSlug) continue;
+    meta.parent = ensureAncestor(type, definition.parentSlug, new Set([wordpressMetaKey(type, slug)]));
+  }
+}
+
 export function selectWordPressImportItems(
   source: WordPressExport,
   selectedTypes: readonly WordPressImportContentType[],
@@ -127,20 +183,51 @@ async function buildDataset(
 ) {
   const selectedSource = selectWordPressImportItems(source, selectedTypes);
   const sourceKey = normalizeWordPressSource(source.siteUrl);
-  const [maxContent, maxComment, maxMeta, slugRows, metaRows, markerRows] = await Promise.all([
+  const termDefinitions = new Map<string, WordPressExport['terms'][number]>();
+  for (const term of source.terms) {
+    const type = wordpressMetaType(term.domain);
+    if (type) termDefinitions.set(wordpressMetaKey(type, term.slug || term.name), term);
+  }
+  const requiredMetaKeys = new Set<string>();
+  for (const item of selectedSource.items) {
+    if (item.postType !== 'post' && item.postType !== 'note') continue;
+    for (const category of item.categories) {
+      const type = wordpressMetaType(category.domain);
+      if (!type || (type === 'note_topic' && item.postType !== 'note')) continue;
+      let slug = category.slug || category.name;
+      const visited = new Set<string>();
+      while (slug) {
+        const key = wordpressMetaKey(type, slug);
+        if (visited.has(key)) break;
+        visited.add(key);
+        requiredMetaKeys.add(key);
+        slug = termDefinitions.get(key)?.parentSlug || '';
+      }
+    }
+  }
+  const requiredMetaSlugs = [...new Set([...requiredMetaKeys].map(key => key.split('\u0000')[1]))];
+  const selectedWordPressIds = [...new Set(selectedSource.items.map(item => item.oldId))];
+  const [maxContent, maxComment, maxMeta, slugRows, metaRows, postMarkerRows] = await Promise.all([
     db.select({ value: sql<number>`coalesce(max(${schema.contents.cid}), 0)` }).from(schema.contents),
     db.select({ value: sql<number>`coalesce(max(${schema.comments.coid}), 0)` }).from(schema.comments),
     db.select({ value: sql<number>`coalesce(max(${schema.metas.mid}), 0)` }).from(schema.metas),
     db.select({ slug: schema.contents.slug }).from(schema.contents),
-    db.select({ mid: schema.metas.mid, type: schema.metas.type, slug: schema.metas.slug }).from(schema.metas),
-    db.select({
-      cid: schema.fields.cid,
-      name: schema.fields.name,
-      id: schema.fields.int_value,
-      source: schema.fields.str_value,
-    }).from(schema.fields).where(inArray(schema.fields.name, ['wordpress_post_id', 'wordpress_source'])),
+    requiredMetaSlugs.length
+      ? db.select({ mid: schema.metas.mid, type: schema.metas.type, slug: schema.metas.slug })
+        .from(schema.metas).where(inArray(schema.metas.slug, requiredMetaSlugs))
+      : Promise.resolve([]),
+    selectedWordPressIds.length
+      ? db.select({ cid: schema.fields.cid, name: schema.fields.name, id: schema.fields.int_value, source: schema.fields.str_value })
+        .from(schema.fields).where(and(eq(schema.fields.name, 'wordpress_post_id'), inArray(schema.fields.int_value, selectedWordPressIds)))
+      : Promise.resolve([]),
   ]);
-
+  const importedCids = [...new Set(postMarkerRows.map(row => Number(row.cid)).filter(Number.isSafeInteger))];
+  const sourceMarkerRows = importedCids.length
+    ? await db.select({ cid: schema.fields.cid, name: schema.fields.name, id: schema.fields.int_value, source: schema.fields.str_value })
+      .from(schema.fields).where(and(eq(schema.fields.name, 'wordpress_source'), inArray(schema.fields.cid, importedCids)))
+    : [];
+  const markerRows = [...postMarkerRows, ...sourceMarkerRows];
+  const relevantMetaRows = metaRows.filter(row => row.slug && requiredMetaKeys.has(wordpressMetaKey(String(row.type), row.slug)));
   const sourceByContentId = new Map<number, string>();
   const wordpressIdByContentId = new Map<number, number>();
   for (const row of markerRows) {
@@ -170,7 +257,7 @@ async function buildDataset(
     maxCommentId: Number(maxComment[0]?.value || 0),
     maxMetaId: Number(maxMeta[0]?.value || 0),
     contentSlugs: slugRows.map(row => row.slug || '').filter(Boolean),
-    metas: metaRows.filter(row => row.slug).map(row => ({
+    metas: relevantMetaRows.map(row => ({
       mid: row.mid,
       type: row.type,
       slug: row.slug!,
@@ -181,6 +268,10 @@ async function buildDataset(
     siteUrl: '',
     rewriteMedia: false,
   });
+
+  addWordPressTermAncestors(dataset, pendingSource, relevantMetaRows.map(row => ({
+    mid: Number(row.mid), type: String(row.type), slug: String(row.slug),
+  })), Number(maxMeta[0]?.value || 0));
 
   // The shared migration builder predates Typecho's native "waiting" state
   // and treats unknown WordPress statuses as publish. Correct each imported
