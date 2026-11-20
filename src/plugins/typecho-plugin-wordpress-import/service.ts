@@ -496,7 +496,7 @@ export async function previewWordPressImport(
   xml: string,
   authorId: number,
   selectedTypes: readonly WordPressImportContentType[] = ['post', 'page', 'note'],
-  dedupeFields: readonly WordPressImportDedupeField[] = ['title', 'slug', 'id'],
+  dedupeFields: readonly WordPressImportDedupeField[] = ['id'],
 ): Promise<WordPressImportReport> {
   const source = parseWordPressExport(xml);
   const selectedSource = selectWordPressImportItems(source, selectedTypes);
@@ -516,7 +516,7 @@ export async function importWordPressExport(
   xml: string,
   authorId: number,
   selectedTypes: readonly WordPressImportContentType[] = ['post', 'page', 'note'],
-  dedupeFields: readonly WordPressImportDedupeField[] = ['title', 'slug', 'id'],
+  dedupeFields: readonly WordPressImportDedupeField[] = ['id'],
 ): Promise<WordPressImportReport> {
   const source = parseWordPressExport(xml);
   const selectedSource = selectWordPressImportItems(source, selectedTypes);
