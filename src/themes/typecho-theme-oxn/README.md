@@ -630,7 +630,7 @@ Markdown 正文可以直接混合 HTML。块级 HTML 示例：
 | 标题与段落 | h1—h6、p、br、hr、wbr |
 | 文字格式与语义 | a、abbr、b、bdi、bdo、cite、data、dfn、em、i、mark、q、s、small、span、strong、time、u、var |
 | 上下标与代码文字 | code、kbd、rb、rp、rt、rtc、ruby、samp、sub、sup |
-| 列表 | dl、dt、dd、menu、ol、ul、li |
+| 列表 | dl、dt、dd、ol、ul、li |
 | 引用与图片说明 | blockquote、figure、figcaption |
 | 表格 | table、caption、col、colgroup、thead、tbody、tfoot、tr、th、td |
 | 代码与折叠 | pre、details、summary |
@@ -640,7 +640,7 @@ Markdown 正文可以直接混合 HTML。块级 HTML 示例：
 
 | 标签 | 允许的属性 |
 | --- | --- |
-| a | href、title、target、rel，并继承默认的 name |
+| a | href、title、target、rel |
 | img | src、alt、title、width、height、loading |
 | code、pre | class |
 | blockquote | class、data-alert |
