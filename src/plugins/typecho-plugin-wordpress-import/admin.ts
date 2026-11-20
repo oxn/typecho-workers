@@ -211,7 +211,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         partChannel.appendChild(partDocument.importNode(items[index],true));
       });
       var partXml=serializer.serializeToString(partDocument);
-      var partFile=new File([partXml],filename.replace(/\.xml$/i,'')+'-part-'+String(partIndex+1).padStart(3,'0')+'.xml',{type:'application/xml'});
+      var partFile=new File([partXml],filename.replace(/\\.xml$/i,'')+'-part-'+String(partIndex+1).padStart(3,'0')+'.xml',{type:'application/xml'});
       if(partFile.size>MAX_PART_BYTES)throw new Error('第 '+(partIndex+1)+' 个分片实际大小超过 24 MB。请在 WordPress 中按日期或内容类型分批导出。');
       return partFile;
     });
@@ -359,9 +359,9 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     }catch(error){
       var completedRows=reports.reduce(function(total,report){return total+Number(report.databaseWrite&&report.databaseWrite.rowsWritten||0);},0);
       var progress=confirmedParts
-        ? '\n本次已确认提交 '+confirmedParts+' 个分片，D1 实际写入 '+completedRows+' 行。'
-        : '\n本次没有收到新的分片提交确认。';
-      var skippedProgress=skippedParts?'\n另有 '+skippedParts+' 个此前已完成的分片已安全跳过。':'';
+        ? '\\n本次已确认提交 '+confirmedParts+' 个分片，D1 实际写入 '+completedRows+' 行。'
+        : '\\n本次没有收到新的分片提交确认。';
+      var skippedProgress=skippedParts?'\\n另有 '+skippedParts+' 个此前已完成的分片已安全跳过。':'';
       lastPreview=null;
       setStatus((error instanceof Error?error.message:'导入失败')+progress+skippedProgress+'\n请重新选择同一原始文件并重新分析。系统会逐片核对数据库中的来源站点和 WordPress 原文章 ID，从第一个仍有未导入内容的分片继续；分片内部也只写入尚未成功的文章。',true);
     }finally{
