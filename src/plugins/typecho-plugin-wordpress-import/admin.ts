@@ -10,6 +10,13 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
         <input id="wordpress-import-file" name="file" type="file" accept=".xml,application/xml,text/xml" required>
         <p class="description">原始文件在浏览器本地处理，不会整体上传。每个分片不超过 24 MB，目标大小约 4 MB。</p>
       </div>
+      <fieldset class="wordpress-import-types">
+        <legend>选择导入内容</legend>
+        <label><input type="checkbox" name="contentTypes" value="post" checked> 文章</label>
+        <label><input type="checkbox" name="contentTypes" value="page" checked> 页面</label>
+        <label><input type="checkbox" name="contentTypes" value="note" checked> 笔记</label>
+        <p class="description">默认全部导入。附件、评论及分类等关联数据会根据所选内容自动处理。</p>
+      </fieldset>
       <div class="wordpress-import-warning">
         默认增量导入，不会删除或覆盖现有文章。已导入过的 WordPress 内容会按来源站点地址和原文章 ID 自动跳过。
         发布状态会按 WordPress 原状态保留；公开文章导入后会出现在本站前台。
@@ -32,6 +39,10 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
 #wordpress-import-app .typecho-option label{display:block;margin-bottom:8px;font-weight:600}
 #wordpress-import-app input[type=file]{display:block;max-width:100%;padding:8px;border:1px solid var(--border-color,#ddd);border-radius:3px;background:var(--background,#fff)}
 #wordpress-import-app .description{margin:7px 0;color:var(--description-color,#888);font-size:.92em}
+.wordpress-import-types{margin:18px 0;padding:12px 14px;border:1px solid var(--border-color,#ddd);border-radius:3px}
+.wordpress-import-types legend{padding:0 6px;font-weight:600}
+.wordpress-import-types label{display:inline-flex;align-items:center;gap:6px;margin:4px 20px 4px 0;font-weight:400}
+.wordpress-import-types input{margin:0}
 .wordpress-import-warning{margin:18px 0;padding:12px 14px;border-left:3px solid #c99b43;background:rgba(201,155,67,.09);line-height:1.7}
 .wordpress-import-actions{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}
 .wordpress-import-actions button:disabled{opacity:.45;cursor:not-allowed}
@@ -48,11 +59,21 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
   if(!form||form.dataset.ready)return;
   form.dataset.ready='1';
   var fileInput=document.getElementById('wordpress-import-file');
+  var typeInputs=Array.prototype.slice.call(form.querySelectorAll('input[name="contentTypes"]'));
   var previewButton=document.getElementById('wordpress-import-preview');
   var importButton=document.getElementById('wordpress-import-confirm');
   var status=document.getElementById('wordpress-import-status');
   var reportBox=document.getElementById('wordpress-import-report');
   var lastPreview=null;
+  function selectedTypes(){
+    return typeInputs.filter(function(input){return input.checked;}).map(function(input){return input.value;}).sort();
+  }
+  function selectionKey(){return selectedTypes().join(',');}
+  function setBusy(busy){
+    previewButton.disabled=busy;
+    fileInput.disabled=busy;
+    typeInputs.forEach(function(input){input.disabled=busy;});
+  }
   var TARGET_BYTES=4*1024*1024;
   var MAX_PART_BYTES=24*1024*1024;
   var labels={posts:'文章',pages:'独立页面',notes:'笔记',attachments:'附件记录',comments:'评论',metas:'新建分类/标签',relationships:'内容关联',media:'媒体文件'};
@@ -249,9 +270,10 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
   async function prepare(){
     var file=fileInput.files&&fileInput.files[0];
     if(!file){setStatus('请先选择 WordPress XML 文件。',true);return;}
-    previewButton.disabled=true;
+    var chosenTypes=selectedTypes();
+    if(!chosenTypes.length){setStatus('请至少选择一种导入内容类型。',true);return;}
+    setBusy(true);
     importButton.disabled=true;
-    fileInput.disabled=true;
     lastPreview=null;
     reportBox.hidden=true;
     try{
@@ -266,27 +288,26 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       }
       var combined=addReports(reports);
       renderReport(combined,parts.length,true);
-      lastPreview={hash:hash,parts:parts,reports:reports};
+      lastPreview={hash:hash,selection:chosenTypes.join(','),parts:parts,reports:reports};
       var importable=Number(combined.imported.posts||0)+Number(combined.imported.pages||0)+Number(combined.imported.notes||0)+Number(combined.imported.attachments||0);
       importButton.disabled=importable===0;
       setStatus('分析完成：原文件已安全分为 '+parts.length+' 片。请核对合并统计，再确认导入。');
     }catch(error){
       setStatus(error instanceof Error?error.message:'XML 分割或分析失败',true);
     }finally{
-      previewButton.disabled=false;
-      fileInput.disabled=false;
+      setBusy(false);
     }
   }
   async function importAll(){
     var file=fileInput.files&&fileInput.files[0];
     if(!file||!lastPreview){setStatus('请先重新分析文件。',true);return;}
-    previewButton.disabled=true;
+    setBusy(true);
     importButton.disabled=true;
-    fileInput.disabled=true;
     var reports=[];
     try{
       var hash=await fingerprint(file);
       if(hash!==lastPreview.hash)throw new Error('原始文件内容已变化，请重新分析。');
+      if(selectionKey()!==lastPreview.selection)throw new Error('导入类型选择已变化，请重新分析文件。');
       var confirmedParts=0;
       var skippedParts=0;
       for(var index=0;index<lastPreview.parts.length;index++){
@@ -313,9 +334,8 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       lastPreview=null;
       setStatus((error instanceof Error?error.message:'导入失败')+progress+skippedProgress+'\n请重新选择同一原始文件并重新分析。系统会逐片核对数据库中的来源站点和 WordPress 原文章 ID，从第一个仍有未导入内容的分片继续；分片内部也只写入尚未成功的文章。',true);
     }finally{
-      previewButton.disabled=false;
+      setBusy(false);
       importButton.disabled=true;
-      fileInput.disabled=false;
     }
   }
   fileInput.addEventListener('change',function(){
@@ -323,6 +343,14 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     importButton.disabled=true;
     reportBox.hidden=true;
     setStatus('');
+  });
+  typeInputs.forEach(function(input){
+    input.addEventListener('change',function(){
+      lastPreview=null;
+      importButton.disabled=true;
+      reportBox.hidden=true;
+      setStatus('导入类型已改变，请重新分析文件。');
+    });
   });
   previewButton.addEventListener('click',prepare);
   importButton.addEventListener('click',function(){
