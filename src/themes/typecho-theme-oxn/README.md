@@ -53,6 +53,46 @@ OXN 保留 Warm 的单栏、简洁阅读方向和主要页面结构，但后台�
 
 > 注意：Markdown 转换和文章 HTML 清理仍属于项目共享内容处理流程，不是 OXN 自己重新实现的一套 Markdown 引擎。OXN 使用处理后的文章 HTML，并在主题内部完成排版和展示。
 
+### 2.4 当前 1119j 测试版本的同步文件
+
+如果要在另一个 Cloudflare 环境手动测试当前 `1119j`，需要同步以下内容：
+
+| 类型 | 路径 | 操作 |
+| --- | --- | --- |
+| 拼音插件 | `src/plugins/typecho-plugin-pinyin/` | 替换整个目录，保留目录内全部文件 |
+| OXN 主题 | `src/themes/typecho-theme-oxn/` | 替换整个目录，保留目录内全部文件 |
+| 共享 Markdown 处理文件 | `src/lib/markdown.ts` | 替换当前使用文件 |
+| 构建配置 | `astro.config.mjs` | 替换根目录同名文件 |
+| 依赖清单 | `package.json` | 替换根目录同名文件 |
+| 依赖锁定文件 | `bun.lock` | 替换根目录同名文件 |
+
+以上是两个完整目录、一个核心文件和三个根目录文件。不要把整个仓库覆盖到测试环境，也不要把下面两个 Markdown 备份文件作为部署文件。
+
+#### 三个 markdown.ts 文件的用途与差异
+
+当前分支保留了三个文件，便于追溯本次共享 Markdown 清理规则的变化：
+
+| 文件 | 用途 | 当前核对结果 |
+| --- | --- | --- |
+| `src/lib/markdown.ts` | 当前实际参与项目运行的文件 | 已扩展 HTML/SVG 白名单、属性和受限内联样式规则，并增加图片 URL 尺寸参数解析 |
+| `src/lib/markdown.ts.sim` | 修改前保存的对照副本 | 与 `.bak` 内容完全一致 |
+| `src/lib/markdown.ts.bak` | 保存的上游原版对照文件 | 与 `.sim` 内容完全一致 |
+
+在当前 `1119j` 分支中，`markdown.ts.sim` 和 `markdown.ts.bak` 的文件内容及 Git Blob SHA 相同（均为 `4ab2c30789c0032aa4ddce14a8af7abcaa6c7d77`），两份备份之间没有代码差异。它们均为 413 行；当前使用的 `markdown.ts` 为 547 行。
+
+当前 `markdown.ts` 相比两份对照文件，主要增加或扩展了：
+
+1. **HTML 标签白名单：** 增加常见结构标签、表单标签、图片容器标签，以及 SVG 图形、渐变、滤镜等标签。
+2. **HTML 属性白名单：** 增加通用的 `class`、`id`、`title`、`style`、`role`、`aria-*`、`data-*` 属性，并扩展链接、媒体、表单和 SVG 元素各自允许的属性。
+3. **内联 CSS 过滤：** 增加按 CSS 属性和正则规则检查的 `allowedStyles`；不是无条件放行所有属性或任意脚本，事件处理器属性仍不在允许范围内。
+4. **SVG 标签解析：** 设置 `lowerCaseTags: false`，以兼容 SVG 中带大小写的标签名称。
+5. **图片尺寸处理：** 从图片 URL 中读取有效的宽高参数，清理尺寸参数/fragment，并将有效尺寸写入最终 `img` 标签的 `width`、`height` 属性。
+
+这些改动位于项目共享的 `src/lib/markdown.ts`，不是 OXN 主题内部单独运行的 Markdown 引擎。文章、独立页面和笔记正文会使用共享处理流程；评论 Markdown 仍使用单独且范围更窄的清理配置。
+
+**部署时只替换当前使用的 `src/lib/markdown.ts`。** `.sim` 和 `.bak` 仅用于对照、回查和恢复，不需要复制到另一个 Cloudflare 环境。
+
+
 ## 3. 与原版 Typecho Warm 的主要差异
 
 | 项目 | 原版 Warm（`1119d`） | OXN（`1119j`） |
@@ -498,9 +538,9 @@ name@example.com
 
 链接支持 href、title、target、rel 属性；链接地址仍会经过协议安全校验。
 
-### 6.7 图片、图片标题与图注
+### 6.7 图片、图片标题、图注与尺寸输入
 
-Markdown 图片：
+普通 Markdown 图片：
 
 ~~~markdown
 ![图片替代文字](https://example.com/images/photo.jpg)
@@ -508,7 +548,34 @@ Markdown 图片：
 ![带标题的图片](https://example.com/images/photo.jpg "图片标题")
 ~~~
 
-HTML 图片：
+**新增：可直接在图片 URL 后填写宽高参数。** 当前共享 Markdown 处理文件支持以下两种 URL 写法：
+
+~~~markdown
+![图片说明](https://example.com/images/photo.svg&width=880&height=192)
+
+![图片说明](https://example.com/images/photo.svg#blurhash=示例参数&width=880&height=192)
+~~~
+
+两种写法都会提取有效的 `width`、`height`，并将尺寸写入最终生成的 `<img>` 标签。例如，第二种写法最终会得到类似：
+
+~~~html
+<img
+  src="https://example.com/images/photo.svg"
+  alt="图片说明"
+  width="880"
+  height="192">
+~~~
+
+处理规则：
+
+- 宽度和高度分别读取，可以只提供其中一个。
+- 尺寸必须是正整数，最大值为 `16384`；超出范围或无效的值不会作为尺寸属性写入。
+- URL 中的普通查询参数会保留。
+- 如果 URL 含有 `#`，最终图片地址会去掉 `#` 及其后面的 fragment 内容；因此 `blurhash` 等 fragment 信息不会进入最终的图片请求地址。
+- 如果 URL 不含 `#`，会从 URL 中移除识别到的 `width`、`height` 参数，其他正常参数保留。
+- 没有识别到有效尺寸时，不会凭空推断图片宽高。
+
+HTML 图片仍可直接填写尺寸属性：
 
 ~~~html
 <img
@@ -529,7 +596,9 @@ HTML 图片：
 </figure>
 ~~~
 
-图片允许 src、alt、title、width、height、loading 属性。正文图片会限制在阅读区域内，保持宽高比例并使用小圆角；主题图片优化参数会按设置处理符合条件的图片 URL。
+图片允许使用 `src`、`alt`、`title`、`width`、`height`、`loading` 等属性。正文图片会限制在阅读区域内，保持宽高比例并使用小圆角；主题图片优化参数会按设置处理符合条件的图片 URL。
+
+**语法范围说明：** 当前 `1119j` 的 `src/lib/markdown.ts` 已核实并实现的是上述 URL 参数写法；`{width=880 height=192}` 这种放在 Markdown 图片语法外部的花括号写法，在当前文件中没有对应解析逻辑，因此暂不列为当前版本已支持的输入格式。
 
 ### 6.8 行内代码、围栏代码块与缩进代码
 
@@ -622,43 +691,43 @@ Markdown 正文可以直接混合 HTML。块级 HTML 示例：
 <p>普通文字中插入 <strong>加粗</strong>、<code>代码</code> 和 <a href="https://example.com">链接</a>。</p>
 ~~~
 
-本表对应 `src/lib/markdown.ts` 中的 `SANITIZE_OPTIONS`，适用范围是普通文章、独立页面和笔记正文的共享 Markdown/HTML 清理流程；它不是 OXN 主题专属白名单，也不是 Typecho 全系统所有 HTML 输出的统一白名单。该配置继承 sanitize-html 默认允许标签，并增加图片、标题、表格、媒体和折叠内容等标签。按用途整理后的完整允许标签如下：
+本节对应 `src/lib/markdown.ts` 中的 `SANITIZE_OPTIONS`，适用范围是普通文章、独立页面和笔记正文的共享 Markdown/HTML 清理流程；它不是 OXN 主题专属白名单，也不是 Typecho 全系统所有 HTML 输出的统一白名单。配置继承 sanitize-html 默认允许标签，并在此基础上扩展结构标签、表单标签、媒体标签和 SVG 图形标签。
 
-| 类型 | 允许的标签 |
+本次扩展的主要标签按用途整理如下（同时保留 sanitize-html 默认允许的标签）：
+
+| 类型 | 本次增加或重点支持的标签 |
 | --- | --- |
-| 页面结构 | address、article、aside、footer、header、hgroup、main、nav、section、div |
-| 标题与段落 | h1—h6、p、br、hr、wbr |
-| 文字格式与语义 | a、abbr、b、bdi、bdo、cite、data、dfn、em、i、mark、q、s、small、span、strong、time、u、var |
-| 上下标与代码文字 | code、kbd、rb、rp、rt、rtc、ruby、samp、sub、sup |
-| 列表 | dl、dt、dd、ol、ul、li |
-| 引用与图片说明 | blockquote、figure、figcaption |
-| 表格 | table、caption、col、colgroup、thead、tbody、tfoot、tr、th、td |
-| 代码与折叠 | pre、details、summary |
-| 图片与媒体 | img、video、audio、source、iframe |
+| 页面结构 | div、span、section、article、main、header、footer、nav、aside |
+| 文字语义 | small、u、mark、abbr、sub、sup、time |
+| 列表与表格 | dl、dt、dd、tfoot |
+| 表单控件 | form、fieldset、legend、input、select、option、textarea、output、progress、meter、button、label |
+| 图片容器 | picture |
+| SVG 基础图形 | svg、g、path、circle、rect、line、polyline、polygon、ellipse、text、tspan |
+| SVG 资源与效果 | defs、use、symbol、mask、clipPath、filter、linearGradient、radialGradient、stop、style、image、title、desc、marker、pattern、feGaussianBlur、feOffset、feComponentTransfer、feFuncA、feMerge、feMergeNode |
 
-属性也按标签分别控制。当前配置允许：
+属性采用通用规则与标签专属规则结合的方式：
 
-| 标签 | 允许的属性 |
+| 范围 | 允许的属性或内容 |
 | --- | --- |
-| a | href、title、target、rel |
-| img | src、alt、title、width、height、loading |
-| code、pre | class |
-| blockquote | class、data-alert |
-| p | class |
-| td、th | align、valign |
-| iframe | src、width、height、frameborder、allowfullscreen |
-| video | src、controls、width、height |
-| audio | src、controls |
-| source | src、type |
+| 通用属性 | class、id、title、style、role、aria-*、data-* |
+| 链接 a | href、title、target、rel、download |
+| 图片 img | src、alt、title、width、height、loading |
+| iframe | src、width、height、frameborder、allowfullscreen、allow、sandbox、loading、referrerpolicy |
+| video | src、controls、width、height、poster |
+| source | src、srcset、sizes、type、media |
+| 表单 | 按 input、select、option、textarea、button、label 等元素分别配置对应属性 |
+| SVG | 按 SVG 元素分别配置坐标、尺寸、填充、描边、变换、渐变、滤镜及引用属性 |
+
+内联 `style` 不再像旧版一样整体过滤。当前配置通过 `allowedStyles` 限定可用 CSS 属性，并对属性值执行正则检查；包括颜色、填充/描边、字体、背景、对齐、布局、尺寸、间距、边框、阴影和溢出等常见样式。配置会排除包含 `javascript:`、`expression()`、`@import`、`behavior:` 等危险片段的值。SVG 使用 `lowerCaseTags: false`，以兼容 `linearGradient`、`radialGradient` 等带大小写的 SVG 标签。
 
 **白名单适用范围需要区分：**
 
-- **文章、独立页面和笔记正文：** 使用上表对应的 `SANITIZE_OPTIONS`。笔记正文由笔记插件调用共享 `renderMarkdown()`，因此也走这套正文清理规则。
+- **文章、独立页面和笔记正文：** 使用本节对应的 `SANITIZE_OPTIONS`。笔记正文由笔记插件调用共享 `renderMarkdown()`，因此也走这套正文清理规则。
 - **评论 Markdown：** 使用 `COMMENT_MARKDOWN_OPTIONS`，是单独的一套较窄规则，不继承正文白名单增加的全部标签和属性。
 - **评论自定义 HTML：** 另根据后台 `commentsHTMLTagAllowed` 配置动态构建评论清理选项；它与评论 Markdown 的固定规则也不是同一套配置。
 - **页脚自定义 HTML、文章内容声明：** 各自有独立处理流程，不应将本节正文白名单直接套用到这两项设置。
 
-链接和媒体地址仍受安全协议校验；iframe 还会校验主机名。任意 style、事件处理器（例如 onclick）和未列入对应标签白名单的属性不会保留。
+链接和媒体地址仍受安全协议校验；iframe 还会校验主机名。事件处理器属性（例如 `onclick`）不在允许列表中；未列入对应标签属性白名单或 CSS 属性规则的内容不会保留。
 
 ### 6.12 HTML 折叠内容（details / summary）
 
