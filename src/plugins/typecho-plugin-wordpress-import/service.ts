@@ -38,12 +38,23 @@ export function selectWordPressImportItems(
     }
   }
 
-  // Keep attachments referenced by selected content, plus attachment children
-  // whose WXR parent is selected. Unrelated media and unselected content stay out.
+  // Keep referenced attachments and recursively retain their WXR child attachments.
+  // This also includes attachments whose direct parent is selected content.
+  const includedAttachmentIds = new Set(referencedAttachmentIds);
+  let addedAttachment = true;
+  while (addedAttachment) {
+    addedAttachment = false;
+    for (const item of source.items) {
+      if (item.postType !== 'attachment' || includedAttachmentIds.has(item.oldId)) continue;
+      if (selectedContentIds.has(item.parentId) || includedAttachmentIds.has(item.parentId)) {
+        includedAttachmentIds.add(item.oldId);
+        addedAttachment = true;
+      }
+    }
+  }
   const selectedItemsWithAttachments = source.items.filter(item =>
     selectedTypeSet.has(item.postType as WordPressImportContentType)
-    || (item.postType === 'attachment'
-      && (referencedAttachmentIds.has(item.oldId) || selectedContentIds.has(item.parentId))),
+    || (item.postType === 'attachment' && includedAttachmentIds.has(item.oldId)),
   );
 
   return { ...source, items: selectedItemsWithAttachments };
