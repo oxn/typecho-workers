@@ -151,8 +151,8 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
       if (hashIndex < 0) return { tagName, attribs };
 
       const fragment = attribs.src.slice(hashIndex + 1);
-      const widthMatch = fragment.match(/(?:^|&)width=(\\d{1,5})(?=&|$)/);
-      const heightMatch = fragment.match(/(?:^|&)height=(\\d{1,5})(?=&|$)/);
+      const widthMatch = fragment.match(/(?:^|&)width=(\d{1,5})(?=&|$)/);
+      const heightMatch = fragment.match(/(?:^|&)height=(\d{1,5})(?=&|$)/);
       const width = widthMatch ? Number(widthMatch[1]) : 0;
       const height = heightMatch ? Number(heightMatch[1]) : 0;
       if ((!width || width > 16384) && (!height || height > 16384)) {
