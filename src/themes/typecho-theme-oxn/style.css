@@ -354,20 +354,14 @@ body.warm-theme {
   margin-top: 0;
 }
 
-.warm-note__content > :last-child {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  max-width: 100%;
-  margin-top: 16px;
+.warm-note__content > :last-child,
+.warm-prose > :last-child {
+  margin-bottom: 0;
 }
+
 .warm-password-gate > p {
   margin: 0 0 18px;
   text-align: center;
-}
-.warm-prose > :last-child {
-  margin-bottom: 0;
 }
 
 .warm-note__content hr,
