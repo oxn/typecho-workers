@@ -1007,8 +1007,22 @@ body.warm-theme {
 .warm-prose td {
   padding: 12px 14px;
   border-bottom: 1px solid var(--warm-border);
-  text-align: left;
   vertical-align: top;
+}
+
+.warm-prose th[align="left"],
+.warm-prose td[align="left"] {
+  text-align: left;
+}
+
+.warm-prose th[align="center"],
+.warm-prose td[align="center"] {
+  text-align: center;
+}
+
+.warm-prose th[align="right"],
+.warm-prose td[align="right"] {
+  text-align: right;
 }
 
 .warm-prose th {
