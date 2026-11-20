@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import init, { classifyWordPressImportError } from './index';
+import { wordpressImportAdminPageHtml } from './admin';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
 import { mapWordPressContentStatus, normalizeWordPressSource, selectWordPressImportItems, summarizeD1BatchResults } from './service';
 
@@ -14,6 +15,23 @@ function collectHooks() {
   } as PluginInitContext);
   return hooks;
 }
+
+describe('WordPress importer generated browser script', () => {
+  it('keeps generated JavaScript valid and preserves digit regexes after template rendering', () => {
+    const html = wordpressImportAdminPageHtml('test-token');
+    const script = html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+    expect(script).toBeTruthy();
+    expect(() => new Function(script!)).not.toThrow();
+    expect(script!.match(/match\\(\\/\\\\d\\+\\/g\\)/g)).toHaveLength(2);
+    expect(script).toContain("filename.replace(/\\\\.xml$/i");
+  });
+
+  it('reports non-JSON server responses as readable request errors', () => {
+    const html = wordpressImportAdminPageHtml('test-token');
+    expect(html).toContain('服务器未返回有效 JSON');
+    expect(html).toContain('服务器返回了无法识别的数据');
+  });
+});
 
 describe('WordPress import plugin', () => {
   it('registers the admin API, page renderer, and navigation hook', () => {
