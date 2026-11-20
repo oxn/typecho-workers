@@ -139,7 +139,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
       'white-space': [/^(?!.*(?:url\s*\(|expression\s*\(|javascript:|@import|behavior\s*:|-moz-binding)).*$/i],
     },
   },
-  allowedIframeHostnames: ['www.youtube.com', 'player.bilibili.com', 'player.vimeo.com'],
+  allowedIframeHostnames: ['www.youtube.com', 'www.bilibili.com', 'player.bilibili.com', 'player.vimeo.com'],
 };
 
 const COMMENT_MARKDOWN_OPTIONS: sanitizeHtml.IOptions = {
