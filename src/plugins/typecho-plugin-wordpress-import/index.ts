@@ -172,8 +172,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 (function(){
   var link=document.querySelector('.typecho-head-nav nav > menu > li > menu a[href="/admin/manage-posts"]');
   if(!link)return;
-  var menu=link.parentElement;
-  if(!menu)return;
+  var menu=link.closest('li')&&link.closest('li').parentElement;
+  if(!menu||menu.tagName.toLowerCase()!=='menu')return;
+  if(menu.querySelector('a[href="/admin/plugin/wordpress-import"]'))return;
   var item=document.createElement('li');
   item.className=${active ? "'focus'" : "''"};
   var anchor=document.createElement('a');
