@@ -1,7 +1,7 @@
 export function wordpressImportAdminPageHtml(csrfToken: string): string {
   return `<div class="col-mb-12" id="wordpress-import-app">
   <section class="typecho-post-area">
-    <h2>导入 WordPress 文章</h2>
+    <h2>导入 WordPress 内容</h2>
     <p>选择 WordPress 后台「工具 → 导出」生成的 WXR XML 文件。系统会在浏览器本地按文章依赖关系自动分割，再逐片分析和导入。</p>
     <form id="wordpress-import-form">
       <input type="hidden" name="_" value="${csrfToken}">
@@ -308,7 +308,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
     lastPreview=null;
     reportBox.hidden=true;
     try{
-      setStatus('正在读取原始 XML 并检查文章关联…');
+      setStatus('正在读取原始 XML 并检查内容关联…');
       var sourceXml=await file.text();
       var parts=splitWxr(sourceXml,file.name,chosenTypes);
       var hash=await fingerprint(file);
@@ -349,7 +349,7 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
           setStatus('已跳过已完成的第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\n已跳过 '+skippedParts+' 个，无需重复写入。');
           continue;
         }
-        setStatus('正在导入第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\n已确认提交 '+confirmedParts+' 个，已跳过 '+skippedParts+' 个。当前分片只写入尚未成功导入的文章。');
+        setStatus('正在导入第 '+(index+1)+' / '+lastPreview.parts.length+' 个分片…\n已确认提交 '+confirmedParts+' 个，已跳过 '+skippedParts+' 个。当前分片只写入尚未成功导入的所选内容及其附件。');
         reports.push(await requestPart(lastPreview.parts[index],'import'));
         confirmedParts++;
         renderReport(addReports(reports),lastPreview.parts.length,false);
