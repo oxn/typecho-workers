@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import init, { classifyWordPressImportError } from './index';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
-import { mapWordPressContentStatus, normalizeWordPressSource, summarizeD1BatchResults } from './service';
+import { mapWordPressContentStatus, normalizeWordPressSource, selectWordPressImportItems, summarizeD1BatchResults } from './service';
 
 function collectHooks() {
   const hooks = new Map<string, Function>();
@@ -27,6 +27,10 @@ describe('WordPress import plugin', () => {
     expect(render('original', { slug: 'other' })).toBe('original');
     const html = render('', { slug: 'wordpress-import', csrfToken: 'csrf-value' });
     expect(html).toContain('wordpress-import-file');
+    expect(html).toContain('name="contentTypes" value="post"');
+    expect(html).toContain('name="contentTypes" value="page"');
+    expect(html).toContain('name="contentTypes" value="note"');
+    expect(html).toContain('selectionKey');
     expect(html).toContain('/api/admin/wordpress-import');
     expect(html).toContain('csrf-value');
     expect(html).toContain('确认导入');
@@ -72,6 +76,52 @@ describe('WordPress post status mapping', () => {
   it('does not rewrite attachment or note status handling in the shared builder', () => {
     expect(mapWordPressContentStatus('attachment', 'inherit')).toBeNull();
     expect(mapWordPressContentStatus('note', 'publish')).toBeNull();
+  });
+});
+
+describe('WordPress selective content filtering', () => {
+  const item = (postType: string, oldId: number, parentId = 0, postMeta: Array<{ key: string; value: string }> = []) => ({
+    postType, oldId, parentId, postMeta,
+  }) as any;
+
+  it('imports only selected content and retains referenced or child attachments', () => {
+    const source = {
+      siteTitle: 'Example',
+      siteUrl: 'https://example.com',
+      authors: [],
+      terms: [],
+      items: [
+        item('post', 10, 0, [{ key: '_thumbnail_id', value: '90' }]),
+        item('page', 20),
+        item('note', 30, 0, [{ key: 'images', value: '[91, 92]' }]),
+        item('attachment', 90, 10),
+        item('attachment', 91),
+        item('attachment', 92),
+        item('attachment', 93, 20),
+        item('attachment', 94),
+      ],
+    } as any;
+
+    const postsOnly = selectWordPressImportItems(source, ['post']);
+    expect(postsOnly.items.map((entry: any) => entry.oldId)).toEqual([10, 90, 93]);
+
+    const notesOnly = selectWordPressImportItems(source, ['note']);
+    expect(notesOnly.items.map((entry: any) => entry.oldId)).toEqual([30, 91, 92]);
+
+    const pagesOnly = selectWordPressImportItems(source, ['page']);
+    expect(pagesOnly.items.map((entry: any) => entry.oldId)).toEqual([20, 93]);
+  });
+
+  it('keeps selected types independent and excludes unselected content', () => {
+    const source = {
+      siteTitle: 'Example',
+      siteUrl: 'https://example.com',
+      authors: [],
+      terms: [],
+      items: [item('post', 1), item('page', 2), item('note', 3), item('attachment', 4)],
+    } as any;
+    expect(selectWordPressImportItems(source, ['post', 'note']).items.map((entry: any) => entry.postType))
+      .toEqual(['post', 'note']);
   });
 });
 
