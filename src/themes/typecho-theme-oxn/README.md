@@ -80,6 +80,8 @@ OXN 保留 Warm 的单栏、简洁阅读方向和主要页面结构，但后台�
 
 在当前 `1119j` 分支中，`markdown.ts.sim` 和 `markdown.ts.bak` 的文件内容及 Git Blob SHA 相同（均为 `4ab2c30789c0032aa4ddce14a8af7abcaa6c7d77`），两份备份之间没有代码差异。它们均为 413 行；当前使用的 `markdown.ts` 为 547 行。
 
+**关于笔记插件绑定：** 两份备份都已经包含 `applyFilter()`、`renderMarkdownFiltered()`，以及 `content:markdown`、`content:content` 两个过滤钩子。这套共享插件过滤机制在保存两份备份时就已存在，并非其中一份后来单独增加的内容。因此，不能把笔记绑定描述为 `.sim` 与 `.bak` 的差异。两份文件虽然来源记录不同（一个是当时项目文件的副本，一个是上游原版副本），但本次保存时的实际代码内容相同。
+
 当前 `markdown.ts` 相比两份对照文件，主要增加或扩展了：
 
 1. **HTML 标签白名单：** 增加常见结构标签、表单标签、图片容器标签，以及 SVG 图形、渐变、滤镜等标签。
