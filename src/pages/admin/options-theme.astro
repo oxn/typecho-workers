@@ -23,7 +23,6 @@ if (!hasPermission(ctx.user!.group || 'visitor', 'administrator')) {
 const { options, urls, user, csrfToken } = ctx;
 const themeId = String(options.theme || 'typecho-theme-warm');
 const theme = getActiveTheme(themeId);
-const isOxnTheme = theme.packageName === 'typecho-theme-oxn';
 const configDef = getThemeConfigDefinition(theme.id);
 
 if (!themeHasConfig(theme.id) || !configDef) {
@@ -170,133 +169,8 @@ function optionId(key: string, value: string): string {
         );
       })}
       <ul class="typecho-option typecho-option-submit" id={`typecho-option-item--${Object.keys(configDef).length}`}>
-        <li class="oxn-settings-actions">
-          <button type="submit" class="btn primary">保存设置</button>
-          {isOxnTheme && (
-            <div class="oxn-settings-tools">
-              <button type="button" class="btn primary" id="oxn-export-settings">
-                <svg class="oxn-settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 3v12m-4-4 4 4 4-4" />
-                  <path d="M5 17v3h14v-3" />
-                </svg>
-                导出设置
-              </button>
-              <button type="button" class="btn primary" id="oxn-import-settings">
-                <svg class="oxn-settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 15V3m-4 4 4-4 4 4" />
-                  <path d="M5 17v3h14v-3" />
-                </svg>
-                导入设置
-              </button>
-              <input type="file" id="oxn-import-file" accept="application/json,.json" hidden />
-            </div>
-          )}
-        </li>
+        <li><button type="submit" class="btn primary">保存设置</button></li>
       </ul>
     </form>
   </div>
-<script>
-  const exportButton = document.getElementById('oxn-export-settings');
-  const importButton = document.getElementById('oxn-import-settings');
-  const importFile = document.getElementById('oxn-import-file');
-  const csrfToken = document.querySelector<HTMLInputElement>('input[name="_"]')?.value || '';
-
-  exportButton?.addEventListener('click', async () => {
-    try {
-      const response = await fetch('/api/admin/theme-config');
-      if (!response.ok) throw new Error('读取主题设置失败');
-      const data = await response.json();
-      if (data.theme !== 'typecho-theme-oxn') throw new Error('当前主题不是 OXN');
-      const backup = {
-        format: 'oxn-theme-config',
-        version: 1,
-        sourceTheme: data.theme,
-        settings: data.values,
-      };
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'oxn-theme-settings.json';
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      alert(error instanceof Error ? error.message : '导出设置失败');
-    }
-  });
-
-  importButton?.addEventListener('click', () => importFile?.click());
-
-  importFile?.addEventListener('change', async () => {
-    const file = importFile.files?.[0];
-    if (!file) return;
-    try {
-      const backup = JSON.parse(await file.text());
-      const isCurrentBackup =
-        backup?.format === 'oxn-theme-config' &&
-        backup?.version === 1 &&
-        typeof backup?.sourceTheme === 'string' &&
-        backup.sourceTheme.length > 0;
-      const isLegacyBackup =
-        backup?.format === 'oxn-theme-settings' &&
-        backup?.version === 1 &&
-        backup?.theme === 'typecho-theme-oxn';
-      if (
-        (!isCurrentBackup && !isLegacyBackup) ||
-        !backup?.settings ||
-        typeof backup.settings !== 'object' ||
-        Array.isArray(backup.settings)
-      ) {
-        throw new Error('文件格式不正确，无法识别主题设置备份');
-      }
-      if (!confirm('导入设置将覆盖当前 OXN 主题中对应的设置项，是否继续？')) return;
-      const response = await fetch('/api/admin/theme-config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
-        },
-        body: JSON.stringify({ settings: backup.settings }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || '导入设置失败');
-      alert('OXN 主题设置导入成功');
-      window.location.reload();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : '导入设置失败');
-    } finally {
-      importFile.value = '';
-    }
-  });
-</script>
-
-<style>
-  .oxn-settings-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .oxn-settings-tools {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
-  }
-
-  .oxn-settings-icon {
-    width: 16px;
-    height: 16px;
-    margin-right: 4px;
-    color: #999;
-    vertical-align: -3px;
-  }
-
-  @media (max-width: 480px) {
-    .oxn-settings-tools {
-      margin-left: 0;
-    }
-  }
-</style>
 </Admin>
