@@ -286,6 +286,8 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
   }
   async function requestPart(file,action){
     var body=new FormData(form);
+    body.delete('contentTypes');
+    selectedTypes().forEach(function(type){body.append('contentTypes',type);});
     body.set('file',file,file.name);
     body.set('action',action);
     var response=await fetch('/api/admin/wordpress-import',{method:'POST',body:body,credentials:'same-origin'});
