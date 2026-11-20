@@ -24,13 +24,11 @@ export function wordpressImportAdminPageHtml(csrfToken: string): string {
       <p class="description">分割会保持文章与评论、页面父子关系及文章引用附件的关联。正文中的原始媒体地址仍会保留，不会自动复制到本站 R2。</p>
       <div class="wordpress-import-actions">
         <button type="button" class="btn" id="wordpress-import-preview">分析文件</button>
+        <button type="button" class="btn primary" id="wordpress-import-confirm" disabled>确认导入</button>
       </div>
     </form>
     <div id="wordpress-import-status" role="status" aria-live="polite"></div>
     <div id="wordpress-import-report" hidden></div>
-    <div class="wordpress-import-actions wordpress-import-actions--bottom">
-      <button type="button" class="btn primary" id="wordpress-import-confirm" disabled>确认导入</button>
-    </div>
   </section>
 </div>
 <style>
