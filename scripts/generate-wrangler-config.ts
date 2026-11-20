@@ -92,11 +92,11 @@ id = ${tomlString(kvNamespaceId)}
 ` : ''}# Workers Logs persistence: [metrics] phase samples need to land in the
 # stored logs to be queryable; real-time tail alone keeps them invisible.
 [observability]
-enabled = true
+enabled = false
 head_sampling_rate = 1
 
 [observability.logs]
-enabled = true
+enabled = false
 head_sampling_rate = 1
 invocation_logs = false
 persist = true
