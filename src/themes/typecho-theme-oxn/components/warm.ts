@@ -27,7 +27,7 @@ export interface WarmSettings {
   continuousLoadMode: WarmContinuousLoadMode;
   commentComponentLoadMode: WarmCommentComponentLoadMode;
   commentInitialLoadMode: WarmCommentInitialLoadMode;
-  /** Query params appended to same-origin upload URLs in content bodies. */
+  /** Query params appended to same-origin upload URLs in content bodies (EdgeOne). */
   imageOptimizeParams: string;
   /** Query params appended to thumbnail URLs; falls back to imageOptimizeParams when empty. */
   thumbOptimizeParams: string;
@@ -61,7 +61,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
       : legacyCommentMode === 'dwell' || legacyCommentMode === 'dwell-auto-2'
         ? 'dwell'
         : oxnSettings.commentComponentLoadMode ?? settings.commentComponentLoadMode;
-  const imageOptimizeParams = normalizeOptimizeParams(oxnSettings.imageOptimizeParams);
+  const imageOptimizeParams = normalizeOptimizeParams(settings.imageOptimizeParams);
   const pinnedIds = parsePinnedIds(oxnSettings.pinnedIds);
   const footerCustomHtml = typeof oxnSettings.footerCustomHtml === 'string' ? oxnSettings.footerCustomHtml : '';
   const articleDeclarationHtml = typeof oxnSettings.articleDeclarationHtml === 'string' ? oxnSettings.articleDeclarationHtml : '';
@@ -92,7 +92,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
     commentInitialLoadMode: normalizeCommentInitialLoadMode(preferredSetting('commentInitialLoadMode')),
     imageOptimizeParams,
-    thumbOptimizeParams: normalizeOptimizeParams(oxnSettings.thumbOptimizeParams) || imageOptimizeParams,
+    thumbOptimizeParams: normalizeOptimizeParams(settings.thumbOptimizeParams) || imageOptimizeParams,
   };
 }
 
