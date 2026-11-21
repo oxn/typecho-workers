@@ -276,26 +276,38 @@ const footerLinks = [
         });
       }
 
-      // Add one delegated copy control to each block code element.
+      // Add copy controls to block and inline code without changing rendered Markdown.
+      const copyIcon = '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>';
+      const inlineCopyIcon = copyIcon.replace('width="16" height="16"', 'width="14" height="14"');
+      const copiedIcon = '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 3.2 3.2L13 4.5"></path></svg>';
+      const inlineCopiedIcon = copiedIcon.replace('width="16" height="16"', 'width="14" height="14"');
+
       document.querySelectorAll('.warm-prose pre:not([data-warm-copy-ready])').forEach(pre => {
         pre.dataset.warmCopyReady = '1';
         const button = document.createElement('button');
         button.type = 'button';
         button.dataset.warmCopy = '';
         button.setAttribute('aria-label', '复制代码');
-        button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>';
+        button.innerHTML = copyIcon;
         pre.append(button);
       });
+
+      document.querySelectorAll('.warm-prose code, .warm-note__content code').forEach(code => {
+        if (code.closest('pre') || code.dataset.warmInlineCopyReady === '1') return;
+        code.dataset.warmInlineCopyReady = '1';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.warmInlineCopy = '';
+        button.setAttribute('aria-label', '复制代码');
+        button.innerHTML = inlineCopyIcon;
+        // Keep the button outside links to avoid nesting an interactive control in an anchor.
+        const anchor = code.closest('a');
+        (anchor || code).after(button);
+      });
+
       if (!window.__warmCodeCopyListener) {
         window.__warmCodeCopyListener = true;
-        document.addEventListener('click', async event => {
-          const button = event.target instanceof Element ? event.target.closest('[data-warm-copy]') : null;
-          if (!button) return;
-          const pre = button.closest('pre');
-          if (!pre) return;
-          const clone = pre.cloneNode(true);
-          clone.querySelector('[data-warm-copy]')?.remove();
-          const text = clone.textContent || '';
+        const copyText = async text => {
           let copied = false;
           try {
             if (navigator.clipboard?.writeText && window.isSecureContext) {
@@ -316,16 +328,46 @@ const footerLinks = [
             try { copied = document.execCommand('copy'); } catch {}
             textarea.remove();
           }
+          return copied;
+        };
+
+        document.addEventListener('click', async event => {
+          const button = event.target instanceof Element
+            ? event.target.closest('[data-warm-copy], [data-warm-inline-copy]')
+            : null;
+          if (!button) return;
+
+          const pre = button.closest('pre');
+          let text = '';
+          const isInline = button.hasAttribute('data-warm-inline-copy');
+          if (pre) {
+            const clone = pre.cloneNode(true);
+            clone.querySelector('[data-warm-copy]')?.remove();
+            text = clone.textContent || '';
+          } else if (isInline) {
+            const previous = button.previousElementSibling;
+            const code = previous?.matches('code')
+              ? previous
+              : previous?.matches('a')
+                ? previous.querySelector('code')
+                : null;
+            if (!code) return;
+            text = code.textContent || '';
+          } else {
+            return;
+          }
+
+          const copied = await copyText(text);
           button.dataset.copied = copied ? 'true' : 'false';
           button.setAttribute('aria-label', copied ? '复制成功' : '复制失败');
           button.innerHTML = copied
-            ? '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 3.2 3.2L13 4.5"></path></svg>'
-            : '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>';
+            ? (isInline ? inlineCopiedIcon : copiedIcon)
+            : (isInline ? inlineCopyIcon : copyIcon);
           window.setTimeout(() => {
             if (!button.isConnected) return;
             button.dataset.copied = 'false';
             button.setAttribute('aria-label', '复制代码');
-            button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>';
+            button.innerHTML = isInline ? inlineCopyIcon : copyIcon;
           }, 1200);
         });
       }
