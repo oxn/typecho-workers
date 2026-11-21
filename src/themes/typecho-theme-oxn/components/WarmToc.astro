@@ -27,6 +27,15 @@ if (items.length < 2) return;
     const LINK_ATTR = 'data-warm-toc-link';
     const ACTIVE = 'is-active';
 
+    function safeDecodeFragment(value) {
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        // Keep literal IDs containing malformed percent sequences usable.
+        return value;
+      }
+    }
+
     function initialise(nav) {
       if (!(nav instanceof HTMLElement) || nav.dataset.warmTocReady === '1') return;
       const links = [...nav.querySelectorAll(`[${LINK_ATTR}]`)];
@@ -34,7 +43,7 @@ if (items.length < 2) return;
 
       const headings = links
         .map(link => {
-          const id = decodeURIComponent((link.getAttribute('href') || '').replace(/^#/, ''));
+          const id = safeDecodeFragment((link.getAttribute('href') || '').replace(/^#/, ''));
           const heading = id ? document.getElementById(id) : null;
           return heading ? { link, heading } : null;
         })
@@ -98,7 +107,7 @@ if (items.length < 2) return;
         const link = event.target.closest(`[${LINK_ATTR}]`);
         if (!link || !nav.contains(link)) return;
         nav.classList.add('is-expanded');
-        const id = decodeURIComponent((link.getAttribute('href') || '').replace(/^#/, ''));
+        const id = safeDecodeFragment((link.getAttribute('href') || '').replace(/^#/, ''));
         const heading = id ? document.getElementById(id) : null;
         if (!heading) return;
         event.preventDefault();
