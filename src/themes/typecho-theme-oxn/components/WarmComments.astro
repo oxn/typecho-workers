@@ -257,6 +257,9 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       let dwellTimer = null;
       let componentObserver = null;
       let componentVisible = false;
+      let componentScrollStarted = false;
+      let componentScrollHandler = null;
+      const componentInitialScrollTop = window.scrollY;
       const autoLimit = initialMode === 'auto-2' ? 2 : initialMode === 'infinite' ? Infinity : 0;
 
       const cooldownMs = Math.max(0, Number(root.dataset.commentCooldown || 0) * 1000);
@@ -323,6 +326,8 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       const stopInitialLoader = () => {
         componentObserver?.disconnect();
         componentObserver = null;
+        if (componentScrollHandler) window.removeEventListener('scroll', componentScrollHandler);
+        componentScrollHandler = null;
         if (dwellTimer) window.clearTimeout(dwellTimer);
         dwellTimer = null;
         paginationObserver?.disconnect();
@@ -810,7 +815,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           setDwellLoading(false);
         };
         const startDwellTimer = () => {
-          if (dwellTimer || metadataLoaded || metadataRequest) return;
+          if (!componentScrollStarted || dwellTimer || metadataLoaded || metadataRequest) return;
           setDwellLoading(true);
           dwellTimer = window.setTimeout(() => {
             dwellTimer = null;
@@ -819,9 +824,17 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           }, 3_000);
         };
 
+        componentScrollHandler = () => {
+          if (window.scrollY === componentInitialScrollTop) return;
+          componentScrollStarted = true;
+          window.removeEventListener('scroll', componentScrollHandler);
+          componentScrollHandler = null;
+          if (!componentObserver || componentVisible) startDwellTimer();
+        };
+        window.addEventListener('scroll', componentScrollHandler, { passive: true });
+
         if (!('IntersectionObserver' in window)) {
           componentVisible = true;
-          startDwellTimer();
           return;
         }
         componentObserver = new IntersectionObserver(entries => {
