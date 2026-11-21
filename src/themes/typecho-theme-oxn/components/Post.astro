@@ -10,7 +10,8 @@ import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
-import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings, renderArticleDeclaration, warmOptimizeContentImages } from './warm';
+import { optimizeContentImages } from '@/lib/image-transform';
+import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings, renderArticleDeclaration } from './warm';
 
 type Props = ThemePostProps;
 
@@ -39,7 +40,7 @@ const commentManagement = isAdmin && requestContext ? {
   isPinned: settings.pinnedIds.includes(post.cid),
   csrfToken: requestContext.csrfToken || '',
 } : null;
-const optimizedContent = warmOptimizeContentImages(
+const optimizedContent = optimizeContentImages(
   isNote ? note.html : post.content,
   settings.imageOptimizeParams,
   urls.siteUrl,
