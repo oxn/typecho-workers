@@ -207,7 +207,7 @@ function safeFooterUrl(value: unknown): string {
  * theme stylesheet so explicit author styles (including inline link colors) win
  * over Warm CY defaults without affecting links elsewhere.
  */
-function scopeArticleDeclarationCss(css: string, scopeSelector = '.warm-article__declaration', keyframePrefix = 'warm-declaration'): string {
+function scopeArticleDeclarationCss(css: string, scopeSelector = '.warm-article__declaration', keyframePrefix = 'warm-declaration', preserveImportant = false): string {
   try {
     const root = postcss.parse(css);
     const keyframes = new Map<string, string>();
@@ -257,7 +257,7 @@ function scopeArticleDeclarationCss(css: string, scopeSelector = '.warm-article_
 
     root.walkDecls(decl => {
       // Keep author styles scoped and let source order resolve conflicts with theme defaults.
-      decl.important = false;
+      if (!preserveImportant) decl.important = false;
       if (/^(?:animation|animation-name|-webkit-animation|-webkit-animation-name)$/i.test(decl.prop)) {
         for (const [original, scoped] of keyframes) {
           decl.value = decl.value.replace(
@@ -400,7 +400,7 @@ export function renderArticleDeclaration(
   // Keep declaration styles inside the declaration block, using the same
   // PostCSS scoping and keyframe isolation as the custom footer styles.
   return expanded.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (_match, attributes: string, css: string) => {
-    const scoped = scopeArticleDeclarationCss(css, '.warm-article__declaration', 'warm-declaration');
+    const scoped = scopeArticleDeclarationCss(css, '.warm-article__declaration', 'warm-declaration', true);
     return scoped ? '<style' + attributes + '>' + scoped + '</style>' : '';
   });
 }
