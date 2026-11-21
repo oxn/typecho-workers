@@ -938,8 +938,11 @@ body.warm-theme {
 
 .warm-prose [data-warm-inline-code],
 .warm-note__content [data-warm-inline-code] {
-  display: inline;
-  padding: .12em .25em;
+  position: relative;
+  display: inline-block;
+  min-height: 24px;
+  box-sizing: border-box;
+  padding: 2px 26px 2px 5px;
   border-radius: 3px;
   background: var(--warm-surface-strong);
   vertical-align: baseline;
@@ -951,12 +954,15 @@ body.warm-theme {
 }
 .warm-prose [data-warm-inline-copy],
 .warm-note__content [data-warm-inline-copy] {
+  position: absolute;
+  top: 2px;
+  right: 3px;
   display: inline-flex;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   align-items: center;
   justify-content: center;
-  margin-left: 3px;
+  margin: 0;
   padding: 0;
   border: 0;
   border-radius: 3px;
@@ -964,7 +970,6 @@ body.warm-theme {
   color: var(--warm-muted);
   font-size: 0;
   line-height: 0;
-  vertical-align: middle;
   cursor: pointer;
 }
 .warm-prose [data-warm-inline-copy]:hover,
@@ -2212,6 +2217,9 @@ body.warm-theme {
 .warm-manage-dialog__code button:focus-visible {
   background: var(--warm-surface-strong);
   color: var(--warm-text);
+}
+.warm-manage-dialog__code button[data-copied="true"] {
+  color: #16a34a;
 }
 .warm-manage-dialog__code button svg {
   width: 14px;
