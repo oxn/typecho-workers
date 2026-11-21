@@ -5,8 +5,7 @@ import { formatDate, generateSlug } from '@/lib/content';
 import { escapeHtml } from '@/lib/escape';
 import postcss from 'postcss';
 
-/**
- * Convert the theme's friendly imageme-warm';
+export const WARM_THEME_ID = 'typecho-theme-warm';
 
 export type WarmSection = 'home' | 'articles' | 'notes' | 'about' | 'none';
 export type WarmContinuousLoadMode = 'manual' | 'auto-2' | 'infinite';
