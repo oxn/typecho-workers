@@ -936,6 +936,19 @@ body.warm-theme {
   font-size: .88em;
 }
 
+.warm-prose [data-warm-inline-code],
+.warm-note__content [data-warm-inline-code] {
+  display: inline;
+  padding: .12em .25em;
+  border-radius: 3px;
+  background: var(--warm-surface-strong);
+  vertical-align: baseline;
+}
+.warm-prose [data-warm-inline-code] code,
+.warm-note__content [data-warm-inline-code] code {
+  padding: 0;
+  background: transparent;
+}
 .warm-prose [data-warm-inline-copy],
 .warm-note__content [data-warm-inline-copy] {
   display: inline-flex;
