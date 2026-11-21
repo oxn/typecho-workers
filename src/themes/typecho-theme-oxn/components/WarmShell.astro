@@ -294,15 +294,28 @@ const footerLinks = [
 
       document.querySelectorAll('.warm-prose code, .warm-note__content code').forEach(code => {
         if (code.closest('pre') || code.dataset.warmInlineCopyReady === '1') return;
-        code.dataset.warmInlineCopyReady = '1';
+
+        const anchor = code.closest('a');
+        if (anchor?.dataset.warmInlineCopyReady === '1') return;
+
+        const frame = document.createElement('span');
+        frame.dataset.warmInlineCode = '';
         const button = document.createElement('button');
         button.type = 'button';
         button.dataset.warmInlineCopy = '';
         button.setAttribute('aria-label', '复制代码');
         button.innerHTML = inlineCopyIcon;
-        // Keep the button outside links to avoid nesting an interactive control in an anchor.
-        const anchor = code.closest('a');
-        (anchor || code).after(button);
+
+        if (anchor && anchor.contains(code)) {
+          anchor.dataset.warmInlineCopyReady = '1';
+          anchor.before(frame);
+          frame.append(anchor, button);
+          code.dataset.warmInlineCopyReady = '1';
+        } else {
+          code.before(frame);
+          frame.append(code, button);
+          code.dataset.warmInlineCopyReady = '1';
+        }
       });
 
       if (!window.__warmCodeCopyListener) {
@@ -345,12 +358,7 @@ const footerLinks = [
             clone.querySelector('[data-warm-copy]')?.remove();
             text = clone.textContent || '';
           } else if (isInline) {
-            const previous = button.previousElementSibling;
-            const code = previous?.matches('code')
-              ? previous
-              : previous?.matches('a')
-                ? previous.querySelector('code')
-                : null;
+            const code = button.closest('[data-warm-inline-code]')?.querySelector('code');
             if (!code) return;
             text = code.textContent || '';
           } else {
