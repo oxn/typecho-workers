@@ -1040,7 +1040,8 @@ body.warm-theme {
   color: #68635e;
 }
 
-/* Tables may break out; article images stay within the reading column. */
+/* Only top-level article blocks break out: never notes, comments or nested lists. */
+.warm-article:not(.is-note) .warm-prose img,
 .warm-article:not(.is-note) .warm-prose table {
   position: relative;
   left: 50%;
