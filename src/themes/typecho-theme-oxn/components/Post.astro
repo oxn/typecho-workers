@@ -32,7 +32,7 @@ const note = noteContext
 const isNote = note?.type === 'note';
 const isPasswordLocked = !isNote && post.hasPassword && !post.passwordVerified;
 const settings = warmSettings(options);
-const commentManagement = isAdmin && requestContext ? {
+const commentManagement = !isNote && isAdmin && requestContext ? {
   canManage: true,
   showManagementButtons: settings.showCommentManagementButtons,
   adminUrl: urls.adminUrl,
