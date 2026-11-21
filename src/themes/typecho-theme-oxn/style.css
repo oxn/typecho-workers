@@ -1821,6 +1821,11 @@ body.warm-theme {
 }
 
 @media (max-width: 639px) {
+  .warm-prose [data-warm-inline-code],
+  .warm-note__content [data-warm-inline-code] {
+    background: linear-gradient(var(--warm-surface-strong), var(--warm-surface-strong)) left 1px / 100% calc(100% - 2px) no-repeat;
+  }
+
   :root {
     --warm-gutter: 20px;
   }
