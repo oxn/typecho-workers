@@ -936,6 +936,42 @@ body.warm-theme {
   font-size: .88em;
 }
 
+.warm-prose [data-warm-inline-copy],
+.warm-note__content [data-warm-inline-copy] {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--warm-muted);
+  font-size: 0;
+  line-height: 0;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.warm-prose [data-warm-inline-copy]:hover,
+.warm-prose [data-warm-inline-copy]:focus-visible,
+.warm-note__content [data-warm-inline-copy]:hover,
+.warm-note__content [data-warm-inline-copy]:focus-visible {
+  background: var(--warm-surface-strong);
+  color: var(--warm-text);
+}
+.warm-prose [data-warm-inline-copy][data-copied="true"],
+.warm-note__content [data-warm-inline-copy][data-copied="true"] {
+  color: #16a34a;
+}
+.warm-prose [data-warm-inline-copy] svg,
+.warm-note__content [data-warm-inline-copy] svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
 .warm-prose pre {
   position: relative;
   overflow-x: auto;
