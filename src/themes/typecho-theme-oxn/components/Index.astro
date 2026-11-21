@@ -253,7 +253,7 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
           <span aria-hidden="true">·</span>
           <time datetime={new Date(item.created * 1000).toISOString()}>{formatWarmDate(item.created, options.postDateFormat, options.timezone, true)}</time>
         </div>
-        <div class="warm-note__content" set:html={warmOptimizeContentImages(item.html, settings.thumbOptimizeParams, urls.siteUrl)} />
+        <div class="warm-note__content" set:html={warmOptimizeContentImages(item.html, settings.imageOptimizeParams, urls.siteUrl)} />
         <WarmNoteMedia
           note={item}
           optimizeParams={settings.imageOptimizeParams}
