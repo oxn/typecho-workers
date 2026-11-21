@@ -510,40 +510,6 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         const element = event.target instanceof Element ? event.target : null;
         if (!element) return;
 
-        // 复制确认文字；Clipboard API 不可用或失败时都尝试传统复制方式。
-        const copyButton = element.closest('[data-warm-copy-confirm]');
-        if (copyButton) {
-          let copied = false;
-          try {
-            if (navigator.clipboard?.writeText && window.isSecureContext) {
-              await navigator.clipboard.writeText('确认');
-              copied = true;
-            }
-          } catch {}
-
-          if (!copied) {
-            const temporaryInput = document.createElement('textarea');
-            temporaryInput.value = '确认';
-            temporaryInput.setAttribute('readonly', '');
-            temporaryInput.style.position = 'fixed';
-            temporaryInput.style.top = '0';
-            temporaryInput.style.left = '-9999px';
-            temporaryInput.style.opacity = '0';
-            document.body.appendChild(temporaryInput);
-            temporaryInput.focus();
-            temporaryInput.select();
-            temporaryInput.setSelectionRange(0, temporaryInput.value.length);
-            try {
-              copied = document.execCommand('copy');
-            } catch {}
-            temporaryInput.remove();
-          }
-
-          copyButton.setAttribute('aria-label', copied ? '已复制确认' : '复制失败，请手动输入');
-          copyButton.title = copied ? '已复制确认' : '复制失败，请手动输入';
-          return;
-        }
-
         // 点击弹窗遮罩关闭
         if (
           element instanceof HTMLDialogElement &&
