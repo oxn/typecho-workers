@@ -81,6 +81,7 @@ if (notesEnabled && stream !== 'posts') {
     const categoryRows = await notesDb
       .select({
         cid: schema.relationships.cid,
+        mid: schema.metas.mid,
         name: schema.metas.name,
         slug: schema.metas.slug,
       })
@@ -101,6 +102,7 @@ if (notesEnabled && stream !== 'posts') {
           row.slug || '',
           urls.siteUrl,
           options.categoryPattern as string | undefined,
+          row.mid,
         ),
       });
       mixedCategories.set(cid, categories);
