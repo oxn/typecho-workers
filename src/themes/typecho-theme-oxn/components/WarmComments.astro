@@ -476,7 +476,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           list = root.querySelector('[data-comment-list]');
           if (!list) throw new Error('评论组件加载失败');
           list.setAttribute('aria-busy', 'true');
-          renderComments(data, list, false, false);
+          renderComments(data, list, false, true);
           return true;
         } catch (error) {
           renderComponentPrompt(root, error instanceof Error ? error.message : '评论加载失败，点击重试。', true, false);
