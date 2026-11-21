@@ -320,7 +320,7 @@ const footerLinks = [
 
       if (!window.__warmCodeCopyListener) {
         window.__warmCodeCopyListener = true;
-        const copyText = async text => {
+        const copyText = async (text, trigger) => {
           let copied = false;
           try {
             if (navigator.clipboard?.writeText && window.isSecureContext) {
@@ -335,10 +335,20 @@ const footerLinks = [
             textarea.style.position = 'fixed';
             textarea.style.opacity = '0';
             textarea.style.pointerEvents = 'none';
-            document.body.append(textarea);
+            const copyHost = trigger?.closest('dialog[open]') || document.body;
+            copyHost.append(textarea);
+            textarea.focus({ preventScroll: true });
             textarea.select();
             textarea.setSelectionRange(0, textarea.value.length);
-            try { copied = document.execCommand('copy'); } catch {}
+            const handleCopy = event => {
+              if (!event.clipboardData) return;
+              event.clipboardData.setData('text/plain', text);
+              event.preventDefault();
+              copied = true;
+            };
+            textarea.addEventListener('copy', handleCopy);
+            try { document.execCommand('copy'); } catch {}
+            textarea.removeEventListener('copy', handleCopy);
             textarea.remove();
           }
           return copied;
@@ -371,7 +381,7 @@ const footerLinks = [
           const originalHtml = button.innerHTML;
           const originalLabel = button.getAttribute('aria-label') || '复制代码';
           const originalTitle = button.getAttribute('title') || originalLabel;
-          const copied = await copyText(text);
+          const copied = await copyText(text, button);
           button.dataset.copied = copied ? 'true' : 'false';
           button.setAttribute('aria-label', copied ? '复制成功' : '复制失败');
           button.title = copied ? '复制成功' : '复制失败';
