@@ -61,7 +61,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
       : legacyCommentMode === 'dwell' || legacyCommentMode === 'dwell-auto-2'
         ? 'dwell'
         : oxnSettings.commentComponentLoadMode ?? settings.commentComponentLoadMode;
-  const imageOptimizeParams = normalizeOptimizeParams(settings.imageOptimizeParams);
+  const imageOptimizeParams = normalizeOptimizeParams(oxnSettings.imageOptimizeParams);
   const pinnedIds = parsePinnedIds(oxnSettings.pinnedIds);
   const footerCustomHtml = typeof oxnSettings.footerCustomHtml === 'string' ? oxnSettings.footerCustomHtml : '';
   const articleDeclarationHtml = typeof oxnSettings.articleDeclarationHtml === 'string' ? oxnSettings.articleDeclarationHtml : '';
@@ -92,7 +92,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
     commentInitialLoadMode: normalizeCommentInitialLoadMode(preferredSetting('commentInitialLoadMode')),
     imageOptimizeParams,
-    thumbOptimizeParams: normalizeOptimizeParams(settings.thumbOptimizeParams) || imageOptimizeParams,
+    thumbOptimizeParams: normalizeOptimizeParams(oxnSettings.thumbOptimizeParams) || imageOptimizeParams,
   };
 }
 
