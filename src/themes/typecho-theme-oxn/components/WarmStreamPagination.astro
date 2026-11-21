@@ -158,6 +158,7 @@ const { hasPrev, hasNext, prevUrl, nextUrl, mode, label } = Astro.props;
           link.removeAttribute('aria-disabled');
           syncControls();
           if (automatic) scheduleAutomaticCooldown();
+          else setupObserver();
         }
       };
 
