@@ -942,7 +942,7 @@ body.warm-theme {
   display: inline-block;
   min-height: 24px;
   box-sizing: border-box;
-  padding: 1px 26px 1px 5px;
+  padding: 0px 28px 0px 6px;
   border-radius: 3px;
   background: var(--warm-surface-strong);
   vertical-align: baseline;
