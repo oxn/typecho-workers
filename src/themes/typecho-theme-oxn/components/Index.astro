@@ -7,11 +7,12 @@ import { and, eq, inArray, lte } from 'drizzle-orm';
 import type { ThemeIndexProps, PostListItem } from '@/lib/theme-props';
 import { buildCategoryLink } from '@/lib/content';
 import { buildPermalink, renderContentExcerpt } from 'typecho/plugin-sdk';
+import { optimizeContentImages } from '@/lib/image-transform';
 import NotFound from './NotFound.astro';
 import WarmShell from './WarmShell.astro';
 import WarmStreamPagination from './WarmStreamPagination.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
-import { formatWarmDate, plainExcerpt, warmSettings, warmOptimizeContentImages } from './warm';
+import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
 
 type Props = ThemeIndexProps;
 type WarmPostItem = {
@@ -253,7 +254,7 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
           <span aria-hidden="true">·</span>
           <time datetime={new Date(item.created * 1000).toISOString()}>{formatWarmDate(item.created, options.postDateFormat, options.timezone, true)}</time>
         </div>
-        <div class="warm-note__content" set:html={warmOptimizeContentImages(item.html, settings.imageOptimizeParams, urls.siteUrl)} />
+        <div class="warm-note__content" set:html={optimizeContentImages(item.html, settings.imageOptimizeParams, urls.siteUrl)} />
         <WarmNoteMedia
           note={item}
           optimizeParams={settings.imageOptimizeParams}
