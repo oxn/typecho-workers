@@ -397,7 +397,12 @@ export function renderArticleDeclaration(
   const expanded = template.replace(/\{(site\.name|site\.url|site\.description|post\.title|post\.url)\}/g, (_match, key: string) =>
     escapeHtml(replacements[key] ?? ''),
   );
-  return expanded;
+  // Keep declaration styles inside the declaration block, using the same
+  // PostCSS scoping and keyframe isolation as the custom footer styles.
+  return expanded.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (_match, attributes: string, css: string) => {
+    const scoped = scopeArticleDeclarationCss(css, '.warm-article__declaration', 'warm-declaration');
+    return scoped ? '<style' + attributes + '>' + scoped + '</style>' : '';
+  });
 }
 
 export function parsePinnedIds(value: unknown): number[] {
