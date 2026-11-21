@@ -1,6 +1,6 @@
 ---
 import type { NoteListItem } from 'typecho-plugin-notes';
-import { warmOptimizeImageUrl } from './warm';
+import { optimizeImageUrl } from '@/lib/image-transform';
 
 interface Props {
   note: NoteListItem;
@@ -51,9 +51,9 @@ function fileExt(name: string): string {
       >
         <a
           class="warm-note__image-link"
-          href={warmOptimizeImageUrl(image.url, optimizeParams, siteUrl)}
+          href={optimizeImageUrl(image.url, optimizeParams, siteUrl)}
         >
-          <img src={warmOptimizeImageUrl(image.url, thumbParams, siteUrl)} alt={image.name || '笔记配图'} loading="lazy" />
+          <img src={optimizeImageUrl(image.url, thumbParams, siteUrl)} alt={image.name || '笔记配图'} loading="lazy" />
         </a>
         {extraCount > 0 && index === visibleImages.length - 1 && (
           <button
@@ -71,9 +71,9 @@ function fileExt(name: string): string {
       <div class="warm-note__image warm-note__image--rest" data-warm-images-rest hidden>
         <a
           class="warm-note__image-link"
-          href={warmOptimizeImageUrl(image.url, optimizeParams, siteUrl)}
+          href={optimizeImageUrl(image.url, optimizeParams, siteUrl)}
         >
-          <img src={warmOptimizeImageUrl(image.url, thumbParams, siteUrl)} alt={image.name || '笔记配图'} loading="lazy" />
+          <img src={optimizeImageUrl(image.url, thumbParams, siteUrl)} alt={image.name || '笔记配图'} loading="lazy" />
         </a>
       </div>
     ))}

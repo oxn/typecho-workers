@@ -936,6 +936,60 @@ body.warm-theme {
   font-size: .88em;
 }
 
+.warm-prose [data-warm-inline-code],
+.warm-note__content [data-warm-inline-code] {
+  position: relative;
+  display: inline-block;
+  min-height: 24px;
+  box-sizing: border-box;
+  padding: 0px 28px 0px 6px;
+  border-radius: 3px;
+  background: var(--warm-surface-strong);
+  vertical-align: baseline;
+}
+.warm-prose [data-warm-inline-code] code,
+.warm-note__content [data-warm-inline-code] code {
+  padding: 0;
+  background: transparent;
+}
+.warm-prose [data-warm-inline-copy],
+.warm-note__content [data-warm-inline-copy] {
+  position: absolute;
+  top: 4px;
+  right: 1px;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--warm-muted);
+  font-size: 0;
+  line-height: 0;
+  cursor: pointer;
+}
+.warm-prose [data-warm-inline-copy]:hover,
+.warm-prose [data-warm-inline-copy]:focus-visible,
+.warm-note__content [data-warm-inline-copy]:hover,
+.warm-note__content [data-warm-inline-copy]:focus-visible {
+  background: var(--warm-surface-strong);
+  color: var(--warm-text);
+}
+.warm-prose [data-warm-inline-copy][data-copied="true"],
+.warm-note__content [data-warm-inline-copy][data-copied="true"] {
+  color: #16a34a;
+}
+.warm-prose [data-warm-inline-copy] svg,
+.warm-note__content [data-warm-inline-copy] svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
 .warm-prose pre {
   position: relative;
   overflow-x: auto;
@@ -1767,6 +1821,11 @@ body.warm-theme {
 }
 
 @media (max-width: 639px) {
+  .warm-prose [data-warm-inline-code],
+  .warm-note__content [data-warm-inline-code] {
+    background: linear-gradient(var(--warm-surface-strong), var(--warm-surface-strong)) left 1px / 100% calc(100% - 2px) no-repeat;
+  }
+
   :root {
     --warm-gutter: 20px;
   }
@@ -2117,6 +2176,60 @@ body.warm-theme {
   font-size: 16px; font-weight: 400; line-height: 24px; overflow-wrap: anywhere;
 }
 .warm-manage-dialog[data-warm-dialog="delete"] .warm-manage-dialog__panel p:not(.warm-manage-dialog__error) { margin-bottom: 12px; }
+
+/* Keep the copyable confirmation phrase on one line without changing the input layout. */
+.warm-manage-dialog__instruction {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin: 0 0 12px;
+  color: var(--warm-muted);
+  font-size: 14px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+.warm-manage-dialog__code {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 4px 1px 7px;
+  border: 1px solid var(--warm-border);
+  border-radius: 5px;
+  background: var(--warm-surface);
+  color: var(--warm-text);
+}
+.warm-manage-dialog__code code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 20px;
+}
+.warm-manage-dialog__code button {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--warm-muted);
+  cursor: pointer;
+}
+.warm-manage-dialog__code button:hover,
+.warm-manage-dialog__code button:focus-visible {
+  background: var(--warm-surface-strong);
+  color: var(--warm-text);
+}
+.warm-manage-dialog__code button[data-copied="true"] {
+  color: #16a34a;
+}
+.warm-manage-dialog__code button svg {
+  width: 14px;
+  height: 14px;
+}
 
 .warm-manage-dialog__error {
   min-height: 0; margin: 8px 0 0 !important;

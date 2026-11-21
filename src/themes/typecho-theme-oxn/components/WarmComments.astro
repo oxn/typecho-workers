@@ -171,7 +171,16 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         <div class="warm-manage-dialog__panel">
           <h2 data-warm-dialog-title>文章置顶</h2>
           <p data-warm-dialog-message>确定要置顶这篇文章吗？</p>
-          <p>请输入中文“确认”以继续。</p>
+          <div class="warm-manage-dialog__instruction">
+            <span>请输入中文</span>
+            <span class="warm-manage-dialog__code">
+              <code>确认</code>
+              <button type="button" data-warm-copy-confirm aria-label="复制确认" title="复制确认">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>
+              </button>
+            </span>
+            <span>以继续。</span>
+          </div>
           <input
             type="text"
             class="warm-manage-dialog__input"
@@ -193,7 +202,16 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       <div class="warm-manage-dialog__panel">
         <h2 data-warm-dialog-title>${isPost ? '删除文章' : '删除独立页面'}</h2>
         <p data-warm-dialog-message>${isPost ? '此操作无法撤销，确定要删除这篇文章吗？' : '此操作无法撤销，确定要删除这个独立页面吗？'}</p>
-        <p>请输入中文“确认”以继续。</p>
+        <div class="warm-manage-dialog__instruction">
+            <span>请输入中文</span>
+            <span class="warm-manage-dialog__code">
+              <code>确认</code>
+              <button type="button" data-warm-copy-confirm aria-label="复制确认" title="复制确认">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>
+              </button>
+            </span>
+            <span>以继续。</span>
+          </div>
         <input
           type="text"
           class="warm-manage-dialog__input"

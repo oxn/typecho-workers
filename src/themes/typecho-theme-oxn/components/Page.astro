@@ -4,7 +4,8 @@ import { createContext } from '@/lib/context';
 import { hasPermission } from '@/lib/auth';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
-import { formatWarmDate, plainExcerpt, warmSettings, warmOptimizeContentImages } from './warm';
+import { optimizeContentImages } from '@/lib/image-transform';
+import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
 
 type Props = ThemePageProps;
 const {
@@ -44,7 +45,7 @@ const commentManagement = isAdmin && requestContext ? {
         <h1 itemprop="headline">{page.title}</h1>
       </div>
     </header>
-    <div class="warm-prose" view-image itemprop="articleBody" set:html={warmOptimizeContentImages(page.content, settings.imageOptimizeParams, urls.siteUrl)} />
+    <div class="warm-prose" view-image itemprop="articleBody" set:html={optimizeContentImages(page.content, settings.imageOptimizeParams, urls.siteUrl)} />
   </article>
 
   {(page.allowComment || commentPagination.totalComments > 0) && (
