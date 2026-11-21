@@ -346,14 +346,17 @@ const footerLinks = [
 
         document.addEventListener('click', async event => {
           const button = event.target instanceof Element
-            ? event.target.closest('[data-warm-copy], [data-warm-inline-copy]')
+            ? event.target.closest('[data-warm-copy], [data-warm-inline-copy], [data-warm-copy-confirm]')
             : null;
           if (!button) return;
 
           const pre = button.closest('pre');
-          let text = '';
           const isInline = button.hasAttribute('data-warm-inline-copy');
-          if (pre) {
+          const isConfirm = button.hasAttribute('data-warm-copy-confirm');
+          let text = '';
+          if (isConfirm) {
+            text = '确认';
+          } else if (pre) {
             const clone = pre.cloneNode(true);
             clone.querySelector('[data-warm-copy]')?.remove();
             text = clone.textContent || '';
@@ -365,17 +368,20 @@ const footerLinks = [
             return;
           }
 
+          const originalHtml = button.innerHTML;
+          const originalLabel = button.getAttribute('aria-label') || '复制代码';
+          const originalTitle = button.getAttribute('title') || originalLabel;
           const copied = await copyText(text);
           button.dataset.copied = copied ? 'true' : 'false';
           button.setAttribute('aria-label', copied ? '复制成功' : '复制失败');
-          button.innerHTML = copied
-            ? (isInline ? inlineCopiedIcon : copiedIcon)
-            : (isInline ? inlineCopyIcon : copyIcon);
+          button.title = copied ? '复制成功' : '复制失败';
+          if (copied) button.innerHTML = copiedIcon;
           window.setTimeout(() => {
             if (!button.isConnected) return;
             button.dataset.copied = 'false';
-            button.setAttribute('aria-label', '复制代码');
-            button.innerHTML = isInline ? inlineCopyIcon : copyIcon;
+            button.setAttribute('aria-label', originalLabel);
+            button.title = originalTitle;
+            button.innerHTML = originalHtml;
           }, 1200);
         });
       }
