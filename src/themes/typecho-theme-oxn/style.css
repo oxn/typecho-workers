@@ -1963,12 +1963,6 @@ body.warm-theme {
   background: var(--warm-hover);
   color: var(--warm-accent);
 }
-.warm-search-trigger svg {
-  display: block;
-  width: 18px;
-  height: 18px;
-}
-
 /* 顶部导航功能图标统一为 14×14 */
 .warm-header__tools .warm-search-trigger > svg {
   display: block;
@@ -2311,11 +2305,6 @@ body.warm-theme {
   position: relative;
   display: inline-flex;
   align-items: center;
-}
-
-.warm-quick-menu__trigger svg {
-  width: 18px;
-  height: 18px;
 }
 
 .warm-quick-menu__items {
