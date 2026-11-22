@@ -1,0 +1,20 @@
+{
+  "name": "typecho-plugin-oxn-comment-management",
+  "version": "1.0.0",
+  "description": "在评论加载请求中验证管理员身份并返回 OXN 评论区管理信息。",
+  "keywords": ["typecho", "plugin", "oxn", "comments"],
+  "author": "OXN",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-oxn-comment-management",
+      "name": "OXN 评论区管理",
+      "description": "通过评论 API 请求验证管理员身份，在评论区显示文章和独立页面管理按键。",
+      "version": "1.0.0",
+      "license": "MIT",
+      "tags": ["oxn", "comments", "admin"]
+    }
+  }
+}
