@@ -2,13 +2,11 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '@/db';
-import { computeUrls, loadOptions } from '@/lib/options';
+import { loadOptions } from '@/lib/options';
 import {
   getAuthCookies,
   getCookieValue,
   generateCommentToken,
-  generateSecurityToken,
-  hasPermission,
   validateAuthToken,
   validateUnapprovedCommentToken,
 } from '@/lib/auth';
@@ -33,8 +31,6 @@ import {
 import type { CommentPagination } from '@/lib/comment-page';
 import type { CommentNode } from '@/lib/theme-props';
 import { appendClearedCommenterCookies, readRememberedCommenter } from '@/lib/commenter';
-import { warmSettings } from '@/themes/typecho-theme-oxn/components/warm';
-import { getNoteForTheme } from 'typecho-plugin-notes';
 
 const PRIVATE_HEADERS = {
   'Cache-Control': 'private, no-store',
@@ -118,37 +114,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   }
   if (!isPublicContent) return jsonError(404, '内容不存在', PRIVATE_HEADERS);
 
-  // Management data follows the original Typecho administrator permission path.
-  // The comments component consumes it from this API response and renders it
-  // client-side; cached page HTML never carries an administrator CSRF token.
-  let management: Record<string, unknown> | null = null;
-  if (
-    authResult
-    && options.secret
-    && hasPermission(authResult.user.group || 'visitor', 'administrator')
-    && (content.type === 'post' || content.type === 'page')
-  ) {
-    const urls = computeUrls(options);
-    const settings = warmSettings(options);
-    const note = content.type === 'post' && pluginCtx.activatedPlugins.has('typecho-plugin-notes')
-      ? await getNoteForTheme(db, cid, urls.siteUrl)
-      : null;
-    if (note?.type !== 'note') {
-      management = {
-        canManage: true,
-        showManagementButtons: settings.showCommentManagementButtons,
-        adminUrl: urls.adminUrl,
-        contentType: content.type,
-        isPinned: content.type === 'post' && settings.pinnedIds.includes(cid),
-        csrfToken: await generateSecurityToken(
-          options.secret,
-          authResult.user.authCode || '',
-          authResult.user.uid,
-        ),
-      };
-    }
-  }
-
   const includeComments = url.searchParams.get('includeComments') !== '0';
   const securityToken = options.commentsAntiSpam
     ? await generateCommentToken(options.secret, cid)
@@ -172,7 +137,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
       gravatarMap: {},
       options: { ...buildCommentOptions(options, securityToken), allowComment },
       commenter,
-      management,
     };
     const extendedPayload = await applyFilterSafely(
       pluginCtx, 'comment:list', payload, { request, options, cid },
@@ -254,7 +218,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     pagination: commentData.pagination,
     options: { ...buildCommentOptions(options, securityToken), allowComment },
     commenter,
-    management,
   };
   const extendedPayload = await applyFilterSafely(
     pluginCtx, 'comment:list', payload, { request, options, cid },
