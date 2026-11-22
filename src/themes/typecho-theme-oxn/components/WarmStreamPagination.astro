@@ -1,4 +1,5 @@
 ---
+import { octiconPath } from './octicons';
 import type { WarmContinuousLoadMode } from './warm';
 
 interface Props {
@@ -19,7 +20,7 @@ const { hasPrev, hasNext, prevUrl, nextUrl, mode, label } = Astro.props;
   data-warm-load-mode={mode}
   data-warm-next-url={hasNext ? nextUrl || undefined : undefined}
 >
-  {hasPrev && prevUrl && <a href={prevUrl} rel="prev" aria-label="上一页">←</a>}
+  {hasPrev && prevUrl && <a href={prevUrl} rel="prev" aria-label="上一页"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" set:html={octiconPath('arrow-left')}></svg></a>}
   {hasNext && nextUrl ? (
     <a href={nextUrl} rel="next" data-warm-load-more data-no-instant>
       加载更多
