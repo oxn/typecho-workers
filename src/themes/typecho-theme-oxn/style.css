@@ -986,8 +986,8 @@ body.warm-theme {
 .warm-prose [data-warm-inline-copy] svg,
 .warm-note__content [data-warm-inline-copy] svg {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .warm-prose pre {
@@ -1027,8 +1027,8 @@ body.warm-theme {
 }
 .warm-prose pre [data-warm-copy] svg {
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 .warm-prose pre [data-warm-copy][data-copied="true"] {
   color: #16a34a;
@@ -2393,12 +2393,14 @@ body.warm-theme {
   background: transparent;
   color: var(--warm-muted);
   cursor: pointer;
+  transform: scale(0.92);
+  transform-origin: center;
 }
 
 .warm-theme-menu button svg {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
 }
 
 .warm-theme-menu button[aria-pressed="true"],
