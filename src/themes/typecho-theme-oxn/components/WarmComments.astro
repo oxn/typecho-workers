@@ -625,35 +625,42 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           showError('');
 
           try {
-            const configResponse = await fetch('/api/admin/theme-config', {
+            // Read the OXN appearance form and save through its existing form handler.
+            // This keeps frontend pinning and the backend "首页置顶文章 ID" field
+            // synchronized without relying on theme registration inside an API route.
+            const settingsResponse = await fetch('/admin/options-theme', {
               credentials: 'same-origin',
-              headers: { Accept: 'application/json' },
+              headers: { Accept: 'text/html' },
             });
-            const config = await configResponse.json();
-            if (!configResponse.ok || config.theme !== 'typecho-theme-oxn' || !config.values) {
-              throw new Error(config.error || '无法读取 OXN 主题设置');
+            if (!settingsResponse.ok) {
+              throw new Error('无法读取后台 OXN 外观设置，请刷新后重试');
             }
 
-            const pinnedIds = String(config.values.pinnedIds || '')
-              .split(/[，,\s]+/)
+            const settingsHtml = await settingsResponse.text();
+            const settingsDocument = new DOMParser().parseFromString(settingsHtml, 'text/html');
+            const settingsForm = settingsDocument.querySelector('form[action="/admin/options-theme"]');
+            const pinnedInput = settingsForm?.querySelector('input[name="pinnedIds"]');
+            if (!settingsForm || !pinnedInput) {
+              throw new Error('后台 OXN 置顶设置项不存在，请检查当前主题设置');
+            }
+
+            const pinnedIds = String(pinnedInput.value || '')
+              .split(/[，,\\s]+/)
               .map(value => Number(value.trim()))
               .filter(value => Number.isSafeInteger(value) && value > 0 && value !== Number(cid));
             if (targetPinned) pinnedIds.unshift(Number(cid));
 
-            const response = await fetch('/api/admin/theme-config', {
+            const settingsData = new FormData(settingsForm);
+            settingsData.set('pinnedIds', [...new Set(pinnedIds)].join(','));
+
+            const response = await fetch('/admin/options-theme', {
               method: 'POST',
               credentials: 'same-origin',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken,
-              },
-              body: JSON.stringify({
-                settings: { ...config.values, pinnedIds: [...new Set(pinnedIds)].join(',') },
-              }),
+              headers: { Accept: 'text/html' },
+              body: settingsData,
             });
-            const result = await response.json();
-            if (!response.ok || !result.success) {
-              throw new Error(result.error || '置顶操作失败，请稍后重试');
+            if (!response.ok || !response.redirected) {
+              throw new Error('保存 OXN 置顶设置失败，请稍后重试');
             }
 
             pinButton?.classList.toggle('is-pinned', targetPinned);
