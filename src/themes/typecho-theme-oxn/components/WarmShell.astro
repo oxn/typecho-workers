@@ -189,7 +189,7 @@ const footerLinks = [
   {searchEnabled && (
     <dialog class="warm-search-dialog" data-warm-search-dialog aria-labelledby="warm-search-title">
       <div class="warm-search-dialog__panel">
-        <button type="button" class="warm-search-dialog__close" data-warm-search-close aria-label="关闭搜索">×</button>
+        <button type="button" class="warm-search-dialog__close" data-warm-search-close aria-label="关闭搜索"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('x')}></svg></button>
         <h2 id="warm-search-title">搜索文章</h2>
         <form class="warm-search-form" data-warm-search-form method="get" action={homeUrl}>
           <input type="search" class="warm-search-input" data-warm-search-input name="s" placeholder="输入关键词…" autocomplete="off" aria-label="搜索关键词" />
