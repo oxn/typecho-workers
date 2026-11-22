@@ -84,7 +84,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     ? {
         loggedIn: true,
         canManage: hasPermission(authResult.user.group || 'visitor', 'administrator'),
-        csrfToken: options.secret
+        csrfToken: hasPermission(authResult.user.group || 'visitor', 'administrator') && options.secret
           ? await generateSecurityToken(options.secret, authResult.user.authCode!, authResult.user.uid)
           : '',
         author: authResult.user.screenName || authResult.user.name || '',
