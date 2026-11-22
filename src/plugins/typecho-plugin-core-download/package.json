@@ -1,0 +1,24 @@
+{
+  "name": "typecho-plugin-core-download",
+  "version": "1.0.0",
+  "description": "WordPress CoreDownload compatible download panel for Typecho Workers.",
+  "keywords": ["typecho", "plugin", "download", "core-download", "wordpress-migration"],
+  "author": "Applek (果核剥壳)",
+  "homepage": "https://github.com/sbqtmd/core-download",
+  "type": "module",
+  "main": "index.ts",
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-core-download",
+      "name": "CoreDownload 下载增强",
+      "description": "兼容 WordPress CoreDownload 原版文章自定义字段与全局设置，客户端渲染下载区域。",
+      "author": "Applek (果核剥壳)",
+      "version": "1.0.0",
+      "homepage": "https://github.com/sbqtmd/core-download",
+      "adminPage": "core-download",
+      "adminPageTitle": "CoreDownload 设置",
+      "adminPageIsSettings": true,
+      "tags": ["download", "wordpress", "migration"]
+    }
+  }
+}

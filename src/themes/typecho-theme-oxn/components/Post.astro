@@ -3,6 +3,7 @@ import { env } from 'cloudflare:workers';
 import { getDb } from 'typecho/db';
 import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
+import { getCoreDownloadForTheme } from 'typecho-plugin-core-download';
 import { createContext } from '@/lib/context';
 import { hasPermission } from '@/lib/auth';
 import type { ThemePostProps } from '@/lib/theme-props';
@@ -10,6 +11,7 @@ import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
+import CoreDownload from './CoreDownload.astro';
 import { optimizeContentImages } from '@/lib/image-transform';
 import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings, renderArticleDeclaration } from './warm';
 
@@ -31,6 +33,9 @@ const note = noteContext
   : null;
 const isNote = note?.type === 'note';
 const isPasswordLocked = !isNote && post.hasPassword && !post.passwordVerified;
+const coreDownload = !isNote && !isPasswordLocked && pluginCtx.activatedPlugins.has('typecho-plugin-core-download')
+  ? await getCoreDownloadForTheme(db, post.cid)
+  : null;
 const settings = warmSettings(options);
 const commentManagement = isAdmin && requestContext ? {
   canManage: true,
@@ -121,6 +126,7 @@ const articleDeclarationHtml = !isNote
       ) : (
         <>
           <div class:list={["warm-prose", { "warm-note-prose": isNote }]} view-image itemprop="articleBody" set:html={displayContent} />
+          {coreDownload && <CoreDownload config={coreDownload} />}
           {tocItems.length > 0 && <WarmToc items={tocItems} />}
         </>
       )}

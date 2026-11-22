@@ -1,0 +1,21 @@
+---
+import type { CoreDownloadThemeData } from 'typecho-plugin-core-download';
+
+interface Props {
+  config: CoreDownloadThemeData | null;
+}
+
+const { config } = Astro.props;
+---
+
+{config && (
+  <>
+    <link rel="stylesheet" href="/plugins/typecho-plugin-core-download/static/css/front.css" />
+    <div data-core-download data-config={JSON.stringify(config)}></div>
+    <script is:inline src="/plugins/typecho-plugin-core-download/static/js/home.min.js"></script>
+  </>
+)}
+
+<script>
+  import '../../../plugins/typecho-plugin-core-download/client';
+</script>

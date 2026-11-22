@@ -16,6 +16,7 @@
         "typecho-plugin-antispam": "workspace:*",
         "typecho-plugin-cache": "workspace:*",
         "typecho-plugin-notes": "workspace:*",
+        "typecho-plugin-core-download": "workspace:*",
         "typecho-plugin-wordpress-import": "workspace:*",
         "typecho-plugin-notifier": "workspace:*",
         "typecho-plugin-intelligence": "workspace:*",
@@ -49,6 +50,10 @@
     },
     "src/plugins/typecho-plugin-notes": {
       "name": "typecho-plugin-notes",
+      "version": "1.0.0",
+    },
+    "src/plugins/typecho-plugin-core-download": {
+      "name": "typecho-plugin-core-download",
       "version": "1.0.0",
     },
     "src/plugins/typecho-plugin-wordpress-import": {
