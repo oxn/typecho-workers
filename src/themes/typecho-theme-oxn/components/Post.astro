@@ -32,14 +32,14 @@ const note = noteContext
 const isNote = note?.type === 'note';
 const isPasswordLocked = !isNote && post.hasPassword && !post.passwordVerified;
 const settings = warmSettings(options);
-const commentManagement = isAdmin && requestContext ? {
-  canManage: true,
+const commentManagement = {
+  canManage: false,
   showManagementButtons: settings.showCommentManagementButtons,
   adminUrl: urls.adminUrl,
   contentType: 'post' as const,
   isPinned: settings.pinnedIds.includes(post.cid),
-  csrfToken: requestContext.csrfToken || '',
-} : null;
+  csrfToken: '',
+};
 const optimizedContent = optimizeContentImages(
   isNote ? note.html : post.content,
   settings.imageOptimizeParams,
