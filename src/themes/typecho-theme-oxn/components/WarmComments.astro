@@ -36,6 +36,10 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
   data-content-type={management?.contentType}
   data-is-pinned={management?.isPinned ? 'true' : 'false'}
   data-csrf-token={management?.csrfToken}
+  data-octicon-pin={octiconSvg('pin', 16)}
+  data-octicon-pencil={octiconSvg('pencil', 16)}
+  data-octicon-trash={octiconSvg('trash', 16)}
+  data-octicon-copy={octiconSvg('copy', 16)}
 ></section>
 
 <script is:inline>
@@ -134,7 +138,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         aria-pressed="${management.isPinned ? 'true' : 'false'}"
         title="${management.isPinned ? '取消置顶' : '置顶文章'}"
       >
-        ${octiconSvg('pin', 16)}
+        ${management.octiconPin || ''}
       </button>`
     : '';
 
@@ -154,7 +158,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         aria-label="${isPost ? '编辑文章' : '编辑独立页面'}"
         title="${isPost ? '编辑文章' : '编辑独立页面'}"
       >
-        ${octiconSvg('pencil', 16)}
+        ${management.octiconPencil || ''}
       </a>
       <button
         type="button"
@@ -163,7 +167,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         aria-label="${isPost ? '删除文章' : '删除独立页面'}"
         title="${isPost ? '删除文章' : '删除独立页面'}"
       >
-        ${octiconSvg('trash', 16)}
+        ${management.octiconTrash || ''}
       </button>
     </div>
 
@@ -177,7 +181,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             <span class="warm-manage-dialog__code">
               <code>确认</code>
               <button type="button" data-warm-copy-confirm aria-label="复制确认" title="复制确认">
-                ${octiconSvg('copy', 16)}
+                ${management.octiconCopy || ''}
               </button>
             </span>
             <span>以继续。</span>
@@ -208,7 +212,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             <span class="warm-manage-dialog__code">
               <code>确认</code>
               <button type="button" data-warm-copy-confirm aria-label="复制确认" title="复制确认">
-                ${octiconSvg('copy', 16)}
+                ${management.octiconCopy || ''}
               </button>
             </span>
             <span>以继续。</span>
@@ -241,6 +245,10 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             contentType: root.dataset.contentType,
             isPinned: root.dataset.isPinned === 'true',
             csrfToken: root.dataset.csrfToken || '',
+            octiconPin: root.dataset.octiconPin || '',
+            octiconPencil: root.dataset.octiconPencil || '',
+            octiconTrash: root.dataset.octiconTrash || '',
+            octiconCopy: root.dataset.octiconCopy || '',
           } : null, root.dataset.cid)}
         </div>
         ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken)}
