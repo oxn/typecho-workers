@@ -1,6 +1,8 @@
 ---
 import { env } from 'cloudflare:workers';
 import { getDb } from 'typecho/db';
+import { and, eq } from 'drizzle-orm';
+import { schema } from '@/db';
 import { readSummary } from 'typecho-plugin-intelligence';
 import { getNoteForTheme } from 'typecho-plugin-notes';
 import { createContext } from '@/lib/context';
@@ -10,6 +12,7 @@ import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
+import CoreDownload from './CoreDownload.astro';
 import { optimizeContentImages } from '@/lib/image-transform';
 import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings, renderArticleDeclaration } from './warm';
 
@@ -31,6 +34,61 @@ const note = noteContext
   : null;
 const isNote = note?.type === 'note';
 const isPasswordLocked = !isNote && post.hasPassword && !post.passwordVerified;
+const coreDownloadEnabled = !isNote
+  && !isPasswordLocked
+  && pluginCtx.activatedPlugins.has('typecho-plugin-core-download');
+const coreDownloadRows = coreDownloadEnabled
+  ? await db.select({ value: schema.fields.str_value })
+    .from(schema.fields)
+    .where(and(
+      eq(schema.fields.cid, post.cid),
+      eq(schema.fields.name, 'coreDownload'),
+    ))
+    .limit(1)
+  : [];
+let coreDownloadConfig: {
+  version: 1;
+  title: string;
+  intro: string;
+  links: Array<{ name: string; url: string; password: string; note: string }>;
+  footer: string;
+} | null = null;
+if (coreDownloadRows[0]?.value) {
+  try {
+    const parsed = JSON.parse(coreDownloadRows[0].value) as Record<string, unknown>;
+    if (parsed.version === 1 && Array.isArray(parsed.links)) {
+      const links = parsed.links.slice(0, 30).flatMap((entry) => {
+        if (!entry || typeof entry !== 'object') return [];
+        const item = entry as Record<string, unknown>;
+        const rawUrl = typeof item.url === 'string' ? item.url.trim().slice(0, 2048) : '';
+        if (!rawUrl) return [];
+        try {
+          const url = new URL(rawUrl, urls.siteUrl);
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') return [];
+          return [{
+            name: typeof item.name === 'string' ? item.name.slice(0, 120) : '',
+            url: url.href,
+            password: typeof item.password === 'string' ? item.password.slice(0, 120) : '',
+            note: typeof item.note === 'string' ? item.note.slice(0, 1000) : '',
+          }];
+        } catch {
+          return [];
+        }
+      });
+      if (links.length > 0) {
+        coreDownloadConfig = {
+          version: 1,
+          title: typeof parsed.title === 'string' ? parsed.title.slice(0, 120) : '',
+          intro: typeof parsed.intro === 'string' ? parsed.intro.slice(0, 2000) : '',
+          links,
+          footer: typeof parsed.footer === 'string' ? parsed.footer.slice(0, 2000) : '',
+        };
+      }
+    }
+  } catch {
+    // Ignore malformed custom-field data rather than breaking the article page.
+  }
+}
 const settings = warmSettings(options);
 const commentManagement = isAdmin && requestContext ? {
   canManage: true,
@@ -125,6 +183,8 @@ const articleDeclarationHtml = !isNote
         </>
       )}
     </div>
+
+    {coreDownloadConfig && <CoreDownload config={coreDownloadConfig} />}
 
     {isNote && (
       <WarmNoteMedia
