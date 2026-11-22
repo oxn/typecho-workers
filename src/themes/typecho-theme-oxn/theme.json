@@ -216,5 +216,11 @@
       "type": "hidden",
       "default": "1"
     }
+  },
+  "pageTemplates": {
+    "archives": {
+      "name": "文章归档",
+      "component": "components/Archives.astro"
+    }
   }
 }
