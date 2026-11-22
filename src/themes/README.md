@@ -100,6 +100,8 @@ typecho-theme-example/
 
 页面编辑器会将此配置显示为与 Typecho 1.3.0 一致的选择框。组件路径必须位于主题的 `components/` 目录内，选择后会同时用于前台页面和后台预览。
 
+OXN 的“文章归档”是独立页面模板的实际示例：它在 OXN 自己的 `theme.json` 中注册 `pageTemplates.archives`，并由 `components/Archives.astro` 实现。它不会替换主题默认的 `Page.astro`。其他主题也可以按相同机制注册自己的独立页面模板。
+
 ```json
 {
   "pageTemplates": {
