@@ -94,10 +94,8 @@ const footerLinks = [
           <div class="warm-quick-menu">
             <button type="button" class="warm-search-trigger warm-quick-menu__trigger" data-warm-quick-toggle aria-label="打开快捷功能" title="快捷功能" aria-expanded="false">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3.5" y="3.5" width="7" height="7" rx="1.2" />
-                <rect x="13.5" y="3.5" width="7" height="7" rx="1.2" />
-                <rect x="3.5" y="13.5" width="7" height="7" rx="1.2" />
-                <rect x="13.5" y="13.5" width="7" height="7" rx="1.2" />
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M9 3v18M3 9h6" />
               </svg>
             </button>
             <div class="warm-quick-menu__items" data-warm-quick-menu hidden aria-label="快捷功能">
@@ -326,6 +324,10 @@ const footerLinks = [
           }
 
           if (target.closest('[data-warm-search-open]')) {
+            const quickMenu = document.querySelector('[data-warm-quick-menu]');
+            const quickButton = document.querySelector('[data-warm-quick-toggle]');
+            if (quickMenu) quickMenu.hidden = true;
+            if (quickButton) quickButton.setAttribute('aria-expanded', 'false');
             const dialog = document.querySelector('[data-warm-search-dialog]');
             if (dialog instanceof HTMLDialogElement && !dialog.open) {
               dialog.showModal();
@@ -338,6 +340,16 @@ const footerLinks = [
             const dialog = target.closest('[data-warm-search-dialog]');
             if (dialog instanceof HTMLDialogElement && target === dialog && dialog.open) dialog.close();
           }
+        });
+
+        document.addEventListener('keydown', event => {
+          if (event.key !== 'Escape') return;
+          const quickMenu = document.querySelector('[data-warm-quick-menu]');
+          const quickButton = document.querySelector('[data-warm-quick-toggle]');
+          if (quickMenu) quickMenu.hidden = true;
+          if (quickButton) quickButton.setAttribute('aria-expanded', 'false');
+          document.querySelectorAll('[data-warm-theme-menu]').forEach(menu => { menu.hidden = true; });
+          document.querySelectorAll('[data-warm-theme-toggle]').forEach(toggle => toggle.setAttribute('aria-expanded', 'false'));
         });
       }
 
