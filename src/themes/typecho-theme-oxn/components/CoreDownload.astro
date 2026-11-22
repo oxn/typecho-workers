@@ -1,0 +1,177 @@
+---
+interface DownloadLink {
+  name: string;
+  url: string;
+  password: string;
+  note: string;
+}
+
+interface DownloadConfig {
+  version: 1;
+  title: string;
+  intro: string;
+  links: DownloadLink[];
+  footer: string;
+}
+
+interface Props {
+  config: DownloadConfig | null;
+}
+
+const { config } = Astro.props;
+---
+
+{config && config.links.length > 0 && (
+  <section class="core-download" data-core-download data-config={JSON.stringify(config)} aria-label={config.title || '下载资源'}></section>
+)}
+
+<script>
+  function copyText(value: string): Promise<void> {
+    if (navigator.clipboard?.writeText) {
+      return navigator.clipboard.writeText(value);
+    }
+
+    const input = document.createElement('textarea');
+    input.value = value;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+    input.select();
+    const copied = document.execCommand('copy');
+    input.remove();
+    return copied ? Promise.resolve() : Promise.reject(new Error('copy failed'));
+  }
+
+  function renderCoreDownload(root: HTMLElement): void {
+    let config: {
+      title?: string;
+      intro?: string;
+      links?: Array<{ name?: string; url?: string; password?: string; note?: string }>;
+      footer?: string;
+    };
+
+    try {
+      config = JSON.parse(root.dataset.config || '{}');
+    } catch {
+      return;
+    }
+
+    if (!Array.isArray(config.links) || config.links.length === 0) return;
+
+    const fragment = document.createDocumentFragment();
+    const heading = document.createElement('h2');
+    heading.className = 'core-download__title';
+    heading.textContent = config.title || '下载资源';
+    fragment.appendChild(heading);
+
+    if (config.intro) {
+      const intro = document.createElement('p');
+      intro.className = 'core-download__intro';
+      intro.textContent = config.intro;
+      fragment.appendChild(intro);
+    }
+
+    const list = document.createElement('div');
+    list.className = 'core-download__list';
+
+    config.links.forEach((link) => {
+      if (!link || typeof link.url !== 'string') return;
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(link.url, window.location.origin);
+      } catch {
+        return;
+      }
+      if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') return;
+
+      const item = document.createElement('div');
+      item.className = 'core-download__item';
+
+      const name = document.createElement('h3');
+      name.className = 'core-download__name';
+      name.textContent = link.name || '下载链接';
+      item.appendChild(name);
+
+      if (link.note) {
+        const note = document.createElement('p');
+        note.className = 'core-download__note';
+        note.textContent = link.note;
+        item.appendChild(note);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'core-download__actions';
+
+      const anchor = document.createElement('a');
+      anchor.className = 'core-download__button';
+      anchor.href = parsedUrl.href;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.textContent = '下载';
+      actions.appendChild(anchor);
+
+      if (link.password) {
+        const password = document.createElement('span');
+        password.className = 'core-download__password';
+        password.textContent = '提取码：' + link.password;
+        actions.appendChild(password);
+
+        const copy = document.createElement('button');
+        copy.type = 'button';
+        copy.className = 'core-download__copy';
+        copy.textContent = '复制提取码';
+        copy.addEventListener('click', async () => {
+          try {
+            await copyText(link.password || '');
+            copy.textContent = '已复制';
+          } catch {
+            copy.textContent = '复制失败';
+          }
+          window.setTimeout(() => { copy.textContent = '复制提取码'; }, 1600);
+        });
+        actions.appendChild(copy);
+      }
+
+      item.appendChild(actions);
+      list.appendChild(item);
+    });
+
+    if (!list.childElementCount) return;
+    fragment.appendChild(list);
+
+    if (config.footer) {
+      const footer = document.createElement('p');
+      footer.className = 'core-download__footer';
+      footer.textContent = config.footer;
+      fragment.appendChild(footer);
+    }
+
+    root.replaceChildren(fragment);
+    root.dataset.rendered = '1';
+  }
+
+  function mountCoreDownloads(): void {
+    document.querySelectorAll<HTMLElement>('[data-core-download]:not([data-rendered])')
+      .forEach(renderCoreDownload);
+  }
+
+  mountCoreDownloads();
+  document.addEventListener('astro:page-load', mountCoreDownloads);
+</script>
+
+<style>
+.core-download{margin:28px 0;padding:18px;border:1px solid var(--warm-border,#e5e7eb);border-radius:4px;color:var(--warm-text,#374151)}
+.core-download__title{margin:0 0 12px;font-size:1.2rem;font-weight:650}
+.core-download__intro,.core-download__footer{margin:10px 0;color:var(--warm-muted,#6b7280);line-height:1.7;white-space:pre-line}
+.core-download__list{display:grid;gap:10px}
+.core-download__item{padding:12px;border:1px solid var(--warm-border,#e5e7eb);border-radius:4px}
+.core-download__name{margin:0 0 6px;font-size:1rem;font-weight:600}
+.core-download__note{margin:0 0 10px;color:var(--warm-muted,#6b7280);font-size:.9rem;white-space:pre-line}
+.core-download__actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.core-download__button,.core-download__copy{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 12px;border:1px solid var(--warm-border,#d1d5db);border-radius:3px;background:transparent;color:inherit;font:inherit;font-size:.875rem;text-decoration:none;cursor:pointer}
+.core-download__button{background:var(--warm-accent,#315f78);border-color:var(--warm-accent,#315f78);color:#fff}
+.core-download__password{font-size:.875rem;color:var(--warm-muted,#6b7280)}
+.core-download__copy:hover,.core-download__button:hover{opacity:.82}
+@media(max-width:600px){.core-download{padding:14px}.core-download__actions{gap:6px}}
+</style>
