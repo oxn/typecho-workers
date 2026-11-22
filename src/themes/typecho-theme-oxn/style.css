@@ -2326,6 +2326,21 @@ body.warm-theme {
   align-items: center;
 }
 
+/* 更多按钮图标随快捷抽屉开合旋转。 */
+.warm-quick-menu__trigger svg {
+  transition: transform 180ms ease;
+}
+
+.warm-quick-menu__trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .warm-quick-menu__trigger svg {
+    transition: none;
+  }
+}
+
 .warm-quick-menu__items {
   position: absolute;
   top: 50%;
