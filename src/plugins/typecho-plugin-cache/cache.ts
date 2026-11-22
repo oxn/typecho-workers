@@ -985,9 +985,7 @@ function requestCachePolicy(request: Request): RequestCacheDecision {
   }
 
   const cookieNames = parseCookieNames(request.headers.get('Cookie'));
-  // Frontend HTML is deliberately decoupled from the authenticated viewer.
-  // Authentication cookies may therefore share the public page cache. An
-  // unapproved-comment cookie remains read-only because it can reveal a
+  // An unapproved-comment cookie remains read-only because it can reveal a
   // submitter's pending comment on an otherwise public page.
   if (cookieNames.has('__typecho_unapproved_comment')) {
     return { policy: 'read-only', reason: 'unapproved-comment' };
