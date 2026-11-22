@@ -19,9 +19,6 @@ export interface WarmSettings {
   showHomeSearchButton: boolean;
   showAdminEntryButton: boolean;
   showCommentManagementButtons: boolean;
-  githubUrl: string;
-  socialUrl: string;
-  email: string;
   continuousLoadMode: WarmContinuousLoadMode;
   commentComponentLoadMode: WarmCommentComponentLoadMode;
   commentInitialLoadMode: WarmCommentInitialLoadMode;
@@ -62,9 +59,6 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     showHomeSearchButton: enabled(oxnSettings.showHomeSearchButton),
     showAdminEntryButton: enabled(oxnSettings.showAdminEntryButton),
     showCommentManagementButtons: enabled(oxnSettings.showCommentManagementButtons),
-    githubUrl: safeExternalUrl(oxnSettings.githubUrl),
-    socialUrl: safeExternalUrl(oxnSettings.socialUrl),
-    email: safeEmail(oxnSettings.email),
     continuousLoadMode: normalizeContinuousLoadMode(oxnSettings.continuousLoadMode),
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
     commentInitialLoadMode: normalizeCommentInitialLoadMode(oxnSettings.commentInitialLoadMode),
@@ -355,22 +349,6 @@ export function normalizeCommentInitialLoadMode(value: unknown): WarmCommentInit
   if (value === 'manual') return 'manual';
   if (value === 'auto-first' || value === 'dwell' || value === 'auto') return 'auto-first';
   return 'manual';
-}
-
-export function safeExternalUrl(value: unknown): string {
-  if (typeof value !== 'string' || !value.trim()) return '';
-  try {
-    const url = new URL(value.trim());
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : '';
-  } catch {
-    return '';
-  }
-}
-
-export function safeEmail(value: unknown): string {
-  if (typeof value !== 'string') return '';
-  const email = value.trim();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
 }
 
 export function formatWarmDate(
