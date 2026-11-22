@@ -16,14 +16,12 @@ interface OcticonVariant {
 
 interface OcticonDefinition {
   heights: Record<string, OcticonVariant>;
-  toSVG?: (options?: Record<string, string | number>) => string;
 }
 
 const importedIcons = octiconsData as unknown as { default?: Record<string, OcticonDefinition> } & Record<string, OcticonDefinition>;
 const icons = (importedIcons.default ?? importedIcons) as Record<string, OcticonDefinition>;
 
 interface ResolvedOcticon {
-  icon: OcticonDefinition;
   height: number;
   variant: OcticonVariant;
 }
@@ -46,7 +44,7 @@ function resolveOcticon(name: string): ResolvedOcticon | null {
   const variant = icon.heights[String(height)];
   if (!variant?.path || !variant.width) return null;
 
-  return { icon, height, variant };
+  return { height, variant };
 }
 
 export function octiconPath(name: string): string {
