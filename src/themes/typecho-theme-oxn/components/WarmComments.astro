@@ -18,7 +18,7 @@ interface Props {
   } | null;
 }
 
-const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0, management } = Astro.props;
+const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0 } = Astro.props;
 const requestedCommentPage = Astro.url.searchParams.get('commentPage');
 ---
 <section
@@ -30,12 +30,6 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
   data-comment-component-load={componentLoadMode}
   data-current-page={requestedCommentPage || undefined}
   data-comment-initial-load={initialLoadMode}
-  data-can-manage={management?.canManage ? 'true' : undefined}
-  data-show-management-buttons={management?.showManagementButtons === false ? 'false' : 'true'}
-  data-admin-url={management?.adminUrl}
-  data-content-type={management?.contentType}
-  data-is-pinned={management?.isPinned ? 'true' : 'false'}
-  data-csrf-token={management?.csrfToken}
   data-octicon-pin={octiconSvg('pin', 16)}
   data-octicon-pencil={octiconSvg('pencil', 16)}
   data-octicon-trash={octiconSvg('trash', 16)}
@@ -237,19 +231,17 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
 
     const renderFrame = (root, data) => {
       const password = new URL(window.location.href).searchParams.get('password') || '';
-      root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
-          ${renderManagement(root.dataset.canManage === 'true' ? {
-            canManage: true,
-            showManagementButtons: root.dataset.showManagementButtons !== 'false',
-            adminUrl: root.dataset.adminUrl || '/admin/',
-            contentType: root.dataset.contentType,
-            isPinned: root.dataset.isPinned === 'true',
-            csrfToken: root.dataset.csrfToken || '',
+      const management = data.management?.canManage === true
+        ? {
+            ...data.management,
             octiconPin: root.dataset.octiconPin || '',
             octiconPencil: root.dataset.octiconPencil || '',
             octiconTrash: root.dataset.octiconTrash || '',
             octiconCopy: root.dataset.octiconCopy || '',
-          } : null, root.dataset.cid)}
+          }
+        : null;
+      root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
+          ${renderManagement(management, root.dataset.cid)}
         </div>
         ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken)}
         <div class="warm-comment-list" data-comment-list aria-live="polite">
