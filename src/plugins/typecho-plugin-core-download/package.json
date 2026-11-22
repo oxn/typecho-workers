@@ -1,0 +1,22 @@
+{
+  "name": "typecho-plugin-core-download",
+  "version": "1.0.0",
+  "description": "Client-rendered download information blocks for Typecho posts.",
+  "keywords": ["typecho", "plugin", "download", "coredownload"],
+  "author": "OXN",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-core-download",
+      "name": "CoreDownload",
+      "description": "为文章编辑器添加下载信息配置面板，并将配置保存为文章自定义字段",
+      "author": "OXN",
+      "version": "1.0.0",
+      "homepage": "https://github.com/oxn/typecho-workers/tree/22/src/plugins/typecho-plugin-core-download",
+      "license": "MIT",
+      "tags": ["download", "client-render"]
+    }
+  }
+}
