@@ -122,6 +122,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
   if (!management) return '';
 
   const contentType = management.contentType;
+  if (contentType !== 'post' && contentType !== 'page') return '';
 
   const isPost = contentType === 'post';
   const adminUrl = escapeHtml(management.adminUrl || '/admin/');
