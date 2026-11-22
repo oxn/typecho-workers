@@ -2798,6 +2798,8 @@ html.dark {
 /* Keep the admin-entry link the same muted color as the other header actions. */
 .warm-theme .warm-header__tools > a.warm-nav__account {
   color: var(--warm-muted);
+  transform: scale(0.92);
+  transform-origin: center;
 }
 
 .warm-theme .warm-header__tools > a.warm-nav__account:hover,
