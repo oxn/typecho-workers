@@ -1,6 +1,7 @@
 ---
 import type { ThemeNotFoundProps } from '@/lib/theme-props';
 import WarmShell from './WarmShell.astro';
+import { octiconPath } from './octicons';
 
 type Props = ThemeNotFoundProps;
 const { options, urls, pages, sidebarData, currentPath, pluginCtx, errorTitle } = Astro.props;
@@ -21,6 +22,6 @@ const { options, urls, pages, sidebarData, currentPath, pluginCtx, errorTitle } 
       <label class="warm-compact-form__label" for="warm-search">搜索站内内容</label>
       <div class="warm-compact-form__row"><input class="warm-compact-form__input" id="warm-search" name="s" type="search" placeholder="输入关键词" /><button class="warm-compact-form__submit" type="submit">搜索</button></div>
     </form>
-    <a class="warm-read-more" href={`${urls.siteUrl}/`}>返回首页 <span aria-hidden="true">→</span></a>
+    <a class="warm-read-more" href={`${urls.siteUrl}/`}>返回首页 <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" set:html={octiconPath('arrow-right')}></svg></a>
   </section>
 </WarmShell>
