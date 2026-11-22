@@ -5,8 +5,6 @@ import { formatDate, generateSlug } from '@/lib/content';
 import { escapeHtml } from '@/lib/escape';
 import postcss from 'postcss';
 
-export const WARM_THEME_ID = 'typecho-theme-warm';
-
 export type WarmSection = 'home' | 'articles' | 'notes' | 'about' | 'none';
 export type WarmContinuousLoadMode = 'manual' | 'auto-2' | 'infinite';
 export type WarmCommentComponentLoadMode = 'auto' | 'dwell' | 'manual';
@@ -34,33 +32,9 @@ export interface WarmSettings {
 }
 
 export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
-  // Existing OXN appearance controls retain their current Warm namespace.
-  const settings = loadThemeConfig(options, WARM_THEME_ID);
-  // CY-derived controls are stored under the OXN theme's own configuration.
+  // OXN reads all theme settings exclusively from its own configuration namespace.
   const oxnSettings = loadThemeConfig(options, 'typecho-theme-oxn');
-  const savedSettings = readSavedWarmSettings(options);
-  const savedOxnSettings = readSavedThemeSettings(options, 'typecho-theme-oxn');
-  const hasSavedSetting = (saved: Record<string, unknown> | null, key: string) =>
-    Object.prototype.hasOwnProperty.call(saved || {}, key);
-  const savedContinuousLoadMode = hasSavedSetting(savedOxnSettings, 'continuousLoadMode')
-    ? oxnSettings.continuousLoadMode
-    : hasSavedSetting(savedSettings, 'continuousLoadMode')
-      ? settings.continuousLoadMode
-      : oxnSettings.continuousLoadMode ?? settings.continuousLoadMode;
-  const preferredSetting = (key: string) =>
-    hasSavedSetting(savedOxnSettings, key)
-      ? oxnSettings[key]
-      : hasSavedSetting(savedSettings, key)
-        ? settings[key]
-        : oxnSettings[key] ?? settings[key];
-  const legacyCommentMode = savedSettings?.commentInitialLoadMode;
-  const componentLoadMode = hasSavedSetting(savedOxnSettings, 'commentComponentLoadMode')
-    ? oxnSettings.commentComponentLoadMode
-    : hasSavedSetting(savedSettings, 'commentComponentLoadMode')
-      ? settings.commentComponentLoadMode
-      : legacyCommentMode === 'dwell' || legacyCommentMode === 'dwell-auto-2'
-        ? 'dwell'
-        : oxnSettings.commentComponentLoadMode ?? settings.commentComponentLoadMode;
+  const componentLoadMode = oxnSettings.commentComponentLoadMode;
   const imageOptimizeParams = normalizeOptimizeParams(oxnSettings.imageOptimizeParams);
   const pinnedIds = parsePinnedIds(oxnSettings.pinnedIds);
   const footerCustomHtml = typeof oxnSettings.footerCustomHtml === 'string' ? oxnSettings.footerCustomHtml : '';
@@ -88,12 +62,12 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     showHomeSearchButton: enabled(oxnSettings.showHomeSearchButton),
     showAdminEntryButton: enabled(oxnSettings.showAdminEntryButton),
     showCommentManagementButtons: enabled(oxnSettings.showCommentManagementButtons),
-    githubUrl: safeExternalUrl(settings.githubUrl),
-    socialUrl: safeExternalUrl(settings.socialUrl),
-    email: safeEmail(settings.email),
-    continuousLoadMode: normalizeContinuousLoadMode(savedContinuousLoadMode),
+    githubUrl: safeExternalUrl(oxnSettings.githubUrl),
+    socialUrl: safeExternalUrl(oxnSettings.socialUrl),
+    email: safeEmail(oxnSettings.email),
+    continuousLoadMode: normalizeContinuousLoadMode(oxnSettings.continuousLoadMode),
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
-    commentInitialLoadMode: normalizeCommentInitialLoadMode(preferredSetting('commentInitialLoadMode')),
+    commentInitialLoadMode: normalizeCommentInitialLoadMode(oxnSettings.commentInitialLoadMode),
     imageOptimizeParams,
     thumbOptimizeParams: normalizeOptimizeParams(oxnSettings.thumbOptimizeParams) || imageOptimizeParams,
   };
@@ -365,24 +339,6 @@ export function parsePinnedIds(value: unknown): number[] {
   return result;
 }
 
-
-function readSavedWarmSettings(options: ThemeBaseProps['options']): Record<string, unknown> | null {
-  return readSavedThemeSettings(options, WARM_THEME_ID);
-}
-
-function readSavedThemeSettings(
-  options: ThemeBaseProps['options'],
-  themeId: string,
-): Record<string, unknown> | null {
-  const raw = options?.[`theme:${themeId}`];
-  if (!raw) return null;
-  try {
-    const saved = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    return saved && typeof saved === 'object' && !Array.isArray(saved) ? saved as Record<string, unknown> : null;
-  } catch {
-    return null;
-  }
-}
 
 export function normalizeContinuousLoadMode(value: unknown): WarmContinuousLoadMode {
   if (value === 'auto-2') return 'auto-2';
