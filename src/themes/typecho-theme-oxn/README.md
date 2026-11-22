@@ -1,6 +1,6 @@
 # OXN Simple 主题说明
 
-> 本文对应仓库分支 `1119j` 中的 `src/themes/typecho-theme-oxn/`。  
+> 本文对应仓库分支 `22` 中的 `src/themes/typecho-theme-oxn/`。  
 > OXN 是从 Typecho Warm 独立复制出来并持续定制的主题。本文说明当前代码中的功能、后台配置、前台行为、与原版的差异，以及文章内容的输入语法。
 
 ---
@@ -10,7 +10,7 @@
 - **主题 ID：** `typecho-theme-oxn`
 - **主题名称：** Oxn Simple
 - **原版来源：** `src/themes/typecho-theme-warm/`（对照分支 `1119d`）
-- **OXN 目录：** `src/themes/typecho-theme-oxn/`（维护分支 `1119j`）
+- **OXN 目录：** `src/themes/typecho-theme-oxn/`（维护分支 `22`）
 - **主要文件：**
   - `theme.json`：主题元数据、后台设置项及自定义设置界面。
   - `style.css`：主题布局、文章排版、响应式样式、亮色和暗色主题。
@@ -22,6 +22,7 @@
   - `components/WarmNoteMedia.astro`：笔记图片、视频、音频和附件。
   - `components/WarmStreamPagination.astro`：列表分页及后续内容加载。
   - `components/warm.ts`：主题设置读取、图片参数转换、置顶 ID 解析、目录生成和声明变量替换。
+  - `components/octicons.ts`：Octicons 图标目录读取、图标名称解析及导航/页脚图标输入渲染。
   - `components/instantclick.ts`、`viewimage.ts`：页面切换与图片查看相关脚本。
   - `assets/favicon.svg`、`assets/favicon.ico`：OXN 页面使用的站点图标；`assets/screenshot.png`：后台主题预览截图。
 
@@ -56,7 +57,7 @@ OXN 保留 Warm 的单栏、简洁阅读方向和主要页面结构，但后台�
 
 ### 2.4 使用 OXN 时必须同步的文件
 
-如果要在另一个 Cloudflare 环境中使用当前 `1119j` 版本，不能只替换主题目录。OXN 有部分功能依赖项目共享核心文件；这些核心文件仍使用上游原版时，对应功能会缺失或被安全策略拦截。
+如果要在另一个 Cloudflare 环境中使用当前 `22` 版本，不能只替换主题目录。OXN 有部分功能依赖项目共享核心文件；这些核心文件仍使用上游原版时，对应功能会缺失或被安全策略拦截。
 
 #### 必须同步的主题与核心文件
 
@@ -89,7 +90,7 @@ Bilibili iframe 需要经过两道独立检查：
 
 #### 不需要为 OXN 功能替换的文件
 
-当前 `1119j` 的 `scripts/generate-wrangler-config.ts` 和 `wrangler.toml.example` 与上游 `master` 内容一致，不属于 OXN 功能所需的差异文件。不要因为它们出现在历史比较结果中就额外覆盖。
+当前 `22` 的 `scripts/generate-wrangler-config.ts` 和 `wrangler.toml.example` 与上游 `master` 内容一致，不属于 OXN 功能所需的差异文件。不要因为它们出现在历史比较结果中就额外覆盖。
 
 `src/lib/markdown.ts.sim` 和 `src/lib/markdown.ts.bak` 仅用于对照和回查，不是部署文件；部署时只替换实际运行的 `src/lib/markdown.ts`。
 
@@ -103,7 +104,7 @@ Bilibili iframe 需要经过两道独立检查：
 | `src/lib/markdown.ts.sim` | 修改前保存的对照副本 | 与 `.bak` 内容完全一致 |
 | `src/lib/markdown.ts.bak` | 保存的上游原版对照文件 | 与 `.sim` 内容完全一致 |
 
-在当前 `1119j` 分支中，`markdown.ts.sim` 和 `markdown.ts.bak` 的文件内容及 Git Blob SHA 相同（均为 `4ab2c30789c0032aa4ddce14a8af7abcaa6c7d77`），两份备份之间没有代码差异。它们均为 413 行；当前使用的 `markdown.ts` 为 547 行。
+在当前 `22` 分支中，`markdown.ts.sim` 和 `markdown.ts.bak` 的文件内容及 Git Blob SHA 相同（均为 `4ab2c30789c0032aa4ddce14a8af7abcaa6c7d77`），两份备份之间没有代码差异。它们均为 413 行；当前使用的 `markdown.ts` 为 547 行。
 
 **关于笔记插件绑定：** 两份备份都已经包含 `applyFilter()`、`renderMarkdownFiltered()`，以及 `content:markdown`、`content:content` 两个过滤钩子。这套共享插件过滤机制在保存两份备份时就已存在，并非其中一份后来单独增加的内容。因此，不能把笔记绑定描述为 `.sim` 与 `.bak` 的差异。两份文件虽然来源记录不同（一个是当时项目文件的副本，一个是上游原版副本），但本次保存时的实际代码内容相同。
 
@@ -122,7 +123,7 @@ Bilibili iframe 需要经过两道独立检查：
 
 ## 3. 与原版 Typecho Warm 的主要差异
 
-| 项目 | 原版 Warm（`1119d`） | OXN（`1119j`） |
+| 项目 | 原版 Warm（`1119d`） | OXN（`22`） |
 | --- | --- | --- |
 | 主题身份 | `typecho-theme-warm` | 独立 ID：`typecho-theme-oxn` |
 | 设置界面 | 原版的常规主题选项 | 增加 OXN 专属的 CY 风格设置区域和更多前台控制项 |
@@ -301,6 +302,42 @@ OXN 后台主题设置页在原有保存按钮旁提供：
 
 建议每次进行大规模主题设置调整前先导出一份 JSON 备份。
 
+### 4.11 独立页面导航名称与图标
+
+顶部导航会读取独立页面的两个自定义字段：
+
+| 自定义字段 | 用途 |
+| --- | --- |
+| `name` | 自定义该独立页面在顶部导航中的显示名称；有内容时替代页面原始标题 |
+| `icons` | 自定义导航图标；支持完整 HTML/SVG 片段及 Octicons 图标名称标记 |
+
+图标输入示例：
+
+```html
+<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z"></path>
+</svg>
+```
+
+也可以使用 Octicons 名称标记：
+
+```text
+{{octicon:mark-github}}
+```
+
+当前共享解析函数还兼容 `{{icons:mark-github}}` 和不带标记的 Octicons 名称。单数形式 `{{icon:mark-github}}` 不属于当前支持语法。图标字段按 HTML 片段输出，因此可以将 SVG 与其他 HTML/文字放在同一字段中；请确保标签完整闭合，只输入可信的 HTML/SVG 内容。
+
+当前导航显示规则：
+
+- `name` 有内容：显示自定义名称；若同时有 `icons`，图标和名称一起显示。
+- 没有自定义名称、但有有效图标：只显示图标。
+- 没有 `name` 字段、也没有图标：显示独立页面原始标题。
+- **边界提醒：** 当前实现中，如果数据库里存在 `name` 字段但值为空，同时 `icons` 也为空，该导航项会被跳过；这与“空名称时回退原页面标题”的预期不一致，属于待修复的边界问题。
+
+导航图标容器使用自适应宽度；其中 SVG 固定为 16×16，并设置不可收缩，避免 SVG 后面出现数字、文字或其他 HTML 时被 Flex 布局挤小。该规则是导航图标的布局规则，不会把整个自定义 HTML 片段强制限制为 16px 宽。
+
+页脚自定义链接与顶部独立页面导航是两套不同的配置入口：页脚每组仍使用文字栏、网址栏和新窗口选项；图标标记需要放在文字栏开头。页脚不是 Markdown 编辑器，`[{{icon:mark-github}}](https://example.com)` 这种 Markdown 链接写法不能代替后台的文字栏和网址栏。
+
 ## 5. 前台页面与功能说明
 
 ### 5.1 首页、文章列表与分类
@@ -380,8 +417,9 @@ OXN 后台主题设置页在原有保存按钮旁提供：
 - 顶部搜索图标打开搜索弹窗，提交后使用站内搜索参数。
 - 404 页面提供搜索表单，使用与密码文章表单相同的紧凑表单样式。
 - 顶部快捷操作可按后台开关分别显示。
-- 导航包含首页、文章下拉菜单、可用的笔记入口和已配置的独立页面。
-- 页脚可显示自定义链接、RSS、社交信息及自定义 HTML。
+- 导航包含首页、文章下拉菜单、可用的笔记入口和已配置的独立页面；独立页面可通过自定义字段 `name` 覆盖显示名称，通过 `icons` 设置 Octicons、SVG 或 HTML 图标。
+- 导航图标支持 HTML/SVG 混合片段；SVG 固定 16×16 且不参与 Flex 收缩，旁边的文本不会挤压图标。
+- 页脚可显示 10 组自定义链接、RSS、GitHub、社交信息及 Email，并支持站点底部自定义 HTML；自定义链接仍使用分开的文字栏、网址栏和新窗口设置。
 - OXN 页面在 head 中引用主题目录内的 SVG favicon，并提供 ICO 回退图标；后台主题预览图由 `theme.json` 的 `screenshot` 字段指向 `assets/screenshot.png`。
 
 ### 5.8 图片、灯箱和代码块
@@ -629,7 +667,7 @@ HTML 图片仍可直接填写尺寸属性：
 
 图片允许使用 `src`、`alt`、`title`、`width`、`height`、`loading` 等属性。正文图片会限制在阅读区域内，保持宽高比例并使用小圆角；主题图片优化参数会按设置处理符合条件的图片 URL。
 
-**语法范围说明：** 当前 `1119j` 的 `src/lib/markdown.ts` 已核实并实现的是上述 URL 参数写法；`{width=880 height=192}` 这种放在 Markdown 图片语法外部的花括号写法，在当前文件中没有对应解析逻辑，因此暂不列为当前版本已支持的输入格式。
+**语法范围说明：** 当前 `22` 的 `src/lib/markdown.ts` 已核实并实现的是上述 URL 参数写法；`{width=880 height=192}` 这种放在 Markdown 图片语法外部的花括号写法，在当前文件中没有对应解析逻辑，因此暂不列为当前版本已支持的输入格式。
 
 ### 6.8 行内代码、围栏代码块与缩进代码
 
