@@ -6,7 +6,7 @@
   "version": "1.0.0",
   "stylesheet": "style.css",
   "screenshot": "assets/screenshot.png",
-  "homepage": "https://github.com/oxn/typecho-workers/tree/1119j/src/themes/typecho-theme-oxn",
+  "homepage": "https://github.com/oxn/typecho-workers/tree/22/src/themes/typecho-theme-oxn",
   "license": "MIT",
   "commentsMode": "api",
   "publicHtml": true,
