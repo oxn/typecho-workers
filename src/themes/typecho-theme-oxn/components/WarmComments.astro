@@ -18,7 +18,7 @@ interface Props {
   } | null;
 }
 
-const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0, management } = Astro.props;
+const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0 } = Astro.props;
 const requestedCommentPage = Astro.url.searchParams.get('commentPage');
 ---
 <section
