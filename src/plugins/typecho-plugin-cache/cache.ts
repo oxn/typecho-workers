@@ -11,6 +11,7 @@ import { CACHE_WARMUP_HEADER, PUBLIC_HTML_HEADER } from '@/lib/cache';
 import { env } from 'cloudflare:workers';
 import { compilePermalinkPattern, type PermalinkPatternKind } from '@/lib/permalink-pattern';
 import { parsePluginOption } from '@/lib/plugin';
+import { hasAuthCookies } from '@/lib/auth';
 
 export { PUBLIC_HTML_HEADER } from '@/lib/cache';
 
@@ -80,6 +81,7 @@ export const CACHE_BYPASS_REASON_HEADER = 'X-Typecho-Cache-Bypass';
 
 export type BypassReason =
   | 'authorization'
+  | 'authenticated'
   | 'cache-control'
   | 'unsafe-query'
   | 'domain-disabled'
@@ -964,6 +966,12 @@ function requestCachePolicy(request: Request): RequestCacheDecision {
   if (request.headers.get(CACHE_WARMUP_HEADER) === '1') return { policy: 'read-write' };
   if (request.headers.has('Authorization')) {
     return { policy: 'bypass', reason: 'authorization' };
+  }
+  // Frontend HTML includes permission-dependent management metadata. Never
+  // reuse a public cached render for an authenticated viewer, or store an
+  // authenticated render where anonymous visitors could receive it.
+  if (hasAuthCookies(request.headers.get('Cookie'))) {
+    return { policy: 'bypass', reason: 'authenticated' };
   }
   const cacheControl = request.headers.get('Cache-Control')?.toLowerCase() || '';
   // no-store: client forbids shared reuse — full bypass.
