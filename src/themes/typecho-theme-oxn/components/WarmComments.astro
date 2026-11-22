@@ -238,18 +238,18 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
     const renderFrame = (root, data) => {
       const password = new URL(window.location.href).searchParams.get('password') || '';
       root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
-          ${renderManagement({
-            canManage: data.commenter?.canManage === true,
+          ${renderManagement(root.dataset.canManage === 'true' ? {
+            canManage: true,
             showManagementButtons: root.dataset.showManagementButtons !== 'false',
             adminUrl: root.dataset.adminUrl || '/admin/',
             contentType: root.dataset.contentType,
             isPinned: root.dataset.isPinned === 'true',
-            csrfToken: data.commenter?.csrfToken || '',
+            csrfToken: root.dataset.csrfToken || '',
             octiconPin: root.dataset.octiconPin || '',
             octiconPencil: root.dataset.octiconPencil || '',
             octiconTrash: root.dataset.octiconTrash || '',
             octiconCopy: root.dataset.octiconCopy || '',
-          }, root.dataset.cid)}
+          } : null, root.dataset.cid)}
         </div>
         ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken)}
         <div class="warm-comment-list" data-comment-list aria-live="polite">
