@@ -122,6 +122,32 @@ Bilibili iframe 需要经过两道独立检查：
 **部署时只替换当前使用的 `src/lib/markdown.ts`。** `.sim` 和 `.bak` 仅用于对照、回查和恢复，不需要复制到另一个 Cloudflare 环境。
 
 
+### 2.5 从原版 Warm 切换到 OXN
+
+OXN 与原版 Warm 是两个独立主题，主题 ID 分别为 `typecho-theme-oxn` 和 `typecho-theme-warm`。切换到 OXN 不需要删除原版 Warm，也不能把 OXN 文件覆盖到原版 Warm 目录中。
+
+如果要在现有 Typecho-Workers 项目中启用当前维护版本的 OXN，按下面顺序处理：
+
+1. **先备份。** 备份项目文件、数据库和当前部署配置；另外在后台记录或导出原主题设置。
+2. **保留原版 Warm。** 不要删除或覆盖 `src/themes/typecho-theme-warm/`，OXN 应放在独立的 `src/themes/typecho-theme-oxn/` 目录。
+3. **同步 OXN 主题目录。** 使用同一维护版本中的完整 `src/themes/typecho-theme-oxn/`，不要只复制 `style.css` 或少数组件。
+4. **同步共享依赖文件。** 按本节“必须同步的主题与核心文件”表格，同步 `src/pages/index.astro`、`src/lib/markdown.ts`、`src/lib/security-headers.ts`、`astro.config.mjs`、`package.json` 和 `bun.lock`。这些文件应来自同一版本，不能把不同分支或不同提交的文件混合使用。
+5. **按需同步插件。** 只有需要拼音别名辅助功能时，才同步并启用 `src/plugins/typecho-plugin-pinyin/`。不要把其他主题或旧升级文档中的插件清单直接当作 OXN 的必装依赖。
+6. **安装依赖并重新构建。** 在项目根目录按仓库当前使用的包管理器安装依赖，再执行项目规定的构建和部署流程。不要手工复制 `public/themes/` 下的构建产物来代替主题源码。
+7. **在后台启用 OXN。** 进入主题管理，选择 Oxn Simple。原版 Warm 仍可保留，之后也可以切回使用。
+8. **检查主题功能。** 至少检查首页、文章、独立页面、笔记（如已启用笔记插件）、评论、导航、页脚、图片和 iframe 嵌入。
+
+#### 设置与数据迁移注意事项
+
+- OXN 使用独立的主题配置标识 `typecho-theme-oxn`，不会读取或自动继承 `typecho-theme-warm` 保存的主题设置。
+- 切换主题不会自动迁移 Warm 的主题选项。启用 OXN 后，应在 OXN 自己的设置页面重新配置；也可以使用 OXN 设置页面提供的 JSON 导入/导出功能备份 OXN 配置。
+- 文章、独立页面、评论等内容仍保存在项目数据库中。正常切换主题不需要清空或重建数据库。
+- 不要用主题目录替换整个 `src/themes/`，也不要整体覆盖 `src/lib/`、`src/pages/`、`src/db/`、`src/middleware.ts` 或 Cloudflare 环境配置。
+- `src/lib/markdown.ts.sim` 和 `src/lib/markdown.ts.bak` 是对照备份，不是运行文件；实际运行时使用 `src/lib/markdown.ts`。
+- 旧版迁移说明中出现的 Warm-CY 主题、Warm-CY 配套插件及其历史提交号属于另一套旧版本说明，不是当前 OXN 的目录或版本依据。请以当前分支的文件清单和本说明中的同步要求为准。
+
+
+
 ## 3. 与原版 Typecho Warm 的主要差异
 
 | 项目 | 原版 Warm（`1119d`） | OXN（`22`） |
