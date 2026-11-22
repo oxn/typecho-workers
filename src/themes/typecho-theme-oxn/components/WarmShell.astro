@@ -90,7 +90,7 @@ const footerLinks = [
     label: link.text,
     href: link.url,
     newWindow: link.newWindow,
-    iconHtml: link.icon ? octiconPath(link.icon) : '',
+    iconHtml: link.icon ? octiconSvg(link.icon, 15) : '',
   })),
   ...socialLinks.map(link => ({ ...link, newWindow: false, iconHtml: '' })),
 ].filter(link => link.label || link.iconHtml);
@@ -229,7 +229,7 @@ const footerLinks = [
             target={link.newWindow ? '_blank' : undefined}
             rel={link.newWindow ? 'noopener noreferrer' : undefined}
           >
-            {link.iconHtml && <span><svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true" set:html={link.iconHtml}></svg></span>}
+            {link.iconHtml && <span set:html={link.iconHtml}></span>}
             {/<[a-z][\s\S]*>/i.test(link.label)
               ? <span set:html={link.label}></span>
               : link.label}
