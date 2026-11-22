@@ -35,7 +35,7 @@ export function coreDownloadAdminHtml(): string {
     var footer=panel.querySelector('#core-download-footer');
     var list=panel.querySelector('#core-download-links');
     var status=panel.querySelector('#core-download-status');
-    var fieldRow=null,fieldValue=null;
+    var fieldRow=null,fieldValue=null,parsedOk=true;
     var fields=document.querySelectorAll('#custom-field .field');
     fields.forEach(function(row){
       var name=row.querySelector('input[name="fieldNames[]"]');
@@ -90,13 +90,13 @@ export function coreDownloadAdminHtml(): string {
     [title,intro,footer].forEach(function(input){input.addEventListener('input',sync);});
     panel.querySelector('#core-download-add').addEventListener('click',function(){addLink({});sync();});
     var existing={};
-    try{existing=JSON.parse(fieldValue.value||'{}')||{};}catch(error){status.textContent='原有 coreDownload 字段不是有效 JSON，已保留原始值；修改面板后将按新格式保存。';}
+    try{existing=JSON.parse(fieldValue.value||'{}')||{};}catch(error){parsedOk=false;status.textContent='原有 coreDownload 字段不是有效 JSON；当前先保留原值，修改面板后才会覆盖。';}
     title.value=typeof existing.title==='string'?existing.title:'';
     intro.value=typeof existing.intro==='string'?existing.intro:'';
     footer.value=typeof existing.footer==='string'?existing.footer:'';
     if(Array.isArray(existing.links)){existing.links.forEach(addLink);}
     if(!list.children.length)addLink({});
-    sync();
+    if(parsedOk)sync();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
