@@ -140,7 +140,7 @@ const footerLinks = [
       <div class="warm-header__tools" aria-label="快捷入口">
         {quickActionCount > 1 ? (
           <div class="warm-quick-menu">
-            <button type="button" class="warm-search-trigger warm-quick-menu__trigger" data-warm-quick-toggle aria-label="打开快捷功能" title="快捷功能" aria-expanded="false">
+            <button type="button" class="warm-search-trigger warm-quick-menu__trigger" data-warm-quick-toggle aria-label="打开更多" title="更多" aria-expanded="false">
               <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('sidebar-expand')}></svg>
             </button>
             <div class="warm-quick-menu__items" data-warm-quick-menu hidden aria-label="快捷功能">
@@ -168,7 +168,7 @@ const footerLinks = [
               )}
               {adminEntryEnabled && (
                 <a class="warm-search-trigger warm-nav__account" href={urls.adminUrl} data-no-instant aria-label="进入后台" title="进入后台">
-                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('sign-in')}></svg>
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true" set:html={octiconPath('sign-in-24')}></svg>
                 </a>
               )}
             </div>
@@ -197,7 +197,7 @@ const footerLinks = [
               )}
               {adminEntryEnabled && (
                 <a class="warm-search-trigger warm-nav__account" href={urls.adminUrl} data-no-instant aria-label="进入后台" title="进入后台">
-                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('sign-in')}></svg>
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true" set:html={octiconPath('sign-in-24')}></svg>
                 </a>
               )}
             </div>
