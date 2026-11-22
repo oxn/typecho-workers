@@ -156,10 +156,18 @@ body.warm-theme {
 }
 
 .warm-nav__icon {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
+}
+
+.warm-nav__icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 .warm-nav__link,
