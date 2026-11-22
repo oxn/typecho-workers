@@ -66,7 +66,7 @@ for (const row of navFieldRows) {
 }
 const navPages = pages.flatMap(page => {
   const fields = navFieldsBySlug.get(page.slug);
-  const icon = fields?.icon ?? '';
+  const icon = fields?.icon && octiconPath(fields.icon) ? fields.icon : '';
   const label = fields?.hasName
     ? fields.name
     : icon
@@ -97,7 +97,7 @@ const footerLinks = [
     iconHtml: link.icon ? octiconPath(link.icon) : '',
   })),
   ...socialLinks.map(link => ({ ...link, newWindow: false, iconHtml: '' })),
-];
+].filter(link => link.label || link.iconHtml);
 ---
 <Base
   title={title}
