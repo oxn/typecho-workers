@@ -309,7 +309,9 @@ bun run db:migrate:wordpress -- \
 
 ## 主题开发
 
-参考 [主题开发规范](src/themes/README.md)。
+- [主题开发规范](src/themes/README.md)
+- [OXN Simple 主题使用与维护说明](src/themes/typecho-theme-oxn/README.md)
+- [OXN 图标使用与授权说明（中英双语）](src/themes/typecho-theme-oxn/ICONS-LICENSE.md)
 
 ---
 
