@@ -16,6 +16,7 @@
         "typecho-plugin-antispam": "workspace:*",
         "typecho-plugin-cache": "workspace:*",
         "typecho-plugin-notes": "workspace:*",
+        "typecho-plugin-oxn-comment-management": "workspace:*",
         "typecho-plugin-wordpress-import": "workspace:*",
         "typecho-plugin-notifier": "workspace:*",
         "typecho-plugin-intelligence": "workspace:*",
@@ -49,6 +50,10 @@
     },
     "src/plugins/typecho-plugin-notes": {
       "name": "typecho-plugin-notes",
+      "version": "1.0.0",
+    },
+    "src/plugins/typecho-plugin-oxn-comment-management": {
+      "name": "typecho-plugin-oxn-comment-management",
       "version": "1.0.0",
     },
     "src/plugins/typecho-plugin-wordpress-import": {
@@ -899,6 +904,8 @@
     "typecho-plugin-intelligence": ["typecho-plugin-intelligence@workspace:src/plugins/typecho-plugin-intelligence"],
 
     "typecho-plugin-notes": ["typecho-plugin-notes@workspace:src/plugins/typecho-plugin-notes"],
+
+    "typecho-plugin-oxn-comment-management": ["typecho-plugin-oxn-comment-management@workspace:src/plugins/typecho-plugin-oxn-comment-management"],
 
     "typecho-plugin-notifier": ["typecho-plugin-notifier@workspace:src/plugins/typecho-plugin-notifier"],
 
