@@ -14,7 +14,7 @@ export type WarmCommentInitialLoadMode = 'manual' | 'auto-first' | 'auto-2' | 'i
 
 export interface WarmSettings {
   pinnedIds: number[];
-  footerLinks: Array<{ text: string; url: string; newWindow: boolean }>;
+  footerLinks: Array<{ text: string; url: string; newWindow: boolean; icon: string }>;
   footerCustomHtml: string;
   articleDeclarationHtml: string;
   showThemeToggleButton: boolean;
@@ -68,11 +68,14 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
   const footerLinks = Array.from({ length: 10 }, (_, index) => {
     const suffix = String(index + 1).padStart(2, '0');
     const textValue = oxnSettings[`linktxt${suffix}`];
-    const text = typeof textValue === 'string' ? textValue.trim() : '';
+    const rawText = typeof textValue === 'string' ? textValue.trim() : '';
+    const iconMatch = rawText.match(/^\{\{icons:([a-z0-9-]+)\}\}\s*/i);
+    const icon = iconMatch?.[1]?.toLowerCase() ?? '';
+    const text = rawText.replace(/^\{\{icons:[a-z0-9-]+\}\}\s*/i, '').trim();
     const url = safeFooterUrl(oxnSettings[`links${suffix}`]);
     const newWindowValue = oxnSettings[`linkblank${suffix}`];
-    return { text, url, newWindow: newWindowValue === true || newWindowValue === '1' || newWindowValue === 1 };
-  }).filter(link => link.text && link.url);
+    return { text, url, newWindow: newWindowValue === true || newWindowValue === '1' || newWindowValue === 1, icon };
+  }).filter(link => link.url && (link.text || link.icon));
   const enabled = (value: unknown) => value === undefined || value === null || value === ''
     ? true
     : !(value === false || value === 0 || value === '0');
