@@ -250,11 +250,11 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
 
         const pinnedInput = form.querySelector('[name="pinnedIds"]');
         const pinnedIds = String(pinnedInput?.value || '')
-          .split(/[，,\\s]+/)
+          .split(/[，,\s]+/)
           .map(value => Number(value.trim()))
           .filter(value => Number.isSafeInteger(value) && value > 0);
         const formAction = new URL(form.getAttribute('action') || '/admin/options-theme', window.location.href);
-        const adminUrl = formAction.pathname.replace(/options-theme\\/?$/, '').replace(/\\/?$/, '/');
+        const adminUrl = formAction.pathname.replace(/options-theme\/?$/, '').replace(/\/?$/, '/');
 
         return {
           canManage: true,
