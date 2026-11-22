@@ -67,10 +67,10 @@ for (const row of navFieldRows) {
 const navPages = pages.flatMap(page => {
   const fields = navFieldsBySlug.get(page.slug);
   const icon = fields?.icon && octiconPath(fields.icon) ? fields.icon : '';
-  const label = fields?.hasName
-    ? fields.name
-    : icon
-      ? ''
+  const label = icon
+    ? ''
+    : fields?.hasName
+      ? fields.name
       : page.title;
   if (!label && !icon) return [];
   return [{ ...page, label, icon, ariaLabel: label || page.title }];
