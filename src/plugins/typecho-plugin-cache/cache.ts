@@ -11,7 +11,6 @@ import { CACHE_WARMUP_HEADER, PUBLIC_HTML_HEADER } from '@/lib/cache';
 import { env } from 'cloudflare:workers';
 import { compilePermalinkPattern, type PermalinkPatternKind } from '@/lib/permalink-pattern';
 import { parsePluginOption } from '@/lib/plugin';
-import { hasAuthCookies } from '@/lib/auth';
 
 export { PUBLIC_HTML_HEADER } from '@/lib/cache';
 
@@ -81,7 +80,6 @@ export const CACHE_BYPASS_REASON_HEADER = 'X-Typecho-Cache-Bypass';
 
 export type BypassReason =
   | 'authorization'
-  | 'authenticated'
   | 'cache-control'
   | 'unsafe-query'
   | 'domain-disabled'
@@ -967,12 +965,6 @@ function requestCachePolicy(request: Request): RequestCacheDecision {
   if (request.headers.has('Authorization')) {
     return { policy: 'bypass', reason: 'authorization' };
   }
-  // Frontend HTML includes permission-dependent management metadata. Never
-  // reuse a public cached render for an authenticated viewer, or store an
-  // authenticated render where anonymous visitors could receive it.
-  if (hasAuthCookies(request.headers.get('Cookie'))) {
-    return { policy: 'bypass', reason: 'authenticated' };
-  }
   const cacheControl = request.headers.get('Cache-Control')?.toLowerCase() || '';
   // no-store: client forbids shared reuse — full bypass.
   if (cacheControl.includes('no-store')) {
@@ -985,7 +977,9 @@ function requestCachePolicy(request: Request): RequestCacheDecision {
   }
 
   const cookieNames = parseCookieNames(request.headers.get('Cookie'));
-  // An unapproved-comment cookie remains read-only because it can reveal a
+  // Frontend HTML is deliberately decoupled from the authenticated viewer.
+  // Authentication cookies may therefore share the public page cache. An
+  // unapproved-comment cookie remains read-only because it can reveal a
   // submitter's pending comment on an otherwise public page.
   if (cookieNames.has('__typecho_unapproved_comment')) {
     return { policy: 'read-only', reason: 'unapproved-comment' };
