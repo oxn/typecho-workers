@@ -451,32 +451,34 @@ describe('typecho-plugin-cache provider', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('bypasses shared page cache for authenticated page renders', async () => {
+  it('lets an authenticated cold request populate the shared public page cache', async () => {
     const kv = new MemoryKv();
     await activate(kv);
-    const anonymousNext = vi.fn(async () => new Response('<html>anonymous page</html>', {
+    const publicNext = vi.fn(async () => new Response('<html>public</html>', {
       headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
     }));
-    await earlyRequestProvider.handle(requestContext(), anonymousNext);
+    await earlyRequestProvider.handle(requestContext(), publicNext);
 
-    const authenticated = requestContext();
-    authenticated.request = new Request(authenticated.request, {
+    const authenticatedHit = requestContext();
+    authenticatedHit.request = new Request(authenticatedHit.request, {
       headers: { Cookie: '__typecho_uid=1; __typecho_authCode=token' },
     });
-    const authenticatedNext = vi.fn(async () => new Response('<html>admin page with edit controls</html>', {
+    const hit = await earlyRequestProvider.handle(authenticatedHit, publicNext);
+    expect(hit.headers.get('X-Typecho-Cache')).toBe('L1');
+
+    await earlyRequestProvider.invalidate!({ reason: 'test', domains: ['all'] });
+    const authenticatedNext = vi.fn(async () => new Response('<html>public after login</html>', {
       headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
     }));
-    const response = await earlyRequestProvider.handle(authenticated, authenticatedNext);
+    const miss = await earlyRequestProvider.handle(authenticatedHit, authenticatedNext);
+    expect(miss.headers.get('X-Typecho-Cache')).toBe('MISS');
+    expect(await miss.text()).toContain('public after login');
 
-    expect(response.headers.get('X-Typecho-Cache')).toBe('BYPASS');
-    expect(response.headers.get(CACHE_BYPASS_REASON_HEADER)).toBe('authenticated');
-    expect(await response.text()).toContain('admin page with edit controls');
+    const anonymous = await earlyRequestProvider.handle(requestContext(), publicNext);
+    expect(anonymous.headers.get('X-Typecho-Cache')).toBe('L1');
+    expect(await anonymous.text()).toContain('public after login');
     expect(authenticatedNext).toHaveBeenCalledOnce();
-
-    const anonymousHit = await earlyRequestProvider.handle(requestContext(), anonymousNext);
-    expect(anonymousHit.headers.get('X-Typecho-Cache')).toBe('L1');
-    expect(await anonymousHit.text()).toContain('anonymous page');
-    expect(anonymousHit.headers.get('X-Typecho-Cache')).not.toBe('BYPASS');
+    expect(publicNext).toHaveBeenCalledOnce();
   });
 
   it('treats publish-time warm-up requests as read-write despite no-cache', async () => {
@@ -547,56 +549,59 @@ describe('typecho-plugin-cache provider', () => {
     expect([...kv.store.keys()].some(key => key.includes(':p:'))).toBe(false);
   });
 
-  it('does not serve cached L2 HTML to authenticated requests', async () => {
+  it('serves an authenticated request from L2 after the local L1 is cold', async () => {
     const kv = new MemoryKv();
     await activate(kv);
-    const anonymousNext = vi.fn(async () => new Response('<html>anonymous L2 page</html>', {
+    const next = vi.fn(async () => new Response('<html>public</html>', {
       headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
     }));
-    await earlyRequestProvider.handle(requestContext(), anonymousNext);
+    await earlyRequestProvider.handle(requestContext(), next);
     _resetCaches();
 
     const authenticated = requestContext();
     authenticated.request = new Request(authenticated.request, {
       headers: { Cookie: '__typecho_uid=1; __typecho_authCode=token' },
     });
-    const authenticatedNext = vi.fn(async () => new Response('<html>fresh admin page</html>', {
-      headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
-    }));
-    const response = await earlyRequestProvider.handle(authenticated, authenticatedNext);
-
-    expect(response.headers.get('X-Typecho-Cache')).toBe('BYPASS');
-    expect(response.headers.get(CACHE_BYPASS_REASON_HEADER)).toBe('authenticated');
-    expect(await response.text()).toContain('fresh admin page');
-    expect(authenticatedNext).toHaveBeenCalledOnce();
+    const response = await earlyRequestProvider.handle(authenticated, next);
+    expect(response.headers.get('X-Typecho-Cache')).toBe('L2');
+    expect(next).toHaveBeenCalledOnce();
   });
 
-  it('keeps authenticated and anonymous cold renders separate', async () => {
+  it('coalesces authenticated and anonymous cold requests into one public render', async () => {
     const kv = new MemoryKv();
     await activate(kv);
+    let releaseRender!: () => void;
+    const renderGate = new Promise<void>(resolve => { releaseRender = resolve; });
+    let markRenderStarted!: () => void;
+    const renderStarted = new Promise<void>(resolve => { markRenderStarted = resolve; });
     const authenticated = requestContext();
     authenticated.request = new Request(authenticated.request, {
       headers: { Cookie: '__typecho_uid=1; __typecho_authCode=token' },
     });
-    const authenticatedNext = vi.fn(async () => new Response('<html>admin-only content</html>', {
-      headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
-    }));
-    const anonymousNext = vi.fn(async () => new Response('<html>anonymous-only content</html>', {
+    const authenticatedNext = vi.fn(async () => {
+      markRenderStarted();
+      await renderGate;
+      return new Response('<html>public from login</html>', { headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' } });
+    });
+    const publicNext = vi.fn(async () => new Response('<html>public</html>', {
       headers: { 'Content-Type': 'text/html', [PUBLIC_HTML_HEADER]: '1' },
     }));
 
-    const [authenticatedResponse, anonymousResponse] = await Promise.all([
-      earlyRequestProvider.handle(authenticated, authenticatedNext),
-      earlyRequestProvider.handle(requestContext(), anonymousNext),
+    const authenticatedResponsePromise = earlyRequestProvider.handle(authenticated, authenticatedNext);
+    await renderStarted;
+    const publicResponsePromise = earlyRequestProvider.handle(requestContext(), publicNext);
+    releaseRender();
+    const [authenticatedResponse, publicResponse] = await Promise.all([
+      authenticatedResponsePromise,
+      publicResponsePromise,
     ]);
 
-    expect(authenticatedResponse.headers.get('X-Typecho-Cache')).toBe('BYPASS');
-    expect(authenticatedResponse.headers.get(CACHE_BYPASS_REASON_HEADER)).toBe('authenticated');
-    expect(await authenticatedResponse.text()).toContain('admin-only content');
-    expect(anonymousResponse.headers.get('X-Typecho-Cache')).toBe('MISS');
-    expect(await anonymousResponse.text()).toContain('anonymous-only content');
+    expect(['MISS', 'L1']).toContain(publicResponse.headers.get('X-Typecho-Cache'));
+    expect(await publicResponse.text()).toContain('public from login');
+    expect(authenticatedResponse.headers.get('X-Typecho-Cache')).toBe('MISS');
+    expect(await authenticatedResponse.text()).toContain('public from login');
     expect(authenticatedNext).toHaveBeenCalledOnce();
-    expect(anonymousNext).toHaveBeenCalledOnce();
+    expect(publicNext).not.toHaveBeenCalled();
   });
 
   it('stores a marked Warm response from a sensitive cookie request', async () => {
