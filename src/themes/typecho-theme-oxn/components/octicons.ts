@@ -70,7 +70,7 @@ export function renderIconInput(value: unknown, size = 16): string {
   const marker = input.match(/^\{\{octicon:([a-z0-9-]+)\}\}$/i);
   if (marker) return octiconSvg(marker[1], size);
 
-  if (/<[a-z][\\s\\S]*>/i.test(input)) return input;
+  if (/<[a-z][\s\S]*>/i.test(input)) return input;
 
   // Keep existing bare-name values working for backward compatibility.
   return octiconSvg(input, size);
