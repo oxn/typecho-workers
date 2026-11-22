@@ -56,7 +56,7 @@ export function octiconSvg(name: string, size = 16): string {
   if (!resolved) return '';
 
   const { height, variant } = resolved;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${variant.width} ${height}" fill="currentColor" aria-hidden="true"><path d="${variant.path}"></path></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${variant.width} ${height}" fill="currentColor" aria-hidden="true">${variant.path}</svg>`;
 }
 
 /**
