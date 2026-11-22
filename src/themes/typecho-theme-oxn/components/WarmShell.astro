@@ -36,6 +36,7 @@ const footerCustomHtml = renderFooterCustomHtml(settings.footerCustomHtml);
 const themeToggleEnabled = settings.showThemeToggleButton;
 const searchEnabled = settings.showHomeSearchButton;
 const adminEntryEnabled = settings.showAdminEntryButton;
+const quickActionCount = [themeToggleEnabled, searchEnabled, adminEntryEnabled].filter(Boolean).length;
 const categories = sidebarData.categories.slice(0, 8);
 const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
