@@ -3,6 +3,8 @@ import Base from '@/layouts/Base.astro';
 import type { ThemeBaseProps } from '@/lib/theme-props';
 import type { PageContext } from '@/lib/plugin';
 import { PUBLIC_HTML_HEADER } from '@/lib/cache';
+import { and, eq, inArray } from 'drizzle-orm';
+import { schema, type Database } from '@/db';
 import { warmSettings, renderFooterCustomHtml, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
@@ -33,6 +35,46 @@ const {
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
+const navPageSlugs = pages.map(page => page.slug).filter(Boolean);
+const navFieldRows = navPageSlugs.length
+  ? await (pluginCtx as typeof pluginCtx & { db: Database }).db
+    .select({
+      slug: schema.contents.slug,
+      fieldName: schema.fields.name,
+      fieldValue: schema.fields.str_value,
+    })
+    .from(schema.contents)
+    .innerJoin(schema.fields, eq(schema.contents.cid, schema.fields.cid))
+    .where(and(
+      eq(schema.contents.type, 'page'),
+      inArray(schema.contents.slug, navPageSlugs),
+      inArray(schema.fields.name, ['name', 'icons']),
+    ))
+  : [];
+const navFieldsBySlug = new Map<string, { name: string; hasName: boolean; icon: string }>();
+for (const row of navFieldRows) {
+  if (!row.slug) continue;
+  const fields = navFieldsBySlug.get(row.slug) ?? { name: '', hasName: false, icon: '' };
+  const value = typeof row.fieldValue === 'string' ? row.fieldValue.trim() : '';
+  if (row.fieldName === 'name') {
+    fields.hasName = true;
+    fields.name = value;
+  } else if (row.fieldName === 'icons') {
+    fields.icon = value;
+  }
+  navFieldsBySlug.set(row.slug, fields);
+}
+const navPages = pages.flatMap(page => {
+  const fields = navFieldsBySlug.get(page.slug);
+  const icon = fields?.icon ?? '';
+  const label = fields?.hasName
+    ? fields.name
+    : icon
+      ? ''
+      : page.title;
+  if (!label && !icon) return [];
+  return [{ ...page, label, icon, ariaLabel: label || page.title }];
+});
 const footerCustomHtml = renderFooterCustomHtml(settings.footerCustomHtml);
 const themeToggleEnabled = settings.showThemeToggleButton;
 const searchEnabled = settings.showHomeSearchButton;
@@ -48,8 +90,13 @@ const socialLinks = [
   { label: 'Email', href: settings.email ? `mailto:${settings.email}` : '' },
 ].filter(link => link.href);
 const footerLinks = [
-  ...settings.footerLinks.map(link => ({ label: link.text, href: link.url, newWindow: link.newWindow })),
-  ...socialLinks.map(link => ({ ...link, newWindow: false })),
+  ...settings.footerLinks.map(link => ({
+    label: link.text,
+    href: link.url,
+    newWindow: link.newWindow,
+    iconHtml: link.icon ? octiconPath(link.icon) : '',
+  })),
+  ...socialLinks.map(link => ({ ...link, newWindow: false, iconHtml: '' })),
 ];
 ---
 <Base
@@ -84,8 +131,16 @@ const footerLinks = [
         {notesEnabled && (
           <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
         )}
-        {pages.map((page) => (
-          <a class:list={["warm-nav__link", { "is-active": currentPath != '/' && page.permalink.includes(currentPath) }]} href={page.permalink}>{page.title}</a>
+        {navPages.map((page) => (
+          <a
+            class:list={["warm-nav__link", { "is-active": currentPath != '/' && page.permalink.includes(currentPath) }]}
+            href={page.permalink}
+            aria-label={page.ariaLabel}
+            title={page.ariaLabel}
+          >
+            {page.icon && <svg class="warm-nav__icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" set:html={octiconPath(page.icon)}></svg>}
+            {page.label && <span>{page.label}</span>}
+          </a>
         ))}
       </nav>
       <div class="warm-header__tools" aria-label="快捷入口">
@@ -178,6 +233,7 @@ const footerLinks = [
             target={link.newWindow ? '_blank' : undefined}
             rel={link.newWindow ? 'noopener noreferrer' : undefined}
           >
+            {link.iconHtml && <span><svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true" set:html={link.iconHtml}></svg></span>}
             {/<[a-z][\s\S]*>/i.test(link.label)
               ? <span set:html={link.label}></span>
               : link.label}
