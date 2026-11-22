@@ -1,7 +1,5 @@
 ---
 import type { ThemePageProps } from '@/lib/theme-props';
-import { createContext } from '@/lib/context';
-import { hasPermission } from '@/lib/auth';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import { optimizeContentImages } from '@/lib/image-transform';
@@ -9,21 +7,11 @@ import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
 
 type Props = ThemePageProps;
 const {
-  options, urls, pages, sidebarData, currentPath, pluginCtx, user,
+  options, urls, pages, sidebarData, currentPath, pluginCtx,
   page, commentPagination,
 } = Astro.props;
 const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
 const settings = warmSettings(options);
-const isAdmin = !!user && hasPermission(user.group || 'visitor', 'administrator');
-const requestContext = isAdmin ? await createContext(Astro.locals, Astro.request) : null;
-const commentManagement = isAdmin && requestContext ? {
-  canManage: true,
-  showManagementButtons: settings.showCommentManagementButtons,
-  adminUrl: urls.adminUrl,
-  contentType: 'page' as const,
-  isPinned: false,
-  csrfToken: requestContext.csrfToken || '',
-} : null;
 ---
 <WarmShell
   title={page.title}
@@ -54,7 +42,7 @@ const commentManagement = isAdmin && requestContext ? {
       componentLoadMode={settings.commentComponentLoadMode}
       initialLoadMode={settings.commentInitialLoadMode}
       cooldownSeconds={options.commentsPostIntervalEnable ? (options.commentsPostInterval || 60) : 0}
-      management={commentManagement}
+      contentType="page"
     />
   )}
 </WarmShell>
