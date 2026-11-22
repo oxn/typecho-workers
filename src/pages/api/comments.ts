@@ -8,6 +8,8 @@ import {
   getCookieValue,
   generateCommentToken,
   validateAuthToken,
+  generateSecurityToken,
+  hasPermission,
   validateUnapprovedCommentToken,
 } from '@/lib/auth';
 import { getRequestCoreContextFromLocals } from '@/lib/context';
@@ -81,12 +83,18 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   const commenter = authResult
     ? {
         loggedIn: true,
+        canManage: hasPermission(authResult.user.group || 'visitor', 'administrator'),
+        csrfToken: options.secret
+          ? await generateSecurityToken(options.secret, authResult.user.authCode!, authResult.user.uid)
+          : '',
         author: authResult.user.screenName || authResult.user.name || '',
         mail: authResult.user.mail || '',
         url: authResult.user.url || '',
       }
     : {
         loggedIn: false,
+        canManage: false,
+        csrfToken: '',
         ...remembered.identity,
       };
 
