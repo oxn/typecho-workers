@@ -67,7 +67,11 @@ for (const row of navFieldRows) {
 const navPages = pages.flatMap(page => {
   const fields = navFieldsBySlug.get(page.slug);
   const iconHtml = renderIconInput(fields?.icon, 16);
-  const label = fields?.hasName ? fields.name : iconHtml ? '' : page.title;
+  const label = iconHtml
+    ? fields?.name || page.title
+    : fields?.hasName
+      ? fields.name
+      : page.title;
   if (!label && !iconHtml) return [];
   return [{ ...page, label, iconHtml, ariaLabel: label || page.title }];
 });
