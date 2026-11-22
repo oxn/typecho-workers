@@ -645,7 +645,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             }
 
             const pinnedIds = String(pinnedInput.value || '')
-              .split(/[，,\\s]+/)
+              .split(/[，,\s]+/)
               .map(value => Number(value.trim()))
               .filter(value => Number.isSafeInteger(value) && value > 0 && value !== Number(cid));
             if (targetPinned) pinnedIds.unshift(Number(cid));
