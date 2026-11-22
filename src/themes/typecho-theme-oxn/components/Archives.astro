@@ -2,6 +2,7 @@
 import { desc } from 'drizzle-orm';
 import { schema } from '@/db';
 import { createContext } from '@/lib/context';
+import { hasPermission } from '@/lib/auth';
 import { buildPermalink } from '@/lib/content';
 import { publishedPostCondition } from '@/lib/content-visibility';
 import type { ThemePageProps } from '@/lib/theme-props';
@@ -44,6 +45,15 @@ for (const post of posts) {
 }
 const archives = [...yearGroups.entries()].sort((a, b) => b[0] - a[0]);
 const settings = warmSettings(options);
+const isAdmin = !!user && hasPermission(user.group || 'visitor', 'administrator');
+const commentManagement = isAdmin ? {
+  canManage: true,
+  showManagementButtons: settings.showCommentManagementButtons,
+  adminUrl: urls.adminUrl,
+  contentType: 'page' as const,
+  isPinned: false,
+  csrfToken: ctx.csrfToken || '',
+} : null;
 ---
 <WarmShell
   title={page.title}
@@ -98,7 +108,7 @@ const settings = warmSettings(options);
       componentLoadMode={settings.commentComponentLoadMode}
       initialLoadMode={settings.commentInitialLoadMode}
       cooldownSeconds={options.commentsPostIntervalEnable ? (options.commentsPostInterval || 60) : 0}
-      management={null}
+      management={commentManagement}
     />
   )}
 </WarmShell>
