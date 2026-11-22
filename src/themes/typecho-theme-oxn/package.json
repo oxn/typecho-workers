@@ -11,6 +11,9 @@
     "warm",
     "notes"
   ],
+  "dependencies": {
+    "@primer/octicons": "^19.42.0"
+  },
   "files": [
     "theme.json",
     "style.css",
