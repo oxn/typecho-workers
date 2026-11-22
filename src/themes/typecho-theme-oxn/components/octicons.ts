@@ -22,45 +22,49 @@ interface OcticonDefinition {
 const importedIcons = octiconsData as unknown as { default?: Record<string, OcticonDefinition> } & Record<string, OcticonDefinition>;
 const icons = (importedIcons.default ?? importedIcons) as Record<string, OcticonDefinition>;
 
-function normalizeOcticonName(name: string): string {
+interface ResolvedOcticon {
+  icon: OcticonDefinition;
+  height: number;
+  variant: OcticonVariant;
+}
+
+function resolveOcticon(name: string): ResolvedOcticon | null {
   const value = typeof name === 'string' ? name.trim() : '';
   const marker = value.match(/^\{\{(?:octicon|icons):([a-z0-9-]+)\}\}$/i);
-  return (marker?.[1] ?? value).toLowerCase();
+  const normalized = (marker?.[1] ?? value).toLowerCase();
+  const sizedName = normalized.match(/^(.+)-(16|24)$/);
+  const iconName = sizedName?.[1] ?? normalized;
+  const icon = icons[iconName];
+  if (!icon) return null;
+
+  const requestedHeight = sizedName?.[2];
+  const height = requestedHeight
+    ? Number(requestedHeight)
+    : icon.heights['16']
+      ? 16
+      : Number(Object.keys(icon.heights).sort((a, b) => Number(a) - Number(b))[0]);
+  const variant = icon.heights[String(height)];
+  if (!variant?.path || !variant.width) return null;
+
+  return { icon, height, variant };
 }
 
 export function octiconPath(name: string): string {
-  const icon = icons[normalizeOcticonName(name)];
-  if (!icon) return '';
-
-  const variant =
-    icon.heights['16'] ??
-    icon.heights[Object.keys(icon.heights).sort((a, b) => Number(a) - Number(b))[0]];
-
-  return variant?.path ?? '';
+  return resolveOcticon(name)?.variant.path ?? '';
 }
 
 export function octiconSvg(name: string, size = 16): string {
-  const icon = icons[normalizeOcticonName(name)];
-  if (!icon) return '';
+  const resolved = resolveOcticon(name);
+  if (!resolved) return '';
 
-  // Prefer Primer's renderer when available; the package's data export may
-  // contain plain icon definitions without the toSVG helper.
-  if (icon.toSVG) {
-    return icon.toSVG({ width: size, height: size, fill: 'currentColor' });
-  }
-
-  const height = icon.heights['16']
-    ? 16
-    : Number(Object.keys(icon.heights).sort((a, b) => Number(a) - Number(b))[0]);
-  const variant = icon.heights[String(height)];
-  if (!variant?.path || !variant.width || !height) return '';
-
+  const { height, variant } = resolved;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${variant.width} ${height}" fill="currentColor" aria-hidden="true"><path d="${variant.path}"></path></svg>`;
 }
 
 /**
  * Accept the same icon input in navigation and footer settings:
  * Octicon marker, raw HTML/SVG, or a legacy bare Octicon name.
+ * Append -16 or -24 to a name to select that source variant explicitly.
  */
 export function renderIconInput(value: unknown, size = 16): string {
   if (typeof value !== 'string') return '';
