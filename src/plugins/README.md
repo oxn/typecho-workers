@@ -10,6 +10,7 @@
 |---|---|
 | `typecho-plugin-antispam` | 本地反垃圾评论：蜜罐、动态时间令牌、链接数量限制 |
 | `typecho-plugin-cache` | 页面多层缓存、数据查询缓存、缓存失效与 CDN 地址改写 |
+| `typecho-plugin-core-download` | 文章下载信息配置，使用文章自定义字段保存 |
 | `typecho-plugin-intelligence` | AI 写作辅助、文章/页面摘要、站内或 Bing/Google 搜索 |
 | `typecho-plugin-notes` | 笔记内容类型、话题、附件和公开时间线数据 |
 | `typecho-plugin-notifier` | 系统邮件、新评论/回复通知与通用 WebHook |
