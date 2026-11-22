@@ -19,10 +19,17 @@ interface OcticonDefinition {
   toSVG?: (options?: Record<string, string | number>) => string;
 }
 
-const icons = octiconsData as unknown as Record<string, OcticonDefinition>;
+const importedIcons = octiconsData as unknown as { default?: Record<string, OcticonDefinition> } & Record<string, OcticonDefinition>;
+const icons = (importedIcons.default ?? importedIcons) as Record<string, OcticonDefinition>;
+
+function normalizeOcticonName(name: string): string {
+  const value = typeof name === 'string' ? name.trim() : '';
+  const marker = value.match(/^\{\{(?:octicon|icons):([a-z0-9-]+)\}\}$/i);
+  return (marker?.[1] ?? value).toLowerCase();
+}
 
 export function octiconPath(name: string): string {
-  const icon = icons[name];
+  const icon = icons[normalizeOcticonName(name)];
   if (!icon) return '';
 
   const variant =
@@ -33,7 +40,7 @@ export function octiconPath(name: string): string {
 }
 
 export function octiconSvg(name: string, size = 16): string {
-  const icon = icons[name];
+  const icon = icons[normalizeOcticonName(name)];
   if (!icon) return '';
 
   // Primer selects the closest native artwork size and preserves its viewBox.
