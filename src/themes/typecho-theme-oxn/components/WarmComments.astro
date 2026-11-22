@@ -119,7 +119,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
     };
 
     const renderManagement = (management, cid) => {
-  if (!management?.canManage || management.showManagementButtons === false) return '';
+  if (!management) return '';
 
   const contentType = management.contentType;
   if (contentType !== 'post' && contentType !== 'page') return '';
@@ -238,9 +238,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
     const renderFrame = (root, data) => {
       const password = new URL(window.location.href).searchParams.get('password') || '';
       root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
-          ${renderManagement(root.dataset.canManage === 'true' ? {
-            canManage: true,
-            showManagementButtons: root.dataset.showManagementButtons !== 'false',
+          ${renderManagement(data.commenter?.loggedIn === true ? {
             adminUrl: root.dataset.adminUrl || '/admin/',
             contentType: root.dataset.contentType,
             isPinned: root.dataset.isPinned === 'true',
