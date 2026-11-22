@@ -83,12 +83,6 @@ const quickActionCount = [themeToggleEnabled, searchEnabled, adminEntryEnabled].
 const categories = sidebarData.categories.slice(0, 8);
 const homeUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 const notesEnabled = pluginCtx.activatedPlugins.has('typecho-plugin-notes');
-const socialLinks = [
-  { label: 'RSS', href: urls.feedUrl },
-  { label: 'GitHub', href: settings.githubUrl },
-  { label: '社交主页', href: settings.socialUrl },
-  { label: 'Email', href: settings.email ? `mailto:${settings.email}` : '' },
-].filter(link => link.href);
 const footerLinks = [
   ...settings.footerLinks.map(link => ({
     label: link.text,
@@ -96,8 +90,8 @@ const footerLinks = [
     newWindow: link.newWindow,
     iconHtml: renderIconInput(link.icon, 15),
   })),
-  ...socialLinks.map(link => ({ ...link, newWindow: false, iconHtml: '' })),
-].filter(link => link.label || link.iconHtml);
+  { label: 'RSS', href: urls.feedUrl, newWindow: false, iconHtml: '' },
+].filter(link => link.href && (link.label || link.iconHtml));
 ---
 <Base
   title={title}
