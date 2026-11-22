@@ -8,17 +8,10 @@ interface Props {
   initialLoadMode: WarmCommentInitialLoadMode;
   /** Seconds the submit button stays locked after a submit attempt (0 disables). */
   cooldownSeconds?: number;
-  management?: {
-    canManage: boolean;
-    showManagementButtons: boolean;
-    adminUrl: string;
-    contentType: 'post' | 'page';
-    isPinned: boolean;
-    csrfToken: string;
-  } | null;
+  contentType?: 'post' | 'page' | null;
 }
 
-const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0, management } = Astro.props;
+const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0, contentType } = Astro.props;
 const requestedCommentPage = Astro.url.searchParams.get('commentPage');
 ---
 <section
@@ -30,12 +23,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
   data-comment-component-load={componentLoadMode}
   data-current-page={requestedCommentPage || undefined}
   data-comment-initial-load={initialLoadMode}
-  data-can-manage={management?.canManage ? 'true' : undefined}
-  data-show-management-buttons={management?.showManagementButtons === false ? 'false' : 'true'}
-  data-admin-url={management?.adminUrl}
-  data-content-type={management?.contentType}
-  data-is-pinned={management?.isPinned ? 'true' : 'false'}
-  data-csrf-token={management?.csrfToken}
+  data-comment-content-type={contentType || undefined}
   data-octicon-pin={octiconSvg('pin', 16)}
   data-octicon-pencil={octiconSvg('pencil', 16)}
   data-octicon-trash={octiconSvg('trash', 16)}
@@ -235,14 +223,56 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
   `;
 };
 
-    const renderFrame = (root, data) => {
+    const loadAdminManagement = async root => {
+      const contentType = root.dataset.commentContentType;
+      if (contentType !== 'post' && contentType !== 'page') return null;
+
+      try {
+        // 登录身份只决定是否尝试读取后台；管理员身份由后台页面自身的权限校验确认。
+        const response = await fetch('/admin/options-theme', {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { Accept: 'text/html' },
+        });
+        if (!response.ok || response.redirected) return null;
+
+        const html = await response.text();
+        const document = new DOMParser().parseFromString(html, 'text/html');
+        const form = document.querySelector('form[action="/admin/options-theme"]');
+        const csrfToken = form?.querySelector('input[name="_"]')?.value || '';
+        if (!form || !csrfToken) return null;
+
+        const visibility = form.querySelector('[name="showCommentManagementButtons"]');
+        if (visibility && (
+          (visibility.type === 'checkbox' && !visibility.checked)
+          || (visibility.type !== 'checkbox' && visibility.value === '0')
+        )) return null;
+
+        const pinnedInput = form.querySelector('[name="pinnedIds"]');
+        const pinnedIds = String(pinnedInput?.value || '')
+          .split(/[，,\\s]+/)
+          .map(value => Number(value.trim()))
+          .filter(value => Number.isSafeInteger(value) && value > 0);
+        const formAction = new URL(form.getAttribute('action') || '/admin/options-theme', window.location.href);
+        const adminUrl = formAction.pathname.replace(/options-theme\\/?$/, '').replace(/\\/?$/, '/');
+
+        return {
+          canManage: true,
+          adminUrl,
+          contentType,
+          isPinned: contentType === 'post' && pinnedIds.includes(Number(root.dataset.cid)),
+          csrfToken,
+        };
+      } catch {
+        return null;
+      }
+    };
+
+    const renderFrame = (root, data, management) => {
       const password = new URL(window.location.href).searchParams.get('password') || '';
       root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
-          ${renderManagement(data.commenter?.loggedIn === true ? {
-            adminUrl: root.dataset.adminUrl || '/admin/',
-            contentType: root.dataset.contentType,
-            isPinned: root.dataset.isPinned === 'true',
-            csrfToken: root.dataset.csrfToken || '',
+          ${renderManagement(management ? {
+            ...management,
             octiconPin: root.dataset.octiconPin || '',
             octiconPencil: root.dataset.octiconPencil || '',
             octiconTrash: root.dataset.octiconTrash || '',
@@ -282,6 +312,9 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       let dwellTimer = null;
       let componentObserver = null;
       let componentVisible = false;
+      let componentScrollStarted = false;
+      let componentScrollHandler = null;
+      const componentInitialScrollTop = window.scrollY;
       const autoLimit = initialMode === 'auto-2' ? 2 : initialMode === 'infinite' ? Infinity : 0;
 
       const cooldownMs = Math.max(0, Number(root.dataset.commentCooldown || 0) * 1000);
@@ -348,6 +381,8 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       const stopInitialLoader = () => {
         componentObserver?.disconnect();
         componentObserver = null;
+        if (componentScrollHandler) window.removeEventListener('scroll', componentScrollHandler);
+        componentScrollHandler = null;
         if (dwellTimer) window.clearTimeout(dwellTimer);
         dwellTimer = null;
         paginationObserver?.disconnect();
@@ -481,7 +516,10 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           });
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || '评论配置加载失败');
-          renderFrame(root, data);
+          const management = data.commenter?.loggedIn === true
+            ? await loadAdminManagement(root)
+            : null;
+          renderFrame(root, data, management);
           applyCooldownLock();
           metadataLoaded = true;
           return data;
@@ -842,7 +880,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           setDwellLoading(false);
         };
         const startDwellTimer = () => {
-          if (dwellTimer || metadataLoaded || metadataRequest) return;
+          if (!componentScrollStarted || dwellTimer || metadataLoaded || metadataRequest) return;
           setDwellLoading(true);
           dwellTimer = window.setTimeout(() => {
             dwellTimer = null;
@@ -851,9 +889,17 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           }, 3_000);
         };
 
+        componentScrollHandler = () => {
+          if (window.scrollY === componentInitialScrollTop) return;
+          componentScrollStarted = true;
+          window.removeEventListener('scroll', componentScrollHandler);
+          componentScrollHandler = null;
+          if (!componentObserver || componentVisible) startDwellTimer();
+        };
+        window.addEventListener('scroll', componentScrollHandler, { passive: true });
+
         if (!('IntersectionObserver' in window)) {
           componentVisible = true;
-          startDwellTimer();
           return;
         }
         componentObserver = new IntersectionObserver(entries => {
