@@ -2603,6 +2603,7 @@ html.dark {
   color: var(--warm-faint);
 }
 
+.dark .warm-quick-menu:not(.warm-quick-menu--single) .warm-quick-menu__items,
 .dark .warm-theme-menu {
   border-color: var(--warm-border);
   background: var(--warm-surface);
