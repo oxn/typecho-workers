@@ -14,6 +14,7 @@
   "files": [
     "theme.json",
     "style.css",
-    "components/"
+    "components/",
+    "OCTICONS-LICENSE.txt"
   ]
 }
