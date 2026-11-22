@@ -13,6 +13,7 @@ import WarmStreamPagination from './WarmStreamPagination.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import { optimizeContentImages } from '@/lib/image-transform';
 import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
+import { octiconPath } from './octicons';
 
 type Props = ThemeIndexProps;
 type WarmPostItem = {
@@ -271,7 +272,7 @@ if (isNotesStreamOutOfRange) Astro.response.status = 404;
           <time datetime={new Date(item.created * 1000).toISOString()}>{formatWarmDate(item.created, options.postDateFormat, options.timezone)}</time>
           {item.categories[0] ? <span aria-hidden="true">·</span> : null}
           {item.categories[0] ? <a class="warm-category" href={item.categories[0].permalink}>{item.categories[0].name}</a> : null}
-          {item.pinned && <span class="warm-pinned-badge" aria-label="置顶文章"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2.5h6l-.7 3.1 2.2 2.2v1H8.8v4.7l-.8.8-.8-.8V8.8H3.5v-1l2.2-2.2L5 2.5Z" fill="currentColor"/></svg>置顶</span>}
+          {item.pinned && <span class="warm-pinned-badge" aria-label="置顶文章"><svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true" set:html={octiconPath('pin')}></svg>置顶</span>}
         </div>
         <h2><a href={item.permalink}>{item.title}</a></h2>
         {item.excerpt && <p>{item.excerpt}</p>}
