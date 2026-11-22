@@ -268,17 +268,9 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       }
     };
 
-    const renderFrame = (root, data, management) => {
+    const renderFrame = (root, data) => {
       const password = new URL(window.location.href).searchParams.get('password') || '';
-      root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
-          ${renderManagement(management ? {
-            ...management,
-            octiconPin: root.dataset.octiconPin || '',
-            octiconPencil: root.dataset.octiconPencil || '',
-            octiconTrash: root.dataset.octiconTrash || '',
-            octiconCopy: root.dataset.octiconCopy || '',
-          } : null, root.dataset.cid)}
-        </div>
+      root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p></div>
         ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken)}
         <div class="warm-comment-list" data-comment-list aria-live="polite">
           <div class="warm-comment-deferred" data-comment-deferred>
@@ -286,6 +278,19 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             <button type="button" data-comment-load-initial hidden>加载评论</button>
           </div>
         </div>`;
+    };
+
+    const renderAdminManagement = (root, management) => {
+      if (!management || !root.isConnected) return;
+      const heading = root.querySelector('.warm-comments__heading');
+      if (!heading || heading.querySelector('.warm-article__actions')) return;
+      heading.insertAdjacentHTML('beforeend', renderManagement({
+        ...management,
+        octiconPin: root.dataset.octiconPin || '',
+        octiconPencil: root.dataset.octiconPencil || '',
+        octiconTrash: root.dataset.octiconTrash || '',
+        octiconCopy: root.dataset.octiconCopy || '',
+      }, root.dataset.cid));
     };
 
     const renderComponentPrompt = (root, message, showButton, loadingState) => {
@@ -516,11 +521,11 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           });
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || '评论配置加载失败');
-          const management = data.commenter?.loggedIn === true
-            ? await loadAdminManagement(root)
-            : null;
-          renderFrame(root, data, management);
+          renderFrame(root, data);
           applyCooldownLock();
+          if (data.commenter?.loggedIn === true) {
+            void loadAdminManagement(root).then(management => renderAdminManagement(root, management));
+          }
           metadataLoaded = true;
           return data;
         })().finally(() => {
@@ -539,7 +544,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           list = root.querySelector('[data-comment-list]');
           if (!list) throw new Error('评论组件加载失败');
           list.setAttribute('aria-busy', 'true');
-          renderComments(data, list, false, false);
+          renderComments(data, list, false, true);
           return true;
         } catch (error) {
           renderComponentPrompt(root, error instanceof Error ? error.message : '评论加载失败，点击重试。', true, false);
