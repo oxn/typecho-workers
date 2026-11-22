@@ -1,5 +1,7 @@
 ---
 import type { ThemePageProps } from '@/lib/theme-props';
+import { createContext } from '@/lib/context';
+import { hasPermission } from '@/lib/auth';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import { optimizeContentImages } from '@/lib/image-transform';
@@ -7,19 +9,21 @@ import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
 
 type Props = ThemePageProps;
 const {
-  options, urls, pages, sidebarData, currentPath, pluginCtx,
+  options, urls, pages, sidebarData, currentPath, pluginCtx, user,
   page, commentPagination,
 } = Astro.props;
 const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
 const settings = warmSettings(options);
-const commentManagement = {
-  canManage: false,
+const isAdmin = !!user && hasPermission(user.group || 'visitor', 'administrator');
+const requestContext = isAdmin ? await createContext(Astro.locals, Astro.request) : null;
+const commentManagement = isAdmin && requestContext ? {
+  canManage: true,
   showManagementButtons: settings.showCommentManagementButtons,
   adminUrl: urls.adminUrl,
   contentType: 'page' as const,
   isPinned: false,
-  csrfToken: '',
-};
+  csrfToken: requestContext.csrfToken || '',
+} : null;
 ---
 <WarmShell
   title={page.title}
