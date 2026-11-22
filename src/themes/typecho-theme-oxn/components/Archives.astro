@@ -1,0 +1,179 @@
+---
+import { desc } from 'drizzle-orm';
+import { schema } from '@/db';
+import { createContext } from '@/lib/context';
+import { buildPermalink } from '@/lib/content';
+import { publishedPostCondition } from '@/lib/content-visibility';
+import type { ThemePageProps } from '@/lib/theme-props';
+import WarmShell from './WarmShell.astro';
+import WarmComments from './WarmComments.astro';
+import { formatWarmDate, warmSettings } from './warm';
+
+type Props = ThemePageProps;
+const {
+  options, urls, pages, sidebarData, currentPath, pluginCtx, user,
+  page, commentPagination,
+} = Astro.props;
+
+const ctx = await createContext(Astro.locals, Astro.request);
+const posts = await ctx.db
+  .select({
+    cid: schema.contents.cid,
+    title: schema.contents.title,
+    slug: schema.contents.slug,
+    type: schema.contents.type,
+    created: schema.contents.created,
+  })
+  .from(schema.contents)
+  .where(publishedPostCondition())
+  .orderBy(desc(schema.contents.created));
+
+const timezone = Number(options.timezone ?? 28800);
+const yearGroups = new Map<number, Array<{ title: string; permalink: string; created: number }>>();
+for (const post of posts) {
+  const created = post.created || 0;
+  const localDate = new Date((created + timezone) * 1000);
+  const year = localDate.getUTCFullYear();
+  const items = yearGroups.get(year) ?? [];
+  items.push({
+    title: post.title || '无标题',
+    permalink: buildPermalink(post, urls.siteUrl, options.permalinkPattern as string | undefined),
+    created,
+  });
+  yearGroups.set(year, items);
+}
+const archives = [...yearGroups.entries()].sort((a, b) => b[0] - a[0]);
+const settings = warmSettings(options);
+---
+<WarmShell
+  title={page.title}
+  description={`共 ${posts.length} 篇文章`}
+  options={options}
+  urls={urls}
+  pages={pages}
+  sidebarData={sidebarData}
+  currentPath={currentPath}
+  pageContext={{ hasComments: page.allowComment, pageType: 'page' }}
+  pluginCtx={pluginCtx}
+  section="none"
+  detail
+>
+  <article class="warm-article warm-page warm-archives-page">
+    <header class="warm-article__header warm-article__hero">
+      <div class="warm-article__hero-inner">
+        <div class="warm-item-meta"><span class="warm-note-label">文章归档</span><span aria-hidden="true">·</span><span>{posts.length} 篇文章</span></div>
+        <h1>{page.title}</h1>
+      </div>
+    </header>
+
+    {page.content.trim() && (
+      <div class="warm-prose warm-archives-intro" set:html={page.content} />
+    )}
+
+    <div class="warm-archives">
+      {archives.length > 0 ? archives.map(([year, items]) => (
+        <section class="warm-archives__year" aria-labelledby={`archives-year-${year}`}>
+          <header class="warm-archives__year-header">
+            <h2 id={`archives-year-${year}`}>{year}</h2>
+            <span>{items.length} 篇文章</span>
+          </header>
+          <ul class="warm-archives__list">
+            {items.map(item => (
+              <li class="warm-archives__item">
+                <time datetime={new Date(item.created * 1000).toISOString()}>{formatWarmDate(item.created, 'm-d', timezone)}</time>
+                <a href={item.permalink}>{item.title}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )) : (
+        <section class="warm-empty"><h2>还没有文章</h2><p>发布文章后会自动出现在这里。</p></section>
+      )}
+    </div>
+  </article>
+
+  {(page.allowComment || commentPagination.totalComments > 0) && (
+    <WarmComments
+      cid={page.cid}
+      componentLoadMode={settings.commentComponentLoadMode}
+      initialLoadMode={settings.commentInitialLoadMode}
+      cooldownSeconds={options.commentsPostIntervalEnable ? (options.commentsPostInterval || 60) : 0}
+      management={null}
+    />
+  )}
+</WarmShell>
+
+<style>
+  .warm-archives {
+    margin-top: 8px;
+  }
+
+  .warm-archives__year {
+    margin: 0 0 34px;
+  }
+
+  .warm-archives__year-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0 0 12px;
+    padding: 0 0 9px;
+    border-bottom: 1px solid var(--warm-border, #e8e8e8);
+  }
+
+  .warm-archives__year-header h2 {
+    margin: 0;
+    font-size: 1.65rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .warm-archives__year-header > span {
+    color: var(--warm-muted, #888);
+    font-size: .82rem;
+  }
+
+  .warm-archives__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .warm-archives__item {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 14px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--warm-border, #e8e8e8);
+  }
+
+  .warm-archives__item time {
+    color: var(--warm-muted, #888);
+    font-size: .84rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .warm-archives__item a {
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: color .2s ease;
+  }
+
+  .warm-archives__item a:hover {
+    color: var(--warm-accent, #269b63);
+  }
+
+  @media (max-width: 480px) {
+    .warm-archives__year {
+      margin-bottom: 28px;
+    }
+
+    .warm-archives__item {
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 10px;
+    }
+  }
+</style>
