@@ -43,8 +43,35 @@ export function octiconSvg(name: string, size = 16): string {
   const icon = icons[normalizeOcticonName(name)];
   if (!icon) return '';
 
-  // Primer selects the closest native artwork size and preserves its viewBox.
-  return icon.toSVG
-    ? icon.toSVG({ width: size, height: size, fill: 'currentColor' })
-    : '';
+  // Prefer Primer's renderer when available; the package's data export may
+  // contain plain icon definitions without the toSVG helper.
+  if (icon.toSVG) {
+    return icon.toSVG({ width: size, height: size, fill: 'currentColor' });
+  }
+
+  const height = icon.heights['16']
+    ? 16
+    : Number(Object.keys(icon.heights).sort((a, b) => Number(a) - Number(b))[0]);
+  const variant = icon.heights[String(height)];
+  if (!variant?.path || !variant.width || !height) return '';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${variant.width} ${height}" fill="currentColor" aria-hidden="true"><path d="${variant.path}"></path></svg>`;
+}
+
+/**
+ * Accept the same icon input in navigation and footer settings:
+ * Octicon marker, raw HTML/SVG, or a legacy bare Octicon name.
+ */
+export function renderIconInput(value: unknown, size = 16): string {
+  if (typeof value !== 'string') return '';
+  const input = value.trim();
+  if (!input) return '';
+
+  const marker = input.match(/^\\{\\{octicon:([a-z0-9-]+)\\}\\}$/i);
+  if (marker) return octiconSvg(marker[1], size);
+
+  if (/<[a-z][\\s\\S]*>/i.test(input)) return input;
+
+  // Keep existing bare-name values working for backward compatibility.
+  return octiconSvg(input, size);
 }
