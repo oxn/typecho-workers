@@ -2312,6 +2312,47 @@ body.warm-theme {
   position: relative;
   display: inline-flex;
 }
+.warm-quick-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.warm-quick-menu__trigger svg {
+  width: 18px;
+  height: 18px;
+}
+
+.warm-quick-menu__items {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--warm-border);
+  border-radius: 8px;
+  background: var(--warm-bg);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
+  white-space: nowrap;
+}
+
+.warm-quick-menu__items[hidden] {
+  display: none;
+}
+
+.warm-quick-menu--single .warm-quick-menu__items {
+  position: static;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.warm-quick-menu--single .warm-quick-menu__items[hidden] {
+  display: inline-flex;
+}
 
 /* Keep quick-action order stable in both header layouts. */
 .warm-header__tools > .warm-theme-control {
