@@ -6,6 +6,7 @@ import { PUBLIC_HTML_HEADER } from '@/lib/cache';
 import { warmSettings, renderFooterCustomHtml, type WarmSection } from './warm';
 import { instantClickSource } from './instantclick';
 import { viewImageSource } from './viewimage';
+import { octiconPath } from './octicons';
 
 interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
   title?: string;
@@ -73,9 +74,7 @@ const footerLinks = [
         <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
           <summary>
             文章
-            <svg class="warm-nav__chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.2" />
-            </svg>
+            <svg class="warm-nav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('chevron-down')}></svg>
           </summary>
           <div class="warm-nav__menu">
             <a href={`${homeUrl}?stream=posts`}>全部文章</a>
@@ -93,44 +92,34 @@ const footerLinks = [
         {quickActionCount > 1 ? (
           <div class="warm-quick-menu">
             <button type="button" class="warm-search-trigger warm-quick-menu__trigger" data-warm-quick-toggle aria-label="打开快捷功能" title="快捷功能" aria-expanded="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <path d="M9 3v18M3 9h6" />
-              </svg>
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('sidebar-expand')}></svg>
             </button>
             <div class="warm-quick-menu__items" data-warm-quick-menu hidden aria-label="快捷功能">
               {themeToggleEnabled && (
                 <div class="warm-theme-control">
                   <button type="button" class="warm-search-trigger warm-theme-trigger" data-warm-theme-toggle aria-label="显示模式：跟随系统" title="显示模式：跟随系统" aria-expanded="false">
-                    <svg data-warm-theme-icon-light viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    <svg data-warm-theme-icon-system viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 16H20V5H4V16ZM13 18V20H17V22H7V20H11V18H13Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 16.5h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    <svg data-warm-theme-icon-dark viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg data-warm-theme-icon-light viewBox="0 0 16 16" width="24" height="24" fill="currentColor" aria-hidden="true" hidden set:html={octiconPath('sun')}></svg>
+                    <svg data-warm-theme-icon-system viewBox="0 0 16 16" width="24" height="24" fill="currentColor" aria-hidden="true" set:html={octiconPath('device-desktop')}></svg>
+                    <svg data-warm-theme-icon-dark viewBox="0 0 16 16" width="24" height="24" fill="currentColor" aria-hidden="true" hidden set:html={octiconPath('moon')}></svg>
                   </button>
                   <div class="warm-theme-menu" data-warm-theme-menu hidden aria-label="显示模式">
-                    <button type="button" data-warm-theme-choice="light" aria-label="明亮模式" title="明亮模式" aria-pressed="false">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"/></svg>
+                    <button type="button" data-warm-theme-choice="light" aria-label="明亮模式" title="明亮模式" aria-pressed="false"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" set:html={octiconPath('sun')}></svg>
                     </button>
-                    <button type="button" data-warm-theme-choice="system" aria-label="跟随系统" title="跟随系统" aria-pressed="true">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M4 16H20V5H4V16ZM13 18V20H17V22H7V20H11V18H2.9918C2.44405 18 2 17.5511 2 16.9925V4.00748C2 3.45107 2.45531 3 2.9918 3H21.0082C21.556 3 22 3.44892 22 4.00748V16.9925C22 17.5489 21.5447 18 21.0082 18H13Z"/></svg>
+                    <button type="button" data-warm-theme-choice="system" aria-label="跟随系统" title="跟随系统" aria-pressed="true"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" set:html={octiconPath('device-desktop')}></svg>
                     </button>
-                    <button type="button" data-warm-theme-choice="dark" aria-label="暗黑模式" title="暗黑模式" aria-pressed="false">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M10 7C10 10.866 13.134 14 17 14C18.9584 14 20.729 13.1957 21.9995 11.8995C22 11.933 22 11.9665 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C12.0335 2 12.067 2 12.1005 2.00049C10.8043 3.27098 10 5.04157 10 7Z"/></svg>
+                    <button type="button" data-warm-theme-choice="dark" aria-label="暗黑模式" title="暗黑模式" aria-pressed="false"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" set:html={octiconPath('moon')}></svg>
                     </button>
                   </div>
                 </div>
               )}
               {searchEnabled && (
                 <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('search')}></svg>
                 </button>
               )}
               {adminEntryEnabled && (
                 <a class="warm-search-trigger warm-nav__account" href={urls.adminUrl} data-no-instant aria-label="进入后台" title="进入后台">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
-                    <path d="M3 12h12" />
-                    <path d="m10 7 5 5-5 5" />
-                  </svg>
+                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('sign-in')}></svg>
                 </a>
               )}
             </div>
@@ -141,29 +130,25 @@ const footerLinks = [
               {themeToggleEnabled && (
                 <div class="warm-theme-control">
                   <button type="button" class="warm-search-trigger warm-theme-trigger" data-warm-theme-toggle aria-label="显示模式：跟随系统" title="显示模式：跟随系统" aria-expanded="false">
-                    <svg data-warm-theme-icon-light viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    <svg data-warm-theme-icon-system viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 16H20V5H4V16ZM13 18V20H17V22H7V20H11V18H13Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 16.5h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    <svg data-warm-theme-icon-dark viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg data-warm-theme-icon-light viewBox="0 0 16 16" width="24" height="24" fill="currentColor" aria-hidden="true" hidden set:html={octiconPath('sun')}></svg>
+                    <svg data-warm-theme-icon-system viewBox="0 0 16 16" width="24" height="24" fill="currentColor" aria-hidden="true" set:html={octiconPath('device-desktop')}></svg>
+                    <svg data-warm-theme-icon-dark viewBox="0 0 16 16" width="24" height="24" fill="currentColor" aria-hidden="true" hidden set:html={octiconPath('moon')}></svg>
                   </button>
                   <div class="warm-theme-menu" data-warm-theme-menu hidden aria-label="显示模式">
-                    <button type="button" data-warm-theme-choice="light" aria-label="明亮模式" title="明亮模式" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"/></svg></button>
-                    <button type="button" data-warm-theme-choice="system" aria-label="跟随系统" title="跟随系统" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M4 16H20V5H4V16ZM13 18V20H17V22H7V20H11V18H2.9918C2.44405 18 2 17.5511 2 16.9925V4.00748C2 3.45107 2.45531 3 2.9918 3H21.0082C21.556 3 22 3.44892 22 4.00748V16.9925C22 17.5489 21.5447 18 21.0082 18H13Z"/></svg></button>
-                    <button type="button" data-warm-theme-choice="dark" aria-label="暗黑模式" title="暗黑模式" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M10 7C10 10.866 13.134 14 17 14C18.9584 14 20.729 13.1957 21.9995 11.8995C22 11.933 22 11.9665 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C12.0335 2 12.067 2 12.1005 2.00049C10.8043 3.27098 10 5.04157 10 7Z"/></svg></button>
+                    <button type="button" data-warm-theme-choice="light" aria-label="明亮模式" title="明亮模式" aria-pressed="false"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" set:html={octiconPath('sun')}></svg></button>
+                    <button type="button" data-warm-theme-choice="system" aria-label="跟随系统" title="跟随系统" aria-pressed="true"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" set:html={octiconPath('device-desktop')}></svg></button>
+                    <button type="button" data-warm-theme-choice="dark" aria-label="暗黑模式" title="暗黑模式" aria-pressed="false"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" set:html={octiconPath('moon')}></svg></button>
                   </div>
                 </div>
               )}
               {searchEnabled && (
                 <button type="button" class="warm-search-trigger" data-warm-search-open aria-label="打开搜索" title="全局搜索">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('search')}></svg>
                 </button>
               )}
               {adminEntryEnabled && (
                 <a class="warm-search-trigger warm-nav__account" href={urls.adminUrl} data-no-instant aria-label="进入后台" title="进入后台">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
-                    <path d="M3 12h12" />
-                    <path d="m10 7 5 5-5 5" />
-                  </svg>
+                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('sign-in')}></svg>
                 </a>
               )}
             </div>
@@ -209,7 +194,7 @@ const footerLinks = [
         <form class="warm-search-form" data-warm-search-form method="get" action={homeUrl}>
           <input type="search" class="warm-search-input" data-warm-search-input name="s" placeholder="输入关键词…" autocomplete="off" aria-label="搜索关键词" />
           <button type="submit" class="warm-search-submit" aria-label="搜索">
-            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('search')}></svg>
             <span>搜索</span>
           </button>
         </form>
@@ -355,7 +340,7 @@ const footerLinks = [
       // Add copy controls to block and inline code without changing rendered Markdown.
       const copyIcon = '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path></svg>';
       const inlineCopyIcon = copyIcon.replace('width="16" height="16"', 'width="14" height="14"');
-      const copiedIcon = '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 3.2 3.2L13 4.5"></path></svg>';
+      const copiedIcon = '<svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path></svg>';
       const inlineCopiedIcon = copiedIcon.replace('width="16" height="16"', 'width="14" height="14"');
 
       document.querySelectorAll('.warm-prose pre:not([data-warm-copy-ready])').forEach(pre => {
