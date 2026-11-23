@@ -3,12 +3,19 @@ import { eq } from 'drizzle-orm';
 import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { generateSecurityToken } from '@/lib/auth';
-import { getOption } from '@/lib/options';
 import { bumpCacheVersion } from '@/lib/cache';
-import { loadThemeConfig } from '@/lib/theme';
 import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
 
 const THEME_ID = 'typecho-theme-oxn';
+const PIN_OPTION_NAME = `theme-pin:${THEME_ID}`;
+
+async function readPinnedIds(db: any): Promise<number[]> {
+  const row = await db.query.options.findFirst({
+    columns: { value: true },
+    where: eq(schema.options.name, PIN_OPTION_NAME),
+  });
+  return parsePinnedIds(row?.value);
+}
 
 function errorResponse(message: string, status: number): Response {
   return new Response(JSON.stringify({ error: message }), {
@@ -43,8 +50,7 @@ export const GET: APIRoute = async ({ request, url }) => {
     });
   }
 
-  const settings = loadThemeConfig(auth.options, THEME_ID);
-  const pinnedIds = parsePinnedIds(settings.pinnedIds);
+  const pinnedIds = await readPinnedIds(auth.db);
   const csrfToken = await generateSecurityToken(
     auth.options.secret,
     auth.user.authCode!,
@@ -102,9 +108,8 @@ export const POST: APIRoute = async ({ request }) => {
     return errorResponse('文章不存在或不是已发布文章', 404);
   }
 
-  // 读取现有配置，保留其他所有主题设置
-  const settings = loadThemeConfig(auth.options, THEME_ID);
-  const pinnedIds = parsePinnedIds(settings.pinnedIds);
+  // 置顶列表独立存储，不再读写主题设置或共享 options 缓存。
+  const pinnedIds = await readPinnedIds(auth.db);
 
   // 保留 OXN 规则：新置顶文章排在最前面
   const nextPinnedIds = body.pinned
@@ -112,43 +117,25 @@ export const POST: APIRoute = async ({ request }) => {
     : pinnedIds.filter(id => id !== cid);
 
   try {
-    const optionName = `theme:${THEME_ID}`;
-    const optionValue = JSON.stringify({
-      ...settings,
-      pinnedIds: nextPinnedIds.join(','),
-    });
+    const optionValue = nextPinnedIds.join(',');
 
-    // 直接写入主题配置，绕过通用 options 写入流程
+    // 独立写入置顶专用 option；首页每次直接从 D1 读取，不经过共享 options 缓存。
     await auth.db
       .insert(schema.options)
-      .values({ name: optionName, user: 0, value: optionValue })
+      .values({ name: PIN_OPTION_NAME, user: 0, value: optionValue })
       .onConflictDoUpdate({
         target: [schema.options.name, schema.options.user],
         set: { value: optionValue },
       });
 
-    // 只刷新首页 HTML 与 options 数据缓存，不触发全站缓存失效
+    // 只失效首页 HTML，不触碰 options 共享缓存。
     await bumpCacheVersion(auth.db, {
       reason: 'theme-pin',
       domains: ['home'],
-      sharedDomains: ['options'],
-      options: { [optionName]: optionValue },
     });
 
-    // 直接从数据库读回，不使用主题配置缓存验证写入结果
-    const storedValue = await getOption(auth.db, `theme:${THEME_ID}`);
-    if (!storedValue) {
-      return errorResponse('数据库未读回置顶配置，操作失败', 500);
-    }
-
-    let storedSettings: { pinnedIds?: unknown };
-    try {
-      storedSettings = JSON.parse(storedValue) as { pinnedIds?: unknown };
-    } catch {
-      return errorResponse('数据库置顶配置格式异常，操作失败', 500);
-    }
-
-    const storedPinnedIds = parsePinnedIds(storedSettings.pinnedIds);
+    // 从独立记录直接读回，核验数据库最终状态。
+    const storedPinnedIds = await readPinnedIds(auth.db);
     const verified = body.pinned
       ? storedPinnedIds.includes(cid)
       : !storedPinnedIds.includes(cid);
