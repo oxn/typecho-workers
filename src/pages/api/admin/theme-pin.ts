@@ -68,7 +68,7 @@ export const GET: APIRoute = async ({ request, url }) => {
   });
 };
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   const auth = await requireAdminAction(request, 'administrator');
   if (isAdminActionResponse(auth)) {
     return errorResponse('权限不足或登录已失效', auth.status === 401 ? 401 : 403);
@@ -161,7 +161,12 @@ export const POST: APIRoute = async ({ request }) => {
     // 只预热首页，不清理或预热文章详情、归档和 Feed。
     const siteUrl = String(auth.options.siteUrl || '').trim().replace(/\/+$/, '');
     if (/^https?:\/\//i.test(siteUrl)) {
-      await warmPublicCacheUrls([`${siteUrl}/`]);
+      const warmup = warmPublicCacheUrls([`${siteUrl}/`]);
+      if (locals?.cfContext?.waitUntil) {
+        locals.cfContext.waitUntil(warmup);
+      } else {
+        await warmup;
+      }
     }
 
     return new Response(JSON.stringify({
