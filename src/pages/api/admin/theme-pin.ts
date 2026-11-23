@@ -4,17 +4,18 @@ import { schema, type Database } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { generateSecurityToken } from '@/lib/auth';
 import { bumpCacheVersion } from '@/lib/cache';
+import { loadThemeConfig } from '@/lib/theme';
 import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
 
 const THEME_ID = 'typecho-theme-oxn';
 const PIN_OPTION_NAME = `theme-pin:${THEME_ID}`;
 
-async function readPinnedIds(db: Database): Promise<number[]> {
+async function readPinnedIds(db: Database): Promise<number[] | null> {
   const row = await db.query.options.findFirst({
     columns: { value: true },
     where: eq(schema.options.name, PIN_OPTION_NAME),
   });
-  return parsePinnedIds(row?.value);
+  return row ? parsePinnedIds(row.value) : null;
 }
 
 function errorResponse(message: string, status: number): Response {
@@ -50,7 +51,7 @@ export const GET: APIRoute = async ({ request, url }) => {
     });
   }
 
-  const pinnedIds = await readPinnedIds(auth.db);
+  const pinnedIds = (await readPinnedIds(auth.db)) ?? parsePinnedIds(loadThemeConfig(auth.options, THEME_ID).pinnedIds);
   const csrfToken = await generateSecurityToken(
     auth.options.secret,
     auth.user.authCode!,
@@ -109,7 +110,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // 置顶列表独立存储，不再读写主题设置或共享 options 缓存。
-  const pinnedIds = await readPinnedIds(auth.db);
+  const pinnedIds = (await readPinnedIds(auth.db)) ?? parsePinnedIds(loadThemeConfig(auth.options, THEME_ID).pinnedIds);
 
   // 保留 OXN 规则：新置顶文章排在最前面
   const nextPinnedIds = body.pinned
@@ -135,7 +136,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     // 从独立记录直接读回，核验数据库最终状态。
-    const storedPinnedIds = await readPinnedIds(auth.db);
+    const storedPinnedIds = (await readPinnedIds(auth.db)) ?? [];
     const verified = body.pinned
       ? storedPinnedIds.includes(cid)
       : !storedPinnedIds.includes(cid);
