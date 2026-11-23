@@ -2,15 +2,11 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '@/db';
-import { computeUrls, loadOptions } from '@/lib/options';
-import { loadThemeConfig } from '@/lib/theme';
-import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
+import { loadOptions } from '@/lib/options';
 import {
   getAuthCookies,
   getCookieValue,
   generateCommentToken,
-  generateSecurityToken,
-  hasPermission,
   validateAuthToken,
   validateUnapprovedCommentToken,
 } from '@/lib/auth';
@@ -97,24 +93,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   const content = await db.query.contents.findFirst({ where: eq(schema.contents.cid, cid) });
   if (!content) return jsonError(404, '内容不存在', PRIVATE_HEADERS);
 
-  // 管理信息与评论数据共用本次请求的身份验证结果。
-  const isAdministrator = Boolean(
-    authResult &&
-    String(options.theme || '') === 'typecho-theme-oxn' &&
-    hasPermission(authResult.user.group || 'visitor', 'administrator')
-  );
-  const themeSettings = loadThemeConfig(options, 'typecho-theme-oxn');
-  const pinnedIds = parsePinnedIds(themeSettings.pinnedIds);
-  const management = {
-    canManage: isAdministrator && (content.type === 'post' || content.type === 'page'),
-    adminUrl: computeUrls(options).adminUrl,
-    contentType: content.type === 'post' || content.type === 'page' ? content.type : 'none',
-    isPinned: content.type === 'post' && pinnedIds.includes(cid),
-    csrfToken: isAdministrator && authResult && options.secret
-      ? await generateSecurityToken(options.secret, authResult.user.authCode!, authResult.uid)
-      : '',
-  };
-
   const now = Math.floor(Date.now() / 1000);
   const corePublicContent =
     (content.type === 'post' || content.type === 'page') &&
@@ -159,7 +137,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
       gravatarMap: {},
       options: { ...buildCommentOptions(options, securityToken), allowComment },
       commenter,
-      management,
     };
     const extendedPayload = await applyFilterSafely(
       pluginCtx, 'comment:list', payload, { request, options, cid },
@@ -241,7 +218,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     pagination: commentData.pagination,
     options: { ...buildCommentOptions(options, securityToken), allowComment },
     commenter,
-    management,
   };
   const extendedPayload = await applyFilterSafely(
     pluginCtx, 'comment:list', payload, { request, options, cid },
