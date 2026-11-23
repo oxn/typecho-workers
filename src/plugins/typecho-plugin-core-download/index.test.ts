@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildCoreDownloadClientScript } from './client-runtime';
 import {
   decodeBase64Json,
   decodeBase64Utf8,
@@ -64,5 +65,16 @@ describe('CoreDownload WordPress compatibility', () => {
 
   it('rejects malformed Base64(JSON)', () => {
     expect(decodeBase64Json('not-base64-json')).toBeNull();
+  });
+});
+
+
+describe('CoreDownload standalone frontend', () => {
+  it('generates a valid same-origin browser script', () => {
+    const script = buildCoreDownloadClientScript();
+    expect(() => new Function(script)).not.toThrow();
+    expect(script).toContain('/api/core-download/data');
+    expect(script).toContain('data-core-download');
+    expect(script).toContain('core-download-warp');
   });
 });
