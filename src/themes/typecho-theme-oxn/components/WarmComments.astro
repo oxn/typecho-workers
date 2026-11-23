@@ -59,12 +59,12 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
       element.textContent = value || element.dataset.defaultMessage || '';
     };
 
-    const renderForm = (options, commenter, password, cid, antispamToken) => {
+    const renderForm = (options, commenter, password, cid, antispamToken, management) => {
       if (!options.allowComment) return '<p class="warm-comments__closed">评论已关闭。</p>';
       const loggedIn = commenter?.loggedIn === true;
       const defaultMessage = options.markdown ? '支持 Markdown 语法' : '良言善语';
       const identity = loggedIn
-        ? `<p class="warm-comment-form__identity">以 <strong>${escapeHtml(commenter.author || '当前用户')}</strong> 的身份评论</p>`
+        ? `<p class="warm-comment-form__identity">以 ${management?.canManage ? `<a href="${escapeHtml(management.adminUrl)}" data-no-instant><strong>${escapeHtml(commenter.author || '当前用户')}</strong></a>` : `<strong>${escapeHtml(commenter.author || '当前用户')}</strong>`} 的身份评论</p>`
         : `<div class="warm-form-grid">
             <label>
               <span>昵称 / 姓名 <i>*</i></span>
@@ -234,7 +234,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             octiconCopy: root.dataset.octiconCopy || '',
           }, root.dataset.cid)}
         </div>
-        ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken)}
+        ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken, data.management)}
         <div class="warm-comment-list" data-comment-list aria-live="polite">
           <div class="warm-comment-deferred" data-comment-deferred>
             <span class="warm-comments__empty" data-comment-loading data-comment-deferred-message aria-live="polite"></span>
