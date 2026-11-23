@@ -9,9 +9,10 @@ interface Props {
   /** Seconds the submit button stays locked after a submit attempt (0 disables). */
   cooldownSeconds?: number;
   contentType?: 'post' | 'page' | null;
+  showManagementButtons?: boolean;
 }
 
-const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0, contentType } = Astro.props;
+const { cid, componentLoadMode, initialLoadMode, cooldownSeconds = 0, contentType, showManagementButtons = true } = Astro.props;
 const requestedCommentPage = Astro.url.searchParams.get('commentPage');
 ---
 <section
@@ -24,6 +25,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
   data-current-page={requestedCommentPage || undefined}
   data-comment-initial-load={initialLoadMode}
   data-comment-content-type={contentType || undefined}
+  data-show-management-buttons={showManagementButtons ? '1' : '0'}
   data-octicon-pin={octiconSvg('pin', 16)}
   data-octicon-pencil={octiconSvg('pencil', 16)}
   data-octicon-trash={octiconSvg('trash', 16)}
@@ -225,7 +227,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
     const renderFrame = (root, data) => {
       const password = new URL(window.location.href).searchParams.get('password') || '';
       root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
-          ${renderManagement({
+          ${root.dataset.showManagementButtons === '0' ? '' : renderManagement({
             ...data.management,
             octiconPin: root.dataset.octiconPin || '',
             octiconPencil: root.dataset.octiconPencil || '',

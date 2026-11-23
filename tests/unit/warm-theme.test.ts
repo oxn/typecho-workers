@@ -17,6 +17,7 @@ import {
 } from '../../src/themes/typecho-theme-warm/components/warm';
 
 const themeRoot = join(process.cwd(), 'src/themes/typecho-theme-warm');
+const oxnThemeRoot = join(process.cwd(), 'src/themes/typecho-theme-oxn');
 
 describe('typecho-theme-warm', () => {
   it('declares a complete Typecho theme package', () => {
@@ -497,5 +498,34 @@ describe('typecho-theme-warm', () => {
     expect(css).toContain('.warm-toc:hover .warm-toc__label');
     expect(css).toContain('max-width: 0');
     expect(css).not.toContain('.warm-toc__item--h3');
+  });
+});
+
+describe('typecho-theme-oxn comment management controls', () => {
+  it('honors the comment management button setting on posts and pages without enabling it for notes', () => {
+    const post = readFileSync(join(oxnThemeRoot, 'components/Post.astro'), 'utf8');
+    const page = readFileSync(join(oxnThemeRoot, 'components/Page.astro'), 'utf8');
+    const comments = readFileSync(join(oxnThemeRoot, 'components/WarmComments.astro'), 'utf8');
+
+    expect(post).toContain('showManagementButtons={settings.showCommentManagementButtons}');
+    expect(page).toContain('showManagementButtons={settings.showCommentManagementButtons}');
+    expect(post).toContain("contentType={isNote ? null : 'post'}");
+    expect(comments).toContain("data-show-management-buttons={showManagementButtons ? '1' : '0'}");
+    expect(comments).toContain("root.dataset.showManagementButtons === '0' ? '' : renderManagement({");
+    expect(comments).toContain("if (contentType !== 'post' && contentType !== 'page') return '';");
+  });
+
+  it('preserves the existing authenticated pin and database read-back flow', () => {
+    const pinApi = readFileSync(join(process.cwd(), 'src/pages/api/admin/theme-pin.ts'), 'utf8');
+    const comments = readFileSync(join(oxnThemeRoot, 'components/WarmComments.astro'), 'utf8');
+
+    expect(pinApi).toContain("requireAdminAction(request, 'administrator')");
+    expect(pinApi).toContain("body.confirmation !== '确认'");
+    expect(pinApi).toContain("content.status !== 'publish'");
+    expect(pinApi).toContain('[cid, ...pinnedIds.filter(id => id !== cid)]');
+    expect(pinApi).toContain('await getOption(auth.db, `theme:${THEME_ID}`)');
+    expect(pinApi).toContain('storedPinnedIds.includes(cid)');
+    expect(comments).toContain('data-warm-pin-confirm-input');
+    expect(comments).toContain("fetch('/api/admin/theme-pin'");
   });
 });

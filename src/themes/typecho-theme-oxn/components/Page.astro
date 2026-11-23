@@ -43,6 +43,7 @@ const settings = warmSettings(options);
       initialLoadMode={settings.commentInitialLoadMode}
       cooldownSeconds={options.commentsPostIntervalEnable ? (options.commentsPostInterval || 60) : 0}
       contentType="page"
+      showManagementButtons={settings.showCommentManagementButtons}
     />
   )}
 </WarmShell>

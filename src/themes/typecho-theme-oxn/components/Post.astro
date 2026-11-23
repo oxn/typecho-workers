@@ -153,6 +153,7 @@ const articleDeclarationHtml = !isNote
       initialLoadMode={settings.commentInitialLoadMode}
       cooldownSeconds={options.commentsPostIntervalEnable ? (options.commentsPostInterval || 60) : 0}
       contentType={isNote ? null : 'post'}
+      showManagementButtons={settings.showCommentManagementButtons}
     />
   )}
 
