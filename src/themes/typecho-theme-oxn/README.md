@@ -10,7 +10,7 @@
 - **主题 ID：** `typecho-theme-oxn`
 - **主题名称：** Oxn Simple
 - **原版来源：** `src/themes/typecho-theme-warm/`（对照分支 `1119d`）
-- **OXN 目录：** `src/themes/typecho-theme-oxn/`（维护分支 `22`）
+- **OXN 目录：** `src/themes/typecho-theme-oxn/`（维护分支 `24`）
 - **主要文件：**
   - `theme.json`：主题元数据、后台设置项及自定义设置界面。
   - `style.css`：主题布局、文章排版、响应式样式、亮色和暗色主题。
@@ -58,7 +58,7 @@ OXN 保留 Warm 的单栏、简洁阅读方向和主要页面结构，但后台�
 
 ### 2.4 使用 OXN 时必须同步的文件
 
-如果要在另一个 Cloudflare 环境中使用当前 `22` 版本，不能只替换主题目录。OXN 有部分功能依赖项目共享核心文件；这些核心文件仍使用上游原版时，对应功能会缺失或被安全策略拦截。
+如果要在另一个 Cloudflare 环境中使用当前 `24` 版本，不能只替换主题目录。OXN 有部分功能依赖项目共享核心文件；这些核心文件仍使用上游原版时，对应功能会缺失或被安全策略拦截。
 
 #### 必须同步的主题与核心文件
 
@@ -146,7 +146,7 @@ Bilibili iframe 需要经过两道独立检查：
 
 #### 不需要为 OXN 功能替换的文件
 
-当前 `22` 的 `scripts/generate-wrangler-config.ts` 和 `wrangler.toml.example` 与上游 `master` 内容一致，不属于 OXN 功能所需的差异文件。不要因为它们出现在历史比较结果中就额外覆盖。
+当前 `24` 的 `scripts/generate-wrangler-config.ts` 和 `wrangler.toml.example` 与上游 `master` 内容一致，不属于 OXN 功能所需的差异文件。不要因为它们出现在历史比较结果中就额外覆盖。
 
 `src/lib/markdown.ts.sim` 和 `src/lib/markdown.ts.bak` 仅用于对照和回查，不是部署文件；部署时只替换实际运行的 `src/lib/markdown.ts`。
 
@@ -160,7 +160,7 @@ Bilibili iframe 需要经过两道独立检查：
 | `src/lib/markdown.ts.sim` | 修改前保存的对照副本 | 与 `.bak` 内容完全一致 |
 | `src/lib/markdown.ts.bak` | 保存的上游原版对照文件 | 与 `.sim` 内容完全一致 |
 
-在当前 `22` 分支中，`markdown.ts.sim` 和 `markdown.ts.bak` 的文件内容及 Git Blob SHA 相同（均为 `4ab2c30789c0032aa4ddce14a8af7abcaa6c7d77`），两份备份之间没有代码差异。它们均为 413 行；当前使用的 `markdown.ts` 为 547 行。
+在当前 `24` 分支中，`markdown.ts.sim` 和 `markdown.ts.bak` 的文件内容及 Git Blob SHA 相同（均为 `4ab2c30789c0032aa4ddce14a8af7abcaa6c7d77`），两份备份之间没有代码差异。它们均为 413 行；当前使用的 `markdown.ts` 为 547 行。
 
 **关于笔记插件绑定：** 两份备份都已经包含 `applyFilter()`、`renderMarkdownFiltered()`，以及 `content:markdown`、`content:content` 两个过滤钩子。这套共享插件过滤机制在保存两份备份时就已存在，并非其中一份后来单独增加的内容。因此，不能把笔记绑定描述为 `.sim` 与 `.bak` 的差异。两份文件虽然来源记录不同（一个是当时项目文件的副本，一个是上游原版副本），但本次保存时的实际代码内容相同。
 
@@ -205,7 +205,7 @@ OXN 与原版 Warm 是两个独立主题，主题 ID 分别为 `typecho-theme-ox
 
 ## 3. 与原版 Typecho Warm 的主要差异
 
-| 项目 | 原版 Warm（`1119d`） | OXN（`22`） |
+| 项目 | 原版 Warm（`1119d`） | OXN（`24`） |
 | --- | --- | --- |
 | 主题身份 | `typecho-theme-warm` | 独立 ID：`typecho-theme-oxn` |
 | 设置界面 | 原版的常规主题选项 | 增加 OXN 专属的 CY 风格设置区域和更多前台控制项 |
@@ -815,7 +815,7 @@ HTML 图片仍可直接填写尺寸属性：
 
 图片允许使用 `src`、`alt`、`title`、`width`、`height`、`loading` 等属性。正文图片会限制在阅读区域内，保持宽高比例并使用小圆角；主题图片优化参数会按设置处理符合条件的图片 URL。
 
-**语法范围说明：** 当前 `22` 的 `src/lib/markdown.ts` 已核实并实现的是上述 URL 参数写法；`{width=880 height=192}` 这种放在 Markdown 图片语法外部的花括号写法，在当前文件中没有对应解析逻辑，因此暂不列为当前版本已支持的输入格式。
+**语法范围说明：** 当前 `24` 的 `src/lib/markdown.ts` 已核实并实现的是上述 URL 参数写法；`{width=880 height=192}` 这种放在 Markdown 图片语法外部的花括号写法，在当前文件中没有对应解析逻辑，因此暂不列为当前版本已支持的输入格式。
 
 ### 6.8 行内代码、围栏代码块与缩进代码
 
