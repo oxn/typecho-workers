@@ -4,7 +4,7 @@ import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { generateSecurityToken } from '@/lib/auth';
 import { getOption } from '@/lib/options';
-import { buildContentWarmupUrls, bumpCacheVersion, warmPublicCacheUrls } from '@/lib/cache';
+import { bumpCacheVersion } from '@/lib/cache';
 import { loadThemeConfig } from '@/lib/theme';
 import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
 
@@ -68,7 +68,7 @@ export const GET: APIRoute = async ({ request, url }) => {
   });
 };
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   const auth = await requireAdminAction(request, 'administrator');
   if (isAdminActionResponse(auth)) {
     return errorResponse('权限不足或登录已失效', auth.status === 401 ? 401 : 403);
@@ -127,24 +127,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
         set: { value: optionValue },
       });
 
-    // 与文章新增、删除使用相同的公开页面及共享数据缓存失效范围
+    // 只刷新首页 HTML 与 options 数据缓存，不触发全站缓存失效
     await bumpCacheVersion(auth.db, {
       reason: 'theme-pin',
-      domains: ['home', 'archive', 'other'],
-      sharedDomains: [
-        'navigation', 'sidebar', 'metas', 'comments', 'notes', 'archive', 'content',
-        'admin-dashboard', 'admin-content',
-      ],
+      domains: ['home'],
+      sharedDomains: ['options'],
       options: { [optionName]: optionValue },
     });
-
-    // 预热首页与 Feed，避免缓存失效后首次访问才重新渲染
-    if (locals?.cfContext?.waitUntil) {
-      const warmupUrls = buildContentWarmupUrls(auth.options.siteUrl);
-      if (warmupUrls.length > 0) {
-        locals.cfContext.waitUntil(warmPublicCacheUrls(warmupUrls));
-      }
-    }
 
     // 直接从数据库读回，不使用主题配置缓存验证写入结果
     const storedValue = await getOption(auth.db, `theme:${THEME_ID}`);
