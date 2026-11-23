@@ -164,6 +164,24 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         <div class="warm-manage-dialog__panel">
           <h2 data-warm-dialog-title>文章置顶</h2>
           <p data-warm-dialog-message>确定要置顶这篇文章吗？</p>
+          <div class="warm-manage-dialog__instruction" data-warm-pin-confirm-instruction hidden>
+            <span>请输入中文</span>
+            <span class="warm-manage-dialog__code">
+              <code>确认</code>
+              <button type="button" data-warm-copy-confirm aria-label="复制确认" title="复制确认">
+                ${management.octiconCopy || ''}
+              </button>
+            </span>
+            <span>以继续。</span>
+          </div>
+          <input
+            type="text"
+            class="warm-manage-dialog__input"
+            data-warm-pin-confirm-input
+            placeholder="请输入确认"
+            autocomplete="off"
+            hidden
+          />
           <p class="warm-manage-dialog__error" data-warm-dialog-error></p>
           <div class="warm-manage-dialog__actions">
             <button type="button" data-warm-dialog-cancel>取消</button>
@@ -514,7 +532,15 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           const title = dialog.querySelector('[data-warm-dialog-title]');
           const message = dialog.querySelector('[data-warm-dialog-message]');
           const confirm = dialog.querySelector('[data-warm-dialog-confirm]');
+          const input = dialog.querySelector('[data-warm-pin-confirm-input]');
+          const instruction = dialog.querySelector('[data-warm-pin-confirm-instruction]');
 
+          if (input) {
+            input.value = '';
+            input.hidden = targetPinned;
+          }
+          if (instruction) instruction.hidden = targetPinned;
+          if (confirm) confirm.disabled = !targetPinned;
           if (title) title.textContent = targetPinned ? '文章置顶' : '取消置顶';
           if (message) {
             message.textContent = targetPinned
@@ -530,6 +556,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           if (error) error.textContent = '';
 
           dialog.showModal();
+          if (!targetPinned) input?.focus();
           return;
         }
 
@@ -578,6 +605,11 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           if (contentType !== 'post') return;
 
           const targetPinned = confirmButton.dataset.targetPinned === 'true';
+          const input = dialog.querySelector('[data-warm-pin-confirm-input]');
+          if (!targetPinned && input?.value !== '确认') {
+            showError('请输入“确认”后再执行操作');
+            return;
+          }
           const pinButton = actions.querySelector('[data-warm-action="pin"]');
 
           confirmButton.disabled = true;
@@ -661,6 +693,20 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             confirmButton.textContent = '删除';
           }
         }
+      });
+
+      // 取消置顶确认：必须完整输入“确认”
+      root.addEventListener('input', event => {
+        const input = event.target instanceof HTMLInputElement
+          && event.target.matches('[data-warm-pin-confirm-input]')
+          ? event.target
+          : null;
+
+        if (!input) return;
+
+        const dialog = input.closest('dialog');
+        const confirm = dialog?.querySelector('[data-warm-dialog-confirm]');
+        if (confirm) confirm.disabled = input.value !== '确认';
       });
 
       // 删除确认：必须完整输入“确认”
