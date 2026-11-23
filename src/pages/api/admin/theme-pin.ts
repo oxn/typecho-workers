@@ -120,8 +120,8 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const rawIds = body.pinnedIds.trim();
-    const parts = rawIds ? rawIds.split(/[，,\\s]+/) : [];
-    if (parts.some(value => !/^\\d+$/.test(value))) {
+    const parts = rawIds ? rawIds.split(/[，,\s]+/) : [];
+    if (parts.some(value => !/^\d+$/.test(value))) {
       return errorResponse('置顶 CID 格式无效，请使用英文逗号分隔正整数', 400);
     }
 
