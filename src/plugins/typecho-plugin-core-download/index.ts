@@ -87,6 +87,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       }
 
       if (extra.path === CORE_DOWNLOAD_DATA_API_PATH) {
+        if (extra.request.method !== 'GET') {
+          return { handled: true, response: jsonError(405, 'Method Not Allowed') };
+        }
         if (!extra.db) {
           return { handled: true, response: jsonError(503, 'Database unavailable') };
         }
