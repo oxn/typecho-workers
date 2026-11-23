@@ -39,7 +39,7 @@ interface PluginRouteExtra {
 }
 
 async function resolvePost(db: Database, pathname: string): Promise<{ cid: number; password: string | null } | null> {
-  const archiveMatch = pathname.match(/(?:^|\\/)archives\\/(\\d+)(?:\\.html)?\\/?$/i);
+  const archiveMatch = pathname.match(/(?:^|\/)archives\/(\d+)(?:\.html)?\/?$/i);
   if (archiveMatch) {
     const cid = Number(archiveMatch[1]);
     if (!Number.isSafeInteger(cid) || cid <= 0) return null;
@@ -59,7 +59,7 @@ async function resolvePost(db: Database, pathname: string): Promise<{ cid: numbe
   if (!lastSegment) return null;
   let slug = lastSegment;
   try { slug = decodeURIComponent(slug); } catch { /* Keep the literal path segment. */ }
-  slug = slug.replace(/\\.html$/i, '');
+  slug = slug.replace(/\.html$/i, '');
   if (!slug) return null;
 
   return await db.query.contents.findFirst({
