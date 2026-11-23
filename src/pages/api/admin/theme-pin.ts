@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
-import { schema } from '@/db';
+import { schema, type Database } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { generateSecurityToken } from '@/lib/auth';
 import { bumpCacheVersion } from '@/lib/cache';
@@ -9,7 +9,7 @@ import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
 const THEME_ID = 'typecho-theme-oxn';
 const PIN_OPTION_NAME = `theme-pin:${THEME_ID}`;
 
-async function readPinnedIds(db: any): Promise<number[]> {
+async function readPinnedIds(db: Database): Promise<number[]> {
   const row = await db.query.options.findFirst({
     columns: { value: true },
     where: eq(schema.options.name, PIN_OPTION_NAME),
