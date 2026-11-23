@@ -26,18 +26,18 @@ export const POST: APIRoute = async ({ request }) => {
     return errorResponse('当前主题不是 OXN 主题', 409);
   }
 
-  let body: { cid?: unknown; pinned?: unknown };
+  let body: { cid?: unknown; pinned?: unknown; confirmation?: unknown };
 
   try {
-    body = await request.json() as { cid?: unknown; pinned?: unknown };
+    body = await request.json() as { cid?: unknown; pinned?: unknown; confirmation?: unknown };
   } catch {
     return errorResponse('请求格式错误', 400);
   }
 
   const cid = Number(body.cid);
 
-  if (!Number.isSafeInteger(cid) || cid <= 0 || typeof body.pinned !== 'boolean') {
-    return errorResponse('文章参数无效', 400);
+  if (!Number.isSafeInteger(cid) || cid <= 0 || typeof body.pinned !== 'boolean' || body.confirmation !== '确认') {
+    return errorResponse('文章参数无效或未确认操作', 400);
   }
 
   // 与 CY 一致：只允许对已发布的文章执行置顶操作
