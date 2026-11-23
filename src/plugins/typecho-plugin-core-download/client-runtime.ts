@@ -22,10 +22,6 @@ export function buildCoreDownloadClientScript(): string {
     };
     const IMAGE_BASE = '/plugins/typecho-plugin-core-download/static/img/';
 
-    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    })[char]);
-
     const appendSvg = (target, source) => {
       if (!source) return;
       const holder = document.createElement('div');
@@ -58,7 +54,7 @@ export function buildCoreDownloadClientScript(): string {
       const network = typeof item.name === 'string' ? item.name : 'local';
       appendSvg(left, NETDISK_ICONS[network] || '');
       const networkName = document.createElement('div');
-      networkName.textContent = NETWORK_NAMES[network] || network;
+      networkName.textContent = NETWORK_NAMES[network] || '';
       left.appendChild(networkName);
       header.appendChild(left);
       appendSvg(header, UI_ICONS['open-link'] || '');
@@ -78,14 +74,15 @@ export function buildCoreDownloadClientScript(): string {
       const key = item.key ? String(item.key) : '';
       keyLine.appendChild(document.createTextNode('密码：' + (key || '无')));
       if (key) {
-        const copy = document.createElement('button');
-        copy.type = 'button';
+        const copy = document.createElement('span');
         copy.className = 'copy-key';
+        copy.setAttribute('role', 'button');
+        copy.tabIndex = 0;
         copy.setAttribute('data-clipboard-text', key);
         copy.title = '复制提取码';
         copy.setAttribute('aria-label', '复制提取码');
         copy.style.backgroundImage = 'url("' + IMAGE_BASE + 'copy.svg")';
-        copy.addEventListener('click', async event => {
+        const copyKey = async event => {
           event.preventDefault();
           try {
             await navigator.clipboard.writeText(key);
@@ -98,6 +95,10 @@ export function buildCoreDownloadClientScript(): string {
           } catch {
             copy.title = '复制失败';
           }
+        };
+        copy.addEventListener('click', copyKey);
+        copy.addEventListener('keydown', event => {
+          if (event.key === 'Enter' || event.key === ' ') copyKey(event);
         });
         keyLine.appendChild(document.createTextNode(' '));
         keyLine.appendChild(copy);
