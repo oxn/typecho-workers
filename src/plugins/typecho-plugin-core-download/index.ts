@@ -1,9 +1,13 @@
+import { and, eq } from 'drizzle-orm';
+import { schema } from 'typecho/db';
+import type { Database } from 'typecho/db';
 import { registerPluginAdminPath } from 'typecho/plugin-sdk';
 import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
 import { requireAdminAction, isAdminActionResponse } from '@/lib/admin-auth';
 import { jsonError, jsonOk } from '@/lib/http';
 import { coreDownloadPostEditorHtml, coreDownloadSettingsPageHtml } from './admin';
-import { getCoreDownloadSettings, saveCoreDownloadSettings } from './service';
+import { buildCoreDownloadClientScript } from './client-runtime';
+import { getCoreDownloadForTheme, getCoreDownloadSettings, saveCoreDownloadSettings } from './service';
 
 export {
   CORE_DOWNLOAD_META_FIELD,
@@ -25,6 +29,41 @@ export type {
 } from './service';
 
 export const CORE_DOWNLOAD_ADMIN_API_PATH = '/api/admin/core-download';
+export const CORE_DOWNLOAD_DATA_API_PATH = '/api/core-download/data';
+export const CORE_DOWNLOAD_CLIENT_API_PATH = '/api/core-download/client.js';
+
+interface PluginRouteExtra {
+  request?: Request;
+  path?: string;
+  db?: Database;
+}
+
+async function resolvePostCid(db: Database, pathname: string): Promise<number | null> {
+  const archiveMatch = pathname.match(/(?:^|\\/)archives\\/(\\d+)(?:\\.html)?\\/?$/i);
+  if (archiveMatch) {
+    const cid = Number(archiveMatch[1]);
+    if (!Number.isSafeInteger(cid) || cid <= 0) return null;
+    const row = await db.query.contents.findFirst({
+      where: and(eq(schema.contents.cid, cid), eq(schema.contents.type, 'post')),
+      columns: { cid: true },
+    });
+    return row?.cid ?? null;
+  }
+
+  const segments = pathname.split('/').filter(Boolean);
+  const lastSegment = segments.at(-1);
+  if (!lastSegment) return null;
+  let slug = lastSegment;
+  try { slug = decodeURIComponent(slug); } catch { /* Keep the literal path segment. */ }
+  slug = slug.replace(/\\.html$/i, '');
+  if (!slug) return null;
+
+  const row = await db.query.contents.findFirst({
+    where: and(eq(schema.contents.slug, slug), eq(schema.contents.type, 'post')),
+    columns: { cid: true },
+  });
+  return row?.cid ?? null;
+}
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
   registerPluginAdminPath(CORE_DOWNLOAD_ADMIN_API_PATH);
@@ -32,8 +71,41 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook(
     'route:request',
     pluginId,
-    async (result: PluginRouteResult, extra?: { request?: Request; path?: string }) => {
-      if (result?.handled || !extra?.request || extra.path !== CORE_DOWNLOAD_ADMIN_API_PATH) return result;
+    async (result: PluginRouteResult, extra?: PluginRouteExtra) => {
+      if (result?.handled || !extra?.request || !extra.path) return result;
+
+      if (extra.path === CORE_DOWNLOAD_CLIENT_API_PATH) {
+        return {
+          handled: true,
+          response: new Response(buildCoreDownloadClientScript(), {
+            headers: {
+              'Content-Type': 'application/javascript; charset=utf-8',
+              'Cache-Control': 'public, max-age=300',
+            },
+          }),
+        };
+      }
+
+      if (extra.path === CORE_DOWNLOAD_DATA_API_PATH) {
+        if (!extra.db) {
+          return { handled: true, response: jsonError(503, 'Database unavailable') };
+        }
+        const url = new URL(extra.request.url);
+        const pathname = url.searchParams.get('path') || '/';
+        const cid = await resolvePostCid(extra.db, pathname);
+        const data = cid ? await getCoreDownloadForTheme(extra.db, cid) : null;
+        return {
+          handled: true,
+          response: new Response(JSON.stringify(data), {
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              'Cache-Control': 'no-store',
+            },
+          }),
+        };
+      }
+
+      if (extra.path !== CORE_DOWNLOAD_ADMIN_API_PATH) return result;
       const request = extra.request;
       const auth = await requireAdminAction(request, 'administrator', {
         csrf: request.method !== 'GET',
@@ -66,6 +138,23 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       return { handled: true, response: jsonError(405, 'Method Not Allowed') };
     },
     20,
+  );
+
+  addHook(
+    'content:content',
+    pluginId,
+    (html: string) => html + '<div data-core-download></div>',
+  );
+
+  addHook(
+    'archive:footer',
+    pluginId,
+    (html: string, extra?: { pageContext?: { pageType?: string } }) => {
+      if (extra?.pageContext?.pageType !== 'post') return html;
+      return html
+        + '<link rel="stylesheet" href="/plugins/typecho-plugin-core-download/static/css/front.css">'
+        + '<script src="/api/core-download/client.js" defer></script>';
+    },
   );
 
   addHook(
