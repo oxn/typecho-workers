@@ -139,14 +139,11 @@ const isHomepage = isHomeListing && pagination.currentPage === 1;
 // 独立从 D1 读取置顶列表，绕过 options/shared-data 缓存链路。
 let pinnedIds: number[] = [];
 if (isHomeListing) {
-  const pinDb = getDb(env.DB);
-  const pinOption = await pinDb.query.options.findFirst({
-    columns: { value: true },
-    where: and(
-      eq(schema.options.name, 'theme-pin:typecho-theme-oxn'),
-      eq(schema.options.user, 0),
-    ),
-  });
+  // first-primary 避免首页读到 D1 read replica 的旧置顶状态。
+  const pinDb = env.DB.withSession('first-primary');
+  const pinOption = await pinDb.prepare(
+    'SELECT value FROM typecho_options WHERE name = ? AND user = 0 LIMIT 1',
+  ).bind('theme-pin:typecho-theme-oxn').first<{ value: string | null }>();
   pinnedIds = typeof pinOption?.value === 'string'
     ? pinOption.value.split(/[，,\s]+/)
       .filter(value => /^\d+$/.test(value))
