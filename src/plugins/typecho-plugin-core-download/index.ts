@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, lte, or } from 'drizzle-orm';
 import { schema } from 'typecho/db';
 import type { Database } from 'typecho/db';
 import { registerPluginAdminPath } from 'typecho/plugin-sdk';
@@ -38,16 +38,20 @@ interface PluginRouteExtra {
   db?: Database;
 }
 
-async function resolvePostCid(db: Database, pathname: string): Promise<number | null> {
+async function resolvePost(db: Database, pathname: string): Promise<{ cid: number; password: string | null } | null> {
   const archiveMatch = pathname.match(/(?:^|\\/)archives\\/(\\d+)(?:\\.html)?\\/?$/i);
   if (archiveMatch) {
     const cid = Number(archiveMatch[1]);
     if (!Number.isSafeInteger(cid) || cid <= 0) return null;
-    const row = await db.query.contents.findFirst({
-      where: and(eq(schema.contents.cid, cid), eq(schema.contents.type, 'post')),
-      columns: { cid: true },
-    });
-    return row?.cid ?? null;
+    return await db.query.contents.findFirst({
+      where: and(
+        eq(schema.contents.cid, cid),
+        eq(schema.contents.type, 'post'),
+        or(eq(schema.contents.status, 'publish'), eq(schema.contents.status, 'hidden')),
+        lte(schema.contents.created, Math.floor(Date.now() / 1000)),
+      ),
+      columns: { cid: true, password: true },
+    }) ?? null;
   }
 
   const segments = pathname.split('/').filter(Boolean);
@@ -58,11 +62,15 @@ async function resolvePostCid(db: Database, pathname: string): Promise<number | 
   slug = slug.replace(/\\.html$/i, '');
   if (!slug) return null;
 
-  const row = await db.query.contents.findFirst({
-    where: and(eq(schema.contents.slug, slug), eq(schema.contents.type, 'post')),
-    columns: { cid: true },
-  });
-  return row?.cid ?? null;
+  return await db.query.contents.findFirst({
+    where: and(
+      eq(schema.contents.slug, slug),
+      eq(schema.contents.type, 'post'),
+      or(eq(schema.contents.status, 'publish'), eq(schema.contents.status, 'hidden')),
+      lte(schema.contents.created, Math.floor(Date.now() / 1000)),
+    ),
+    columns: { cid: true, password: true },
+  }) ?? null;
 }
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
@@ -95,8 +103,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         }
         const url = new URL(extra.request.url);
         const pathname = url.searchParams.get('path') || '/';
-        const cid = await resolvePostCid(extra.db, pathname);
-        const data = cid ? await getCoreDownloadForTheme(extra.db, cid) : null;
+        const post = await resolvePost(extra.db, pathname);
+        const suppliedPassword = url.searchParams.get('password');
+        const passwordAllowed = !post?.password || suppliedPassword === post.password;
+        const data = post && passwordAllowed
+          ? await getCoreDownloadForTheme(extra.db, post.cid)
+          : null;
         return {
           handled: true,
           response: new Response(JSON.stringify(data), {
