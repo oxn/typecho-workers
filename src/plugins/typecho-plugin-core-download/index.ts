@@ -55,7 +55,7 @@ async function resolvePost(db: Database, pathname: string): Promise<{ cid: numbe
   }
 
   const segments = pathname.split('/').filter(Boolean);
-  const lastSegment = segments.at(-1);
+  const lastSegment = segments[segments.length - 1];
   if (!lastSegment) return null;
   let slug = lastSegment;
   try { slug = decodeURIComponent(slug); } catch { /* Keep the literal path segment. */ }
