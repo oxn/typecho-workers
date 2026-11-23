@@ -640,7 +640,13 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             pinButton?.setAttribute('aria-label', targetPinned ? '取消置顶' : '置顶文章');
             pinButton?.setAttribute('title', targetPinned ? '取消置顶' : '置顶文章');
 
-            dialog.close();
+            const dialogMessage = dialog.querySelector('[data-warm-dialog-message]');
+            if (dialogMessage) {
+              dialogMessage.textContent = targetPinned ? '置顶成功' : '已取消置顶';
+            }
+            window.setTimeout(() => {
+              if (dialog.open) dialog.close();
+            }, 900);
           } catch (error) {
             showError(
               error instanceof Error ? error.message : '置顶操作失败，请稍后重试'
