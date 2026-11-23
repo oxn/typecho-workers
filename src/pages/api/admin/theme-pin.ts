@@ -1,67 +1,66 @@
 import type { APIRoute } from 'astro';
-import { eq } from 'drizzle-orm';
-import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { setOption } from '@/lib/options';
 import { loadThemeConfig } from '@/lib/theme';
+import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
 
 const THEME_ID = 'typecho-theme-oxn';
-const RESPONSE_HEADERS = {
-  'Content-Type': 'application/json',
-  'Cache-Control': 'private, no-store',
-};
 
-function jsonResponse(data: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(data), {
+function errorResponse(message: string, status: number): Response {
+  return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: RESPONSE_HEADERS,
+    headers: { 'Content-Type': 'application/json' },
   });
-}
-
-function readPinnedIds(value: unknown): number[] {
-  return String(value || '')
-    .split(/[，,\s]+/)
-    .map(item => Number(item.trim()))
-    .filter(id => Number.isSafeInteger(id) && id > 0);
 }
 
 export const POST: APIRoute = async ({ request }) => {
   const auth = await requireAdminAction(request, 'administrator');
   if (isAdminActionResponse(auth)) {
-    return jsonResponse({ error: '权限不足' }, auth.status === 401 ? 401 : 403);
+    return errorResponse('权限不足或登录已失效', auth.status === 401 ? 401 : 403);
   }
 
+  // 只允许 OXN 主题使用此接口
   if (String(auth.options.theme || '') !== THEME_ID) {
-    return jsonResponse({ error: '当前主题不是 OXN' }, 404);
+    return errorResponse('当前主题不是 OXN 主题', 409);
   }
 
-  let body: { cid?: number; pinned?: boolean };
+  let body: { cid?: unknown; pinned?: unknown };
+
   try {
-    body = await request.json() as { cid?: number; pinned?: boolean };
+    body = await request.json() as { cid?: unknown; pinned?: unknown };
   } catch {
-    return jsonResponse({ error: '请求格式错误' }, 400);
+    return errorResponse('请求格式错误', 400);
   }
 
   const cid = Number(body.cid);
+
   if (!Number.isSafeInteger(cid) || cid <= 0 || typeof body.pinned !== 'boolean') {
-    return jsonResponse({ error: '文章 ID 或置顶状态无效' }, 400);
+    return errorResponse('文章参数无效', 400);
   }
 
-  const content = await auth.db.query.contents.findFirst({
-    where: eq(schema.contents.cid, cid),
-  });
-  if (!content || content.type !== 'post') {
-    return jsonResponse({ error: '文章不存在' }, 404);
-  }
-
+  // 读取现有配置，保留其他所有主题设置
   const settings = loadThemeConfig(auth.options, THEME_ID);
-  const pinnedIds = readPinnedIds(settings.pinnedIds).filter(id => id !== cid);
-  if (body.pinned) pinnedIds.unshift(cid);
+  const pinnedIds = parsePinnedIds(settings.pinnedIds);
 
-  await setOption(auth.db, `theme:${THEME_ID}`, JSON.stringify({
-    ...settings,
-    pinnedIds: [...new Set(pinnedIds)].join(','),
-  }));
+  // 保留 OXN 规则：新置顶文章排在最前面
+  const nextPinnedIds = body.pinned
+    ? [cid, ...pinnedIds.filter(id => id !== cid)]
+    : pinnedIds.filter(id => id !== cid);
 
-  return jsonResponse({ success: true, cid, pinned: body.pinned });
+  await setOption(
+    auth.db,
+    `theme:${THEME_ID}`,
+    JSON.stringify({
+      ...settings,
+      pinnedIds: nextPinnedIds.join(','),
+    }),
+  );
+
+  return new Response(JSON.stringify({
+    success: true,
+    pinned: body.pinned,
+    pinnedIds: nextPinnedIds,
+  }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 };
