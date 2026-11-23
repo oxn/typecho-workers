@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm';
 import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { generateSecurityToken } from '@/lib/auth';
-import { getOption, setOption } from '@/lib/options';
+import { bumpCacheVersion, warmPublicCacheUrls } from '@/lib/cache';
+import { getOption } from '@/lib/options';
 import { loadThemeConfig } from '@/lib/theme';
 import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
 
@@ -101,27 +102,37 @@ export const POST: APIRoute = async ({ request }) => {
     return errorResponse('文章不存在或不是已发布文章', 404);
   }
 
-  // 读取现有配置，保留其他所有主题设置
-  const settings = loadThemeConfig(auth.options, THEME_ID);
-  const pinnedIds = parsePinnedIds(settings.pinnedIds);
-
-  // 保留 OXN 规则：新置顶文章排在最前面
-  const nextPinnedIds = body.pinned
-    ? [cid, ...pinnedIds.filter(id => id !== cid)]
-    : pinnedIds.filter(id => id !== cid);
+  const optionName = `theme:${THEME_ID}`;
 
   try {
-    await setOption(
-      auth.db,
-      `theme:${THEME_ID}`,
-      JSON.stringify({
-        ...settings,
-        pinnedIds: nextPinnedIds.join(','),
-      }),
-    );
+    // 从数据库读取最新主题配置，避免使用请求开始时的旧 options 快照覆盖其他设置。
+    const currentValue = await getOption(auth.db, optionName);
+    const settings = loadThemeConfig({
+      ...auth.options,
+      [optionName]: currentValue,
+    }, THEME_ID);
+    const pinnedIds = parsePinnedIds(settings.pinnedIds);
 
-    // 直接从数据库读回，不使用主题配置缓存验证写入结果
-    const storedValue = await getOption(auth.db, `theme:${THEME_ID}`);
+    // 保留 OXN 规则：新置顶文章排在最前面。
+    const nextPinnedIds = body.pinned
+      ? [cid, ...pinnedIds.filter(id => id !== cid)]
+      : pinnedIds.filter(id => id !== cid);
+
+    const nextSettings = JSON.stringify({
+      ...settings,
+      pinnedIds: nextPinnedIds.join(','),
+    });
+
+    // 直接写 options 表，不经过 setOption()。
+    await auth.db.insert(schema.options)
+      .values({ name: optionName, user: 0, value: nextSettings })
+      .onConflictDoUpdate({
+        target: [schema.options.name, schema.options.user],
+        set: { value: nextSettings },
+      });
+
+    // 从数据库重新读取并核验完整置顶顺序。
+    const storedValue = await getOption(auth.db, optionName);
     if (!storedValue) {
       return errorResponse('数据库未读回置顶配置，操作失败', 500);
     }
@@ -134,12 +145,23 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const storedPinnedIds = parsePinnedIds(storedSettings.pinnedIds);
-    const verified = body.pinned
-      ? storedPinnedIds.includes(cid)
-      : !storedPinnedIds.includes(cid);
+    if (JSON.stringify(storedPinnedIds) !== JSON.stringify(nextPinnedIds)) {
+      return errorResponse('数据库未确认置顶顺序，操作失败', 500);
+    }
 
-    if (!verified) {
-      return errorResponse('数据库未确认置顶状态，操作失败', 500);
+    // 置顶只改变首页第一页：更新 options 共享数据和首页缓存版本。
+    // bumpCacheVersion 同时推进 options snapshot generation，并通知缓存 provider。
+    await bumpCacheVersion(auth.db, {
+      reason: 'theme-pin',
+      domains: ['home'],
+      sharedDomains: ['options'],
+      options: { [optionName]: storedValue },
+    });
+
+    // 只预热首页，不清理或预热文章详情、归档和 Feed。
+    const siteUrl = String(auth.options.siteUrl || '').trim().replace(/\\/+$/, '');
+    if (/^https?:\\/\\//i.test(siteUrl)) {
+      await warmPublicCacheUrls([`${siteUrl}/`]);
     }
 
     return new Response(JSON.stringify({
@@ -150,6 +172,6 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch {
-    return errorResponse('置顶操作写入或数据库核验失败', 500);
+    return errorResponse('置顶操作写入、数据库核验或缓存更新失败', 500);
   }
 };
