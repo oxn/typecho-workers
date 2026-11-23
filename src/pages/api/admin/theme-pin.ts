@@ -2,7 +2,8 @@ import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
-import { getOption, setOption } from '@/lib/options';
+import { computeUrls, getOption, setOption } from '@/lib/options';
+import { generateSecurityToken } from '@/lib/auth';
 import { loadThemeConfig } from '@/lib/theme';
 import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
 
@@ -14,6 +15,56 @@ function errorResponse(message: string, status: number): Response {
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
+/**
+ * OXN 评论管理信息独立接口。
+ * 评论列表 API 保持核心实现；管理员身份、编辑/删除/置顶所需信息
+ * 由本路由在验证登录身份和管理员权限后提供。
+ */
+export const GET: APIRoute = async ({ request }) => {
+  const auth = await requireAdminAction(request, 'administrator', { csrf: false });
+  if (isAdminActionResponse(auth)) {
+    return errorResponse('权限不足或登录已失效', auth.status === 401 ? 401 : 403);
+  }
+
+  if (String(auth.options.theme || '') !== THEME_ID) {
+    return errorResponse('当前主题不是 OXN 主题', 409);
+  }
+
+  const cid = Number(new URL(request.url).searchParams.get('cid'));
+  if (!Number.isSafeInteger(cid) || cid <= 0) {
+    return errorResponse('文章参数无效', 400);
+  }
+
+  const content = await auth.db.query.contents.findFirst({
+    columns: { cid: true, type: true },
+    where: eq(schema.contents.cid, cid),
+  });
+  if (!content || (content.type !== 'post' && content.type !== 'page')) {
+    return errorResponse('内容不存在', 404);
+  }
+
+  const settings = loadThemeConfig(auth.options, THEME_ID);
+  const management = {
+    canManage: true,
+    adminUrl: computeUrls(auth.options).adminUrl,
+    contentType: content.type,
+    isPinned: content.type === 'post' && parsePinnedIds(settings.pinnedIds).includes(cid),
+    csrfToken: await generateSecurityToken(
+      auth.options.secret,
+      auth.user.authCode!,
+      auth.uid,
+    ),
+  };
+
+  return new Response(JSON.stringify({ management }), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'private, no-store',
+      Vary: 'Cookie',
+    },
+  });
+};
 
 export const POST: APIRoute = async ({ request }) => {
   const auth = await requireAdminAction(request, 'administrator');
