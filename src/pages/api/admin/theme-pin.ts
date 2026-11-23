@@ -115,7 +115,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   // 后台主题设置独立保存完整置顶列表；不经过主题配置保存接口。
   if (body.action === 'replace') {
-    if (body.confirmation !== '确认' || typeof body.pinnedIds !== 'string') {
+    if (typeof body.pinnedIds !== 'string') {
       return errorResponse('请确认操作并提供置顶 CID', 400);
     }
 
