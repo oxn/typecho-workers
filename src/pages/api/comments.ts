@@ -105,10 +105,8 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     hasPermission(authResult.user.group || 'visitor', 'administrator')
   );
   const themeSettings = loadThemeConfig(options, THEME_ID);
-  const canManage = isAdministrator
-    && String(themeSettings.showCommentManagementButtons ?? '1') !== '0';
   const management = {
-    canManage,
+    canManage: isAdministrator,
     adminUrl: computeUrls(options).adminUrl,
     contentType: content.type === 'post'
       ? 'post'
@@ -116,7 +114,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
         ? 'page'
         : 'none',
     isPinned: content.type === 'post' && parsePinnedIds(themeSettings.pinnedIds).includes(cid),
-    csrfToken: canManage && authResult && options.secret
+    csrfToken: isAdministrator && authResult && options.secret
       ? await generateSecurityToken(
           options.secret,
           authResult.user.authCode!,
@@ -292,6 +290,6 @@ function isAnonymousCacheable(request: Request): boolean {
 
 function publicCommentCacheKey(cid: number, url: URL): string {
   const rawPage = url.searchParams.get('commentPage');
-  const commentPage = rawPage && /^\d{1,6}$/.test(rawPage) ? rawPage : null;
+  const commentPage = rawPage && /^\\d{1,6}$/.test(rawPage) ? rawPage : null;
   return JSON.stringify([cid, commentPage]);
 }
