@@ -95,11 +95,11 @@ WordPress 的 `wp_options` 不会由当前 WXR 导入器自动迁移，因此原
 | WordPress 原版文件 | Typecho Workers 移植位置/用途 |
 | --- | --- |
 | `core/Options.php` | `service.ts`：文章字段、Base64(JSON) 编码及全局设置 |
-| `core/Plugin.php` | `index.ts` 及主题文章页面接入：文章显示入口与启用条件 |
+| `core/Plugin.php` | `index.ts`：通过插件钩子注入挂载点、加载前台脚本并提供文章数据路由 |
 | `template/components/download-warp.php` | `client-runtime.ts`：插件独立提供的前台渲染脚本 |
 | `template/components/download-url-item.php` | `client-runtime.ts`：下载地址卡片结构 |
 | `static/css/front.css` | 前台下载区域样式 |
-| `static/js/home.min.js` | 前台复制提取码交互 |
+| `static/js/home.min.js` | 原版前台脚本资源；当前移植版由 `client-runtime.ts` 提供渲染和复制交互 |
 | `static/js/editor.min.js` | 后台下载列表编辑控件 |
 | `static/img` 中的 SVG 图标 | 插件图标资源及图标模块 |
 
@@ -165,7 +165,7 @@ const NETWORK_NAMES = {
 1. **后台设置表单：** `src/plugins/typecho-plugin-core-download/admin.ts` 的 `coreDownloadSettingsPageHtml()`，增加表单控件及唯一的 DOM id。
 2. **后台读取与提交：** `public/plugins/typecho-plugin-core-download/static/js/admin.js` 的 `initSettings()`，在读取设置时把数据键填入控件，并在保存请求的 JSON 中提交该键。
 3. **服务端设置类型和默认值：** `src/plugins/typecho-plugin-core-download/service.ts` 的 `CoreDownloadSettings`、`getDefaultCoreDownloadSettings()` 和 `saveCoreDownloadSettings()`。新增类型字段、合理默认值，并在保存时按预期类型校验和写入。
-4. **前台配置类型与实际效果：** 如果新设置会影响前台显示，还要在 `client-runtime.ts` 的 `MountConfig.settings` 中声明该字段，并在对应渲染逻辑中读取它。若只用于后台管理，则不需要为了形式而修改前台。
+4. **前台实际效果：** 如果新设置会影响前台显示，还要在 `client-runtime.ts` 的 `buildCoreDownloadClientScript()` 渲染逻辑中读取该字段。若只用于后台管理，则不需要为了形式而修改前台。
 5. **样式：** 如果新选项控制视觉效果，再同步调整 `public/plugins/typecho-plugin-core-download/static/css/front.css` 或对应后台 CSS。
 
 示例：新增一个布尔设置 `show_complaint`，默认值为 `true`。需要在后台增加开关控件，在 `admin.js` 读取并提交 `show_complaint`，在 `service.ts` 增加布尔类型、默认值和保存校验；如果它用于控制前台投诉入口，还要在 `client-runtime.ts` 根据该值决定是否创建投诉链接。只增加一个后台 HTML 控件是不够的：没有同步读写逻辑，设置就无法可靠保存和生效。
