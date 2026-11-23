@@ -183,10 +183,14 @@ export function buildCoreDownloadClientScript(): string {
       if (!roots.length) return;
       roots.forEach(root => { root.dataset.mounted = '1'; });
       try {
-        const response = await fetch(
-          '/api/core-download/data?path=' + encodeURIComponent(location.pathname),
-          { credentials: 'same-origin', headers: { Accept: 'application/json' } }
-        );
+        const pageUrl = new URL(location.href);
+        const dataUrl = new URL('/api/core-download/data', location.origin);
+        dataUrl.searchParams.set('path', location.pathname);
+        const password = pageUrl.searchParams.get('password');
+        if (password) dataUrl.searchParams.set('password', password);
+        const response = await fetch(dataUrl.toString(), {
+          credentials: 'same-origin', headers: { Accept: 'application/json' }
+        });
         if (!response.ok) throw new Error('Download data request failed');
         const config = await response.json();
         roots.forEach(root => config ? render(root, config) : root.remove());
