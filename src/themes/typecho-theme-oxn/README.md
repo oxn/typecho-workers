@@ -1,6 +1,6 @@
 # OXN Simple 主题说明
 
-> 本文对应仓库分支 `22` 中的 `src/themes/typecho-theme-oxn/`。  
+> 本文对应仓库分支 `24` 中的 `src/themes/typecho-theme-oxn/`。  
 > OXN 是基于 Typecho Warm 主题开发的定制主题：保留 Warm 的基础页面结构与阅读体验，并在此基础上持续开发 OXN 自有的设置界面、前台功能、交互和样式。本文详细说明当前版本的主题定位、后台设置、字段规则、前台行为、与 Warm 原版的差异，以及文章内容输入语法。
 
 ---
@@ -66,6 +66,7 @@ OXN 保留 Warm 的单栏、简洁阅读方向和主要页面结构，但后台�
 | --- | --- | --- |
 | OXN 主题 | `src/themes/typecho-theme-oxn/` | OXN 的主题组件、样式、设置界面和前台功能；替换整个目录 |
 | 核心路由 | `src/pages/index.astro` | 增加 OXN 笔记/话题流入口兼容，避免核心路由在主题组件运行前因普通文章列表为空而提前返回 404 |
+| OXN 置顶 API | `src/pages/api/admin/theme-pin.ts` | 为评论区管理员置顶/取消置顶提供独立 POST 接口；负责管理员身份与 CSRF 校验、文章有效性检查、OXN 配置写入及数据库读回核验 |
 | Markdown/HTML 处理 | `src/lib/markdown.ts` | 扩展文章、独立页面和笔记正文的 HTML/SVG 标签、属性及受限内联样式白名单；增加 iframe 主机白名单和图片尺寸参数处理 |
 | CSP 安全策略 | `src/lib/security-headers.ts` | 默认 CSP 的 `frame-src` 必须与 Markdown iframe 主机白名单对应；包含 Bilibili 页面域名和播放器域名，否则 iframe 即使通过 Markdown 清理也会被浏览器拦截 |
 | 构建配置 | `astro.config.mjs` | 同步当前分支的 Vite workspace 依赖优化配置，避免继续使用上游已不匹配的工作区排除项 |
@@ -79,6 +80,60 @@ OXN 保留 Warm 的单栏、简洁阅读方向和主要页面结构，但后台�
 | 拼音插件 | `src/plugins/typecho-plugin-pinyin/` | 需要拼音转换、编辑器拼音功能时，替换整个目录；这是插件功能，不是 OXN 主题本身的必需组件 |
 
 以上核心文件应从同一维护版本同步，不能只挑选主题目录。若仍使用上游的 `src/pages/index.astro`、`src/lib/markdown.ts` 或 `src/lib/security-headers.ts`，OXN 的笔记流入口、扩展内容格式和第三方 iframe 嵌入可能无法完整工作。
+
+#### API 目录核对（分支 22 → 24）
+
+对比仓库分支 `22` 与当前分支 `24` 的 `src/pages/api/` 文件树后，**本次 API 目录唯一新增的文件是**：
+
+- `src/pages/api/admin/theme-pin.ts`：OXN 评论区管理员置顶/取消置顶接口。
+
+其余 API 文件和子目录在分支 `22` 中已经存在，不属于本次升级新增项。尤其是 `admin/passkey/`、`users/passkey/` 下的通行密钥接口，不应误记为本次新加文件。升级时应保留完整的 `src/pages/api/` 目录；不要因为本次只新增一个路由，就用单个文件覆盖整个目录。
+
+当前 API 路由目录结构如下（用于核对文件是否缺失）：
+
+```text
+src/pages/api/
+├── comment.ts
+├── comments.ts
+├── install.ts
+├── admin/
+│   ├── passkey/
+│   │   ├── index.ts
+│   │   ├── register-options.ts
+│   │   └── register.ts
+│   ├── comment-action.ts
+│   ├── comment-batch.ts
+│   ├── comment-edit.ts
+│   ├── content-batch.ts
+│   ├── content.ts
+│   ├── editor-size.ts
+│   ├── media-batch.ts
+│   ├── media.ts
+│   ├── meta.ts
+│   ├── options.ts
+│   ├── plugin-action.ts
+│   ├── plugin-config.ts
+│   ├── plugin.ts
+│   ├── profile.ts
+│   ├── tags-suggest.ts
+│   ├── theme-config.ts
+│   ├── theme-pin.ts       # 分支 24 新增
+│   ├── theme.ts
+│   ├── upload.ts
+│   ├── user-batch.ts
+│   └── user.ts
+└── users/
+    ├── passkey/
+    │   ├── login-options.ts
+    │   └── login.ts
+    ├── forgot-password.ts
+    ├── login.ts
+    ├── logout.ts
+    ├── register.ts
+    └── reset-password.ts
+```
+
+上表中除 `admin/theme-pin.ts` 外，其余文件均为原有核心 API 路由；本次不修改它们的职责或实现。
 
 #### 两套 iframe 白名单必须同时匹配
 
@@ -199,6 +254,21 @@ OXN 与原版 Warm 是两个独立主题，主题 ID 分别为 `typecho-theme-ox
 - 置顶文章按填写 ID 的顺序组织；首页原列表中对应文章会避免重复显示。
 - 无效 ID、重复 ID、非正整数会被忽略。
 - 置顶状态还会在管理员文章操作区显示，并可通过管理操作进行置顶/取消置顶。
+
+#### 评论区管理员置顶/取消置顶机制
+
+首页置顶 ID 设置与评论区的管理员操作是两条不同入口，但最终维护的是同一份 OXN 主题配置：
+
+1. **操作入口：** 管理员在文章评论区的管理按键中点击置顶图标；只有普通文章（`post`）会生成置顶按键，独立页面不会出现该按键。
+2. **二次确认：** 置顶和取消置顶都必须在弹窗中完整输入“确认”。前端未输入正确内容时不会提交请求。
+3. **独立 API：** 前端向 `POST /api/admin/theme-pin` 发送文章 ID（`cid`）、目标置顶状态（`pinned`）和确认文本（`confirmation`），同时携带 CSRF Token。
+4. **后端身份与权限：** API 使用 `requireAdminAction(request, 'administrator')`，统一验证登录 Token、管理员权限及 CSRF；不能只依赖前端是否显示管理按键。
+5. **操作范围检查：** API 只在当前启用主题为 `typecho-theme-oxn` 时工作；文章必须存在、类型必须为普通文章（`post`），且状态必须为已发布（`publish`）。ID、布尔状态和确认文本也会在后端重新校验。
+6. **配置写入：** API 读取 `theme:typecho-theme-oxn` 当前配置，保留其他所有 OXN 设置。置顶时把文章 ID 放到列表最前面并去重；取消置顶时只移除该 ID。
+7. **数据库读回核验：** 写入后直接从数据库重新读取配置，核对目标文章是否已置顶/已取消置顶。只有核验通过才返回成功，前端随后更新图标状态并显示“置顶成功”或“已取消置顶”。
+8. **与主题设置页的关系：** 评论区操作更新的就是后台 OXN 设置中的“首页置顶文章 ID”，不会写入 Warm/CY 插件配置，也不会覆盖 OXN 的其他主题设置。
+
+`src/pages/api/admin/theme-pin.ts` 是这套操作必须同步的后端文件；仅复制评论组件而遗漏该 API，会导致置顶请求无法完成。后台主题设置页原有的置顶 ID 编辑方式仍然保留，两者共享同一配置数据。
 
 ### 4.3 页脚链接
 
@@ -1120,7 +1190,7 @@ Markdown 前缀：
 | Markdown 转 HTML、文章 HTML 清理 | 项目共享 `src/lib/markdown.ts` | 全站共用，不是 OXN 私有解析器 |
 | 笔记流和笔记媒体 | `typecho-plugin-notes` | 未启用时不显示笔记入口 |
 | 智能摘要 | `typecho-plugin-intelligence` | 插件启用且有摘要时显示，否则使用普通摘要 |
-| 评论读写和管理 | 现有评论 API、权限和站点设置 | 主题负责交互界面 |
+| 评论读写和管理 | 现有评论 API、权限和站点设置 | 主题负责交互界面；文章置顶/取消置顶另由 `src/pages/api/admin/theme-pin.ts` 完成后端管理员校验、配置写入和数据库读回核验 |
 | 图片优化 | 项目图片 URL 转换能力及配置的图片服务 | 主题负责提供参数和展示尺寸 |
 
 ## 10. 修改与维护原则
