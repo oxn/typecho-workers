@@ -152,7 +152,7 @@ if (isHomeListing) {
       .filter(value => /^\d+$/.test(value))
       .map(Number)
       .filter((cid, index, values) => Number.isSafeInteger(cid) && cid > 0 && values.indexOf(cid) === index)
-    : [];
+    : settings.pinnedIds;
 }
 const pinnedIdSet = new Set(pinnedIds);
 let pinnedItems: WarmPostItem[] = [];
