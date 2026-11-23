@@ -118,7 +118,7 @@ export const POST: APIRoute = async ({ request }) => {
       pinnedIds: nextPinnedIds.join(','),
     });
 
-    // 直接写入主题配置，绕过 setOption() 的通用缓存失效流程
+    // 直接写入主题配置，绕过通用 options 写入流程
     await auth.db
       .insert(schema.options)
       .values({ name: optionName, user: 0, value: optionValue })
