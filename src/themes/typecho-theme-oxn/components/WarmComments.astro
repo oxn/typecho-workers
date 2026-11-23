@@ -471,18 +471,6 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || '评论配置加载失败');
 
-          // 管理信息由独立管理路由提供，评论列表 API 不承担管理员验证。
-          if (data.commenter?.loggedIn === true) {
-            const managementResponse = await fetch(`/api/admin/theme-pin?cid=${encodeURIComponent(cid)}`, {
-              credentials: 'same-origin',
-              headers: { Accept: 'application/json' },
-            });
-            if (managementResponse.ok) {
-              const managementData = await managementResponse.json();
-              data.management = managementData.management || null;
-            }
-          }
-
           renderFrame(root, data);
           applyCooldownLock();
           metadataLoaded = true;
