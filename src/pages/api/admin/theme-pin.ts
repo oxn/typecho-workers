@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { generateSecurityToken } from '@/lib/auth';
-import { bumpCacheVersion, warmPublicCacheUrls } from '@/lib/cache';
+import { bumpCacheVersion, buildContentWarmupUrls, warmPublicCacheUrls } from '@/lib/cache';
 import { getOption } from '@/lib/options';
 import { loadThemeConfig } from '@/lib/theme';
 import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
@@ -149,23 +149,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return errorResponse('数据库未确认置顶顺序，操作失败', 500);
     }
 
-    // 置顶只改变首页第一页：更新 options 共享数据和首页缓存版本。
+    // 缓存失效范围与文章新增、删除保持一致。
     // bumpCacheVersion 同时推进 options snapshot generation，并通知缓存 provider。
     await bumpCacheVersion(auth.db, {
       reason: 'theme-pin',
-      domains: ['home'],
-      sharedDomains: ['options'],
+      domains: ['home', 'archive', 'other'],
+      sharedDomains: [
+        'navigation', 'sidebar', 'metas', 'comments', 'notes', 'archive', 'content',
+        'admin-dashboard', 'admin-content',
+      ],
       options: { [optionName]: storedValue },
     });
 
-    // 只预热首页，不清理或预热文章详情、归档和 Feed。
-    const siteUrl = String(auth.options.siteUrl || '').trim().replace(/\/+$/, '');
-    if (/^https?:\/\//i.test(siteUrl)) {
-      const warmup = warmPublicCacheUrls([`${siteUrl}/`]);
-      if (locals?.cfContext?.waitUntil) {
-        locals.cfContext.waitUntil(warmup);
-      } else {
-        await warmup;
+    // 与文章新增、删除使用相同的预热 URL 构造及后台执行方式：首页和主 Feed。
+    if (locals?.cfContext?.waitUntil) {
+      const warmupUrls = buildContentWarmupUrls(auth.options.siteUrl);
+      if (warmupUrls.length > 0) {
+        locals.cfContext.waitUntil(warmPublicCacheUrls(warmupUrls));
       }
     }
 
