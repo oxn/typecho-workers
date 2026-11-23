@@ -537,10 +537,10 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
 
           if (input) {
             input.value = '';
-            input.hidden = targetPinned;
+            input.hidden = false;
           }
-          if (instruction) instruction.hidden = targetPinned;
-          if (confirm) confirm.disabled = !targetPinned;
+          if (instruction) instruction.hidden = false;
+          if (confirm) confirm.disabled = true;
           if (title) title.textContent = targetPinned ? '文章置顶' : '取消置顶';
           if (message) {
             message.textContent = targetPinned
@@ -556,7 +556,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           if (error) error.textContent = '';
 
           dialog.showModal();
-          if (!targetPinned) input?.focus();
+          input?.focus();
           return;
         }
 
@@ -606,7 +606,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
 
           const targetPinned = confirmButton.dataset.targetPinned === 'true';
           const input = dialog.querySelector('[data-warm-pin-confirm-input]');
-          if (!targetPinned && input?.value !== '确认') {
+          if (input?.value !== '确认') {
             showError('请输入“确认”后再执行操作');
             return;
           }
@@ -701,7 +701,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
         }
       });
 
-      // 取消置顶确认：必须完整输入“确认”
+      // 置顶和取消置顶：都必须完整输入“确认”
       root.addEventListener('input', event => {
         const input = event.target instanceof HTMLInputElement
           && event.target.matches('[data-warm-pin-confirm-input]')
