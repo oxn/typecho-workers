@@ -159,8 +159,8 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     // 只预热首页，不清理或预热文章详情、归档和 Feed。
-    const siteUrl = String(auth.options.siteUrl || '').trim().replace(/\\/+$/, '');
-    if (/^https?:\\/\\//i.test(siteUrl)) {
+    const siteUrl = String(auth.options.siteUrl || '').trim().replace(/\/+$/, '');
+    if (/^https?:\/\//i.test(siteUrl)) {
       await warmPublicCacheUrls([`${siteUrl}/`]);
     }
 
