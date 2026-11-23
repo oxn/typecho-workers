@@ -136,7 +136,24 @@ const baseUrl = `${urls.siteUrl.replace(/\/$/, '')}/`;
 // 首页置顶直接按 ID 查询数据库，避免只调整当前页数据导致后续页文章无法置顶。
 const isHomeListing = (Astro.url.pathname === '/' || /^\/page\/\d+\/?$/.test(Astro.url.pathname)) && !topic && !requestedStream;
 const isHomepage = isHomeListing && pagination.currentPage === 1;
-const pinnedIds = isHomeListing ? settings.pinnedIds : [];
+// 独立从 D1 读取置顶列表，绕过 options/shared-data 缓存链路。
+let pinnedIds: number[] = [];
+if (isHomeListing) {
+  const pinDb = getDb(env.DB);
+  const pinOption = await pinDb.query.options.findFirst({
+    columns: { value: true },
+    where: and(
+      eq(schema.options.name, 'theme-pin:typecho-theme-oxn'),
+      eq(schema.options.user, 0),
+    ),
+  });
+  pinnedIds = typeof pinOption?.value === 'string'
+    ? pinOption.value.split(/[，,\\s]+/)
+      .filter(value => /^\\d+$/.test(value))
+      .map(Number)
+      .filter((cid, index, values) => Number.isSafeInteger(cid) && cid > 0 && values.indexOf(cid) === index)
+    : [];
+}
 const pinnedIdSet = new Set(pinnedIds);
 let pinnedItems: WarmPostItem[] = [];
 if (isHomepage && pinnedIds.length > 0) {
