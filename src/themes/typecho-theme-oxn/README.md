@@ -1245,39 +1245,113 @@ Markdown 前缀：
 
 
 
-## 12. 分支 25 相对上游 master 的文件差异
+## 12. 相对上游 Tokinx/typecho-workers 的核心文件修改
 
-本节按仓库 `oxn/typecho-workers` 的 `master` 与 `25` 分支进行对比整理。当前对比结果为：`25` 比 `master` 超前 14 个提交、落后 0 个提交；文件差异共 4 个，其中 3 个是代码文件，1 个是主题说明文档。
+本节对比对象是上游仓库 `Tokinx/typecho-workers` 的 `master`，不是本仓库自己的 `master` 分支。以下列出 OXN 当前维护版本中，相对上游原版实际存在差异的系统核心文件，以及增加或调整的内容。
 
-### 12.1 本分支实际修改的文件
+### 12.1 `src/pages/index.astro`：首页入口兼容
 
-| 文件 | 相对上游的增加或调整 | 作用范围 |
+相对上游，修改了笔记流入口判断：
+
+- 上游判断条件针对 `typecho-theme-warm`。
+- 当前版本将该判断条件调整为 `typecho-theme-oxn`。
+- 作用是让 OXN 主题进入已有的笔记流首页处理路径，避免 OXN 的笔记/混合时间流没有普通文章列表时，在进入主题组件前被系统首页入口提前判定为空并返回 404。
+- 这是对既有分支入口判断的主题适配，不是置顶功能所需的修改。
+
+**影响范围：** 系统首页路由对 OXN 笔记流的分发判断；没有因此增加新的公共 API。
+
+### 12.2 `src/lib/markdown.ts`：扩展 Markdown/HTML 清理白名单
+
+这是核心文件中改动内容最多的一项。相对上游，增加或扩展了以下内容：
+
+1. **HTML 标签白名单**
+   - 增加常用结构标签，例如 `section`、`article`、`main`、`header`、`footer`、`nav`、`aside`。
+   - 增加文本语义标签，例如 `small`、`mark`、`abbr`、`time`、`sub`、`sup`。
+   - 增加表单相关标签，例如 `form`、`fieldset`、`input`、`select`、`option`、`textarea`、`button`、`label`。
+   - 增加完整 SVG 绘制所需的标签，例如 `svg`、`path`、`g`、`circle`、`rect`、`linearGradient`、`filter`、`mask`、`clipPath` 等。
+
+2. **通用 HTML 属性白名单**
+   - 增加通用的 `class`、`id`、`title`、`style`、`role`、`aria-*`、`data-*` 属性支持。
+   - 链接增加 `download` 属性。
+   - iframe 增加 `allow`、`sandbox`、`loading`、`referrerpolicy`。
+   - video 增加 `poster`；source 增加 `srcset`、`sizes`、`media`。
+   - 为新增表单标签分别增加对应属性白名单。
+
+3. **SVG 属性白名单**
+   - 为 SVG 图形、路径、渐变、遮罩、裁剪、滤镜、文字等元素增加对应属性。
+   - 支持常见的填充、描边、透明度、变换、渐变、路径和文字排版属性。
+   - 保留 SVG 标签大小写解析，避免 SVG 驼峰标签名被错误处理。
+
+4. **受限内联样式**
+   - 增加 `allowedStyles` 规则，支持颜色、背景、字体、布局、定位、尺寸、边距、内边距、边框、阴影、溢出和对齐等样式属性。
+   - 样式值通过规则过滤，明确拦截包含 `url(`、`expression(`、`javascript:`、`@import`、`behavior:`、`-moz-binding` 等危险内容的值。
+   - SVG 的填充、描边和透明度等属性也有相应值规则。
+
+5. **图片尺寸参数处理**
+   - 增加对图片 URL 中 `width`、`height` 参数的识别。
+   - 参数值在 1 至 16384 范围内时，将尺寸转换为图片元素的宽高属性，并从图片 URL 查询参数中清理对应尺寸参数。
+   - 不符合范围的尺寸不会按该规则转换。
+
+6. **iframe 主机白名单**
+   - 在原有 YouTube、Bilibili 播放器和 Vimeo 主机基础上，增加 `www.bilibili.com`。
+   - iframe 主机仍然受 `allowedIframeHostnames` 白名单约束，并非允许任意外部网站嵌入。
+
+**作用：** 让文章、独立页面和笔记正文可以使用更多结构化 HTML、SVG、受限内联样式、表单元素及媒体嵌入，同时继续经过清理白名单控制。
+
+### 12.3 `src/lib/security-headers.ts`：CSP 与 iframe 白名单配套
+
+相对上游，CSP 的 `frame-src` 增加：
+
+- `https://www.bilibili.com`
+
+该项与 `markdown.ts` 中增加的 Bilibili 主机白名单配套。前者决定浏览器 CSP 是否允许页面加载该来源的 iframe，后者决定 Markdown/HTML 清理是否允许该主机进入 iframe 的 src。两处需要保持一致，否则即使内容清理通过，也可能被浏览器 CSP 拦截。
+
+### 12.4 `astro.config.mjs`：Vite workspace 依赖优化排除项
+
+相对上游，在 Vite 的 `optimizeDeps.exclude` 中增加：
+
+- `typecho-plugin-wordpress-import`
+
+该插件 workspace 包需要保持源码路径加载，避免被依赖预打包流程处理。此项属于构建/开发环境的 workspace 依赖解析配置，不是 OXN 前台页面功能代码。
+
+### 12.5 `package.json`：增加 workspace 依赖声明
+
+相对上游，增加或补充以下依赖：
+
+- `typecho-plugin-core-download: workspace:*`
+- `typecho-plugin-pinyin: workspace:*`
+- `typecho-theme-oxn: workspace:*`
+- `typecho-plugin-wordpress-import: workspace:*`
+- `fast-xml-parser: ^5.10.1`
+
+这些声明使根项目能够解析对应的本地插件、主题 workspace 和 XML 解析依赖。它们属于项目依赖清单，不是单独的运行时路由改动。
+
+### 12.6 `bun.lock`：依赖锁定同步
+
+- 与 `package.json` 的 workspace 依赖变化保持同步。
+- 锁定新增的 OXN 主题、相关插件 workspace 和 `fast-xml-parser` 等依赖解析结果。
+- 文件中还包含对应依赖树和包版本、完整性信息的变化。
+- 部署或安装时应与 `package.json` 一起同步，不能只复制依赖清单而遗漏锁文件。
+
+### 12.7 核心文件与 OXN 置顶功能的关系
+
+| 核心文件 | 主要用途 | 是否由本次置顶独立存储改动引起 |
 | --- | --- | --- |
-| `src/pages/api/admin/theme-pin.ts` | 增加独立置顶 option 名称和读取函数；增加主题设置页读取完整 CID 列表的 GET 分支；增加批量替换列表的 POST 分支；增加 CID 格式、去重、已发布普通文章校验；将前台单篇置顶/取消置顶改为读写独立 option；写入后从数据库读回核验；缓存失效只针对首页，不触碰共享 options 缓存 | OXN 专用 API，不是公共管理 API |
-| `src/themes/typecho-theme-oxn/components/Index.astro` | 首页置顶数据改为从 D1 独立读取 `theme-pin:typecho-theme-oxn`；使用 `first-primary` 会话读取，避免刚保存后从只读副本读到旧状态；独立记录不存在时回退到旧主题配置中的置顶 ID | OXN 首页组件 |
-| `src/themes/typecho-theme-oxn/theme.json` | 置顶 CID 输入框从普通主题设置字段同步中移出；增加独立保存按钮、状态反馈和专用 API 读写；普通主题设置保存前增加 60 秒冷却提醒和导出备份建议；导出普通设置时排除 `pinnedIds` | OXN 主题设置界面 |
-| `src/themes/typecho-theme-oxn/README.md` | 补充分支 25 的独立置顶、设置导入导出、保存提醒、输入长度说明及本节文件差异记录 | 主题说明文档 |
+| `src/pages/index.astro` | OXN 笔记流入口兼容 | 否，历史主题入口适配 |
+| `src/lib/markdown.ts` | HTML/SVG/样式/媒体清理白名单扩展 | 否，内容渲染能力扩展 |
+| `src/lib/security-headers.ts` | Bilibili iframe 的 CSP 来源许可 | 否，与内容嵌入白名单配套 |
+| `astro.config.mjs` | workspace 依赖预优化排除 | 否，构建配置 |
+| `package.json` | 主题和插件 workspace 依赖声明 | 否，项目依赖配置 |
+| `bun.lock` | 依赖版本和解析结果锁定 | 否，依赖锁定 |
 
-### 12.2 没有相对 master 新增修改的核心文件
+以上文件是相对上游原版的历史/既有核心差异，部署包含这些功能的当前版本时应按同一维护版本同步；但不能把它们描述成 25 分支本次置顶独立存储功能新增的文件。
 
-本次 `master` 与 `25` 的文件差异中，**没有**以下公共核心文件：
+### 12.8 本次 25 分支置顶功能的独立改动范围
 
-- `src/pages/index.astro`
-- `src/lib/markdown.ts`
-- `src/lib/security-headers.ts`
-- `astro.config.mjs`
-- `package.json`
-- `bun.lock`
+本次置顶独立存储功能涉及的代码文件是：
 
-这些文件在主题部署说明中仍可能属于特定功能所需的共享依赖，但它们不是本次分支 25 相对 master 新增或修改的文件。不能把此前版本已经存在的核心兼容改动，误记为本次置顶独立存储功能的改动。
+- `src/pages/api/admin/theme-pin.ts`
+- `src/themes/typecho-theme-oxn/components/Index.astro`
+- `src/themes/typecho-theme-oxn/theme.json`
 
-### 12.3 本次置顶改动的边界
-
-- 没有修改公共首页入口、公共分页查询、公共缓存实现或数据库表结构。
-- 没有修改 Markdown 清理、CSP 安全策略或全局权限实现。
-- 置顶数据独立存放在现有 `typecho_options` 表的一条专用 option 中，不新增数据库表。
-- 前台单篇置顶/取消置顶仍保留“确认”文本校验、管理员权限校验和 CSRF 校验。
-- 主题设置页的批量列表保存是独立入口；它负责校验完整 CID 列表，并与前台单篇操作共用独立置顶数据及首页缓存失效范围。
-- 首页展示由 OXN 的 `components/Index.astro` 读取独立记录完成，不要求修改系统首页路由。
-
-> 文件数量和差异统计以本节记录的 `master` 与 `25` 分支对比为准；后续分支发生提交后，应重新比较并更新本节。
+它们负责独立置顶 option 的读写、首页读取展示，以及主题设置页的批量管理和备份行为。上述第 12.1 至 12.6 节的核心文件修改属于其他既有功能，不应与本次置顶改动混为一谈。
