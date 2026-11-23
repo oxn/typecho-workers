@@ -626,6 +626,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
               body: JSON.stringify({
                 cid: Number(cid),
                 pinned: targetPinned,
+                confirmation: input?.value,
               }),
             });
 
