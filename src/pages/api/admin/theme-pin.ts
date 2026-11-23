@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm';
 import { schema } from '@/db';
 import { isAdminActionResponse, requireAdminAction } from '@/lib/admin-auth';
 import { generateSecurityToken } from '@/lib/auth';
-import { getOption, setOption } from '@/lib/options';
+import { getOption } from '@/lib/options';
+import { bumpCacheVersion } from '@/lib/cache';
 import { loadThemeConfig } from '@/lib/theme';
 import { parsePinnedIds } from '@/themes/typecho-theme-oxn/components/warm';
 
@@ -111,14 +112,28 @@ export const POST: APIRoute = async ({ request }) => {
     : pinnedIds.filter(id => id !== cid);
 
   try {
-    await setOption(
-      auth.db,
-      `theme:${THEME_ID}`,
-      JSON.stringify({
-        ...settings,
-        pinnedIds: nextPinnedIds.join(','),
-      }),
-    );
+    const optionName = `theme:${THEME_ID}`;
+    const optionValue = JSON.stringify({
+      ...settings,
+      pinnedIds: nextPinnedIds.join(','),
+    });
+
+    // 直接写入主题配置，绕过 setOption() 的通用缓存失效流程
+    await auth.db
+      .insert(schema.options)
+      .values({ name: optionName, user: 0, value: optionValue })
+      .onConflictDoUpdate({
+        target: [schema.options.name, schema.options.user],
+        set: { value: optionValue },
+      });
+
+    // 只刷新首页 HTML 与 options 数据缓存，不触发全站缓存失效
+    await bumpCacheVersion(auth.db, {
+      reason: 'theme-pin',
+      domains: ['home'],
+      sharedDomains: ['options'],
+      options: { [optionName]: optionValue },
+    });
 
     // 直接从数据库读回，不使用主题配置缓存验证写入结果
     const storedValue = await getOption(auth.db, `theme:${THEME_ID}`);
