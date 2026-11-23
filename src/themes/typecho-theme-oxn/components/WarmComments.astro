@@ -107,7 +107,7 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
     };
 
     const renderManagement = (management, cid) => {
-  if (!management) return '';
+  if (!management?.canManage) return '';
 
   const contentType = management.contentType;
   if (contentType !== 'post' && contentType !== 'page') return '';
@@ -223,26 +223,17 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
   `;
 };
 
-    const loadAdminManagement = async root => {
-      const contentType = root.dataset.commentContentType;
-      if (contentType !== 'post' && contentType !== 'page') return null;
-
-      try {
-        const params = new URLSearchParams({ cid: root.dataset.cid || '' });
-        const response = await fetch(`/api/admin/theme-pin?${params}`, {
-          credentials: 'same-origin',
-          cache: 'no-store',
-          headers: { Accept: 'application/json' },
-        });
-        if (!response.ok) return null;
-        return await response.json();
-      } catch {
-        return null;
-      }
-    };
     const renderFrame = (root, data) => {
       const password = new URL(window.location.href).searchParams.get('password') || '';
-      root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p></div>
+      root.innerHTML = `<div class="warm-comments__heading"><h2>讨论与交流</h2><p>欢迎分享你的思考</p>
+          ${renderManagement({
+            ...data.management,
+            octiconPin: root.dataset.octiconPin || '',
+            octiconPencil: root.dataset.octiconPencil || '',
+            octiconTrash: root.dataset.octiconTrash || '',
+            octiconCopy: root.dataset.octiconCopy || '',
+          }, root.dataset.cid)}
+        </div>
         ${renderForm(data.options, data.commenter, password, root.dataset.cid, data.antispamToken)}
         <div class="warm-comment-list" data-comment-list aria-live="polite">
           <div class="warm-comment-deferred" data-comment-deferred>
@@ -250,19 +241,6 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
             <button type="button" data-comment-load-initial hidden>加载评论</button>
           </div>
         </div>`;
-    };
-
-    const renderAdminManagement = (root, management) => {
-      if (!management || !root.isConnected) return;
-      const heading = root.querySelector('.warm-comments__heading');
-      if (!heading || heading.querySelector('.warm-article__actions')) return;
-      heading.insertAdjacentHTML('beforeend', renderManagement({
-        ...management,
-        octiconPin: root.dataset.octiconPin || '',
-        octiconPencil: root.dataset.octiconPencil || '',
-        octiconTrash: root.dataset.octiconTrash || '',
-        octiconCopy: root.dataset.octiconCopy || '',
-      }, root.dataset.cid));
     };
 
     const renderComponentPrompt = (root, message, showButton, loadingState) => {
@@ -495,9 +473,6 @@ const requestedCommentPage = Astro.url.searchParams.get('commentPage');
           if (!response.ok) throw new Error(data.error || '评论配置加载失败');
           renderFrame(root, data);
           applyCooldownLock();
-          if (data.commenter?.loggedIn === true) {
-            void loadAdminManagement(root).then(management => renderAdminManagement(root, management));
-          }
           metadataLoaded = true;
           return data;
         })().finally(() => {
