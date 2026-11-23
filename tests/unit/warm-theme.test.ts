@@ -524,6 +524,12 @@ describe('typecho-theme-oxn comment management controls', () => {
     expect(pinApi).toContain("content.status !== 'publish'");
     expect(pinApi).toContain('[cid, ...pinnedIds.filter(id => id !== cid)]');
     expect(pinApi).toContain('await getOption(auth.db, `theme:${THEME_ID}`)');
+    expect(pinApi).toContain('.insert(schema.options)');
+    expect(pinApi).toContain("reason: 'theme-pin'");
+    expect(pinApi).toContain("domains: ['home']");
+    expect(pinApi).toContain("sharedDomains: ['options']");
+    expect(pinApi).toContain('await bumpCacheVersion(auth.db');
+    expect(pinApi).not.toContain('setOption(');
     expect(pinApi).toContain('storedPinnedIds.includes(cid)');
     expect(comments).toContain('data-warm-pin-confirm-input');
     expect(comments).toContain("fetch('/api/admin/theme-pin'");
