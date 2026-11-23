@@ -148,8 +148,8 @@ if (isHomeListing) {
     ),
   });
   pinnedIds = typeof pinOption?.value === 'string'
-    ? pinOption.value.split(/[，,\\s]+/)
-      .filter(value => /^\\d+$/.test(value))
+    ? pinOption.value.split(/[，,\s]+/)
+      .filter(value => /^\d+$/.test(value))
       .map(Number)
       .filter((cid, index, values) => Number.isSafeInteger(cid) && cid > 0 && values.indexOf(cid) === index)
     : [];
