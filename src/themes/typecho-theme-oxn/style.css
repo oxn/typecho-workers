@@ -887,7 +887,6 @@ body.warm-theme {
 .warm-note__content .markdown-alert-title {
   display: flex;
   align-items: center;
-  gap: 6px;
   margin: 0 0 8px !important;
   font-weight: 700;
   font-size: .92rem;
@@ -901,18 +900,27 @@ body.warm-theme {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
+  margin-right: 6px;
 }
 
-.warm-prose .markdown-alert[data-alert="NOTE" i] .markdown-alert-title,
-.warm-note__content .markdown-alert[data-alert="NOTE" i] .markdown-alert-title,
-.warm-prose .markdown-alert[data-alert="TIP" i] .markdown-alert-title,
-.warm-note__content .markdown-alert[data-alert="TIP" i] .markdown-alert-title,
-.warm-prose .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title,
-.warm-note__content .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title,
-.warm-prose .markdown-alert[data-alert="WARNING" i] .markdown-alert-title,
-.warm-note__content .markdown-alert[data-alert="WARNING" i] .markdown-alert-title,
-.warm-prose .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title,
-.warm-note__content .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title {
+.warm-prose .markdown-alert-note .markdown-alert-title,
+.warm-note__content .markdown-alert-note .markdown-alert-title,
+.warm-prose .markdown-alert-tip .markdown-alert-title,
+.warm-note__content .markdown-alert-tip .markdown-alert-title,
+.warm-prose .markdown-alert-warning .markdown-alert-title,
+.warm-note__content .markdown-alert-warning .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="IMPORTANT"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="IMPORTANT"] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="Important"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="Important"] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="important"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="important"] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="CAUTION"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="CAUTION"] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="Caution"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="Caution"] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="caution"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="caution"] .markdown-alert-title {
   text-transform: uppercase;
 }
 
@@ -953,21 +961,37 @@ body.warm-theme {
   color: #c4a035;
 }
 
-.warm-prose .markdown-alert[data-alert="IMPORTANT" i],
-.warm-note__content .markdown-alert[data-alert="IMPORTANT" i] {
+.warm-prose .markdown-alert[data-alert="IMPORTANT"],
+.warm-note__content .markdown-alert[data-alert="IMPORTANT"],
+.warm-prose .markdown-alert[data-alert="Important"],
+.warm-note__content .markdown-alert[data-alert="Important"],
+.warm-prose .markdown-alert[data-alert="important"],
+.warm-note__content .markdown-alert[data-alert="important"] {
   border-left-color: rgb(192, 132, 252);
 }
-.warm-prose .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title,
-.warm-note__content .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title {
+.warm-prose .markdown-alert[data-alert="IMPORTANT"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="IMPORTANT"] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="Important"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="Important"] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="important"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="important"] .markdown-alert-title {
   color: rgb(192, 132, 252);
 }
 
-.warm-prose .markdown-alert[data-alert="CAUTION" i],
-.warm-note__content .markdown-alert[data-alert="CAUTION" i] {
+.warm-prose .markdown-alert[data-alert="CAUTION"],
+.warm-note__content .markdown-alert[data-alert="CAUTION"],
+.warm-prose .markdown-alert[data-alert="Caution"],
+.warm-note__content .markdown-alert[data-alert="Caution"],
+.warm-prose .markdown-alert[data-alert="caution"],
+.warm-note__content .markdown-alert[data-alert="caution"] {
   border-left-color: rgb(248, 113, 113);
 }
-.warm-prose .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title,
-.warm-note__content .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title {
+.warm-prose .markdown-alert[data-alert="CAUTION"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="CAUTION"] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="Caution"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="Caution"] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="caution"] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="caution"] .markdown-alert-title {
   color: rgb(248, 113, 113);
 }
 
