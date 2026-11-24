@@ -38,8 +38,7 @@ function addAlertIcons(html: string): string {
 
     return block.replace(/(<p\b[^>]*class=(["'])[^"']*\bmarkdown-alert-title\b[^"']*\2[^>]*>)/i, opening => opening + icon);
   });
-}
-type WarmPostItem = {
+}type WarmPostItem = {
   type: 'post';
   cid: number;
   title: string;
