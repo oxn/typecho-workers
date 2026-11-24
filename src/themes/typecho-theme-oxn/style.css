@@ -179,6 +179,20 @@ body.warm-theme {
   flex: 0 0 16px;
 }
 
+/* Keep nested custom SVG labels vertically centered like direct navigation icons. */
+.warm-nav__link > span,
+.warm-nav__dropdown > summary > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.warm-nav__link > span svg,
+.warm-nav__dropdown > summary > span svg {
+  display: block;
+  flex: 0 0 auto;
+  vertical-align: middle;
+}
+
 .warm-nav__link,
 .warm-nav__dropdown > summary {
   display: inline-flex;
