@@ -2517,7 +2517,7 @@ body.warm-theme {
 
 @media (max-width: 639px) {
   .warm-header__right { width: 100%; align-items: stretch; }
-  .warm-header__tools { top: 12px; justify-content: flex-end; }
+  .warm-header__tools { top: 20px; justify-content: flex-end; }
 }
 
 /* ========================================
