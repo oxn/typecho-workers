@@ -706,6 +706,19 @@ OXN 使用 GitHub Primer Octicons 作为内置图标库。依赖声明位于主�
 
 这个图标注册在 `components/octicons.ts` 的 `customIcons` 中，与上游 `@primer/octicons` 目录合并后统一解析。今后增加 OXN 专用图标时，应继续放在 `customIcons`，不要直接修改上游依赖数据；同时注明图标来源和适用授权。
 
+#### OXN 内置自定义图标：Cloudflare
+
+OXN 另加入 Cloudflare 双色云朵标志，使用项目维护者提供的 SVG 路径，保留橙色与黄色两层填充。它不是上游 Octicons 图标。
+
+支持两个名称别名：
+
+```text
+{{octicon:cf}}
+{{octicon:cloudflare}}
+```
+
+两种名称调用的是同一个图标定义。输出 SVG 的外层尺寸仍按图标库的正方形尺寸控制；内部保留原始 40 × 19 viewBox，浏览器按原比例缩放，不会把云朵拉伸成正方形。
+
 #### 方法四：加入项目自己的自定义图标
 
 如果需要的图标不属于 Octicons（例如 OXN 自有图标或其他图标集），它不会因为更新 `@primer/octicons` 而自动出现。此时有两种做法：
