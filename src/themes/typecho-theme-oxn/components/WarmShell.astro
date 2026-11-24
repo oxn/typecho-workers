@@ -79,8 +79,8 @@ const navLinkMatchesCurrentPageAlias = (href: string): boolean => {
       const pathname = new URL(value, urls.siteUrl).pathname;
       return pathname
         .replace(/\\/g, '/')
-        .replace(/\\.[^/.]+$/, '')
-        .replace(/\\/$/, '') || '/';
+        .replace(/\.[^/.]+$/, '')
+        .replace(/\/$/, '') || '/';
     };
     return normalizeAliasPath(href) === normalizeAliasPath(currentPath);
   } catch {
