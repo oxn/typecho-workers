@@ -10,9 +10,33 @@ import WarmComments from './WarmComments.astro';
 import WarmNoteMedia from './WarmNoteMedia.astro';
 import WarmToc from './WarmToc.astro';
 import { optimizeContentImages } from '@/lib/image-transform';
+import { octiconSvg } from './octicons';
 import { formatWarmDate, plainExcerpt, prepareArticleToc, readingMinutes, warmArticleSummary, warmSettings, renderArticleDeclaration } from './warm';
 
 type Props = ThemePostProps;
+
+const ALERT_OCTICONS: Record<string, string> = {
+  NOTE: 'info',
+  TIP: 'light-bulb',
+  IMPORTANT: 'report',
+  WARNING: 'alert',
+  CAUTION: 'alert-fill',
+};
+
+function addAlertIcons(html: string): string {
+  if (!html.includes('markdown-alert')) return html;
+
+  return html.replace(/<blockquote\\b[^>]*>[\\s\\S]*?<\\/blockquote>/gi, block => {
+    const alert = block.match(/\\bdata-alert=(["'])(.*?)\\1/i)?.[2]?.trim().toUpperCase();
+    const iconName = alert ? ALERT_OCTICONS[alert] : undefined;
+    if (!iconName) return block;
+
+    const icon = octiconSvg(iconName, 16).replace('<svg ', '<svg class="markdown-alert-icon" ');
+    if (!icon) return block;
+
+    return block.replace(/(<p\\b[^>]*class=(["'])[^"']*\\bmarkdown-alert-title\\b[^"']*\\2[^>]*>)/i, opening => opening + icon);
+  });
+}
 
 const {
   options, urls, pages, sidebarData, currentPath, pluginCtx,
@@ -35,7 +59,7 @@ const optimizedContent = optimizeContentImages(
   urls.siteUrl,
 );
 const toc = isNote ? { html: optimizedContent, items: [] } : prepareArticleToc(optimizedContent);
-const displayContent = toc.html;
+const displayContent = addAlertIcons(toc.html);
 const tocItems = toc.items;
 const intelligenceSummary = !isNote && pluginCtx.activatedPlugins.has('typecho-plugin-intelligence')
   ? await readSummary(db, post.cid)
