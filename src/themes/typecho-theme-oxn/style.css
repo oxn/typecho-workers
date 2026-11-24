@@ -174,13 +174,7 @@ body.warm-theme {
   flex: 0 0 16px;
 }
 
-.warm-nav__link > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.warm-nav__link > span svg {
+.warm-nav__link > svg {
   display: block;
   flex: 0 0 16px;
 }
