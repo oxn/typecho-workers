@@ -15,6 +15,9 @@ export interface WarmSettings {
   footerLinks: Array<{ text: string; url: string; newWindow: boolean; icon: string }>;
   footerCustomHtml: string;
   articleDeclarationHtml: string;
+  navHomeLabel: string;
+  navArticlesLabel: string;
+  navNotesLabel: string;
   showThemeToggleButton: boolean;
   showHomeSearchButton: boolean;
   showAdminEntryButton: boolean;
@@ -36,6 +39,7 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
   const pinnedIds = parsePinnedIds(oxnSettings.pinnedIds);
   const footerCustomHtml = typeof oxnSettings.footerCustomHtml === 'string' ? oxnSettings.footerCustomHtml : '';
   const articleDeclarationHtml = typeof oxnSettings.articleDeclarationHtml === 'string' ? oxnSettings.articleDeclarationHtml : '';
+  const navLabel = (value: unknown, fallback: string) => typeof value === 'string' && value.trim() ? value.trim() : fallback;
   const footerLinks = Array.from({ length: 10 }, (_, index) => {
     const suffix = String(index + 1).padStart(2, '0');
     const textValue = oxnSettings[`linktxt${suffix}`];
@@ -55,6 +59,9 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     footerLinks,
     footerCustomHtml,
     articleDeclarationHtml,
+    navHomeLabel: navLabel(oxnSettings.navHomeLabel, '首页'),
+    navArticlesLabel: navLabel(oxnSettings.navArticlesLabel, '文章'),
+    navNotesLabel: navLabel(oxnSettings.navNotesLabel, '笔记'),
     showThemeToggleButton: enabled(oxnSettings.showThemeToggleButton),
     showHomeSearchButton: enabled(oxnSettings.showHomeSearchButton),
     showAdminEntryButton: enabled(oxnSettings.showAdminEntryButton),
