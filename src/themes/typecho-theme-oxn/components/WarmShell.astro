@@ -16,6 +16,7 @@ interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
   section?: WarmSection;
   pageContext?: PageContext;
   detail?: boolean;
+  currentPageCid?: number;
 }
 
 const {
@@ -29,7 +30,8 @@ const {
   sidebarData,
   pluginCtx,
   pageContext,
-  currentPath
+  currentPath,
+  currentPageCid,
 } = Astro.props;
 
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
@@ -70,6 +72,17 @@ for (const row of navFieldRows) {
   }
   navFieldsBySlug.set(row.slug, fields);
 }
+const navLinkMatchesCurrentPageCid = (href: string): boolean => {
+  if (!Number.isSafeInteger(currentPageCid) || Number(currentPageCid) <= 0) return false;
+  try {
+    const pathname = new URL(href, urls.siteUrl).pathname;
+    // Treat the configured CID in the navigation URL as a prefix (CID + *),
+    // while preventing a shorter CID from matching the beginning of a larger one.
+    return new RegExp('(?:^|/)' + Number(currentPageCid) + '(?=$|[^0-9])').test(pathname);
+  } catch {
+    return false;
+  }
+};
 const navPages = pages.flatMap(page => {
   const fields = navFieldsBySlug.get(page.slug);
   const iconHtml = renderIconInput(fields?.icon, 16);
@@ -130,7 +143,7 @@ const footerLinks = [
         )}
         {navPages.map((page) => (
           <a
-            class:list={["warm-nav__link", { "is-active": currentPath != '/' && page.permalink.includes(currentPath) }]}
+            class:list={["warm-nav__link", { "is-active": (currentPath != '/' && page.permalink.includes(currentPath)) || navLinkMatchesCurrentPageCid(page.permalink) }]}
             href={page.permalink}
             aria-label={page.ariaLabel}
             title={page.label || undefined}
