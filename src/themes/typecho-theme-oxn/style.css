@@ -885,6 +885,8 @@ body.warm-theme {
 
 .warm-prose .markdown-alert-title,
 .warm-note__content .markdown-alert-title {
+  display: flex;
+  align-items: center;
   margin: 0 0 8px !important;
   font-weight: 700;
   font-size: .92rem;
@@ -894,11 +896,11 @@ body.warm-theme {
 
 .warm-prose .markdown-alert-icon,
 .warm-note__content .markdown-alert-icon {
-  display: inline-block;
+  display: block;
   width: 16px;
   height: 16px;
+  flex: 0 0 16px;
   margin-right: 6px;
-  vertical-align: middle;
 }
 
 .warm-prose .markdown-alert-note .markdown-alert-title,
