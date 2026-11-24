@@ -272,7 +272,7 @@ OXN 与原版 Warm 是两个独立主题，主题 ID 分别为 `typecho-theme-ox
 提供 10 组自定义链接，每组分别设置文字、网址和是否在新窗口打开：
 
 - **文字：** 前台链接显示的内容。支持普通文字、完整 HTML、SVG 源码，以及 HTML、SVG 与文字混合输入。
-- **Octicons 图标：** 可在文字栏开头填写 `{{octicon:mark-github}}` 或 `{{icons:mark-github}}`，标记后面可以继续填写文字；也可以在图标名称后追加 `-16` 或 `-24`，明确选择对应尺寸变体，例如 `{{octicon:sign-in-16}}`、`{{octicon:sign-in-24}}`。不带尺寸后缀时沿用默认选择规则；也可以直接填写完整 SVG/HTML。
+- **Octicons 图标：** 可在文字栏开头填写 `{{octicon:mark-github}}` 或 `{{icons:mark-github}}`，也可以添加 `title` 参数提供图标提示文字，例如 `{{octicon:图标id|title=文字说明}}` 或 `{{icons:图标id|title=文字说明}}`；标记后面可以继续填写文字。也可以在图标名称后追加 `-16` 或 `-24`，明确选择对应尺寸变体，例如 `{{octicon:sign-in-16}}`、`{{octicon:sign-in-24}}`。不带尺寸后缀时沿用默认选择规则；也可以直接填写完整 SVG/HTML。
 - **网址：** 链接目标。支持完整的 `https://`、`http://`、`mailto:` 地址和站内相对链接；普通域名可直接填写，主题会自动补上 HTTPS。
 - **新窗口：** 在每组的“网址”行中，网址输入框后面是“新窗口”复选框。勾选后使用新窗口打开链接；未勾选时在当前窗口打开。
 
@@ -281,6 +281,18 @@ OXN 与原版 Warm 是两个独立主题，主题 ID 分别为 `typecho-theme-ox
 文字栏不是 Markdown 编辑器，链接文字与网址必须分别填写。空网址或无效网址不会生成页脚链接。HTML/SVG 会按原始片段输出，不会在这里额外验证标签完整性或执行 HTML 白名单清理；请确保标签完整闭合，只粘贴可信内容。
 
 页脚还会按可用情况显示 RSS 站点链接。其他站点链接请通过上方的页脚自定义链接配置添加。
+
+**常用图标与外部图片示例：**
+
+```text
+{{octicon:note|size=24|title=笔记列表}}
+```
+
+```html
+<img src="https://example.com/image.png" alt="图片说明">
+```
+
+图片 `src` 填写可公开访问的外部图片地址，`alt` 用于图片无法显示时的替代文字及辅助阅读。
 
 ### 4.4 文章内容声明
 
@@ -730,7 +742,7 @@ OXN 另加入 Cloudflare 双色云朵标志，使用项目维护者提供的 SVG
 
 #### 当前支持范围与注意事项
 
-- 支持标记：`{{octicon:名称}}`、兼容标记 `{{icons:名称}}`。
+- 支持标记：`{{octicon:名称}}`、兼容标记 `{{icons:名称}}`；支持通过 `|title=文字说明` 添加图标提示文字，例如 `{{octicon:图标id|title=文字说明}}` 或 `{{icons:图标id|title=文字说明}}`。
 - 不支持单数形式：`{{icon:名称}}`。
 - 兼容不带标记的裸图标名称；在普通文本字段中，建议始终使用明确的双大括号标记，避免普通文字被误判为图标名称。
 - 标记可以放在文字开头，标记后面的普通文字会继续输出；若后面是 HTML 片段，则按 HTML 片段追加输出。
@@ -1077,6 +1089,57 @@ Markdown 正文可以直接混合 HTML。块级 HTML 示例：
 ~~~html
 <p>普通文字中插入 <strong>加粗</strong>、<code>代码</code> 和 <a href="https://example.com">链接</a>。</p>
 ~~~
+
+
+#### 常用文字样式速查
+
+以下示例可直接复制到文章、独立页面或笔记正文中使用：
+
+**加粗文字：**
+
+~~~html
+<strong>这段文字加粗</strong>
+~~~
+
+**文字颜色：**
+
+~~~html
+<span style="color:#e74c3c;">红色文字</span>
+<span style="color:#3498db;">蓝色文字</span>
+<span style="color:#27ae60;">绿色文字</span>
+~~~
+
+**加粗并设置颜色：**
+
+~~~html
+<strong style="color:#e74c3c;">加粗红色文字</strong>
+~~~
+
+**字体大小：**
+
+~~~html
+<span style="font-size:14px;">较小文字</span>
+<span style="font-size:18px;">较大文字</span>
+~~~
+
+**其他常用效果：**
+
+~~~html
+<u>下划线文字</u>
+<del>删除线文字</del>
+<mark>高亮文字</mark>
+<span style="background-color:#fff3cd;">带背景色的文字</span>
+<div style="text-align:center;">居中内容</div>
+~~~
+
+**手动换行与链接：**
+
+~~~html
+第一行文字<br>第二行文字
+<a href="https://example.com">打开链接</a>
+~~~
+
+以上样式依赖正文 HTML 清理规则允许的标签和 CSS 属性；颜色、字号等内联样式会经过白名单检查。此处示例适用于文章、独立页面和笔记正文，不代表评论、页脚自定义 HTML、文章内容声明等其他输入位置使用相同的清理规则。
 
 本节对应 `src/lib/markdown.ts` 中的 `SANITIZE_OPTIONS`，适用范围是普通文章、独立页面和笔记正文的共享 Markdown/HTML 清理流程；它不是 OXN 主题专属白名单，也不是 Typecho 全系统所有 HTML 输出的统一白名单。配置继承 sanitize-html 默认允许标签，并在此基础上扩展结构标签、表单标签、媒体标签和 SVG 图形标签。
 
