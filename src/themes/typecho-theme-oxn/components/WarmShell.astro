@@ -76,9 +76,10 @@ const navLinkMatchesCurrentPageCid = (href: string): boolean => {
   if (!Number.isSafeInteger(currentPageCid) || Number(currentPageCid) <= 0) return false;
   try {
     const pathname = new URL(href, urls.siteUrl).pathname;
-    // Treat the configured CID in the navigation URL as a prefix (CID + *),
-    // while preventing a shorter CID from matching the beginning of a larger one.
-    return new RegExp('(?:^|/)' + Number(currentPageCid) + '(?=$|[^0-9])').test(pathname);
+    // Match a navigation URL whose path segment begins with the current CID (CID + *).
+    // The numeric capture is greedy, so CID 123 will not match 1234.
+    const match = pathname.match(/(?:^|\/)(\d+).*/);
+    return !!match && Number(match[1]) === Number(currentPageCid);
   } catch {
     return false;
   }
