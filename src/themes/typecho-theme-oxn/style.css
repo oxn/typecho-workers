@@ -188,6 +188,8 @@ body.warm-theme {
 .warm-nav__link,
 .warm-nav__dropdown > summary {
   display: inline-flex;
+  height: 25.5px;
+  box-sizing: border-box;
   align-items: center;
   justify-content: center;
   gap: 4px;
