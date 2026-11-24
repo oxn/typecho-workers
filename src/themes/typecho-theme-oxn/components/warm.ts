@@ -19,6 +19,9 @@ export interface WarmSettings {
   showHomeSearchButton: boolean;
   showAdminEntryButton: boolean;
   showCommentManagementButtons: boolean;
+  navHomeLabel: string;
+  navArticlesLabel: string;
+  navNotesLabel: string;
   continuousLoadMode: WarmContinuousLoadMode;
   commentComponentLoadMode: WarmCommentComponentLoadMode;
   commentInitialLoadMode: WarmCommentInitialLoadMode;
@@ -59,6 +62,9 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     showHomeSearchButton: enabled(oxnSettings.showHomeSearchButton),
     showAdminEntryButton: enabled(oxnSettings.showAdminEntryButton),
     showCommentManagementButtons: enabled(oxnSettings.showCommentManagementButtons),
+    navHomeLabel: typeof oxnSettings.navHomeLabel === 'string' ? oxnSettings.navHomeLabel : '',
+    navArticlesLabel: typeof oxnSettings.navArticlesLabel === 'string' ? oxnSettings.navArticlesLabel : '',
+    navNotesLabel: typeof oxnSettings.navNotesLabel === 'string' ? oxnSettings.navNotesLabel : '',
     continuousLoadMode: normalizeContinuousLoadMode(oxnSettings.continuousLoadMode),
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
     commentInitialLoadMode: normalizeCommentInitialLoadMode(oxnSettings.commentInitialLoadMode),
