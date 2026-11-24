@@ -38,6 +38,9 @@ const settings = warmSettings(options);
 const navHomeLabel = settings.navHomeLabel.trim() || '首页';
 const navArticlesLabel = settings.navArticlesLabel.trim() || '文章';
 const navNotesLabel = settings.navNotesLabel.trim() || '笔记';
+const navHomeLabelHtml = renderIconInput(navHomeLabel, 16, { plainText: true });
+const navArticlesLabelHtml = renderIconInput(navArticlesLabel, 16, { plainText: true });
+const navNotesLabelHtml = renderIconInput(navNotesLabel, 16, { plainText: true });
 const navPageSlugs = pages.map(page => page.slug).filter(Boolean);
 const navFieldRows = navPageSlugs.length
   ? await (pluginCtx as typeof pluginCtx & { db: Database }).db
@@ -88,6 +91,7 @@ const footerLinks = [
     href: link.url,
     newWindow: link.newWindow,
     iconHtml: renderIconInput(link.icon, 15),
+    labelHtml: renderIconInput(link.text, 15, { plainText: true }),
   })),
   { label: 'RSS', href: urls.feedUrl, newWindow: false, iconHtml: '' },
 ].filter(link => link.href && (link.label || link.iconHtml));
@@ -110,10 +114,10 @@ const footerLinks = [
       </a>
       <div class="warm-header__right">
       <nav class="warm-nav" aria-label="主导航">
-        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>{navHomeLabel}</a>
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}><span set:html={navHomeLabelHtml}></span></a>
         <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
           <summary>
-            {navArticlesLabel}
+            <span set:html={navArticlesLabelHtml}></span>
             <svg class="warm-nav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('chevron-down')}></svg>
           </summary>
           <div class="warm-nav__menu">
@@ -122,7 +126,7 @@ const footerLinks = [
           </div>
         </details>
         {notesEnabled && (
-          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>{navNotesLabel}</a>
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}><span set:html={navNotesLabelHtml}></span></a>
         )}
         {navPages.map((page) => (
           <a
@@ -227,9 +231,7 @@ const footerLinks = [
             rel={link.newWindow ? 'noopener noreferrer' : undefined}
           >
             {link.iconHtml && <span set:html={link.iconHtml}></span>}
-            {/<[a-z][\s\S]*>/i.test(link.label)
-              ? <span set:html={link.label}></span>
-              : link.label}
+            {link.labelHtml && <span set:html={link.labelHtml}></span>}
           </a>
         ))}
       </nav>
