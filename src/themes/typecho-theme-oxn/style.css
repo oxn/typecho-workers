@@ -1875,7 +1875,7 @@ body.warm-theme {
 }
 
 /* 页脚 SVG 图标 */
-.warm-footer__meta nav > a > span > svg {
+.warm-footer__meta nav > a svg {
   display: block;
   width: 15px;
   height: 15px;
