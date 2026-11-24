@@ -35,6 +35,9 @@ const {
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
+const navHomeLabel = settings.navHomeLabel.trim() || '首页';
+const navArticlesLabel = settings.navArticlesLabel.trim() || '文章';
+const navNotesLabel = settings.navNotesLabel.trim() || '笔记';
 const navPageSlugs = pages.map(page => page.slug).filter(Boolean);
 const navFieldRows = navPageSlugs.length
   ? await (pluginCtx as typeof pluginCtx & { db: Database }).db
@@ -107,10 +110,10 @@ const footerLinks = [
       </a>
       <div class="warm-header__right">
       <nav class="warm-nav" aria-label="主导航">
-        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>{navHomeLabel}</a>
         <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
           <summary>
-            文章
+            {navArticlesLabel}
             <svg class="warm-nav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('chevron-down')}></svg>
           </summary>
           <div class="warm-nav__menu">
@@ -119,7 +122,7 @@ const footerLinks = [
           </div>
         </details>
         {notesEnabled && (
-          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>{navNotesLabel}</a>
         )}
         {navPages.map((page) => (
           <a
