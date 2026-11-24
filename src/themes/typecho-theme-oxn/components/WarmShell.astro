@@ -107,10 +107,10 @@ const footerLinks = [
       </a>
       <div class="warm-header__right">
       <nav class="warm-nav" aria-label="主导航">
-        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined} >{settings.navHomeLabel}</a>
         <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
           <summary>
-            文章
+            {settings.navArticlesLabel}
             <svg class="warm-nav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('chevron-down')}></svg>
           </summary>
           <div class="warm-nav__menu">
@@ -119,7 +119,7 @@ const footerLinks = [
           </div>
         </details>
         {notesEnabled && (
-          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>{settings.navNotesLabel}</a>
         )}
         {navPages.map((page) => (
           <a
