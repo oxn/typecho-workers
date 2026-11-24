@@ -143,19 +143,16 @@ const footerLinks = [
       </a>
       <div class="warm-header__right">
       <nav class="warm-nav" aria-label="主导航">
-        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}><span set:html={navHomeLabelHtml}></span></a>
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined} set:html={navHomeLabelHtml}></a>
         <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
-          <summary>
-            <span set:html={navArticlesLabelHtml}></span>
-            <svg class="warm-nav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('chevron-down')}></svg>
-          </summary>
+          <summary set:html={navArticlesLabelHtml + `<svg class="warm-nav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">${octiconPath('chevron-down')}</svg>`}></summary>
           <div class="warm-nav__menu">
             <a href={`${homeUrl}?stream=posts`}>全部文章</a>
             {categories.map(category => (<a href={category.permalink}>{category.name}</a>))}
           </div>
         </details>
         {notesEnabled && (
-          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}><span set:html={navNotesLabelHtml}></span></a>
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined} set:html={navNotesLabelHtml}></a>
         )}
         {navPages.map((page) => (
           <a
