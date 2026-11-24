@@ -1078,6 +1078,57 @@ Markdown 正文可以直接混合 HTML。块级 HTML 示例：
 <p>普通文字中插入 <strong>加粗</strong>、<code>代码</code> 和 <a href="https://example.com">链接</a>。</p>
 ~~~
 
+
+#### 常用文字样式速查
+
+以下示例可直接复制到文章、独立页面或笔记正文中使用：
+
+**加粗文字：**
+
+~~~html
+<strong>这段文字加粗</strong>
+~~~
+
+**文字颜色：**
+
+~~~html
+<span style="color:#e74c3c;">红色文字</span>
+<span style="color:#3498db;">蓝色文字</span>
+<span style="color:#27ae60;">绿色文字</span>
+~~~
+
+**加粗并设置颜色：**
+
+~~~html
+<strong style="color:#e74c3c;">加粗红色文字</strong>
+~~~
+
+**字体大小：**
+
+~~~html
+<span style="font-size:14px;">较小文字</span>
+<span style="font-size:18px;">较大文字</span>
+~~~
+
+**其他常用效果：**
+
+~~~html
+<u>下划线文字</u>
+<del>删除线文字</del>
+<mark>高亮文字</mark>
+<span style="background-color:#fff3cd;">带背景色的文字</span>
+<div style="text-align:center;">居中内容</div>
+~~~
+
+**手动换行与链接：**
+
+~~~html
+第一行文字<br>第二行文字
+<a href="https://example.com">打开链接</a>
+~~~
+
+以上样式依赖正文 HTML 清理规则允许的标签和 CSS 属性；颜色、字号等内联样式会经过白名单检查。此处示例适用于文章、独立页面和笔记正文，不代表评论、页脚自定义 HTML、文章内容声明等其他输入位置使用相同的清理规则。
+
 本节对应 `src/lib/markdown.ts` 中的 `SANITIZE_OPTIONS`，适用范围是普通文章、独立页面和笔记正文的共享 Markdown/HTML 清理流程；它不是 OXN 主题专属白名单，也不是 Typecho 全系统所有 HTML 输出的统一白名单。配置继承 sanitize-html 默认允许标签，并在此基础上扩展结构标签、表单标签、媒体标签和 SVG 图形标签。
 
 本次扩展的主要标签按用途整理如下（同时保留 sanitize-html 默认允许的标签）：
