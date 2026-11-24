@@ -567,10 +567,12 @@ const footerLinks = [
         const rightGap = 12;
         const navGap = Number.parseFloat(navStyle.columnGap) || 0;
         const navItems = Array.from(headerNav.children);
-        const navItemsWidth = navItems.reduce((total, item) => total + item.getBoundingClientRect().width, 0)
+        // Measure layout boxes rather than transformed visual bounds so icon scaling
+        // cannot change the inline-layout threshold between single and grouped actions.
+        const navItemsWidth = navItems.reduce((total, item) => total + item.offsetWidth, 0)
           + Math.max(0, navItems.length - 1) * navGap;
-        const availableRightWidth = headerInner.clientWidth - headerBrand.getBoundingClientRect().width - innerGap;
-        const requiredRightWidth = headerTools.getBoundingClientRect().width + rightGap + navItemsWidth;
+        const availableRightWidth = headerInner.clientWidth - headerBrand.offsetWidth - innerGap;
+        const requiredRightWidth = headerTools.offsetWidth + rightGap + navItemsWidth;
         header.classList.toggle('warm-header--tools-inline', requiredRightWidth <= availableRightWidth + 1);
       };
       updateHeaderToolsLayout();
