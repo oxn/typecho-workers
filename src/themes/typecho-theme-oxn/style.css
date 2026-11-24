@@ -885,11 +885,35 @@ body.warm-theme {
 
 .warm-prose .markdown-alert-title,
 .warm-note__content .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0 0 8px !important;
   font-weight: 700;
   font-size: .92rem;
   line-height: 1.25em;
   letter-spacing: 0;
+}
+
+.warm-prose .markdown-alert-icon,
+.warm-note__content .markdown-alert-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.warm-prose .markdown-alert[data-alert="NOTE" i] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="NOTE" i] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="TIP" i] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="TIP" i] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="IMPORTANT" i] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="WARNING" i] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="WARNING" i] .markdown-alert-title,
+.warm-prose .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title,
+.warm-note__content .markdown-alert[data-alert="CAUTION" i] .markdown-alert-title {
+  text-transform: uppercase;
 }
 
 .warm-prose .markdown-alert p,
