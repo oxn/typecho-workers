@@ -3,15 +3,40 @@ import type { ThemePageProps } from '@/lib/theme-props';
 import WarmShell from './WarmShell.astro';
 import WarmComments from './WarmComments.astro';
 import { optimizeContentImages } from '@/lib/image-transform';
+import { octiconSvg } from './octicons';
 import { formatWarmDate, plainExcerpt, warmSettings } from './warm';
 
 type Props = ThemePageProps;
+
+const ALERT_OCTICONS: Record<string, string> = {
+  NOTE: 'info',
+  TIP: 'light-bulb',
+  IMPORTANT: 'report',
+  WARNING: 'alert',
+  CAUTION: 'alert-fill',
+};
+
+function addAlertIcons(html: string): string {
+  if (!html.includes('markdown-alert')) return html;
+
+  return html.replace(/<blockquote\\b[^>]*>[\\s\\S]*?<\\/blockquote>/gi, block => {
+    const alert = block.match(/\\bdata-alert=(["'])(.*?)\\1/i)?.[2]?.trim().toUpperCase();
+    const iconName = alert ? ALERT_OCTICONS[alert] : undefined;
+    if (!iconName) return block;
+
+    const icon = octiconSvg(iconName, 16).replace('<svg ', '<svg class="markdown-alert-icon" ');
+    if (!icon) return block;
+
+    return block.replace(/(<p\\b[^>]*class=(["'])[^"']*\\bmarkdown-alert-title\\b[^"']*\\2[^>]*>)/i, opening => opening + icon);
+  });
+}
 const {
   options, urls, pages, sidebarData, currentPath, pluginCtx,
   page, commentPagination,
 } = Astro.props;
 const isAbout = page.slug.toLowerCase() === 'about' || page.title === '关于';
 const settings = warmSettings(options);
+const displayContent = addAlertIcons(optimizeContentImages(page.content, settings.imageOptimizeParams, urls.siteUrl));
 ---
 <WarmShell
   title={page.title}
@@ -33,7 +58,7 @@ const settings = warmSettings(options);
         <h1 itemprop="headline">{page.title}</h1>
       </div>
     </header>
-    <div class="warm-prose" view-image itemprop="articleBody" set:html={optimizeContentImages(page.content, settings.imageOptimizeParams, urls.siteUrl)} />
+    <div class="warm-prose" view-image itemprop="articleBody" set:html={displayContent} />
   </article>
 
   {(page.allowComment || commentPagination.totalComments > 0) && (
