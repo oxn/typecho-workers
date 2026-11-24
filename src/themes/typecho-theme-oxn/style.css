@@ -2434,6 +2434,9 @@ body.warm-theme {
 
 .warm-quick-menu--single .warm-quick-menu__items {
   position: static;
+  width: 32px;
+  height: 32px;
+  gap: 0;
   transform: none;
   padding: 0;
   border: 0;
