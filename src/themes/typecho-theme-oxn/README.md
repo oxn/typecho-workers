@@ -682,6 +682,30 @@ OXN 使用 GitHub Primer Octicons 作为内置图标库。依赖声明位于主�
 
 因为 `octicons.ts` 是从依赖包整体读取图标目录，更新依赖后，新版本包含的图标会自动进入可解析目录；通常不需要为每个新图标单独修改解析函数。不要只改 `package.json` 而不更新 `bun.lock`，否则不同环境安装到的依赖版本可能不一致。
 
+#### OXN 内置自定义图标：Bilibili
+
+除上游 Octicons 外，OXN 也可以在本地目录中登记主题专用图标。当前已加入一个名称为 `bilibili` 的自定义图标，使用的是项目维护者提供的 18 × 18 SVG 路径，不属于上游 Octicons 图标集。
+
+调用方式与其他图标一致：
+
+```text
+{{octicon:bilibili}}
+```
+
+也可以指定输出尺寸和辅助提示文字：
+
+```text
+{{octicon:bilibili|size=18|title=Bilibili}}
+```
+
+旧标记同样兼容：
+
+```text
+{{icons:bilibili}}
+```
+
+这个图标注册在 `components/octicons.ts` 的 `customIcons` 中，与上游 `@primer/octicons` 目录合并后统一解析。今后增加 OXN 专用图标时，应继续放在 `customIcons`，不要直接修改上游依赖数据；同时注明图标来源和适用授权。
+
 #### 方法四：加入项目自己的自定义图标
 
 如果需要的图标不属于 Octicons（例如 OXN 自有图标或其他图标集），它不会因为更新 `@primer/octicons` 而自动出现。此时有两种做法：
