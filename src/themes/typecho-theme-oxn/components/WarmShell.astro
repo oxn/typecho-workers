@@ -122,7 +122,7 @@ const footerLinks = [
     iconHtml: renderIconInput(link.icon, 15),
     labelHtml: renderIconInput(link.text, 15, { plainText: true }),
   })),
-  { label: 'RSS', href: urls.feedUrl, newWindow: false, iconHtml: '' },
+  { label: 'RSS', href: urls.feedUrl, newWindow: false, iconHtml: '', labelHtml: renderIconInput('RSS', 15, { plainText: true }) },
 ].filter(link => link.href && (link.label || link.iconHtml));
 ---
 <Base
