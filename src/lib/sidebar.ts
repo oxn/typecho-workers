@@ -19,7 +19,7 @@ export interface SidebarData {
   archives: Array<{ date: string; permalink: string }>;
 }
 
-export type NavPage = { title: string; slug: string; permalink: string };
+export type NavPage = { cid: number; title: string; slug: string; permalink: string };
 
 function cloneSidebarData(data: SidebarData): SidebarData {
   return {
@@ -165,6 +165,7 @@ export async function loadNavPages(
       .orderBy(schema.contents.order);
 
     return rows.map((p) => ({
+      cid: p.cid,
       title: p.title || '无标题',
       slug: p.slug || '',
       permalink: buildPermalink(
