@@ -35,6 +35,14 @@ const {
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
+const renderNavLabel = (value: string) => {
+  const input = value.trim();
+  if (!/^\\{\\{octicon:[a-z0-9-]+\\}\\}$/i.test(input) && !/<[a-z][\\s\\S]*>/i.test(input)) return '';
+  return renderIconInput(input, 16);
+};
+const navHomeLabelHtml = renderNavLabel(settings.navHomeLabel);
+const navArticlesLabelHtml = renderNavLabel(settings.navArticlesLabel);
+const navNotesLabelHtml = renderNavLabel(settings.navNotesLabel);
 const navPageSlugs = pages.map(page => page.slug).filter(Boolean);
 const navFieldRows = navPageSlugs.length
   ? await (pluginCtx as typeof pluginCtx & { db: Database }).db
@@ -107,10 +115,12 @@ const footerLinks = [
       </a>
       <div class="warm-header__right">
       <nav class="warm-nav" aria-label="主导航">
-        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>{settings.navHomeLabel}</a>
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>
+          {navHomeLabelHtml ? <span set:html={navHomeLabelHtml}></span> : <span>{settings.navHomeLabel}</span>}
+        </a>
         <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
           <summary>
-            {settings.navArticlesLabel}
+            {navArticlesLabelHtml ? <span set:html={navArticlesLabelHtml}></span> : <span>{settings.navArticlesLabel}</span>}
             <svg class="warm-nav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('chevron-down')}></svg>
           </summary>
           <div class="warm-nav__menu">
@@ -119,7 +129,9 @@ const footerLinks = [
           </div>
         </details>
         {notesEnabled && (
-          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>{settings.navNotesLabel}</a>
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>
+            {navNotesLabelHtml ? <span set:html={navNotesLabelHtml}></span> : <span>{settings.navNotesLabel}</span>}
+          </a>
         )}
         {navPages.map((page) => (
           <a
