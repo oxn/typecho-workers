@@ -42,7 +42,7 @@ const navArticlesLabel = settings.navArticlesLabel.trim() || '文章';
 const navNotesLabel = settings.navNotesLabel.trim() || '笔记';
 const renderNavLabel = (value: string): string => {
   const html = renderIconInput(value, 16, { plainText: true });
-  return /<svg\\b/i.test(html) ? `<span class="warm-nav__icon">${html}</span>` : html;
+  return /<svg\b/i.test(html) ? `<span class="warm-nav__icon">${html}</span>` : html;
 };
 const navHomeLabelHtml = renderNavLabel(navHomeLabel);
 const navArticlesLabelHtml = renderNavLabel(navArticlesLabel);
