@@ -72,6 +72,21 @@ for (const row of navFieldRows) {
   }
   navFieldsBySlug.set(row.slug, fields);
 }
+const navLinkMatchesCurrentPageAlias = (href: string): boolean => {
+  if (!currentPath || currentPath === '/') return false;
+  try {
+    const normalizeAliasPath = (value: string): string => {
+      const pathname = new URL(value, urls.siteUrl).pathname;
+      return pathname
+        .replace(/\\/g, '/')
+        .replace(/\\.[^/.]+$/, '')
+        .replace(/\\/$/, '') || '/';
+    };
+    return normalizeAliasPath(href) === normalizeAliasPath(currentPath);
+  } catch {
+    return false;
+  }
+};
 const navLinkMatchesCurrentPageCid = (href: string): boolean => {
   if (!Number.isSafeInteger(currentPageCid) || Number(currentPageCid) <= 0) return false;
   try {
@@ -144,7 +159,7 @@ const footerLinks = [
         )}
         {navPages.map((page) => (
           <a
-            class:list={["warm-nav__link", { "is-active": (currentPath != '/' && page.permalink.includes(currentPath)) || navLinkMatchesCurrentPageCid(page.permalink) }]}
+            class:list={["warm-nav__link", { "is-active": (currentPath != '/' && (page.permalink.includes(currentPath) || navLinkMatchesCurrentPageAlias(page.permalink))) || navLinkMatchesCurrentPageCid(page.permalink) }]}
             href={page.permalink}
             aria-label={page.ariaLabel}
             title={page.label || undefined}
