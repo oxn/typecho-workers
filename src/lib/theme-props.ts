@@ -24,7 +24,7 @@ export interface ThemeBaseProps {
   /** Whether a user is logged in */
   isLoggedIn: boolean;
   /** Navigation pages (published pages shown in header nav) */
-  pages: Array<{ title: string; slug: string; permalink: string }>;
+  pages: Array<{ cid: number; title: string; slug: string; permalink: string }>;
   /** Sidebar widget data */
   sidebarData: SidebarData;
   /** Current request path */
