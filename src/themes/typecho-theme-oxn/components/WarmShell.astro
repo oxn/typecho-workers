@@ -40,13 +40,9 @@ const settings = warmSettings(options);
 const navHomeLabel = settings.navHomeLabel.trim() || '首页';
 const navArticlesLabel = settings.navArticlesLabel.trim() || '文章';
 const navNotesLabel = settings.navNotesLabel.trim() || '笔记';
-const renderNavLabel = (value: string): string => {
-  const html = renderIconInput(value, 16, { plainText: true });
-  return /<svg\b/i.test(html) ? `<span class="warm-nav__icon">${html}</span>` : html;
-};
-const navHomeLabelHtml = renderNavLabel(navHomeLabel);
-const navArticlesLabelHtml = renderNavLabel(navArticlesLabel);
-const navNotesLabelHtml = renderNavLabel(navNotesLabel);
+const navHomeLabelHtml = renderIconInput(navHomeLabel, 16, { plainText: true });
+const navArticlesLabelHtml = renderIconInput(navArticlesLabel, 16, { plainText: true });
+const navNotesLabelHtml = renderIconInput(navNotesLabel, 16, { plainText: true });
 const navPageSlugs = pages.map(page => page.slug).filter(Boolean);
 const navFieldRows = navPageSlugs.length
   ? await (pluginCtx as typeof pluginCtx & { db: Database }).db
