@@ -174,9 +174,30 @@ body.warm-theme {
   flex: 0 0 16px;
 }
 
+.warm-nav__link > svg {
+  display: block;
+  flex: 0 0 16px;
+}
+
+/* Keep nested custom SVG labels vertically centered like direct navigation icons. */
+.warm-nav__link > span,
+.warm-nav__dropdown > summary > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.warm-nav__link > span svg,
+.warm-nav__dropdown > summary > span svg {
+  display: block;
+  flex: 0 0 auto;
+  vertical-align: middle;
+}
+
 .warm-nav__link,
 .warm-nav__dropdown > summary {
   display: inline-flex;
+  height: 25.5px;
+  box-sizing: border-box;
   align-items: center;
   justify-content: center;
   gap: 4px;
@@ -1868,7 +1889,7 @@ body.warm-theme {
 }
 
 /* 页脚 SVG 图标 */
-.warm-footer__meta nav > a > span > svg {
+.warm-footer__meta nav > a svg {
   display: block;
   width: 15px;
   height: 15px;
@@ -2413,6 +2434,10 @@ body.warm-theme {
 
 .warm-quick-menu--single .warm-quick-menu__items {
   position: static;
+  width: 32px;
+  height: 32px;
+  gap: 0;
+  transform: none;
   padding: 0;
   border: 0;
   background: transparent;
@@ -2495,7 +2520,7 @@ body.warm-theme {
 
 @media (max-width: 639px) {
   .warm-header__right { width: 100%; align-items: stretch; }
-  .warm-header__tools { top: 12px; justify-content: flex-end; }
+  .warm-header__tools { top: 20px; justify-content: flex-end; }
 }
 
 /* ========================================

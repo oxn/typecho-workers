@@ -16,6 +16,7 @@ interface Props extends Omit<ThemeBaseProps, 'user' | 'isLoggedIn'> {
   section?: WarmSection;
   pageContext?: PageContext;
   detail?: boolean;
+  currentPageCid?: number;
 }
 
 const {
@@ -29,12 +30,19 @@ const {
   sidebarData,
   pluginCtx,
   pageContext,
-  currentPath
+  currentPath,
+  currentPageCid,
 } = Astro.props;
 
 Astro.response.headers.set(PUBLIC_HTML_HEADER, '1');
 
 const settings = warmSettings(options);
+const navHomeLabel = settings.navHomeLabel.trim() || '首页';
+const navArticlesLabel = settings.navArticlesLabel.trim() || '文章';
+const navNotesLabel = settings.navNotesLabel.trim() || '笔记';
+const navHomeLabelHtml = renderIconInput(navHomeLabel, 16, { plainText: true });
+const navArticlesLabelHtml = renderIconInput(navArticlesLabel, 16, { plainText: true });
+const navNotesLabelHtml = renderIconInput(navNotesLabel, 16, { plainText: true });
 const navPageSlugs = pages.map(page => page.slug).filter(Boolean);
 const navFieldRows = navPageSlugs.length
   ? await (pluginCtx as typeof pluginCtx & { db: Database }).db
@@ -64,6 +72,33 @@ for (const row of navFieldRows) {
   }
   navFieldsBySlug.set(row.slug, fields);
 }
+const navLinkMatchesCurrentPageAlias = (href: string): boolean => {
+  if (!currentPath || currentPath === '/') return false;
+  try {
+    const normalizeAliasPath = (value: string): string => {
+      const pathname = new URL(value, urls.siteUrl).pathname;
+      return pathname
+        .replace(/\\/g, '/')
+        .replace(/\.[^/.]+$/, '')
+        .replace(/\/$/, '') || '/';
+    };
+    return normalizeAliasPath(href) === normalizeAliasPath(currentPath);
+  } catch {
+    return false;
+  }
+};
+const navLinkMatchesCurrentPageCid = (href: string): boolean => {
+  if (!Number.isSafeInteger(currentPageCid) || Number(currentPageCid) <= 0) return false;
+  try {
+    const pathname = new URL(href, urls.siteUrl).pathname;
+    // Match a navigation URL whose path segment begins with the current CID (CID + *).
+    // The numeric capture is greedy, so CID 123 will not match 1234.
+    const match = pathname.match(/(?:^|\/)(\d+).*/);
+    return !!match && Number(match[1]) === Number(currentPageCid);
+  } catch {
+    return false;
+  }
+};
 const navPages = pages.flatMap(page => {
   const fields = navFieldsBySlug.get(page.slug);
   const iconHtml = renderIconInput(fields?.icon, 16);
@@ -85,8 +120,9 @@ const footerLinks = [
     href: link.url,
     newWindow: link.newWindow,
     iconHtml: renderIconInput(link.icon, 15),
+    labelHtml: renderIconInput(link.text, 15, { plainText: true }),
   })),
-  { label: 'RSS', href: urls.feedUrl, newWindow: false, iconHtml: '' },
+  { label: 'RSS', href: urls.feedUrl, newWindow: false, iconHtml: '', labelHtml: renderIconInput('RSS', 15, { plainText: true }) },
 ].filter(link => link.href && (link.label || link.iconHtml));
 ---
 <Base
@@ -107,23 +143,20 @@ const footerLinks = [
       </a>
       <div class="warm-header__right">
       <nav class="warm-nav" aria-label="主导航">
-        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined}>首页</a>
+        <a class:list={["warm-nav__link", { "is-active": section === 'home' }]} href={homeUrl} aria-current={section === 'home' ? 'page' : undefined} set:html={navHomeLabelHtml}></a>
         <details class:list={["warm-nav__dropdown", { "is-active": section === 'articles' }]}>
-          <summary>
-            文章
-            <svg class="warm-nav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" set:html={octiconPath('chevron-down')}></svg>
-          </summary>
+          <summary set:html={navArticlesLabelHtml + `<svg class="warm-nav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">${octiconPath('chevron-down')}</svg>`}></summary>
           <div class="warm-nav__menu">
             <a href={`${homeUrl}?stream=posts`}>全部文章</a>
             {categories.map(category => (<a href={category.permalink}>{category.name}</a>))}
           </div>
         </details>
         {notesEnabled && (
-          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined}>笔记</a>
+          <a class:list={["warm-nav__link", { "is-active": section === 'notes' }]} href={`${homeUrl}?stream=notes`} aria-current={section === 'notes' ? 'page' : undefined} set:html={navNotesLabelHtml}></a>
         )}
         {navPages.map((page) => (
           <a
-            class:list={["warm-nav__link", { "is-active": currentPath != '/' && page.permalink.includes(currentPath) }]}
+            class:list={["warm-nav__link", { "is-active": (currentPath != '/' && (page.permalink.includes(currentPath) || navLinkMatchesCurrentPageAlias(page.permalink))) || navLinkMatchesCurrentPageCid(page.permalink) }]}
             href={page.permalink}
             aria-label={page.ariaLabel}
             title={page.label || undefined}
@@ -224,9 +257,7 @@ const footerLinks = [
             rel={link.newWindow ? 'noopener noreferrer' : undefined}
           >
             {link.iconHtml && <span set:html={link.iconHtml}></span>}
-            {/<[a-z][\s\S]*>/i.test(link.label)
-              ? <span set:html={link.label}></span>
-              : link.label}
+            {link.labelHtml && <span set:html={link.labelHtml}></span>}
           </a>
         ))}
       </nav>
@@ -536,10 +567,12 @@ const footerLinks = [
         const rightGap = 12;
         const navGap = Number.parseFloat(navStyle.columnGap) || 0;
         const navItems = Array.from(headerNav.children);
-        const navItemsWidth = navItems.reduce((total, item) => total + item.getBoundingClientRect().width, 0)
+        // Measure layout boxes rather than transformed visual bounds so icon scaling
+        // cannot change the inline-layout threshold between single and grouped actions.
+        const navItemsWidth = navItems.reduce((total, item) => total + item.offsetWidth, 0)
           + Math.max(0, navItems.length - 1) * navGap;
-        const availableRightWidth = headerInner.clientWidth - headerBrand.getBoundingClientRect().width - innerGap;
-        const requiredRightWidth = headerTools.getBoundingClientRect().width + rightGap + navItemsWidth;
+        const availableRightWidth = headerInner.clientWidth - headerBrand.offsetWidth - innerGap;
+        const requiredRightWidth = headerTools.offsetWidth + rightGap + navItemsWidth;
         header.classList.toggle('warm-header--tools-inline', requiredRightWidth <= availableRightWidth + 1);
       };
       updateHeaderToolsLayout();

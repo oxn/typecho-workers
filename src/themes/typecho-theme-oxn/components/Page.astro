@@ -46,6 +46,7 @@ const displayContent = addAlertIcons(optimizeContentImages(page.content, setting
   pages={pages}
   sidebarData={sidebarData}
   currentPath={currentPath}
+  currentPageCid={page.cid}
   pageContext={{ hasComments: page.allowComment, pageType: 'page' }}
   pluginCtx={pluginCtx}
   section={isAbout ? 'about' : 'none'}

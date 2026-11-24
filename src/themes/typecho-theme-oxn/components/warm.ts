@@ -19,6 +19,9 @@ export interface WarmSettings {
   showHomeSearchButton: boolean;
   showAdminEntryButton: boolean;
   showCommentManagementButtons: boolean;
+  navHomeLabel: string;
+  navArticlesLabel: string;
+  navNotesLabel: string;
   continuousLoadMode: WarmContinuousLoadMode;
   commentComponentLoadMode: WarmCommentComponentLoadMode;
   commentInitialLoadMode: WarmCommentInitialLoadMode;
@@ -40,8 +43,8 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     const suffix = String(index + 1).padStart(2, '0');
     const textValue = oxnSettings[`linktxt${suffix}`];
     const rawText = typeof textValue === 'string' ? textValue.trim() : '';
-    const iconMatch = rawText.match(/^\{\{(?:octicon|icons):([a-z0-9-]+)\}\}\s*/i);
-    const icon = iconMatch?.[1]?.toLowerCase() ?? '';
+    const iconMatch = rawText.match(/^(\{\{(?:octicon|icons):[a-z0-9-]+(?:\|[^|}]*)*\}\})\s*/i);
+    const icon = iconMatch?.[1] ?? '';
     const text = iconMatch ? rawText.slice(iconMatch[0].length).trim() : rawText;
     const url = safeFooterUrl(oxnSettings[`links${suffix}`]);
     const newWindowValue = oxnSettings[`linkblank${suffix}`];
@@ -59,6 +62,9 @@ export function warmSettings(options: ThemeBaseProps['options']): WarmSettings {
     showHomeSearchButton: enabled(oxnSettings.showHomeSearchButton),
     showAdminEntryButton: enabled(oxnSettings.showAdminEntryButton),
     showCommentManagementButtons: enabled(oxnSettings.showCommentManagementButtons),
+    navHomeLabel: typeof oxnSettings.navHomeLabel === 'string' ? oxnSettings.navHomeLabel : '',
+    navArticlesLabel: typeof oxnSettings.navArticlesLabel === 'string' ? oxnSettings.navArticlesLabel : '',
+    navNotesLabel: typeof oxnSettings.navNotesLabel === 'string' ? oxnSettings.navNotesLabel : '',
     continuousLoadMode: normalizeContinuousLoadMode(oxnSettings.continuousLoadMode),
     commentComponentLoadMode: normalizeCommentComponentLoadMode(componentLoadMode),
     commentInitialLoadMode: normalizeCommentInitialLoadMode(oxnSettings.commentInitialLoadMode),
