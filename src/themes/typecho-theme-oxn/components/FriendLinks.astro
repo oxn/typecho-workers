@@ -34,24 +34,20 @@ function htmlToText(value: string): string {
   );
 }
 
-function extractFriendLinks(html: string): { content: string; links: Array<{ name: string; url: string; description: string }> } {
-  const startIndex = html.indexOf(START_MARKER);
-  const endIndex = html.indexOf(END_MARKER, startIndex + START_MARKER.length);
-  if (startIndex < 0 || endIndex < 0) return { content: html, links: [] };
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-  const startBlockStart = html.lastIndexOf('<p', startIndex);
-  const startBlockEnd = html.indexOf('</p>', startIndex);
-  const endBlockStart = html.lastIndexOf('<p', endIndex);
-  const endBlockEnd = html.indexOf('</p>', endIndex);
+type FriendLink = { name: string; url: string; description: string };
 
-  const removeStart = startBlockStart >= 0 ? startBlockStart : startIndex;
-  const removeEnd = endBlockEnd >= 0 ? endBlockEnd + 4 : endIndex + END_MARKER.length;
-  const dataStart = startBlockEnd >= 0 ? startBlockEnd + 4 : startIndex + START_MARKER.length;
-  const dataEnd = endBlockStart >= dataStart ? endBlockStart : endIndex;
-
-  const dataHtml = html.slice(dataStart, dataEnd);
-  const paragraphs = [...dataHtml.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)];
-  const links: Array<{ name: string; url: string; description: string }> = [];
+function parseFriendLinks(dataHtml: string): FriendLink[] {
+  const paragraphs = [...dataHtml.matchAll(/<p\\b[^>]*>([\\s\\S]*?)<\\/p>/gi)];
+  const links: FriendLink[] = [];
 
   for (const paragraph of paragraphs) {
     const text = htmlToText(paragraph[1]).trim();
@@ -60,14 +56,14 @@ function extractFriendLinks(html: string): { content: string; links: Array<{ nam
     let name = '';
     let rawUrl = '';
     let description = '';
-    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    const lines = text.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean);
 
     if (lines.length >= 2) {
       name = lines[0];
       rawUrl = lines[1];
       description = lines.slice(2).join(' ');
     } else {
-      const match = text.match(/https?:\/\/[^\s<>]+/i);
+      const match = text.match(/https?:\\/\\/[^\\s<>]+/i);
       if (!match || match.index === undefined) continue;
       name = text.slice(0, match.index).trim();
       rawUrl = match[0].replace(/[),.;!?]+$/, '');
@@ -83,13 +79,69 @@ function extractFriendLinks(html: string): { content: string; links: Array<{ nam
     }
   }
 
-  const content = html.slice(0, removeStart) + html.slice(removeEnd);
-  return { content, links };
+  return links;
+}
+
+function renderFriendLinks(links: FriendLink[]): string {
+  if (links.length === 0) return '';
+
+  const items = links.map(link => `
+    <li class="warm-friendlinks__item">
+      <a class="warm-friendlinks__card" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
+        <span class="warm-friendlinks__name">${escapeHtml(link.name)}</span>
+        ${link.description ? `<span class="warm-friendlinks__description">${escapeHtml(link.description)}</span>` : ''}
+      </a>
+    </li>
+  `).join('');
+
+  return `<ul class="warm-friendlinks" aria-label="友情链接">${items}</ul>`;
+}
+
+function extractFriendLinks(html: string): { content: string; renderedContent: string } {
+  const parts: string[] = [];
+  let cursor = 0;
+
+  while (cursor < html.length) {
+    const startIndex = html.indexOf(START_MARKER, cursor);
+    if (startIndex < 0) break;
+
+    const endIndex = html.indexOf(END_MARKER, startIndex + START_MARKER.length);
+    // 未闭合的标记不处理，避免误删后续正文。
+    if (endIndex < 0) break;
+
+    const startBlockStart = html.lastIndexOf('<p', startIndex);
+    const startBlockEnd = html.indexOf('</p>', startIndex);
+    const endBlockStart = html.lastIndexOf('<p', endIndex);
+    const endBlockEnd = html.indexOf('</p>', endIndex);
+
+    const removeStart = startBlockStart >= cursor ? startBlockStart : startIndex;
+    const removeEnd = endBlockEnd >= 0
+      ? endBlockEnd + 4
+      : endIndex + END_MARKER.length;
+    const dataStart = startBlockEnd >= 0 && startBlockEnd < endIndex
+      ? startBlockEnd + 4
+      : startIndex + START_MARKER.length;
+    const dataEnd = endBlockStart >= dataStart ? endBlockStart : endIndex;
+
+    // 边界异常时保留原文，不尝试删除不确定的内容。
+    if (removeStart < cursor || removeEnd <= removeStart || dataEnd < dataStart) break;
+
+    parts.push(html.slice(cursor, removeStart));
+    parts.push(renderFriendLinks(parseFriendLinks(html.slice(dataStart, dataEnd))));
+    cursor = removeEnd;
+  }
+
+  parts.push(html.slice(cursor));
+
+  const renderedContent = parts.join('');
+  // SEO 摘要沿用原行为：只使用普通正文，不把友链卡片内容放入摘要。
+  const content = renderedContent.replace(/<ul class="warm-friendlinks"[\\s\\S]*?<\\/ul>/gi, '');
+  return { content, renderedContent };
 }
 
 const settings = warmSettings(options);
 const extracted = extractFriendLinks(page.content);
-const displayContent = optimizeContentImages(extracted.content, settings.imageOptimizeParams, urls.siteUrl);
+const displayContent = optimizeContentImages(extracted.renderedContent, settings.imageOptimizeParams, urls.siteUrl);
 ---
 <WarmShell
   title={page.title}
@@ -112,19 +164,6 @@ const displayContent = optimizeContentImages(extracted.content, settings.imageOp
         <h1 itemprop="headline">{page.title}</h1>
       </div>
     </header>
-
-    {extracted.links.length > 0 && (
-      <ul class="warm-friendlinks" aria-label="友情链接">
-        {extracted.links.map(link => (
-          <li class="warm-friendlinks__item">
-            <a class="warm-friendlinks__card" href={link.url} target="_blank" rel="noopener noreferrer">
-              <span class="warm-friendlinks__name">{link.name}</span>
-              {link.description && <span class="warm-friendlinks__description">{link.description}</span>}
-            </a>
-          </li>
-        ))}
-      </ul>
-    )}
 
     {displayContent.trim() && (
       <div class="warm-prose warm-friendlinks-content" view-image itemprop="articleBody" set:html={displayContent} />
