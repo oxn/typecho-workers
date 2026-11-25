@@ -14,7 +14,7 @@ function editorHtml(): string {
     '<span class="description" data-oxn-fl-count></span>',
     '</section>',
     '<style>',
-    '.oxn-friend-links-editor{margin:12px 0}.oxn-fl-table-wrap{width:100%;overflow-x:auto;margin:10px 0}',
+    '.oxn-friend-links-editor{margin:12px 0}.oxn-friend-links-editor[hidden]{display:none!important}.oxn-fl-table-wrap{width:100%;overflow-x:auto;margin:10px 0}',
     '.oxn-fl-table{width:100%;min-width:560px;border-collapse:collapse}',
     '.oxn-fl-table th,.oxn-fl-table td{padding:7px;border:1px solid var(--border-color,#ddd);text-align:left;vertical-align:middle}',
     '.oxn-fl-table th{font-weight:600;white-space:nowrap}.oxn-fl-table input{box-sizing:border-box;width:100%;min-width:0}',
