@@ -151,23 +151,55 @@ ORDER BY type, status;
 
 ---
 
-## 3. 修改站点域名
+## 3. 查询与替换站点地址（网址/域名）
 
-### 3.1 先检查当前站点地址
+### 3.1 查询当前站点主地址
+
+站点主地址保存在 `typecho_options` 的 `siteUrl` 中：
+
+```bash
+npx wrangler d1 execute DB --remote --command "SELECT name, value FROM typecho_options WHERE user=0 AND name='siteUrl';"
+```
+
+同时查看标题、固定链接规则等相关设置：
 
 ```bash
 npx wrangler d1 execute DB --remote --command "SELECT name, value FROM typecho_options WHERE user=0 AND name IN ('siteUrl','title','permalinkPattern','pagePattern','categoryPattern','cacheVersion');"
 ```
 
-### 3.2 修改站点主域名
+### 3.2 查询数据库中是否还保存旧网址
 
-把示例域名替换成自己的新域名，末尾不要额外添加路径：
+先把下面的 `old.example.com` 换成旧域名（只写域名，不带协议）。
+
+查询站点设置和插件配置：
+
+```bash
+npx wrangler d1 execute DB --remote --command "SELECT name, user, substr(value,1,500) AS value_preview FROM typecho_options WHERE value LIKE '%old.example.com%';"
+```
+
+查询文章和独立页面正文：
+
+```bash
+npx wrangler d1 execute DB --remote --command "SELECT cid, title, type, status FROM typecho_contents WHERE text LIKE '%old.example.com%' ORDER BY cid;"
+```
+
+查询评论中是否引用旧网址：
+
+```bash
+npx wrangler d1 execute DB --remote --command "SELECT coid, cid, author, substr(text,1,200) AS preview FROM typecho_comments WHERE text LIKE '%old.example.com%' ORDER BY coid;"
+```
+
+这些查询只检查 D1 中对应字段，不代表 Cloudflare DNS、Worker 自定义域名或 R2 域名配置。
+
+### 3.3 替换站点主地址
+
+先备份，并确认新地址。将示例替换为自己的完整网址，保留 `https://`，不要附加文章路径：
 
 ```bash
 npx wrangler d1 execute DB --remote --command "UPDATE typecho_options SET value='https://new.example.com' WHERE name='siteUrl' AND user=0; INSERT INTO typecho_options (name,user,value) VALUES ('cacheVersion',0,'1') ON CONFLICT(name,user) DO UPDATE SET value=CAST(COALESCE(typecho_options.value,'0') AS INTEGER)+1;"
 ```
 
-执行后检查：
+### 3.4 检查替换结果
 
 ```bash
 npx wrangler d1 execute DB --remote --command "SELECT name, value FROM typecho_options WHERE user=0 AND name IN ('siteUrl','cacheVersion');"
@@ -175,85 +207,118 @@ npx wrangler d1 execute DB --remote --command "SELECT name, value FROM typecho_o
 
 如果原站点已有 `cacheVersion`，上面的语句会递增版本；如果没有则建立初始值。
 
-### 3.3 检查其他设置或插件配置中是否保存旧域名
+### 3.5 替换文章正文中的旧网址（按需）
 
-```bash
-npx wrangler d1 execute DB --remote --command "SELECT name, user, substr(value,1,500) AS value_preview FROM typecho_options WHERE value LIKE '%old.example.com%';"
-```
-
-### 3.4 检查文章正文中是否写入旧域名
-
-```bash
-npx wrangler d1 execute DB --remote --command "SELECT cid, title FROM typecho_contents WHERE text LIKE '%old.example.com%' ORDER BY cid;"
-```
-
-### 3.5 有需要时替换文章正文中的旧域名
-
-**先备份，并先执行 3.4 检查命中范围。** 确认只需要替换正文中完全相同的旧域名后，再执行：
+**先执行 3.2 检查命中范围并备份。** 只在确认需要替换正文中的旧网址后执行：
 
 ```bash
 npx wrangler d1 execute DB --remote --command "UPDATE typecho_contents SET text=replace(text,'https://old.example.com','https://new.example.com') WHERE instr(text,'https://old.example.com')>0;"
 ```
 
-如果旧域名还存在 `http://`、带 www 的形式或其他子域名，需要分别检查、分别替换。不要对所有表做无差别全局替换：正文、用户资料、评论和插件配置可能包含不应改动的外部链接或数据。
+如果正文里还存在 `http://`、带 `www` 或其他子域名形式，需要分别查询、分别替换。不要把域名替换语句不加筛选地套用到所有表；评论、用户资料和插件配置可能包含不应修改的外部链接或历史信息。
 
-**域名迁移提醒：** D1 的 `siteUrl` 只是站点配置。Cloudflare Worker 自定义域名、DNS、R2 自定义域名、Turnstile、邮件服务、OAuth 回调、CSP 白名单等并不会因为修改这一行 SQL 自动改变，需要在各自服务中单独核对。
+### 3.6 替换其他设置中的旧网址（谨慎）
+
+先查看 3.2 的查询结果，确认具体是哪一项设置。只有确定该配置值确实应该整体替换时，才针对明确的 `name` 和 `user` 更新；不要对整个 `typecho_options` 表做无差别替换，以免改坏插件配置或外部服务地址。
+
+**域名迁移提醒：** 修改 D1 的 `siteUrl` 不会自动修改 Cloudflare Worker 自定义域名、DNS、R2 自定义域名、Turnstile、邮件服务、OAuth 回调或 CSP 白名单。这些需要在各自服务中单独核对。
 
 ---
 
-## 4. 管理员密码重置
+## 4. 管理员密码生成与重置
 
-### 4.1 推荐方式：使用项目自带脚本
+**不要直接把明文密码写进 `typecho_users.password`。** 本项目使用 PBKDF2-SHA256 密码哈希，可能还启用了 Cloudflare Worker Secret `PASSWORD_PEPPER`。普通 SQL、明文、MD5 或随意生成的 SHA256 都不能替代项目重置脚本。
 
-**不要直接把明文密码写进 `typecho_users.password`。** 本项目密码使用 PBKDF2 哈希，可能还会使用 Cloudflare Worker Secret `PASSWORD_PEPPER`。直接执行普通 SQL 写入明文或 MD5/SHA256 都无法正常登录。
+### 4.1 查看用户列表，确认要重置的账号
 
 在项目根目录执行：
+
+```bash
+bun run reset-password:cloudflare -- --list
+```
+
+也可以使用脚本完整参数：
 
 ```bash
 bun run scripts/reset-password.ts --target cloudflare --list
 ```
 
-查看用户列表后，按用户名重置：
+先核对用户名，不要凭 UID 或昵称猜测账号。
+
+### 4.2 自动生成新密码并替换
+
+推荐让脚本自动生成随机密码：
 
 ```bash
-bun run scripts/reset-password.ts --target cloudflare --user admin --password '替换成新的强密码'
+bun run reset-password:cloudflare -- --user admin
 ```
 
-也可以让脚本自动生成随机密码：
+把 `admin` 换成实际用户名。脚本会生成随机密码、计算项目兼容的 PBKDF2 哈希，并更新远程 D1 的 `typecho_users.password`。**新密码会显示在终端输出中**，请立即复制到密码管理器；不要把终端截图或输出发到公开渠道。
+
+也可以自行指定新密码：
 
 ```bash
-bun run scripts/reset-password.ts --target cloudflare --user admin
+bun run reset-password:cloudflare -- --user admin --password '替换成新的强密码'
 ```
 
-脚本会把自动生成的密码显示在终端中，请立即保存到密码管理器。
+注意：命令行参数可能留在终端历史记录中。更推荐自动生成方式，避免把自定义密码直接写进命令历史。
 
-### 4.2 如果启用了 PASSWORD_PEPPER
+### 4.3 如果线上启用了 PASSWORD_PEPPER
 
-重置脚本运行时必须提供与线上 Worker 完全相同的 `PASSWORD_PEPPER`，否则新密码哈希无法通过线上验证。
+重置时，脚本必须使用与线上 Worker 当前 `PASSWORD_PEPPER` 完全相同的值，否则新密码无法通过线上验证。不要把 Pepper 写进 D1、Git、普通 `[vars]` 或公开聊天记录。
 
-PowerShell 示例：
+如果你已经安全保存了线上 Pepper，可在执行脚本时临时提供：
+
+macOS/Linux：
+
+```bash
+PASSWORD_PEPPER='填入线上当前 PASSWORD_PEPPER' bun run reset-password:cloudflare -- --user admin
+```
+
+PowerShell：
 
 ```powershell
-$env:PASSWORD_PEPPER = "填入与 Cloudflare Worker Secret 完全一致的值"
-bun run scripts/reset-password.ts --target cloudflare --user admin --password "新的强密码"
+$env:PASSWORD_PEPPER = "填入线上当前 PASSWORD_PEPPER"
+bun run reset-password:cloudflare -- --user admin
 Remove-Item Env:PASSWORD_PEPPER
 ```
 
-macOS/Linux 示例：
+如果没有启用 Pepper，则不需要设置该环境变量。
+
+### 4.4 首次生成并设置 PASSWORD_PEPPER（上游部署说明）
+
+如果尚未设置 Pepper，可生成 32 字节随机值并直接保存为 Cloudflare Secret：
 
 ```bash
-PASSWORD_PEPPER='填入与 Cloudflare Worker Secret 完全一致的值' bun run scripts/reset-password.ts --target cloudflare --user admin --password '新的强密码'
+openssl rand -hex 32 | bunx wrangler secret put PASSWORD_PEPPER
 ```
 
-如果没有启用 Pepper，不需要设置该环境变量。不要把 Pepper 写进仓库、SQL 文件或公开聊天记录。
+Pepper 必须作为 Secret 保存，不能写入 D1、Git 或普通 `[vars]`。启用 Pepper 后，新密码使用带 Pepper 的 PBKDF2 格式；旧的无 Pepper PBKDF2 密码仍可登录，并会在成功登录时自动升级。
 
-### 4.3 密码重置脚本的行为边界
+### 4.5 邮件密码重置不可用时：更换 Pepper 并重置管理员
 
-- 脚本支持 `--target cloudflare`，并通过 Wrangler 对远程 D1 执行更新。
-- 脚本支持 `--list` 查看用户。
-- 脚本会生成项目兼容的 PBKDF2 密码哈希。
-- 当前脚本更新 `password` 字段，但**不会同步轮换 `authCode`**。如果还需要强制注销所有既有登录会话，应在能够登录时通过后台用户编辑流程修改密码；该流程会同时更新 `authCode`。
-- 不要用 SQL 直接改 `password`，也不要删除管理员后再尝试恢复。
+上游仓库提供了应急处理方式：生成新的 Pepper，先更新 Cloudflare Secret，再使用**同一个 Pepper**运行密码重置脚本：
+
+```bash
+RECOVERY_PEPPER=$(openssl rand -hex 32)
+printf '%s' "$RECOVERY_PEPPER" | bunx wrangler secret put PASSWORD_PEPPER
+PBKDF2_ITERATIONS=50000 PASSWORD_PEPPER="$RECOVERY_PEPPER" \
+  bun run reset-password:cloudflare -- --user admin
+unset RECOVERY_PEPPER
+```
+
+将 `admin` 换成实际管理员用户名。该示例按上游说明使用 50000 次迭代，适用于已按 Workers Free 方案配置为 50000 次迭代的部署；如果你的线上 `PBKDF2_ITERATIONS` 配置不同，应让 CLI 与线上配置一致，不要盲目照抄 50000。
+
+**重要风险：PASSWORD_PEPPER 不支持透明轮换。** 更新 Secret 后，原来使用旧 Pepper 生成的密码哈希将无法再通过新 Pepper 验证。上面的流程只重置指定的管理员账号；如果其他用户也有旧 Pepper 密码，他们也需要分别重置密码。执行前必须确认你持有正确的 Cloudflare 账号，并准备好为受影响账号重新设置密码。不要为了普通的单个密码忘记就随意更换全站 Pepper；优先使用现有 Pepper 重置该账号。
+
+### 4.6 密码重置脚本的行为边界
+
+- `--target cloudflare` 或 `reset-password:cloudflare` 指向 Cloudflare 远程 D1；不要误用默认的 local 目标。
+- `--list` 只列出用户，不修改数据。
+- 不提供 `--password` 时，脚本自动生成随机密码并在终端显示。
+- 脚本使用项目兼容的 PBKDF2-SHA256 哈希；迭代次数受项目配置约束。
+- 当前脚本更新 `password` 字段，但**不会同步轮换 `authCode`**，因此不能把它当作强制注销所有既有登录会话的操作。
+- 不要用 SQL 直接改密码，也不要删除管理员后再尝试恢复。
 
 ---
 
