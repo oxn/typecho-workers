@@ -1,0 +1,20 @@
+{
+  "name": "typecho-plugin-friend-links",
+  "version": "1.0.0",
+  "description": "表格化编辑与保存 Wing 兼容的友情链接数据。",
+  "keywords": ["typecho", "plugin", "friend-links", "wordpress-wing"],
+  "author": "OXN",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-friend-links",
+      "name": "友情链接编辑器",
+      "description": "为独立页面模板提供表格化友情链接编辑，数据保存为 Wing 兼容的 links JSON。",
+      "version": "1.0.0",
+      "license": "MIT",
+      "tags": ["friend-links", "editor", "wordpress-wing"]
+    }
+  }
+}
