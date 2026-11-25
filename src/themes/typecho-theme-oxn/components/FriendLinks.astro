@@ -98,7 +98,8 @@ function renderFriendLinks(links: FriendLink[]): string {
 }
 
 function extractFriendLinks(html: string): { content: string; renderedContent: string } {
-  const parts: string[] = [];
+  const contentParts: string[] = [];
+  const renderedParts: string[] = [];
   let cursor = 0;
 
   while (cursor < html.length) {
@@ -106,8 +107,9 @@ function extractFriendLinks(html: string): { content: string; renderedContent: s
     if (startIndex < 0) break;
 
     const endIndex = html.indexOf(END_MARKER, startIndex + START_MARKER.length);
-    // 未闭合的标记不处理，避免误删后续正文。
-    if (endIndex < 0) break;
+    // 未闭合或嵌套的标记不处理，避免误删后续正文。
+    const nestedStartIndex = html.indexOf(START_MARKER, startIndex + START_MARKER.length);
+    if (endIndex < 0 || (nestedStartIndex >= 0 && nestedStartIndex < endIndex)) break;
 
     const startBlockStart = html.lastIndexOf('<p', startIndex);
     const startBlockEnd = html.indexOf('</p>', startIndex);
@@ -126,17 +128,21 @@ function extractFriendLinks(html: string): { content: string; renderedContent: s
     // 边界异常时保留原文，不尝试删除不确定的内容。
     if (removeStart < cursor || removeEnd <= removeStart || dataEnd < dataStart) break;
 
-    parts.push(html.slice(cursor, removeStart));
-    parts.push(renderFriendLinks(parseFriendLinks(html.slice(dataStart, dataEnd))));
+    const beforeGroup = html.slice(cursor, removeStart);
+    contentParts.push(beforeGroup);
+    renderedParts.push(beforeGroup);
+    renderedParts.push(renderFriendLinks(parseFriendLinks(html.slice(dataStart, dataEnd))));
     cursor = removeEnd;
   }
 
-  parts.push(html.slice(cursor));
+  const remaining = html.slice(cursor);
+  contentParts.push(remaining);
+  renderedParts.push(remaining);
 
-  const renderedContent = parts.join('');
-  // SEO 摘要沿用原行为：只使用普通正文，不把友链卡片内容放入摘要。
-  const content = renderedContent.replace(/<ul class="warm-friendlinks"[\s\S]*?<\/ul>/gi, '');
-  return { content, renderedContent };
+  return {
+    content: contentParts.join(''),
+    renderedContent: renderedParts.join(''),
+  };
 }
 
 const settings = warmSettings(options);
