@@ -40,7 +40,7 @@ type FriendLinkContentPart =
   | { type: 'links'; links: FriendLink[] };
 
 function parseFriendLinks(dataHtml: string): FriendLink[] {
-  const paragraphs = [...dataHtml.matchAll(/<p\\b[^>]*>([\\s\\S]*?)<\\/p>/gi)];
+  const paragraphs = [...dataHtml.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)];
   const links: FriendLink[] = [];
 
   for (const paragraph of paragraphs) {
@@ -50,14 +50,14 @@ function parseFriendLinks(dataHtml: string): FriendLink[] {
     let name = '';
     let rawUrl = '';
     let description = '';
-    const lines = text.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean);
+    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
 
     if (lines.length >= 2) {
       name = lines[0];
       rawUrl = lines[1];
       description = lines.slice(2).join(' ');
     } else {
-      const match = text.match(/https?:\\/\\/[^\\s<>]+/i);
+      const match = text.match(/https?:\/\/[^\s<>]+/i);
       if (!match || match.index === undefined) continue;
       name = text.slice(0, match.index).trim();
       rawUrl = match[0].replace(/[),.;!?]+$/, '');
