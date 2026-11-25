@@ -34,24 +34,14 @@ function htmlToText(value: string): string {
   );
 }
 
-function extractFriendLinks(html: string): { content: string; links: Array<{ name: string; url: string; description: string }> } {
-  const startIndex = html.indexOf(START_MARKER);
-  const endIndex = html.indexOf(END_MARKER, startIndex + START_MARKER.length);
-  if (startIndex < 0 || endIndex < 0) return { content: html, links: [] };
+type FriendLink = { name: string; url: string; description: string };
+type FriendLinkContentPart =
+  | { type: 'html'; content: string }
+  | { type: 'links'; links: FriendLink[] };
 
-  const startBlockStart = html.lastIndexOf('<p', startIndex);
-  const startBlockEnd = html.indexOf('</p>', startIndex);
-  const endBlockStart = html.lastIndexOf('<p', endIndex);
-  const endBlockEnd = html.indexOf('</p>', endIndex);
-
-  const removeStart = startBlockStart >= 0 ? startBlockStart : startIndex;
-  const removeEnd = endBlockEnd >= 0 ? endBlockEnd + 4 : endIndex + END_MARKER.length;
-  const dataStart = startBlockEnd >= 0 ? startBlockEnd + 4 : startIndex + START_MARKER.length;
-  const dataEnd = endBlockStart >= dataStart ? endBlockStart : endIndex;
-
-  const dataHtml = html.slice(dataStart, dataEnd);
+function parseFriendLinks(dataHtml: string): FriendLink[] {
   const paragraphs = [...dataHtml.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)];
-  const links: Array<{ name: string; url: string; description: string }> = [];
+  const links: FriendLink[] = [];
 
   for (const paragraph of paragraphs) {
     const text = htmlToText(paragraph[1]).trim();
@@ -83,13 +73,67 @@ function extractFriendLinks(html: string): { content: string; links: Array<{ nam
     }
   }
 
-  const content = html.slice(0, removeStart) + html.slice(removeEnd);
-  return { content, links };
+  return links;
+}
+
+function extractFriendLinks(html: string): { content: string; parts: FriendLinkContentPart[] } {
+  const contentParts: string[] = [];
+  const parts: FriendLinkContentPart[] = [];
+  let cursor = 0;
+
+  const appendHtml = (value: string) => {
+    if (!value) return;
+    contentParts.push(value);
+    parts.push({ type: 'html', content: value });
+  };
+
+  while (cursor < html.length) {
+    const startIndex = html.indexOf(START_MARKER, cursor);
+    if (startIndex < 0) break;
+
+    const endIndex = html.indexOf(END_MARKER, startIndex + START_MARKER.length);
+    // 未闭合或嵌套的标记不处理，避免误删后续正文。
+    const nestedStartIndex = html.indexOf(START_MARKER, startIndex + START_MARKER.length);
+    if (endIndex < 0 || (nestedStartIndex >= 0 && nestedStartIndex < endIndex)) break;
+
+    const startBlockStart = html.lastIndexOf('<p', startIndex);
+    const startBlockEnd = html.indexOf('</p>', startIndex);
+    const endBlockStart = html.lastIndexOf('<p', endIndex);
+    const endBlockEnd = html.indexOf('</p>', endIndex);
+    const startMarkerHasParagraph = startBlockStart >= cursor && startBlockEnd >= startIndex;
+    const endMarkerHasParagraph = endBlockStart >= 0 && endBlockEnd >= endIndex;
+
+    const removeStart = startMarkerHasParagraph ? startBlockStart : startIndex;
+    const removeEnd = endMarkerHasParagraph
+      ? endBlockEnd + 4
+      : endIndex + END_MARKER.length;
+    const dataStart = startMarkerHasParagraph
+      ? startBlockEnd + 4
+      : startIndex + START_MARKER.length;
+    const dataEnd = endMarkerHasParagraph && endBlockStart >= dataStart
+      ? endBlockStart
+      : endIndex;
+
+    // 边界异常时保留原文，不尝试删除不确定的内容。
+    if (removeStart < cursor || removeEnd <= removeStart || dataEnd < dataStart) break;
+
+    appendHtml(html.slice(cursor, removeStart));
+    const links = parseFriendLinks(html.slice(dataStart, dataEnd));
+    if (links.length > 0) parts.push({ type: 'links', links });
+    cursor = removeEnd;
+  }
+
+  appendHtml(html.slice(cursor));
+
+  return {
+    content: contentParts.join(''),
+    parts,
+  };
 }
 
 const settings = warmSettings(options);
 const extracted = extractFriendLinks(page.content);
-const displayContent = optimizeContentImages(extracted.content, settings.imageOptimizeParams, urls.siteUrl);
+const displayContent = extracted.parts;
 ---
 <WarmShell
   title={page.title}
@@ -113,21 +157,23 @@ const displayContent = optimizeContentImages(extracted.content, settings.imageOp
       </div>
     </header>
 
-    {extracted.links.length > 0 && (
-      <ul class="warm-friendlinks" aria-label="友情链接">
-        {extracted.links.map(link => (
-          <li class="warm-friendlinks__item">
-            <a class="warm-friendlinks__card" href={link.url} target="_blank" rel="noopener noreferrer">
-              <span class="warm-friendlinks__name">{link.name}</span>
-              {link.description && <span class="warm-friendlinks__description">{link.description}</span>}
-            </a>
-          </li>
+    {displayContent.length > 0 && (
+      <div class="warm-prose warm-friendlinks-content" view-image itemprop="articleBody">
+        {displayContent.map(part => part.type === 'html' ? (
+          <Fragment set:html={optimizeContentImages(part.content, settings.imageOptimizeParams, urls.siteUrl)} />
+        ) : (
+          <ul class="warm-friendlinks" aria-label="友情链接">
+            {part.links.map(link => (
+              <li class="warm-friendlinks__item">
+                <a class="warm-friendlinks__card" href={link.url} target="_blank" rel="noopener noreferrer">
+                  <span class="warm-friendlinks__name">{link.name}</span>
+                  {link.description && <span class="warm-friendlinks__description">{link.description}</span>}
+                </a>
+              </li>
+            ))}
+          </ul>
         ))}
-      </ul>
-    )}
-
-    {displayContent.trim() && (
-      <div class="warm-prose warm-friendlinks-content" view-image itemprop="articleBody" set:html={displayContent} />
+      </div>
     )}
   </article>
 
