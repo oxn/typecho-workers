@@ -34,19 +34,13 @@ function htmlToText(value: string): string {
   );
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 type FriendLink = { name: string; url: string; description: string };
+type FriendLinkContentPart =
+  | { type: 'html'; content: string }
+  | { type: 'links'; links: FriendLink[] };
 
 function parseFriendLinks(dataHtml: string): FriendLink[] {
-  const paragraphs = [...dataHtml.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)];
+  const paragraphs = [...dataHtml.matchAll(/<p\\b[^>]*>([\\s\\S]*?)<\\/p>/gi)];
   const links: FriendLink[] = [];
 
   for (const paragraph of paragraphs) {
@@ -56,14 +50,14 @@ function parseFriendLinks(dataHtml: string): FriendLink[] {
     let name = '';
     let rawUrl = '';
     let description = '';
-    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    const lines = text.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean);
 
     if (lines.length >= 2) {
       name = lines[0];
       rawUrl = lines[1];
       description = lines.slice(2).join(' ');
     } else {
-      const match = text.match(/https?:\/\/[^\s<>]+/i);
+      const match = text.match(/https?:\\/\\/[^\\s<>]+/i);
       if (!match || match.index === undefined) continue;
       name = text.slice(0, match.index).trim();
       rawUrl = match[0].replace(/[),.;!?]+$/, '');
@@ -82,25 +76,16 @@ function parseFriendLinks(dataHtml: string): FriendLink[] {
   return links;
 }
 
-function renderFriendLinks(links: FriendLink[]): string {
-  if (links.length === 0) return '';
-
-  const items = links.map(link => `
-    <li class="warm-friendlinks__item">
-      <a class="warm-friendlinks__card" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
-        <span class="warm-friendlinks__name">${escapeHtml(link.name)}</span>
-        ${link.description ? `<span class="warm-friendlinks__description">${escapeHtml(link.description)}</span>` : ''}
-      </a>
-    </li>
-  `).join('');
-
-  return `<ul class="warm-friendlinks" aria-label="友情链接">${items}</ul>`;
-}
-
-function extractFriendLinks(html: string): { content: string; renderedContent: string } {
+function extractFriendLinks(html: string): { content: string; parts: FriendLinkContentPart[] } {
   const contentParts: string[] = [];
-  const renderedParts: string[] = [];
+  const parts: FriendLinkContentPart[] = [];
   let cursor = 0;
+
+  const appendHtml = (value: string) => {
+    if (!value) return;
+    contentParts.push(value);
+    parts.push({ type: 'html', content: value });
+  };
 
   while (cursor < html.length) {
     const startIndex = html.indexOf(START_MARKER, cursor);
@@ -128,26 +113,23 @@ function extractFriendLinks(html: string): { content: string; renderedContent: s
     // 边界异常时保留原文，不尝试删除不确定的内容。
     if (removeStart < cursor || removeEnd <= removeStart || dataEnd < dataStart) break;
 
-    const beforeGroup = html.slice(cursor, removeStart);
-    contentParts.push(beforeGroup);
-    renderedParts.push(beforeGroup);
-    renderedParts.push(renderFriendLinks(parseFriendLinks(html.slice(dataStart, dataEnd))));
+    appendHtml(html.slice(cursor, removeStart));
+    const links = parseFriendLinks(html.slice(dataStart, dataEnd));
+    if (links.length > 0) parts.push({ type: 'links', links });
     cursor = removeEnd;
   }
 
-  const remaining = html.slice(cursor);
-  contentParts.push(remaining);
-  renderedParts.push(remaining);
+  appendHtml(html.slice(cursor));
 
   return {
     content: contentParts.join(''),
-    renderedContent: renderedParts.join(''),
+    parts,
   };
 }
 
 const settings = warmSettings(options);
 const extracted = extractFriendLinks(page.content);
-const displayContent = optimizeContentImages(extracted.renderedContent, settings.imageOptimizeParams, urls.siteUrl);
+const displayContent = extracted.parts;
 ---
 <WarmShell
   title={page.title}
@@ -171,8 +153,23 @@ const displayContent = optimizeContentImages(extracted.renderedContent, settings
       </div>
     </header>
 
-    {displayContent.trim() && (
-      <div class="warm-prose warm-friendlinks-content" view-image itemprop="articleBody" set:html={displayContent} />
+    {displayContent.length > 0 && (
+      <div class="warm-prose warm-friendlinks-content" view-image itemprop="articleBody">
+        {displayContent.map(part => part.type === 'html' ? (
+          <Fragment set:html={optimizeContentImages(part.content, settings.imageOptimizeParams, urls.siteUrl)} />
+        ) : (
+          <ul class="warm-friendlinks" aria-label="友情链接">
+            {part.links.map(link => (
+              <li class="warm-friendlinks__item">
+                <a class="warm-friendlinks__card" href={link.url} target="_blank" rel="noopener noreferrer">
+                  <span class="warm-friendlinks__name">{link.name}</span>
+                  {link.description && <span class="warm-friendlinks__description">{link.description}</span>}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ))}
+      </div>
     )}
   </article>
 
