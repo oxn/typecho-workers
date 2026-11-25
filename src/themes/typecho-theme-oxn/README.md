@@ -144,6 +144,8 @@ Bilibili iframe 需要经过两道独立检查：
 
 当前维护版本在两处均允许 `www.bilibili.com` 和 `player.bilibili.com`。只配置其中一处是不够的：Markdown 放行但 CSP 未放行时，浏览器仍会阻止嵌入；CSP 放行但 Markdown 未放行时，iframe 会在输出前被清理。
 
+**实际故障案例：** 曾经出现电脑端和部分手机浏览器表现不一致、Bilibili 播放器白屏的情况。最终排查发现，白名单漏掉了页面域名 `www.bilibili.com`；将它补入白名单后，播放器即可正常显示。这个案例说明，不能只放行播放器主机 `player.bilibili.com`，还要同时放行页面主机 `www.bilibili.com`，并确保它们在上述 Markdown iframe 白名单和 CSP `frame-src` 两处都存在。两处分别控制 HTML 清理和浏览器加载权限，缺少任意一处都可能导致嵌入失败。
+
 #### 不需要为 OXN 功能替换的文件
 
 当前 `24` 的 `scripts/generate-wrangler-config.ts` 和 `wrangler.toml.example` 与上游 `master` 内容一致，不属于 OXN 功能所需的差异文件。不要因为它们出现在历史比较结果中就额外覆盖。
