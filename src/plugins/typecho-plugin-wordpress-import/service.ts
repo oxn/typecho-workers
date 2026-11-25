@@ -396,29 +396,6 @@ async function buildDataset(
       int_value: 0,
       float_value: 0,
     });
-
-    // Wing stores its friend links as a JSON string in the WordPress page
-    // meta key "links". Preserve that value as a Typecho string custom field
-    // so the OXN friend-links page template can consume imported pages directly.
-    if (item.postType === 'page') {
-      const linksMeta = item.postMeta.find(meta => meta.key === 'links');
-      if (linksMeta?.value) {
-        try {
-          if (Array.isArray(JSON.parse(linksMeta.value))) {
-            dataset.fields.push({
-              cid: Number(content.cid),
-              name: 'links',
-              type: 'str',
-              str_value: linksMeta.value,
-              int_value: 0,
-              float_value: 0,
-            });
-          }
-        } catch {
-          // Ignore malformed/non-JSON values; do not affect the page import.
-        }
-      }
-    }
   }
 
   // Mark each imported content row with its source site. This keeps IDs from
