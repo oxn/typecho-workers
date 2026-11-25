@@ -233,6 +233,10 @@
     "archives": {
       "name": "文章归档",
       "component": "components/Archives.astro"
+    },
+    "friend-links": {
+      "name": "友情链接",
+      "component": "components/FriendLinks.astro"
     }
   }
 }
