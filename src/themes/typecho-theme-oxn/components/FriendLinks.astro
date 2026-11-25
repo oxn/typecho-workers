@@ -100,15 +100,19 @@ function extractFriendLinks(html: string): { content: string; parts: FriendLinkC
     const startBlockEnd = html.indexOf('</p>', startIndex);
     const endBlockStart = html.lastIndexOf('<p', endIndex);
     const endBlockEnd = html.indexOf('</p>', endIndex);
+    const startMarkerHasParagraph = startBlockStart >= cursor && startBlockEnd >= startIndex;
+    const endMarkerHasParagraph = endBlockStart >= 0 && endBlockEnd >= endIndex;
 
-    const removeStart = startBlockStart >= cursor ? startBlockStart : startIndex;
-    const removeEnd = endBlockEnd >= 0
+    const removeStart = startMarkerHasParagraph ? startBlockStart : startIndex;
+    const removeEnd = endMarkerHasParagraph
       ? endBlockEnd + 4
       : endIndex + END_MARKER.length;
-    const dataStart = startBlockEnd >= 0 && startBlockEnd < endIndex
+    const dataStart = startMarkerHasParagraph
       ? startBlockEnd + 4
       : startIndex + START_MARKER.length;
-    const dataEnd = endBlockStart >= dataStart ? endBlockStart : endIndex;
+    const dataEnd = endMarkerHasParagraph && endBlockStart >= dataStart
+      ? endBlockStart
+      : endIndex;
 
     // 边界异常时保留原文，不尝试删除不确定的内容。
     if (removeStart < cursor || removeEnd <= removeStart || dataEnd < dataStart) break;
