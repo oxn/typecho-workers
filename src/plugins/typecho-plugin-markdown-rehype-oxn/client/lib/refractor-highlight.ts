@@ -40,7 +40,11 @@ export function highlightCode(value: string, language: string): RefractorRoot {
   }
 }
 
-export function isLanguageRegistered(language: string): boolean {\n  return refractor.registered(language);\n}\n\nexport function getSupportedLanguageCount(): number {
+export function isLanguageRegistered(language: string): boolean {
+  return refractor.registered(language);
+}
+
+export function getSupportedLanguageCount(): number {
   return REFRACTOR_SUPPORTED_LANGUAGES.length;
 }
 
