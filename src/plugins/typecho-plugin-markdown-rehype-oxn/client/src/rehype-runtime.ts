@@ -74,7 +74,16 @@ declare global {
     const clonedCode = pre.querySelector('code.language-mermaid');
     if (clonedCode) {
      clonedCode.textContent = source;
-     clonedCode.hidden = true;
+     // Visually hide the source while keeping its text readable to existing
+     // copy handlers that read code.innerText.
+     clonedCode.style.position = 'absolute';
+     clonedCode.style.width = '1px';
+     clonedCode.style.height = '1px';
+     clonedCode.style.padding = '0';
+     clonedCode.style.margin = '-1px';
+     clonedCode.style.overflow = 'hidden';
+     clonedCode.style.clipPath = 'inset(50%)';
+     clonedCode.style.whiteSpace = 'pre';
      clonedCode.setAttribute('aria-hidden', 'true');
     }
     return pre;
