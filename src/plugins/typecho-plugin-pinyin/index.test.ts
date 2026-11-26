@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PluginInitContext } from 'typecho/plugin-sdk';
-import { titleToPinyinSlug } from './client/pinyin-editor';
+import { titleToPinyinSlug } from './browser/pinyin-editor';
 
 const mocks = vi.hoisted(() => ({
   parsePluginOption: vi.fn((value: unknown) => {

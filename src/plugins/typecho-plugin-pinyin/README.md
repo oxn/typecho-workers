@@ -186,3 +186,7 @@ bunx vitest run src/plugins/typecho-plugin-pinyin/index.test.ts
 本插件使用 `pinyin-pro` 完成浏览器端汉字拼音转换。该依赖采用 MIT License。版权及许可证全文见同目录的 `THIRD-PARTY-NOTICES.md`。
 
 插件自身的 MIT 许可与 `pinyin-pro` 的 MIT 许可是两个独立声明，不应将第三方依赖的版权归属写成插件作者所有。
+
+## 客户端资源构建
+
+拼音编辑器脚本由本插件独立构建，不再经过系统全局 client-loader，也不会输出到 `public/plugin-assets/`。安装依赖时会通过 `postinstall` 自动生成 `client/dist/pinyin-editor.js`；也可以在插件目录执行 `bun run build:client` 手动构建。插件通过自身的 `route:request` 路由提供浏览器脚本。

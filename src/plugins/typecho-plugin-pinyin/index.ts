@@ -1,9 +1,11 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { parsePluginOption } from 'typecho/plugin-sdk';
-import type { PluginInitContext } from 'typecho/plugin-sdk';
+import type { PluginInitContext, PluginRouteResult } from 'typecho/plugin-sdk';
+import pinyinEditorScript from './client/dist/pinyin-editor.js?raw';
 import { schema } from '@/db';
 
 const SAVE_SLUG_PARAM = '__pinyinSlug';
+const PINYIN_ASSET_PATH = '/__plugin-assets/typecho-plugin-pinyin/pinyin-editor.js';
 const DEFAULT_TITLE_LENGTH = 100;
 const DEFAULT_SLUG_LENGTH = 300;
 const DEFAULT_SLUG_ATTEMPTS = 50;
@@ -134,7 +136,7 @@ function editorHtml(
     'data-slug-max-length="' + slugMaxLength + '"',
   ].join(' ');
 
-  return `<script src="/plugin-assets/typecho-plugin-pinyin/pinyin-editor.js"></script>\n<script ${attrs}>
+  return `<script src="${PINYIN_ASSET_PATH}"></script>\n<script ${attrs}>
 (function () {
   var script = document.currentScript;
   if (!script) return;
@@ -311,6 +313,24 @@ const pinyinAdminCss = [
 ].join('\n');
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
+  addHook('route:request', pluginId, (result: PluginRouteResult, extra?: { request?: Request; path?: string }) => {
+    if (result?.handled || extra?.path !== PINYIN_ASSET_PATH || !extra.request) return result;
+    const method = extra.request.method;
+    if (method !== 'GET' && method !== 'HEAD') {
+      return { handled: true, response: new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET, HEAD' } }) };
+    }
+    return {
+      handled: true,
+      response: new Response(method === 'HEAD' ? null : pinyinEditorScript, {
+        headers: {
+          'Content-Type': 'application/javascript; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      }),
+    };
+  }, 5);
+
   addHook('admin:header', pluginId, (html: string, extra?: { title?: string }) => {
     if (extra?.title !== '设置插件 拼音别名') return html;
     return `${html}<style data-typecho-pinyin-admin>${pinyinAdminCss}</style>`;
