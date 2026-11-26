@@ -8477,46 +8477,39 @@
       "sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw=="
     ],
     "@cloudflare/vite-plugin/miniflare": [
-      "miniflare@5.20261110.0-beta",
-      "",
+      "miniflare@5.20260801.0-alpha",
+      "https://registry.npmmirror.com/miniflare/-/miniflare-5.20260801.0-alpha.tgz",
       {
         "dependencies": {
           "@cspotcode/source-map-support": "0.8.1",
-          "sharp": "0.35.5",
-          "undici": "7.30.1",
-          "workerd": "1.20261110.1",
+          "sharp": "0.35.2",
+          "undici": "7.28.0",
+          "workerd": "1.20260801.1",
           "ws": "8.21.0",
           "youch": "4.1.0-beta.10"
-        },
-        "peerDependencies": {
-          "kerberos": "^2.0.0"
-        },
-        "optionalPeers": [
-          "kerberos"
-        ]
+        }
       },
-      "sha512-UiJRL6D4pNkHxgZ3QXDCaz/N27FFuuHRRgOmD/SucEZIwDOfWwX7s/n8ZrFemFlURRfnQpBfAdWy8ixsW0yJWA=="
+      "sha512-AfMrnQbJg81ESsGkGhOkHBtwTqCG+mosR+3GE+qDrhF1I/ieIvgg3ICxNyBvgHBZ3iapy6cysBQHNPykkzrfgw=="
     ],
     "@cloudflare/vite-plugin/wrangler": [
-      "wrangler@4.160.0",
-      "",
+      "wrangler@4.119.0",
+      "https://registry.npmmirror.com/wrangler/-/wrangler-4.119.0.tgz",
       {
         "dependencies": {
           "@cloudflare/kv-asset-handler": "0.5.0",
-          "@cloudflare/unenv-preset": "2.16.2",
-          "@cspotcode/source-map-support": "0.8.1",
+          "@cloudflare/unenv-preset": "2.16.1",
           "blake3-wasm": "2.1.5",
-          "esbuild": "0.28.2",
-          "miniflare": "5.20261110.0-beta",
+          "esbuild": "0.28.1",
+          "miniflare": "5.20260801.0-alpha",
           "path-to-regexp": "6.3.0",
           "unenv": "2.0.0-rc.24",
-          "workerd": "1.20261110.1"
+          "workerd": "1.20260801.1"
         },
         "optionalDependencies": {
           "fsevents": "2.3.3"
         },
         "peerDependencies": {
-          "@cloudflare/workers-types": "^5.20261110.1"
+          "@cloudflare/workers-types": "^5.20260801.1"
         },
         "optionalPeers": [
           "@cloudflare/workers-types"
@@ -8527,7 +8520,7 @@
           "cf-wrangler": "bin/cf-wrangler.js"
         }
       },
-      "sha512-nwzmpu7Hd5Csax02twpCNRAloC+kduXKw9rjfq+oEuo8RnjWRaahSV+qk+p0w88EgafMcDE0XnZRSfOM3lKEKg=="
+      "sha512-ookClf+zly4DTc8pBMNrwGQzZKH8IpIYTXkjDw3XS7ZvBQ5mLYH6eOvfD5BEpk3U63zTbv91WRlo1UeRSKXa0g=="
     ],
     "@cloudflare/vite-plugin/ws": [
       "ws@8.22.0",
