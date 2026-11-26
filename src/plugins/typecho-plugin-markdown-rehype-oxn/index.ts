@@ -44,6 +44,15 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook('route:request', pluginId, (result: PluginRouteResult, extra?: RouteExtra) => {
     if (result?.handled || !extra?.path) return result;
     if (!extra.path.startsWith(ASSET_PREFIX)) return result;
+    if (extra.request?.method !== 'GET' && extra.request?.method !== 'HEAD') {
+      return {
+        handled: true,
+        response: new Response('Method Not Allowed', {
+          status: 405,
+          headers: { Allow: 'GET, HEAD' },
+        }),
+      };
+    }
 
     const assetName = extra.path.slice(ASSET_PREFIX.length);
     const source = runtimeAssets[assetName];
