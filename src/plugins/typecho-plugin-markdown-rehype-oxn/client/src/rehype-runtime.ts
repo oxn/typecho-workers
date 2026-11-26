@@ -308,7 +308,7 @@ declare global {
    const blurhashTarget = scope || root;
    if (flags.blurhash && hasBlurhash(blurhashTarget)) {
     void load('blurhash-runtime.js','__oxnMarkdownBlurhashRuntime')
-     .then(() => window.__oxnMarkdownBlurhashRuntime?.initialize(blurhashTarget));
+     .then(() => window.__oxnMarkdownBlurhashRuntime?.initialize(blurhashTarget, flags.lazyImages));
    }
    if (flags.math && hasMath(root)) {
     void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
