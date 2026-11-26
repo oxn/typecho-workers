@@ -73,8 +73,9 @@ declare global {
    };
    original.replaceWith(variant('default'), variant('dark'));
   });
-  const light = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_default:not([data-processed])'));
-  const dark = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_dark:not([data-processed])'));
+  const light = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_default:not([data-processed]):not([data-oxn-mermaid-queued])'));
+  const dark = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_dark:not([data-processed]):not([data-oxn-mermaid-queued])'));
+  [...light, ...dark].forEach(node => { node.dataset.oxnMermaidQueued = '1'; });
   const renderVariant = async (nodes: HTMLElement[], theme: 'default' | 'dark') => {
    if (!nodes.length) return;
    const restore: Array<{node:HTMLElement;display:string;displayPriority:string;visibility:string;visibilityPriority:string}> = [];
@@ -97,7 +98,10 @@ declare global {
   mermaidQueue = mermaidQueue.then(async () => {
    await renderVariant(light,'default');
    await renderVariant(dark,'dark');
-  }).catch(error => console.error('[Markdown Rehype OXN] Mermaid render failed:',error));
+  }).catch(error => {
+   [...light, ...dark].forEach(node => { delete node.dataset.oxnMermaidQueued; });
+   console.error('[Markdown Rehype OXN] Mermaid render failed:',error);
+  });
   await mermaidQueue;
  }
  let scheduled = false;
