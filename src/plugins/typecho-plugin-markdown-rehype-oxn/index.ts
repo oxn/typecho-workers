@@ -39,10 +39,14 @@ function styleTag(id: string, css: string): string {
 }
 /** Preserve TeX row separators before the host's ordinary Markdown parser. */
 function protectMathSegment(source: string): string {
-  const blocks = source.split(/(\$\$[\s\S]*?\$\$|\$(?!\$)[^$\r\n]+\$(?!\$))/g);
-  return blocks.map((part, index) => index % 2 === 1
-    ? part.split('\\').join('&#92;')
-    : part).join('');
+  const codeAware = source.split(/(\x60+[\s\S]*?\x60+)/g);
+  return codeAware.map((part, codeIndex) => {
+    if (codeIndex % 2 === 1) return part;
+    const mathBlocks = part.split(/(\$\$[\s\S]*?\$\$|\$(?!\$)[^$\r\n]+\$(?!\$))/g);
+    return mathBlocks.map((formula, mathIndex) => mathIndex % 2 === 1
+      ? formula.split('\\').join('&#92;')
+      : formula).join('');
+  }).join('');
 }
 
 function protectMathSource(source: string): string {
