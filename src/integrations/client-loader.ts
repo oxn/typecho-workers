@@ -66,7 +66,12 @@ function discoverPluginClients(rootDir: string): ClientSource[] {
       if (!entry.endsWith('.ts')) continue;
       const sourcePath = join(clientDir, entry);
       const jsName = entry.replace(/\.ts$/, '.js');
-      const outDir = join(rootDir, 'public', 'plugin-assets', pluginId);
+      // Markdown Rehype OXN serves its compiled browser assets through
+      // its own plugin route. Keep those generated files inside the plugin;
+      // do not place them in the mutable public/ directory.
+      const outDir = pluginId === 'typecho-plugin-markdown-rehype-oxn'
+        ? join(clientDir, 'dist')
+        : join(rootDir, 'public', 'plugin-assets', pluginId);
       sources.push({
         sourcePath,
         outDir,
@@ -78,29 +83,29 @@ function discoverPluginClients(rootDir: string): ClientSource[] {
 }
 
 async function compileAll(sources: ClientSource[], silent = false): Promise<void> {
-  try {
-    const esbuild = await import('esbuild');
-    for (const src of sources) {
-      mkdirSync(src.outDir, { recursive: true });
-      const outfile = join(src.outDir, basename(src.sourcePath).replace(/\.ts$/, '.js'));
-      await esbuild.build({
-        entryPoints: [src.sourcePath],
-        outfile,
-        bundle: true,
-        format: 'iife',
-        target: 'es2020',
-        minify: false,
-        sourcemap: process.env.NODE_ENV !== 'production' ? 'inline' : false,
-        logLevel: 'warning',
-        // External: browser scripts must not bundle server-side modules
-        external: ['cloudflare:*', 'typecho/*', '@/*', 'astro:*', 'node:*'],
-      });
-      if (!silent) {
-        console.log(`[client-loader] ${src.sourcePath} → ${relative(process.cwd(), outfile)}`);
-      }
+  // A missing browser bundle means an enabled plugin will emit dead script
+  // URLs. Fail the build instead of silently producing a broken deployment.
+  const esbuild = await import('esbuild').catch((err) => {
+    throw new Error('[client-loader] esbuild is required to compile browser assets.', { cause: err });
+  });
+  for (const src of sources) {
+    mkdirSync(src.outDir, { recursive: true });
+    const outfile = join(src.outDir, basename(src.sourcePath).replace(/\\.ts$/, '.js'));
+    await esbuild.build({
+      entryPoints: [src.sourcePath],
+      outfile,
+      bundle: true,
+      format: 'iife',
+      target: 'es2020',
+      minify: false,
+      sourcemap: process.env.NODE_ENV !== 'production' ? 'inline' : false,
+      logLevel: 'warning',
+      // External: browser scripts must not bundle server-side modules
+      external: ['cloudflare:*', 'typecho/*', '@/*', 'astro:*', 'node:*'],
+    });
+    if (!silent) {
+      console.log(`[client-loader] ${src.sourcePath} → ${relative(process.cwd(), outfile)}`);
     }
-  } catch (err) {
-    console.error('[client-loader] esbuild not available, skipping client compilation:', err);
   }
 }
 
