@@ -17,7 +17,7 @@ for (const entry of [
 ]) {
   await build({
     entryPoints: [join(sourceDir, entry)],
-    outfile: join(outputDir, entry.replace(/\\.ts$/, '.js')),
+    outfile: join(outputDir, entry.slice(0, -3) + '.js'),
     bundle: true,
     format: 'iife',
     platform: 'browser',
@@ -26,5 +26,5 @@ for (const entry of [
     sourcemap: false,
     logLevel: 'warning',
   });
-  console.log(`[markdown-rehype-oxn] Built client/${entry} → client/dist/${entry.replace(/\\.ts$/, '.js')}`);
+  console.log(`[markdown-rehype-oxn] Built client/${entry} → client/dist/${entry.slice(0, -3) + '.js'}`);
 }
