@@ -29,5 +29,8 @@
       "homepage": "https://347777.xyz"
     }
   },
-  "homepage": "https://347777.xyz"
+  "homepage": "https://347777.xyz",
+  "dependencies": {
+    "fast-xml-parser": "^5.10.1"
+  }
 }

@@ -60,7 +60,10 @@
     },
     "src/plugins/typecho-plugin-wordpress-import": {
       "name": "typecho-plugin-wordpress-import",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "dependencies": {
+        "fast-xml-parser": "^5.10.1"
+      }
     },
     "src/plugins/typecho-plugin-notifier": {
       "name": "typecho-plugin-notifier",

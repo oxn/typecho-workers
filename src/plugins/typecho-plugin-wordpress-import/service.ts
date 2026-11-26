@@ -5,7 +5,7 @@ import {
   parseWordPressExport,
   type WordPressExport,
   type WordPressMigrationDataset,
-} from '../../../scripts/wordpress';
+} from './wordpress';
 
 // D1 allows at most 100 bound parameters in each SQL statement.
 const MAX_BOUND_PARAMETERS = 100;
