@@ -79,7 +79,7 @@ declare global {
     if (element.matches(mermaidSelector)) detected.mermaid = true;
     if (element.matches(highlightSelector) && Array.isArray(REFRACTOR_SUPPORTED_LANGUAGES)) {
      const code = element as HTMLElement;
-     const match = /(?:^|\\s)language-([\\w+-]+)/.exec(code.className);
+     const match = /(?:^|\s)language-([\w+-]+)/.exec(code.className);
      const language = match?.[1]?.toLowerCase() || '';
      if (language && language !== 'mermaid' && language !== 'text' && language !== 'plain'
       && REFRACTOR_SUPPORTED_LANGUAGES.includes(language as typeof REFRACTOR_SUPPORTED_LANGUAGES[number])) {
@@ -89,7 +89,7 @@ declare global {
    }
    if (scanBlurhash && element.matches(blurhashSelector)) detected.blurhash = true;
   };
-  if (root.matches(mermaidSelector) || root.matches(highlightSelector) || root.matches(blurhashSelector)) inspectElement(root);
+  inspectElement(root);
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
   const excluded = 'pre,code,script,style,textarea,.katex,.tex2jax_ignore,[data-tex2jax-ignore]';
@@ -105,12 +105,12 @@ declare global {
    if (!scanContent) continue;
    const parent = node.parentElement;
    if (!parent || parent.closest(excluded)) {
-    text += '\\n';
+    text += '\n';
     previousBlock = null;
     continue;
    }
    const block = parent.closest(blockSelector) || root;
-   if (previousBlock && block !== previousBlock) text += '\\n';
+   if (previousBlock && block !== previousBlock) text += '\n';
    text += node.textContent || '';
    previousBlock = block;
   }
@@ -118,7 +118,7 @@ declare global {
   if (scanContent) {
    const isEscaped = (value: string, index: number): boolean => {
     let slashes = 0;
-    for (let i = index - 1; i >= 0 && value[i] === '\\\\'; i--) slashes++;
+    for (let i = index - 1; i >= 0 && value[i] === '\\'; i--) slashes++;
     return slashes % 2 === 1;
    };
    const hasDollarPair = (value: string, start: number, width: number): boolean => {
@@ -138,8 +138,8 @@ declare global {
       break;
      }
     }
-    if (text[i] === '\\\\' && !isEscaped(text, i) && (text[i + 1] === '(' || text[i + 1] === '[')) {
-     const closing = text[i + 1] === '(' ? '\\\\)' : '\\\\]';
+    if (text[i] === '\\' && !isEscaped(text, i) && (text[i + 1] === '(' || text[i + 1] === '[')) {
+     const closing = text[i + 1] === '(' ? '\\)' : '\\]';
      if (text.indexOf(closing, i + 2) !== -1) {
       detected.math = true;
       break;
