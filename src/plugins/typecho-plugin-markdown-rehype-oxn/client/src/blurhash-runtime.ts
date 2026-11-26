@@ -3,7 +3,7 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
 
 (() => {
  const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~';
- const selector = 'img[src*="#blurhash="]';
+ const selector = 'img[data-oxn-blurhash-src],img[src*="#blurhash="]';
  const processed = new WeakSet<HTMLImageElement>();
  let observer: IntersectionObserver | null = null;
 
@@ -38,7 +38,7 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
  function decodePercent(value:string):string{return value.replace(/%([0-9a-f]{2})/gi,(_m,hex:string)=>String.fromCharCode(parseInt(hex,16)));}
  function dimension(value:string|undefined):number|undefined {if(!value||!/^\d+$/.test(value))return;const n=Number(value);return Number.isSafeInteger(n)&&n>0&&n<=100000?n:undefined;}
  function parseSource(img:HTMLImageElement):{src:string;hash:string;width?:number;height?:number}|null {
-  const raw=img.getAttribute('src');if(!raw)return null;const marker=raw.indexOf('#');if(marker<0)return null;
+  const raw=img.getAttribute('data-oxn-blurhash-src')||img.getAttribute('src');if(!raw)return null;const marker=raw.indexOf('#');if(marker<0)return null;
   const base=raw.slice(0,marker),parts=raw.slice(marker+1).split('&'),remaining:string[]=[];
   let hash:string|undefined,width:number|undefined,height:number|undefined;
   for(const part of parts){
@@ -78,16 +78,15 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
   if(processed.has(img))return;
   const parsed=parseSource(img);if(!parsed)return;
   processed.add(img);
-  if(img.complete&&img.naturalWidth>0){img.dataset.oxnBlurhash=parsed.hash;img.setAttribute('src',parsed.src);return;}
+  if(img.complete&&img.naturalWidth>0){img.dataset.oxnBlurhash=parsed.hash;img.removeAttribute('data-oxn-blurhash-src');img.setAttribute('src',parsed.src);return;}
   try{
    const preview=makePreview(parsed.hash,parsed.width,parsed.height);
    img.dataset.oxnBlurhash=parsed.hash;
+   img.removeAttribute('data-oxn-blurhash-src');
    if(parsed.width&&!img.hasAttribute('width'))img.setAttribute('width',String(parsed.width));
    if(parsed.height&&!img.hasAttribute('height'))img.setAttribute('height',String(parsed.height));
    img.dataset.oxnOriginalSrc=parsed.src;
-   img.addEventListener('load',()=>{if(img.dataset.oxnOriginalSrc===undefined){img.dataset.oxnImageLoaded='1';img.style.filter='';}}, {once:true});
    img.src=preview;
-   img.style.filter='blur(0.15px)';
    watch(img,lazy);
   }catch(error){
    console.warn('[Markdown Rehype OXN] Invalid BlurHash:',error);
