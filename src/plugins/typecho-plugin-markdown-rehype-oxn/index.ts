@@ -87,9 +87,9 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     };
   }, 5);
 
-  // The lightweight client entry performs all content detection in the browser.
-  // Feature CSS and heavy runtimes are requested only after matching content is found.
-  // The only earlier content hook protects TeX backslashes; Markdown parsing remains host-owned.
+  // Load enabled feature assets based on plugin settings, without inspecting article content.
+  // The client initializes enabled renderers on article roots; browser caching can reuse assets.
+  // The only content hook above protects TeX backslashes; Markdown parsing remains host-owned.
   addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
     const config = featureConfig(extra?.options, pluginId);
     if (!config.math && !config.mermaid && !config.highlight) return html;
