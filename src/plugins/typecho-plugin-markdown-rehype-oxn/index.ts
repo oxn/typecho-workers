@@ -38,6 +38,515 @@ function styleTag(id: string, css: string): string {
   return `<style id="${id}">${css.replace(/<\/style/gi, '<\\/style')}</style>`;
 }
 
+/**
+ * Protect TeX source before the host Markdown parser sees it.
+ *
+ * The host uses Marked rather than remark-math. Marked treats a trailing
+ * backslash pair as Markdown escaping, so TeX row separators (\\) can be
+ * reduced to a single backslash before the browser-side KaTeX runtime runs.
+ * Encoding each character as an HTML character reference keeps Markdown
+ * syntax out of the formula while the browser still receives the exact TeX
+ * through the resulting text node.
+ */
+function protectMathSegment(source: string): string {
+  let output = '';
+  let index = 0;
+
+  const isEscaped = (position: number): boolean => {
+    let count = 0;
+    for (let cursor = position - 1; cursor >= 0 && source[cursor] === '\\\\'; cursor--) count++;
+    return count % 2 === 1;
+  };
+
+  const findClosing = (delimiter: string, start: number, multiline: boolean): number => {
+    let found = source.indexOf(delimiter, start);
+    while (found >= 0) {
+      if ((!multiline && /[\\r\\n]/.test(source.slice(start, found))) || isEscaped(found)) {
+        if (!multiline && /[\\r\\n]/.test(source.slice(start, found))) return -1;
+        found = source.indexOf(delimiter, found + delimiter.length);
+        continue;
+      }
+      if (delimiter === '
+export default function init({ addHook, pluginId }: PluginInitContext): void {
+  // Preserve TeX before Marked can interpret TeX backslashes as Markdown escapes.
+  // This is a narrow source safeguard; the host still owns Markdown parsing.
+  addHook('content:markdown', pluginId, (source: string) => protectMathSource(source), 1000);
+
+  // Serve generated runtime files from this plugin's own build directory.
+  // The public/ directory is deliberately not used by this plugin.
+  addHook('route:request', pluginId, (result: PluginRouteResult, extra?: RouteExtra) => {
+    if (result?.handled || !extra?.path) return result;
+    if (!extra.path.startsWith(ASSET_PREFIX)) return result;
+    if (extra.request?.method !== 'GET' && extra.request?.method !== 'HEAD') {
+      return {
+        handled: true,
+        response: new Response('Method Not Allowed', {
+          status: 405,
+          headers: { Allow: 'GET, HEAD' },
+        }),
+      };
+    }
+
+    const assetName = extra.path.slice(ASSET_PREFIX.length);
+    const source = runtimeAssets[assetName];
+    if (typeof source !== 'string') return result;
+
+    const headers = {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
+    };
+    return {
+      handled: true,
+      response: new Response(extra.request?.method === 'HEAD' ? null : source, { headers }),
+    };
+  }, 5);
+
+  addHook('archive:header', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    let output = html;
+    if (config.math && !output.includes(KATEX_STYLE_ID)) output += styleTag(KATEX_STYLE_ID, katexCss);
+    if ((config.mermaid || config.highlight) && !output.includes(STYLE_ID)) output += styleTag(STYLE_ID, enhancerCss);
+    return output;
+  }, 1000);
+
+  // Runs after the theme has produced the final article HTML. No Markdown
+  // parsing/filtering hooks are registered by this plugin.
+  addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    const attrs = [
+      config.math ? 'data-math="1"' : '',
+      config.mermaid ? 'data-mermaid="1"' : '',
+      config.highlight ? 'data-highlight="1"' : '',
+    ].filter(Boolean).join(' ');
+    return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
+  }, 1000);
+}
+ && (source[found - 1] === '
+export default function init({ addHook, pluginId }: PluginInitContext): void {
+  // Serve generated runtime files from this plugin's own build directory.
+  // The public/ directory is deliberately not used by this plugin.
+  addHook('route:request', pluginId, (result: PluginRouteResult, extra?: RouteExtra) => {
+    if (result?.handled || !extra?.path) return result;
+    if (!extra.path.startsWith(ASSET_PREFIX)) return result;
+    if (extra.request?.method !== 'GET' && extra.request?.method !== 'HEAD') {
+      return {
+        handled: true,
+        response: new Response('Method Not Allowed', {
+          status: 405,
+          headers: { Allow: 'GET, HEAD' },
+        }),
+      };
+    }
+
+    const assetName = extra.path.slice(ASSET_PREFIX.length);
+    const source = runtimeAssets[assetName];
+    if (typeof source !== 'string') return result;
+
+    const headers = {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
+    };
+    return {
+      handled: true,
+      response: new Response(extra.request?.method === 'HEAD' ? null : source, { headers }),
+    };
+  }, 5);
+
+  addHook('archive:header', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    let output = html;
+    if (config.math && !output.includes(KATEX_STYLE_ID)) output += styleTag(KATEX_STYLE_ID, katexCss);
+    if ((config.mermaid || config.highlight) && !output.includes(STYLE_ID)) output += styleTag(STYLE_ID, enhancerCss);
+    return output;
+  }, 1000);
+
+  // Runs after the theme has produced the final article HTML. No Markdown
+  // parsing/filtering hooks are registered by this plugin.
+  addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    const attrs = [
+      config.math ? 'data-math="1"' : '',
+      config.mermaid ? 'data-mermaid="1"' : '',
+      config.highlight ? 'data-highlight="1"' : '',
+    ].filter(Boolean).join(' ');
+    return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
+  }, 1000);
+}
+ || source[found + 1] === '
+export default function init({ addHook, pluginId }: PluginInitContext): void {
+  // Serve generated runtime files from this plugin's own build directory.
+  // The public/ directory is deliberately not used by this plugin.
+  addHook('route:request', pluginId, (result: PluginRouteResult, extra?: RouteExtra) => {
+    if (result?.handled || !extra?.path) return result;
+    if (!extra.path.startsWith(ASSET_PREFIX)) return result;
+    if (extra.request?.method !== 'GET' && extra.request?.method !== 'HEAD') {
+      return {
+        handled: true,
+        response: new Response('Method Not Allowed', {
+          status: 405,
+          headers: { Allow: 'GET, HEAD' },
+        }),
+      };
+    }
+
+    const assetName = extra.path.slice(ASSET_PREFIX.length);
+    const source = runtimeAssets[assetName];
+    if (typeof source !== 'string') return result;
+
+    const headers = {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
+    };
+    return {
+      handled: true,
+      response: new Response(extra.request?.method === 'HEAD' ? null : source, { headers }),
+    };
+  }, 5);
+
+  addHook('archive:header', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    let output = html;
+    if (config.math && !output.includes(KATEX_STYLE_ID)) output += styleTag(KATEX_STYLE_ID, katexCss);
+    if ((config.mermaid || config.highlight) && !output.includes(STYLE_ID)) output += styleTag(STYLE_ID, enhancerCss);
+    return output;
+  }, 1000);
+
+  // Runs after the theme has produced the final article HTML. No Markdown
+  // parsing/filtering hooks are registered by this plugin.
+  addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    const attrs = [
+      config.math ? 'data-math="1"' : '',
+      config.mermaid ? 'data-mermaid="1"' : '',
+      config.highlight ? 'data-highlight="1"' : '',
+    ].filter(Boolean).join(' ');
+    return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
+  }, 1000);
+}
+)) {
+        found = source.indexOf(delimiter, found + 1);
+        continue;
+      }
+      return found;
+    }
+    return -1;
+  };
+
+  while (index < source.length) {
+    // Leave inline code spans untouched; the browser runtime ignores code too.
+    if (source[index] === '`') {
+      let ticks = 1;
+      while (source[index + ticks] === '`') ticks++;
+      const marker = '`'.repeat(ticks);
+      const end = source.indexOf(marker, index + ticks);
+      if (end >= 0) {
+        output += source.slice(index, end + ticks);
+        index = end + ticks;
+        continue;
+      }
+    }
+
+    let opening = '';
+    let closing = '';
+    let multiline = false;
+    if (source.startsWith('$', index) && !isEscaped(index)) {
+      opening = closing = '$';
+      multiline = true;
+    } else if (source.startsWith('\\\\[', index) && !isEscaped(index)) {
+      opening = '\\\\[';
+      closing = '\\\\]';
+      multiline = true;
+    } else if (source.startsWith('\\\\(', index) && !isEscaped(index)) {
+      opening = '\\\\(';
+      closing = '\\\\)';
+    } else if (source[index] === '
+export default function init({ addHook, pluginId }: PluginInitContext): void {
+  // Serve generated runtime files from this plugin's own build directory.
+  // The public/ directory is deliberately not used by this plugin.
+  addHook('route:request', pluginId, (result: PluginRouteResult, extra?: RouteExtra) => {
+    if (result?.handled || !extra?.path) return result;
+    if (!extra.path.startsWith(ASSET_PREFIX)) return result;
+    if (extra.request?.method !== 'GET' && extra.request?.method !== 'HEAD') {
+      return {
+        handled: true,
+        response: new Response('Method Not Allowed', {
+          status: 405,
+          headers: { Allow: 'GET, HEAD' },
+        }),
+      };
+    }
+
+    const assetName = extra.path.slice(ASSET_PREFIX.length);
+    const source = runtimeAssets[assetName];
+    if (typeof source !== 'string') return result;
+
+    const headers = {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
+    };
+    return {
+      handled: true,
+      response: new Response(extra.request?.method === 'HEAD' ? null : source, { headers }),
+    };
+  }, 5);
+
+  addHook('archive:header', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    let output = html;
+    if (config.math && !output.includes(KATEX_STYLE_ID)) output += styleTag(KATEX_STYLE_ID, katexCss);
+    if ((config.mermaid || config.highlight) && !output.includes(STYLE_ID)) output += styleTag(STYLE_ID, enhancerCss);
+    return output;
+  }, 1000);
+
+  // Runs after the theme has produced the final article HTML. No Markdown
+  // parsing/filtering hooks are registered by this plugin.
+  addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    const attrs = [
+      config.math ? 'data-math="1"' : '',
+      config.mermaid ? 'data-mermaid="1"' : '',
+      config.highlight ? 'data-highlight="1"' : '',
+    ].filter(Boolean).join(' ');
+    return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
+  }, 1000);
+}
+ && source[index + 1] !== '
+export default function init({ addHook, pluginId }: PluginInitContext): void {
+  // Serve generated runtime files from this plugin's own build directory.
+  // The public/ directory is deliberately not used by this plugin.
+  addHook('route:request', pluginId, (result: PluginRouteResult, extra?: RouteExtra) => {
+    if (result?.handled || !extra?.path) return result;
+    if (!extra.path.startsWith(ASSET_PREFIX)) return result;
+    if (extra.request?.method !== 'GET' && extra.request?.method !== 'HEAD') {
+      return {
+        handled: true,
+        response: new Response('Method Not Allowed', {
+          status: 405,
+          headers: { Allow: 'GET, HEAD' },
+        }),
+      };
+    }
+
+    const assetName = extra.path.slice(ASSET_PREFIX.length);
+    const source = runtimeAssets[assetName];
+    if (typeof source !== 'string') return result;
+
+    const headers = {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
+    };
+    return {
+      handled: true,
+      response: new Response(extra.request?.method === 'HEAD' ? null : source, { headers }),
+    };
+  }, 5);
+
+  addHook('archive:header', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    let output = html;
+    if (config.math && !output.includes(KATEX_STYLE_ID)) output += styleTag(KATEX_STYLE_ID, katexCss);
+    if ((config.mermaid || config.highlight) && !output.includes(STYLE_ID)) output += styleTag(STYLE_ID, enhancerCss);
+    return output;
+  }, 1000);
+
+  // Runs after the theme has produced the final article HTML. No Markdown
+  // parsing/filtering hooks are registered by this plugin.
+  addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    const attrs = [
+      config.math ? 'data-math="1"' : '',
+      config.mermaid ? 'data-mermaid="1"' : '',
+      config.highlight ? 'data-highlight="1"' : '',
+    ].filter(Boolean).join(' ');
+    return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
+  }, 1000);
+}
+ && !isEscaped(index)) {
+      opening = closing = '
+export default function init({ addHook, pluginId }: PluginInitContext): void {
+  // Serve generated runtime files from this plugin's own build directory.
+  // The public/ directory is deliberately not used by this plugin.
+  addHook('route:request', pluginId, (result: PluginRouteResult, extra?: RouteExtra) => {
+    if (result?.handled || !extra?.path) return result;
+    if (!extra.path.startsWith(ASSET_PREFIX)) return result;
+    if (extra.request?.method !== 'GET' && extra.request?.method !== 'HEAD') {
+      return {
+        handled: true,
+        response: new Response('Method Not Allowed', {
+          status: 405,
+          headers: { Allow: 'GET, HEAD' },
+        }),
+      };
+    }
+
+    const assetName = extra.path.slice(ASSET_PREFIX.length);
+    const source = runtimeAssets[assetName];
+    if (typeof source !== 'string') return result;
+
+    const headers = {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
+    };
+    return {
+      handled: true,
+      response: new Response(extra.request?.method === 'HEAD' ? null : source, { headers }),
+    };
+  }, 5);
+
+  addHook('archive:header', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    let output = html;
+    if (config.math && !output.includes(KATEX_STYLE_ID)) output += styleTag(KATEX_STYLE_ID, katexCss);
+    if ((config.mermaid || config.highlight) && !output.includes(STYLE_ID)) output += styleTag(STYLE_ID, enhancerCss);
+    return output;
+  }, 1000);
+
+  // Runs after the theme has produced the final article HTML. No Markdown
+  // parsing/filtering hooks are registered by this plugin.
+  addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    const attrs = [
+      config.math ? 'data-math="1"' : '',
+      config.mermaid ? 'data-mermaid="1"' : '',
+      config.highlight ? 'data-highlight="1"' : '',
+    ].filter(Boolean).join(' ');
+    return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
+  }, 1000);
+}
+;
+    }
+
+    if (opening) {
+      const end = findClosing(closing, index + opening.length, multiline);
+      if (end >= 0) {
+        const segment = source.slice(index, end + closing.length);
+        output += Array.from(segment, character => `&#${character.codePointAt(0)};`).join('');
+        index = end + closing.length;
+        continue;
+      }
+    }
+
+    output += source[index];
+    index++;
+  }
+
+  return output;
+}
+
+/** Protect math outside fenced and inline code before ordinary Markdown parsing. */
+function protectMathSource(source: string): string {
+  const lines = source.match(/[^\\r\\n]*(?:\\r\\n|\\n|\\r|$)/g) || [source];
+  let output = '';
+  let pending = '';
+  let fenceCharacter = '';
+  let fenceLength = 0;
+
+  const flush = () => {
+    if (pending) output += protectMathSegment(pending);
+    pending = '';
+  };
+
+  for (const line of lines) {
+    const content = line.replace(/(?:\\r\\n|\\n|\\r)$/, '');
+    const opening = content.match(/^ {0,3}(`{3,}|~{3,})/);
+
+    if (!fenceCharacter && opening) {
+      flush();
+      fenceCharacter = opening[1][0];
+      fenceLength = opening[1].length;
+      output += line;
+      continue;
+    }
+
+    if (fenceCharacter) {
+      output += line;
+      const closing = new RegExp('^ {0,3}' + (fenceCharacter === '`' ? '`' : '~') + '{' + fenceLength + ',}[ \\t]*
+export default function init({ addHook, pluginId }: PluginInitContext): void {
+  // Serve generated runtime files from this plugin's own build directory.
+  // The public/ directory is deliberately not used by this plugin.
+  addHook('route:request', pluginId, (result: PluginRouteResult, extra?: RouteExtra) => {
+    if (result?.handled || !extra?.path) return result;
+    if (!extra.path.startsWith(ASSET_PREFIX)) return result;
+    if (extra.request?.method !== 'GET' && extra.request?.method !== 'HEAD') {
+      return {
+        handled: true,
+        response: new Response('Method Not Allowed', {
+          status: 405,
+          headers: { Allow: 'GET, HEAD' },
+        }),
+      };
+    }
+
+    const assetName = extra.path.slice(ASSET_PREFIX.length);
+    const source = runtimeAssets[assetName];
+    if (typeof source !== 'string') return result;
+
+    const headers = {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
+    };
+    return {
+      handled: true,
+      response: new Response(extra.request?.method === 'HEAD' ? null : source, { headers }),
+    };
+  }, 5);
+
+  addHook('archive:header', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    let output = html;
+    if (config.math && !output.includes(KATEX_STYLE_ID)) output += styleTag(KATEX_STYLE_ID, katexCss);
+    if ((config.mermaid || config.highlight) && !output.includes(STYLE_ID)) output += styleTag(STYLE_ID, enhancerCss);
+    return output;
+  }, 1000);
+
+  // Runs after the theme has produced the final article HTML. No Markdown
+  // parsing/filtering hooks are registered by this plugin.
+  addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
+    const config = featureConfig(extra?.options, pluginId);
+    if (!config.math && !config.mermaid && !config.highlight) return html;
+    const attrs = [
+      config.math ? 'data-math="1"' : '',
+      config.mermaid ? 'data-mermaid="1"' : '',
+      config.highlight ? 'data-highlight="1"' : '',
+    ].filter(Boolean).join(' ');
+    return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
+  }, 1000);
+}
+);
+      if (closing.test(content)) {
+        fenceCharacter = '';
+        fenceLength = 0;
+      }
+      continue;
+    }
+
+    pending += line;
+  }
+
+  flush();
+  return output;
+}
+
 export default function init({ addHook, pluginId }: PluginInitContext): void {
   // Serve generated runtime files from this plugin's own build directory.
   // The public/ directory is deliberately not used by this plugin.
