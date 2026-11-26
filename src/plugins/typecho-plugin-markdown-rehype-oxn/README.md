@@ -20,7 +20,9 @@
 ## 运行机制
 通过 `archive:footer` 加载轻量主入口。按需模式仅扫描文章正文和独立页面的 `[itemprop="articleBody"]` DOM，并按页面实际内容加载对应功能包；全量模式则直接初始化所有已开启功能。支持 InstantClick 页面切换及重复初始化。
 
-图片处理链路：系统核心 `src/lib/markdown.ts` 在清理 HTML 时会从图片 URL 中提取有效的 `width`、`height`，写入 `<img>` 属性，但保留完整原始 `src`，包括 `#blurhash=...` fragment 和尺寸参数；随后插件在 `archive:footer` 阶段识别文章正文/独立页面中的 BlurHash 图片，将原始地址保存到 `data-oxn-blurhash-src` 并设置透明占位图，客户端运行时再按懒加载设置解码 BlurHash、请求原图并完成替换。核心不会提前删除 BlurHash 参数，因此插件能够取得完整数据。\n\n浏览器运行时源码位于本插件的 `client/src/`，插件自己的 `scripts/build-client.mjs` 负责生成 `client/dist/`。本插件提供的 Astro 构建集成会在 `astro build` 和 `astro dev` 的配置阶段先执行该脚本，再加载插件入口，因此干净环境只要安装了项目构建依赖，便不依赖 Bun 是否执行 workspace 的 `postinstall`。也可以在插件目录执行 `bun run build:client` 手动构建。KaTeX 字体会内嵌到插件生成的 CSS 中。运行时由插件自己的 `route:request` 路由（`/__plugin-assets/`）提供，不写入 `public/`。
+图片处理链路：系统核心 `src/lib/markdown.ts` 在清理 HTML 时会从图片 URL 中提取有效的 `width`、`height`，写入 `<img>` 属性，但保留完整原始 `src`，包括 `#blurhash=...` fragment 和尺寸参数；随后插件在 `archive:footer` 阶段识别文章正文/独立页面中的 BlurHash 图片，将原始地址保存到 `data-oxn-blurhash-src` 并设置透明占位图，客户端运行时再按懒加载设置解码 BlurHash、请求原图并完成替换。核心不会提前删除 BlurHash 参数，因此插件能够取得完整数据。
+
+浏览器运行时源码位于本插件的 `client/src/`，插件自己的 `scripts/build-client.mjs` 负责生成 `client/dist/`。本插件提供的 Astro 构建集成会在 `astro build` 和 `astro dev` 的配置阶段先执行该脚本，再加载插件入口，因此干净环境只要安装了项目构建依赖，便不依赖 Bun 是否执行 workspace 的 `postinstall`。也可以在插件目录执行 `bun run build:client` 手动构建。KaTeX 字体会内嵌到插件生成的 CSS 中。运行时由插件自己的 `route:request` 路由（`/__plugin-assets/`）提供，不写入 `public/`。
 
 不修改主题、其他插件、数据库或 Markdown 核心解析流程。资源源码、构建脚本和生成目录均位于本插件目录；`client/dist/` 是本插件构建生成目录。
 
