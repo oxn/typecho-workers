@@ -39,9 +39,9 @@ function styleTag(id: string, css: string): string {
 }
 /** Preserve TeX row separators before the host's ordinary Markdown parser. */
 function protectMathSegment(source: string): string {
-  const blocks = source.split(/(\$\$[\s\S]*?\$\$|\\\\\[[\s\S]*?\\\\\]|\\\\\([\s\S]*?\\\\\)|\$(?!\$)[^$\\r\\n]+\$(?!\$))/g);
+  const blocks = source.split(/(\$\$[\s\S]*?\$\$|\$(?!\$)[^$\r\n]+\$(?!\$))/g);
   return blocks.map((part, index) => index % 2 === 1
-    ? part.split('\\\\').join('&#92;')
+    ? part.split('\\').join('&#92;')
     : part).join('');
 }
 
