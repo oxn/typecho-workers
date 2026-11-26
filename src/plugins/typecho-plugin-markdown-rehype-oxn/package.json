@@ -57,5 +57,8 @@
   },
   "scripts": {
     "build:client": "node ./scripts/build-client.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }

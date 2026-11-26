@@ -189,4 +189,4 @@ bunx vitest run src/plugins/typecho-plugin-pinyin/index.test.ts
 
 ## 客户端资源构建
 
-拼音编辑器脚本由本插件独立构建，不再经过系统全局 client-loader，也不会输出到 `public/plugin-assets/`。安装依赖时会通过 `postinstall` 自动生成 `client/dist/pinyin-editor.js`；也可以在插件目录执行 `bun run build:client` 手动构建。插件通过自身的 `route:request` 路由提供浏览器脚本。
+拼音编辑器脚本由本插件独立构建，不再经过系统全局 client-loader，也不会输出到 `public/plugin-assets/`。Astro 的插件构建集成会在 `astro build` 和 `astro dev` 配置阶段自动生成 `client/dist/pinyin-editor.js`，不依赖 workspace `postinstall`；也可以在插件目录执行 `bun run build:client` 手动构建。插件通过自身的 `route:request` 路由提供浏览器脚本。

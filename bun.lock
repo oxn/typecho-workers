@@ -78,6 +78,9 @@
       "version": "1.0.1",
       "dependencies": {
         "pinyin-pro": "^3.29.5"
+      },
+      "devDependencies": {
+        "esbuild": "^0.28.1"
       }
     },
     "src/themes/typecho-theme-oxn": {
@@ -98,6 +101,9 @@
         "katex": "^0.16.22",
         "mermaid": "11.12.2",
         "refractor": "^5.0.0"
+      },
+      "devDependencies": {
+        "esbuild": "^0.28.1"
       }
     }
   },

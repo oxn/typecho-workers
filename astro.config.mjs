@@ -4,6 +4,7 @@ import themeLoader from './src/integrations/theme-loader.ts';
 import pluginLoader from './src/integrations/plugin-loader.ts';
 import clientLoader from './src/integrations/client-loader.ts';
 import markdownRehypeBuild from './src/plugins/typecho-plugin-markdown-rehype-oxn/astro-integration.mjs';
+import pinyinBuild from './src/plugins/typecho-plugin-pinyin/astro-integration.mjs';
 import { sharedAliases } from './vite.shared.mjs';
 import { resolveBuildCommit } from './scripts/build-info.ts';
 
@@ -37,7 +38,7 @@ export default defineConfig({
       { protocol: 'http', hostname: '127.0.0.1', port: '4321' },
     ],
   },
-  integrations: [markdownRehypeBuild(), themeLoader(), pluginLoader(), clientLoader()],
+  integrations: [pinyinBuild(), markdownRehypeBuild(), themeLoader(), pluginLoader(), clientLoader()],
   vite: {
     define: {
       __TYPECHO_BUILD_COMMIT__: JSON.stringify(resolveBuildCommit()),

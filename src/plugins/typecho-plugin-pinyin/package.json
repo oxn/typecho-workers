@@ -54,7 +54,9 @@
     }
   },
   "scripts": {
-    "postinstall": "bun run build:client",
     "build:client": "bun ./scripts/build-client.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }
