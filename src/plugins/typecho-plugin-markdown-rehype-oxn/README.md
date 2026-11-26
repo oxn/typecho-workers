@@ -11,6 +11,6 @@
 插件设置分别提供数学公式、Mermaid、代码高亮三个开关。关闭的功能不会加载对应浏览器运行时；依赖由本地 workspace 构建，不使用 CDN。
 
 ## 运行机制
-通过 `archive:header` 注入样式，通过 `archive:footer` 加载主入口。主入口只扫描 `.toc-content` 中已经生成的 DOM，并按页面实际内容加载对应功能包。支持 InstantClick 页面切换及重复初始化。
+通过 `archive:header` 注入样式，通过 `archive:footer` 加载主入口。主入口扫描 `.warm-prose`、`.toc-content` 和 `[itemprop="articleBody"]` 中已经生成的 DOM，并按页面实际内容加载对应功能包。支持 InstantClick 页面切换及重复初始化。浏览器运行时由项目构建器编译到本插件的 `client/dist/`，通过插件自己的 `route:request` 路由提供，不写入 `public/`。
 
-不修改主题、其他插件、数据库或 Markdown 核心解析流程。运行时代码和样式均保存在本插件目录。
+不修改主题、其他插件、数据库或 Markdown 核心解析流程。运行时源码、样式和构建产物均保存在本插件目录；`client/dist/` 是构建生成目录。
