@@ -58,21 +58,33 @@ declare global {
  }
  let mermaidQueue: Promise<void> = Promise.resolve();
  async function renderMermaid(root: Element, mermaid: any): Promise<void> {
-  // The original renderer emits two source-only <pre> nodes (one per theme)
-  // and lets Mermaid.run() measure and render those nodes. Keep that rendering
-  // path here; only the source discovery happens against the finished article DOM.
+  // Discover Mermaid source in the already-rendered article DOM. Keep a copy
+  // of the original pre/code subtree for existing copy controls, while using
+  // source-only measurement nodes for the original Mermaid.run() renderer.
   root.querySelectorAll<HTMLElement>('pre > code.language-mermaid').forEach(code => {
    const original = code.parentElement as HTMLElement | null;
    if (!original || original.dataset.oxnMermaidPrepared === '1') return;
    const source = code.textContent || '';
    if (!source.trim()) return;
    const makeVariant = (theme: 'default' | 'dark') => {
-    const pre = document.createElement('pre');
-    pre.className = theme === 'default'
-     ? 'rin-mermaid_default dark:hidden'
-     : 'rin-mermaid_dark dark:block hidden';
+    const pre = original.cloneNode(true) as HTMLElement;
+    pre.removeAttribute('id');
+    pre.removeAttribute('data-processed');
+    pre.classList.add('rin-mermaid_' + theme);
     pre.dataset.oxnMermaidPrepared = '1';
-    pre.textContent = source;
+    const clonedCode = pre.querySelector('code.language-mermaid');
+    if (clonedCode) {
+     clonedCode.textContent = source;
+     clonedCode.style.position = 'absolute';
+     clonedCode.style.width = '1px';
+     clonedCode.style.height = '1px';
+     clonedCode.style.padding = '0';
+     clonedCode.style.margin = '-1px';
+     clonedCode.style.overflow = 'hidden';
+     clonedCode.style.clipPath = 'inset(50%)';
+     clonedCode.style.whiteSpace = 'pre';
+     clonedCode.setAttribute('aria-hidden', 'true');
+    }
     return pre;
    };
    original.replaceWith(makeVariant('default'), makeVariant('dark'));
@@ -81,10 +93,19 @@ declare global {
   const light = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_default:not([data-processed])'));
   const dark = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_dark:not([data-processed])'));
 
-  const renderVariant = async (nodes: HTMLElement[], theme: 'default' | 'dark') => {
-   if (!nodes.length) return;
-   // This is the original renderer's hidden-theme measurement workaround:
-   // temporarily make hidden nodes measurable without flashing them onscreen.
+  const renderVariant = async (targets: HTMLElement[], theme: 'default' | 'dark') => {
+   if (!targets.length) return;
+   const measurements = targets.map(target => {
+    const code = target.querySelector('code.language-mermaid');
+    const source = code?.textContent || '';
+    const measure = document.createElement('pre');
+    measure.className = target.className;
+    measure.textContent = source;
+    measure.dataset.oxnMermaidMeasure = '1';
+    return measure;
+   });
+   root.append(...measurements);
+
    const restore: Array<{
     node: HTMLElement;
     display: string;
@@ -92,7 +113,7 @@ declare global {
     visibility: string;
     visibilityPriority: string;
    }> = [];
-   nodes.forEach(node => {
+   measurements.forEach(node => {
     if (getComputedStyle(node).display !== 'none') return;
     restore.push({
      node,
@@ -105,8 +126,15 @@ declare global {
     node.style.setProperty('visibility', 'hidden', 'important');
    });
    try {
+    // Match the original plugin: initialize one theme, then let Mermaid.run
+    // measure and render the source-only nodes itself.
     mermaid.initialize({startOnLoad:false,theme});
-    await mermaid.run({nodes});
+    await mermaid.run({nodes:measurements});
+    measurements.forEach((measure, index) => {
+     const svg = measure.querySelector('svg');
+     if (svg) targets[index].append(svg);
+     targets[index].dataset.processed = 'true';
+    });
    } finally {
     restore.forEach(item => {
      if (item.display) item.node.style.setProperty('display', item.display, item.displayPriority);
@@ -114,10 +142,12 @@ declare global {
      if (item.visibility) item.node.style.setProperty('visibility', item.visibility, item.visibilityPriority);
      else item.node.style.removeProperty('visibility');
     });
+    measurements.forEach(node => node.remove());
    }
   };
 
-  // Mermaid uses global configuration/state, so render the two themes in order.
+  // Mermaid has global configuration/state; keep the original light-then-dark
+  // sequence serialized across roots and InstantClick navigations.
   mermaidQueue = mermaidQueue.then(async () => {
    await renderVariant(light, 'default');
    await renderVariant(dark, 'dark');
