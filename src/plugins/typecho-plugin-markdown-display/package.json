@@ -44,7 +44,8 @@
           "default": "1",
           "description": "为带语言标记的代码块添加语法高亮，不替换原有 pre 结构。"
         }
-      }
+      },
+      "earlyRequest": true
     }
   }
 }

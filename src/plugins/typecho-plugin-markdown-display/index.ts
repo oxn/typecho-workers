@@ -1,5 +1,7 @@
 import { loadPluginConfig } from 'typecho/plugin-sdk';
-import type { PluginInitContext } from 'typecho/plugin-sdk';
+import type { EarlyRequestProvider, PluginInitContext } from 'typecho/plugin-sdk';
+
+const ASSET_BASE = '/plugins/typecho-plugin-markdown-display/assets';
 
 type DisplayConfig = {
   enableMath: boolean;
@@ -24,11 +26,11 @@ function getConfig(options?: Record<string, unknown>): DisplayConfig {
 function buildHead(config: DisplayConfig): string {
   const html: string[] = [];
   if (config.enableMath) {
-    html.push('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">');
+    html.push('<link rel="stylesheet" href="' + ASSET_BASE + '/katex/dist/katex.min.css">');
   }
   if (config.enableCodeHighlight) {
-    html.push('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css">');
-    html.push('<link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">');
+    html.push('<link rel="stylesheet" href="' + ASSET_BASE + '/highlight/build/styles/github.min.css">');
+    html.push('<link rel="stylesheet" media="(prefers-color-scheme: dark)" href="' + ASSET_BASE + '/highlight/build/styles/github-dark.min.css">');
   }
   if (config.enableMath || config.enableMermaid || config.enableCodeHighlight) {
     html.push('<style data-typecho-markdown-display>.typecho-md-enhance-diagram{max-width:100%;overflow-x:auto;margin:1.25em 0;text-align:center}.typecho-md-enhance-diagram svg{max-width:100%;height:auto}</style>');
@@ -43,10 +45,10 @@ function buildClientScript(config: DisplayConfig): string {
     '  var flags = ' + JSON.stringify(config).replace(/</g, '\\u003c') + ';',
     '  if (!flags.enableMath && !flags.enableMermaid && !flags.enableCodeHighlight) return;',
     '  var sources = {',
-    "    katex: 'https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js',",
-    "    autoRender: 'https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js',",
-    "    mermaid: 'https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js',",
-    "    highlight: 'https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/common.min.js'",
+    "    "    katex: '" + ASSET_BASE + "/katex/dist/katex.min.js',"",
+    "    "    autoRender: '" + ASSET_BASE + "/katex/dist/contrib/auto-render.min.js',"",
+    "    "    mermaid: '" + ASSET_BASE + "/mermaid/dist/mermaid.min.js',"",
+    "    "    highlight: '" + ASSET_BASE + "/highlight/build/highlight.min.js"",
     '  };',
     '  function load(key, test) {',
     '    if (test()) return Promise.resolve();',
@@ -135,6 +137,16 @@ function buildClientScript(config: DisplayConfig): string {
   ];
   return lines.join('\n');
 }
+
+
+export const earlyRequestProvider: EarlyRequestProvider = {
+  async handle(context, next) {
+    const prefix = ASSET_BASE + '/';
+    if (!context.url.pathname.startsWith(prefix)) return next();
+    const { serveMarkdownDisplayAsset } = await import('./assets-route');
+    return serveMarkdownDisplayAsset(context, context.url.pathname.slice(prefix.length));
+  },
+};
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
   addHook(
