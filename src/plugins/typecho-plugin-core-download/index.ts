@@ -7,6 +7,7 @@ import { requireAdminAction, isAdminActionResponse } from '@/lib/admin-auth';
 import { jsonError, jsonOk } from '@/lib/http';
 import { coreDownloadPostEditorHtml, coreDownloadSettingsPageHtml } from './admin';
 import { buildCoreDownloadClientScript } from './client-runtime';
+import { CORE_DOWNLOAD_STATIC_ASSETS } from './static-assets';
 import { getCoreDownloadForTheme, getCoreDownloadSettings, saveCoreDownloadSettings } from './service';
 
 export {
@@ -31,6 +32,7 @@ export type {
 export const CORE_DOWNLOAD_ADMIN_API_PATH = '/api/admin/core-download';
 export const CORE_DOWNLOAD_DATA_API_PATH = '/api/core-download/data';
 export const CORE_DOWNLOAD_CLIENT_API_PATH = '/api/core-download/client.js';
+export const CORE_DOWNLOAD_ASSET_PREFIX = '/__plugin-assets/typecho-plugin-core-download/';
 
 interface PluginRouteExtra {
   request?: Request;
@@ -81,6 +83,30 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     pluginId,
     async (result: PluginRouteResult, extra?: PluginRouteExtra) => {
       if (result?.handled || !extra?.request || !extra.path) return result;
+
+
+      if (extra.path.startsWith(CORE_DOWNLOAD_ASSET_PREFIX)) {
+        const assetPath = extra.path.slice(CORE_DOWNLOAD_ASSET_PREFIX.length);
+        const asset = CORE_DOWNLOAD_STATIC_ASSETS[assetPath];
+        if (!asset) return result;
+        if (extra.request.method !== 'GET' && extra.request.method !== 'HEAD') {
+          return { handled: true, response: new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET, HEAD' } }) };
+        }
+        let body: BodyInit | null = null;
+        if (extra.request.method !== 'HEAD') {
+          if (asset.encoding === 'base64') {
+            const binary = atob(asset.content);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+            body = bytes;
+          } else body = asset.content;
+        }
+        return { handled: true, response: new Response(body, { headers: {
+          'Content-Type': asset.contentType,
+          'Cache-Control': 'public, max-age=86400',
+          'X-Content-Type-Options': 'nosniff',
+        } }) };
+      }
 
       if (extra.path === CORE_DOWNLOAD_CLIENT_API_PATH) {
         return {

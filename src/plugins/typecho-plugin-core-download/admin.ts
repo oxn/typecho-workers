@@ -4,8 +4,8 @@ function escapeHtml(value: string): string {
   })[character] || character);
 }
 
-const ADMIN_CSS = '<link rel="stylesheet" href="/plugins/typecho-plugin-core-download/static/css/admin.css">';
-const ADMIN_JS = '<script src="/plugins/typecho-plugin-core-download/static/js/admin.js"></script>';
+const ADMIN_CSS = '<link rel="stylesheet" href="/__plugin-assets/typecho-plugin-core-download/css/admin.css">';
+const ADMIN_JS = '<script src="/__plugin-assets/typecho-plugin-core-download/js/admin.js"></script>';
 
 export function coreDownloadSettingsPageHtml(csrfToken: string): string {
   return ADMIN_CSS +
@@ -27,7 +27,7 @@ export function coreDownloadSettingsPageHtml(csrfToken: string): string {
 
 export function coreDownloadPostEditorHtml(): string {
   return ADMIN_CSS +
-    '<link rel="stylesheet" href="/plugins/typecho-plugin-core-download/static/css/editor.css">' +
+    '<link rel="stylesheet" href="/__plugin-assets/typecho-plugin-core-download/css/editor.css">' +
     '<div id="core-download-meta-box"></div>' +
     '<div id="wp-core_download_content-wrap" class="core-download-content-source">' +
     '<div class="core-download-content-toolbar" id="core-download-content-toolbar">' +
@@ -41,5 +41,5 @@ export function coreDownloadPostEditorHtml(): string {
     '<label title="文字颜色"><input type="color" id="core-download-content-color"></label></div>' +
     '<div id="core_download_content" class="core-download-content-editor" contenteditable="true" role="textbox" aria-multiline="true"></div></div>' +
     ADMIN_JS +
-    '<script defer src="/plugins/typecho-plugin-core-download/static/js/editor.min.js"></script>';
+    '<script defer src="/__plugin-assets/typecho-plugin-core-download/js/editor.min.js"></script>';
 }

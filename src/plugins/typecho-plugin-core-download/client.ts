@@ -1,7 +1,7 @@
 import { CORE_DOWNLOAD_NETDISK_ICONS } from './icons-netdisk';
 import { CORE_DOWNLOAD_UI_ICONS } from './icons-ui';
 
-const IMAGE_BASE = '/plugins/typecho-plugin-core-download/static/img/';
+const IMAGE_BASE = '/__plugin-assets/typecho-plugin-core-download/img/';
 const NETWORK_NAMES: Record<string, string> = {
   local: '本地下载', aliyun: '阿里云盘', baidu: '百度云盘', '360': '360网盘',
   ct: '诚通网盘', lanzou: '蓝奏云', '123': '123盘', github: 'github',

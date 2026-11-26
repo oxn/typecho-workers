@@ -20,7 +20,7 @@ export function buildCoreDownloadClientScript(): string {
       xunlei: '迅雷', jianguo: '坚果云', tianyi: '天翼云', hecai: '和彩云',
       onedrive: 'OneDrive'
     };
-    const IMAGE_BASE = '/plugins/typecho-plugin-core-download/static/img/';
+    const IMAGE_BASE = '/__plugin-assets/typecho-plugin-core-download/img/';
 
     const appendSvg = (target, source) => {
       if (!source) return;
