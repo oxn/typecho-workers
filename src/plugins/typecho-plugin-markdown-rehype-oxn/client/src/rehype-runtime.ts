@@ -232,7 +232,6 @@ declare global {
   });
  }
  let scheduled = false;
- let fullModeInitialized = false;
  const pendingScopes = new Set<Element>();
  function rootsWithin(node: Element): Element[] {
   if (node.matches(rootSelector)) return [node];
@@ -243,8 +242,6 @@ declare global {
  function initialize(scope?: Element): void {
   const currentRoots = scope ? rootsWithin(scope) : roots();
   if (flags.loadingMode === 'full') {
-   if (fullModeInitialized && !scope) return;
-   fullModeInitialized = true;
    const targets = scope ? currentRoots : roots();
    if (flags.math) {
     void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
