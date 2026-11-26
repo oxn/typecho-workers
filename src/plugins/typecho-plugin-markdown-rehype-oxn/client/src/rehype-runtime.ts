@@ -88,10 +88,19 @@ declare global {
     node.style.setProperty('display','block','important');
     node.style.setProperty('visibility','hidden','important');
    });
+   // Theme copy controls are siblings of code inside pre. Detach them
+   // while Mermaid reads the diagram source, then restore them after SVG
+   // rendering so they neither pollute the source nor disappear.
+   const copyControls = nodes.flatMap(node =>
+    Array.from(node.querySelectorAll<HTMLElement>('[data-warm-copy]'))
+     .map(control => ({node, control})),
+   );
+   copyControls.forEach(({control}) => control.remove());
    try {
     mermaid.initialize({startOnLoad:false,theme});
     await mermaid.run({nodes});
    } finally {
+    copyControls.forEach(({node,control}) => node.append(control));
     restore.forEach(item => {
      if (item.display) item.node.style.setProperty('display',item.display,item.displayPriority); else item.node.style.removeProperty('display');
      if (item.visibility) item.node.style.setProperty('visibility',item.visibility,item.visibilityPriority); else item.node.style.removeProperty('visibility');
