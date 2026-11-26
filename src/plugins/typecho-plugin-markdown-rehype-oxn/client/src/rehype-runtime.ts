@@ -63,51 +63,55 @@ declare global {
    if (!original || original.dataset.oxnMermaidPrepared === '1') return;
    const source = code.textContent || '';
    const variant = (theme: 'default' | 'dark') => {
-    // Clone the complete pre subtree so theme-owned copy controls and
-    // attributes survive. Replace only the Mermaid code text in each variant.
+    // Keep the original pre/code subtree intact for theme-owned copy controls.
+    // Mermaid SVG is appended beside the hidden source code, never parsed from
+    // the whole pre element (which may also contain buttons or other controls).
     const pre = original.cloneNode(true) as HTMLElement;
     pre.removeAttribute('id');
     pre.removeAttribute('data-processed');
-    pre.classList.add('mermaid', 'rin-mermaid_' + theme);
+    pre.classList.add('rin-mermaid_' + theme);
     pre.dataset.oxnMermaidPrepared = '1';
-    const clonedCode = pre.querySelector('code');
-    if (clonedCode) clonedCode.textContent = source;
+    const clonedCode = pre.querySelector('code.language-mermaid');
+    if (clonedCode) {
+     clonedCode.textContent = source;
+     clonedCode.hidden = true;
+     clonedCode.setAttribute('aria-hidden', 'true');
+    }
     return pre;
    };
    original.replaceWith(variant('default'), variant('dark'));
   });
+
   const light = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_default:not([data-processed]):not([data-oxn-mermaid-queued])'));
   const dark = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_dark:not([data-processed]):not([data-oxn-mermaid-queued])'));
   [...light, ...dark].forEach(node => { node.dataset.oxnMermaidQueued = '1'; });
-  const renderVariant = async (nodes: HTMLElement[], theme: 'default' | 'dark') => {
-   if (!nodes.length) return;
-   const restore: Array<{node:HTMLElement;display:string;displayPriority:string;visibility:string;visibilityPriority:string}> = [];
-   nodes.forEach(node => {
-    if (getComputedStyle(node).display !== 'none') return;
-    restore.push({node,display:node.style.getPropertyValue('display'),displayPriority:node.style.getPropertyPriority('display'),visibility:node.style.getPropertyValue('visibility'),visibilityPriority:node.style.getPropertyPriority('visibility')});
-    node.style.setProperty('display','block','important');
-    node.style.setProperty('visibility','hidden','important');
-   });
-   // Theme copy controls are siblings of code inside pre. Detach them
-   // while Mermaid reads the diagram source, then restore them after SVG
-   // rendering so they neither pollute the source nor disappear.
-   const copyControls = nodes.flatMap(node =>
-    Array.from(node.querySelectorAll<HTMLElement>('[data-warm-copy]'))
-     .map(control => ({node, control})),
-   );
-   copyControls.forEach(({control}) => control.remove());
-   try {
-    mermaid.initialize({startOnLoad:false,theme});
-    await mermaid.run({nodes});
-   } finally {
-    copyControls.forEach(({node,control}) => node.append(control));
-    restore.forEach(item => {
-     if (item.display) item.node.style.setProperty('display',item.display,item.displayPriority); else item.node.style.removeProperty('display');
-     if (item.visibility) item.node.style.setProperty('visibility',item.visibility,item.visibilityPriority); else item.node.style.removeProperty('visibility');
-    });
-   }
-  };
+
   mermaidQueue = mermaidQueue.then(async () => {
+   const renderVariant = async (nodes: HTMLElement[], theme: 'default' | 'dark') => {
+    if (!nodes.length) return;
+    mermaid.initialize({startOnLoad:false,theme});
+    for (const node of nodes) {
+     const code = node.querySelector('code.language-mermaid');
+     const source = code?.textContent || '';
+     if (!source.trim()) {
+      delete node.dataset.oxnMermaidQueued;
+      continue;
+     }
+     const renderId = 'oxn-mermaid-' + theme + '-' + Math.random().toString(36).slice(2);
+     try {
+      // render() receives only the diagram source. mermaid.run() reads the
+      // entire target element and can accidentally include theme controls.
+      const result = await mermaid.render(renderId, source);
+      node.insertAdjacentHTML('beforeend', result.svg);
+      if (typeof result.bindFunctions === 'function') result.bindFunctions(node);
+      node.dataset.processed = 'true';
+      delete node.dataset.oxnMermaidQueued;
+     } catch (error) {
+      delete node.dataset.oxnMermaidQueued;
+      console.error('[Markdown Rehype OXN] Mermaid diagram failed:', error);
+     }
+    }
+   };
    await renderVariant(light,'default');
    await renderVariant(dark,'dark');
   }).catch(error => {
