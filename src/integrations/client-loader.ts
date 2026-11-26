@@ -3,16 +3,17 @@
  *
  * Scans for TypeScript browser-side source files in:
  *   - src/client/*.ts          → compiled to public/js/
- *   - src/plugins/<id>/client/*.ts → compiled to plugin-local client/dist/ for
- *     Markdown Rehype OXN; other plugins keep their existing public asset path
+ *   - src/plugins/<id>/client/*.ts → compiled to public/plugin-assets/<id>/
  *
- * Uses esbuild to compile TypeScript to IIFE JavaScript. Markdown Rehype OXN
- * keeps its bundles inside its own plugin directory and serves them through
- * its route:request hook; other existing client bundles retain their paths.
+ * Uses esbuild to compile TypeScript to IIFE JavaScript, then copies
+ * the output into public/ so Astro serves it as static files.
+ *
+ * Pattern matches theme-loader.ts: discover at build time, copy to public/,
+ * no runtime overhead beyond <script src="...">.
  */
 import type { AstroIntegration } from 'astro';
 import { existsSync, readdirSync, mkdirSync, writeFileSync, statSync, cpSync } from 'node:fs';
-import { join, relative, dirname, basename } from 'node:path';
+import { join, relative, dirname } from 'node:path';
 
 interface ClientSource {
   sourcePath: string;
@@ -65,19 +66,11 @@ function discoverPluginClients(rootDir: string): ClientSource[] {
       if (!entry.endsWith('.ts')) continue;
       const sourcePath = join(clientDir, entry);
       const jsName = entry.replace(/\.ts$/, '.js');
-      // Markdown Rehype OXN serves its compiled browser assets through
-      // its own plugin route. Keep those generated files inside the plugin;
-      // do not place them in the mutable public/ directory.
-      const outDir = pluginId === 'typecho-plugin-markdown-rehype-oxn'
-        ? join(clientDir, 'dist')
-        : join(rootDir, 'public', 'plugin-assets', pluginId);
-      const publicUrl = pluginId === 'typecho-plugin-markdown-rehype-oxn'
-        ? `/__plugin-assets/${pluginId}/${jsName}`
-        : `/plugin-assets/${pluginId}/${jsName}`;
+      const outDir = join(rootDir, 'public', 'plugin-assets', pluginId);
       sources.push({
         sourcePath,
         outDir,
-        publicUrl,
+        publicUrl: `/plugin-assets/${pluginId}/${jsName}`,
       });
     }
   }
@@ -85,20 +78,11 @@ function discoverPluginClients(rootDir: string): ClientSource[] {
 }
 
 async function compileAll(sources: ClientSource[], silent = false): Promise<void> {
-  const hasPluginLocalAssets = sources.some(src => src.outDir.endsWith(join('client', 'dist')));
-  const esbuild = await import('esbuild').catch((err) => {
-    if (hasPluginLocalAssets) {
-      throw new Error('[client-loader] esbuild is required to compile Markdown Rehype OXN assets.', { cause: err });
-    }
-    console.error('[client-loader] esbuild not available, skipping client compilation:', err);
-    return null;
-  });
-  if (!esbuild) return;
-
-  for (const src of sources) {
-    mkdirSync(src.outDir, { recursive: true });
-    const outfile = join(src.outDir, basename(src.sourcePath).replace(/\.ts$/, '.js'));
-    try {
+  try {
+    const esbuild = await import('esbuild');
+    for (const src of sources) {
+      mkdirSync(src.outDir, { recursive: true });
+      const outfile = join(src.outDir, src.sourcePath.split('/').pop()!.replace(/\.ts$/, '.js'));
       await esbuild.build({
         entryPoints: [src.sourcePath],
         outfile,
@@ -106,24 +90,17 @@ async function compileAll(sources: ClientSource[], silent = false): Promise<void
         format: 'iife',
         target: 'es2020',
         minify: false,
-        sourcemap: src.outDir.endsWith(join('client', 'dist'))
-          ? false
-          : process.env.NODE_ENV !== 'production' ? 'inline' : false,
+        sourcemap: process.env.NODE_ENV !== 'production' ? 'inline' : false,
         logLevel: 'warning',
         // External: browser scripts must not bundle server-side modules
         external: ['cloudflare:*', 'typecho/*', '@/*', 'astro:*', 'node:*'],
       });
-    } catch (err) {
-      // Rehype imports these generated bundles into its server module. A
-      // missing bundle would make the plugin unusable, so this one must fail
-      // the build. Preserve the legacy skip behavior for unrelated clients.
-      if (src.outDir.endsWith(join('client', 'dist'))) throw err;
-      console.error(`[client-loader] Failed to compile ${src.sourcePath}; skipping remaining client sources:`, err);
-      break;
+      if (!silent) {
+        console.log(`[client-loader] ${src.sourcePath} → ${relative(process.cwd(), outfile)}`);
+      }
     }
-    if (!silent) {
-      console.log(`[client-loader] ${src.sourcePath} → ${relative(process.cwd(), outfile)}`);
-    }
+  } catch (err) {
+    console.error('[client-loader] esbuild not available, skipping client compilation:', err);
   }
 }
 
