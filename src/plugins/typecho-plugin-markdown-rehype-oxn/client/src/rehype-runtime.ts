@@ -222,13 +222,32 @@ declare global {
    const original = code.parentElement as HTMLElement | null;
    if (!original || original.dataset.oxnMermaidPrepared === '1') return;
    const source = code.textContent || '';
-   const pre = original.cloneNode(true) as HTMLElement;
-   pre.dataset.oxnMermaidPrepared = '1';
-   pre.classList.add('rin-mermaid_default');
-   const clonedCode = pre.querySelector('code.language-mermaid');
-   if (clonedCode) clonedCode.textContent = source;
-   original.replaceWith(pre);
-   renderMermaidNode(pre, mermaid);
+   const variant = (theme: 'default' | 'dark') => {
+    const pre = original.cloneNode(true) as HTMLElement;
+    pre.removeAttribute('id');
+    pre.removeAttribute('data-processed');
+    pre.classList.add('rin-mermaid_' + theme);
+    pre.dataset.oxnMermaidPrepared = '1';
+    const clonedCode = pre.querySelector('code.language-mermaid');
+    if (clonedCode) {
+     clonedCode.textContent = source;
+     clonedCode.style.position = 'absolute';
+     clonedCode.style.width = '1px';
+     clonedCode.style.height = '1px';
+     clonedCode.style.padding = '0';
+     clonedCode.style.margin = '-1px';
+     clonedCode.style.overflow = 'hidden';
+     clonedCode.style.clipPath = 'inset(50%)';
+     clonedCode.style.whiteSpace = 'pre';
+     clonedCode.setAttribute('aria-hidden', 'true');
+    }
+    return pre;
+   };
+   const light = variant('default');
+   const dark = variant('dark');
+   original.replaceWith(light, dark);
+   renderMermaidNode(light, mermaid);
+   renderMermaidNode(dark, mermaid);
   });
  }
  let scheduled = false;
@@ -306,7 +325,7 @@ declare global {
    scopesToProcess.forEach(scope => initialize(scope));
   });
  }
- if (flags.loadingMode === 'ondemand') {
+ {
   const observer = new MutationObserver(records => {
    const scopes = new Set<Element>();
    for (const record of records) {
