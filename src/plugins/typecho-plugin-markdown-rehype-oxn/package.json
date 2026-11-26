@@ -60,6 +60,12 @@
             "full": "全量加载"
           }
         },
+        "enableImageLazyLoading": {
+          "type": "checkbox",
+          "label": "启用图片懒加载",
+          "description": "仅对文章正文和独立页面中带 BlurHash 参数的图片生效；先显示模糊占位图，图片接近视口时再请求原图。关闭后仍显示 BlurHash，但立即加载原图。",
+          "default": true
+        },
         "enableBlurhash": {
           "type": "checkbox",
           "label": "启用 BlurHash 图片模糊预览",
