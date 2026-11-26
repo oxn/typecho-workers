@@ -39,7 +39,7 @@ function protectMathSegment(source: string): string {
   const codeAware = source.split(/(\x60+[\s\S]*?\x60+)/g);
   return codeAware.map((part, codeIndex) => {
     if (codeIndex % 2 === 1) return part;
-    const mathBlocks = part.split(/(\$\$[\s\S]*?\$\$|\$(?!\$)[^$\r\n]+\$(?!\$))/g);
+    const mathBlocks = part.split(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$(?!\$)[^$\r\n]+\$(?!\$))/g);
     return mathBlocks.map((formula, mathIndex) => mathIndex % 2 === 1
       ? formula.split('\\').join('&#92;')
       : formula).join('');
