@@ -63,12 +63,15 @@ declare global {
    if (!original || original.dataset.oxnMermaidPrepared === '1') return;
    const source = code.textContent || '';
    const variant = (theme: 'default' | 'dark') => {
-    const pre = original.cloneNode(false) as HTMLElement;
+    // Clone the complete pre subtree so theme-owned copy controls and
+    // attributes survive. Replace only the Mermaid code text in each variant.
+    const pre = original.cloneNode(true) as HTMLElement;
     pre.removeAttribute('id');
     pre.removeAttribute('data-processed');
     pre.classList.add('mermaid', 'rin-mermaid_' + theme);
     pre.dataset.oxnMermaidPrepared = '1';
-    pre.textContent = source;
+    const clonedCode = pre.querySelector('code');
+    if (clonedCode) clonedCode.textContent = source;
     return pre;
    };
    original.replaceWith(variant('default'), variant('dark'));
