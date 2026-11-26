@@ -86,6 +86,14 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
    if(parsed.width&&!img.hasAttribute('width'))img.setAttribute('width',String(parsed.width));
    if(parsed.height&&!img.hasAttribute('height'))img.setAttribute('height',String(parsed.height));
    img.dataset.oxnOriginalSrc=parsed.src;
+   img.dataset.oxnPreviewSrc=preview;
+   img.addEventListener('error',()=>{
+    const fallback=img.dataset.oxnPreviewSrc;
+    if(fallback&&img.src!==fallback)img.src=fallback;
+   });
+   img.addEventListener('load',()=>{
+    if(!img.dataset.oxnOriginalSrc&&img.dataset.oxnPreviewSrc&&img.src!==img.dataset.oxnPreviewSrc)delete img.dataset.oxnPreviewSrc;
+   });
    img.src=preview;
    watch(img,lazy);
   }catch(error){
