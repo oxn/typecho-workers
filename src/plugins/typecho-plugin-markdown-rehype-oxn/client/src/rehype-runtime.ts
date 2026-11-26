@@ -79,7 +79,7 @@ declare global {
  }
  function hasHighlight(root: Element): boolean {
   return Array.from(root.querySelectorAll<HTMLElement>('pre > code[class*="language-"]')).some(code => {
-   const match = /(?:^|\\s)language-([\\w+-]+)/.exec(code.className);
+   const match = /(?:^|\s)language-([\w+-]+)/.exec(code.className);
    const language = match?.[1]?.toLowerCase() || '';
    return !!language
     && language !== 'mermaid'
