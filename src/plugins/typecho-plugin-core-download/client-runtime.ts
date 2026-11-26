@@ -230,32 +230,97 @@ export function buildCoreDownloadClientScript(): string {
       root.replaceChildren(wrapper);
     };
 
-    const mount = async () => {
-      const roots = Array.from(document.querySelectorAll('[data-core-download]'))
-        .filter(root => root.dataset.mounted !== '1');
-      if (!roots.length) return;
-      roots.forEach(root => { root.dataset.mounted = '1'; });
-      try {
-        const pageUrl = new URL(location.href);
-        const dataUrl = new URL('/api/core-download/data', location.origin);
-        dataUrl.searchParams.set('path', location.pathname);
-        const password = pageUrl.searchParams.get('password');
-        if (password) dataUrl.searchParams.set('password', password);
-        const response = await fetch(dataUrl.toString(), {
-          credentials: 'same-origin', headers: { Accept: 'application/json' }
-        });
-        if (!response.ok) throw new Error('Download data request failed');
-        const config = await response.json();
-        roots.forEach(root => config ? render(root, config) : root.remove());
-      } catch {
-        roots.forEach(root => root.remove());
-      }
+    const FRONT_STYLE_URL = '/__plugin-assets/typecho-plugin-core-download/css/front.css';
+    let activeRequest = null;
+
+    const getPageKey = () => {
+      const pageUrl = new URL(location.href);
+      return location.pathname + '|' + (pageUrl.searchParams.get('password') || '');
     };
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', mount, { once: true });
-    } else {
-      mount();
-    }
+    const loadPageConfig = key => {
+      if (activeRequest && activeRequest.key === key) return activeRequest.promise;
+      const dataUrl = new URL('/api/core-download/data', location.origin);
+      dataUrl.searchParams.set('path', location.pathname);
+      const password = new URL(location.href).searchParams.get('password');
+      if (password) dataUrl.searchParams.set('password', password);
+      const promise = fetch(dataUrl.toString(), {
+        credentials: 'same-origin', headers: { Accept: 'application/json' }
+      }).then(response => {
+        if (!response.ok) throw new Error('Download data request failed');
+        return response.json();
+      });
+      activeRequest = { key, promise };
+      return promise;
+    };
+
+    const ensureFrontStyle = () => {
+      if (document.querySelector('link[data-core-download-style]')) return;
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = FRONT_STYLE_URL;
+      link.setAttribute('data-core-download-style', '');
+      document.head.appendChild(link);
+    };
+
+    const findRoots = node => {
+      if (!node || node.nodeType !== 1) return [];
+      const roots = [];
+      if (node.matches('[data-core-download]')) roots.push(node);
+      if (node.querySelectorAll) {
+        node.querySelectorAll('[data-core-download]').forEach(root => roots.push(root));
+      }
+      return roots;
+    };
+
+    const processRoots = roots => {
+      const key = getPageKey();
+      const pendingRoots = roots.filter(root => {
+        if (root.dataset.coreDownloadPage === key &&
+            (root.dataset.coreDownloadState === 'loading' || root.dataset.coreDownloadState === 'done')) {
+          return false;
+        }
+        root.dataset.coreDownloadPage = key;
+        root.dataset.coreDownloadState = 'loading';
+        return true;
+      });
+      if (!pendingRoots.length) return;
+
+      loadPageConfig(key).then(config => {
+        if (getPageKey() !== key) return;
+        pendingRoots.forEach(root => {
+          if (!root.isConnected || root.dataset.coreDownloadPage !== key) return;
+          if (config) {
+            ensureFrontStyle();
+            render(root, config);
+            root.dataset.coreDownloadState = 'done';
+          } else {
+            root.remove();
+          }
+        });
+      }).catch(() => {
+        pendingRoots.forEach(root => {
+          if (root.isConnected && root.dataset.coreDownloadPage === key) root.remove();
+        });
+      });
+    };
+
+    const scanAddedNode = node => processRoots(findRoots(node));
+
+    // One initial scan; later scans inspect only newly inserted DOM fragments.
+    scanAddedNode(document.documentElement);
+    const observer = new MutationObserver(records => {
+      records.forEach(record => {
+        record.addedNodes.forEach(scanAddedNode);
+      });
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    // InstantClick keeps this runtime alive between pages; process only roots
+    // belonging to the newly navigated page. Rehype uses its own isolated
+    // selectors and observer, so this listener does not share its state.
+    document.addEventListener('instantclick:newpage', () => {
+      scanAddedNode(document.documentElement);
+    });
   })();`;
 }
