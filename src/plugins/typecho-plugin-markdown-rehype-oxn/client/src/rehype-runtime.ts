@@ -51,7 +51,10 @@ declare global {
   return false;
  }
  function hasMermaid(root: Element): boolean {
-  return !!root.querySelector('pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark');
+  // Only source blocks need scheduling. The light/dark variants created by
+  // renderMermaid are already owned by the current render pass; observing
+  // them as fresh Mermaid work causes repeated scans while SVGs are inserted.
+  return !!root.querySelector('pre:not([data-oxn-mermaid-prepared="1"]) > code.language-mermaid');
  }
  function hasHighlight(root: Element): boolean {
   return !!root.querySelector('pre > code[class*="language-"]:not(.language-mermaid)');
