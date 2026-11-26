@@ -133,7 +133,7 @@ function buildClientScript(config: DisplayConfig): string {
     '})();',
     '</script>'
   ];
-  return lines.join('\\n');
+  return lines.join('\n');
 }
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
