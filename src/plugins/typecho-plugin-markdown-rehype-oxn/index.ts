@@ -97,8 +97,8 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     return output;
   }, 1000);
 
-  // Runs after the theme has produced the final article HTML. No Markdown
-  // parsing/filtering hooks are registered by this plugin.
+  // Client enhancements run after the theme has produced the final article HTML.
+  // The only earlier content hook protects TeX backslashes; Markdown parsing remains host-owned.
   addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
     const config = featureConfig(extra?.options, pluginId);
     if (!config.math && !config.mermaid && !config.highlight) return html;
