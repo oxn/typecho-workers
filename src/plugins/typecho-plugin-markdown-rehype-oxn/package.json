@@ -1,0 +1,58 @@
+{
+  "name": "typecho-plugin-markdown-rehype-oxn",
+  "version": "1.0.0",
+  "description": "Front-end enhancement for rendered article HTML: KaTeX math, Mermaid diagrams and Refractor syntax highlighting.",
+  "author": "怸歪",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "keywords": [
+    "typecho",
+    "plugin",
+    "markdown",
+    "katex",
+    "mermaid",
+    "refractor"
+  ],
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-markdown-rehype-oxn",
+      "name": "Markdown Rehype OXN",
+      "description": "对已经输出的文章 HTML 增强数学公式、Mermaid 流程图和代码高亮，不接管 Markdown 解析",
+      "version": "1.0.0",
+      "author": "怸歪",
+      "license": "MIT",
+      "tags": [
+        "markdown",
+        "math",
+        "mermaid",
+        "code-highlight"
+      ],
+      "config": {
+        "enableMath": {
+          "type": "checkbox",
+          "label": "启用数学公式",
+          "description": "识别文章 HTML 中的 $...$、$$...$$、\\(...\\) 和 \\[...\\] 公式；不处理代码块。",
+          "default": true
+        },
+        "enableMermaid": {
+          "type": "checkbox",
+          "label": "启用 Mermaid 流程图",
+          "description": "增强已有 language-mermaid 代码块，保留明暗主题和流程图尺寸控制。",
+          "default": true
+        },
+        "enableHighlight": {
+          "type": "checkbox",
+          "label": "启用代码高亮",
+          "description": "使用 Refractor 高亮已有代码块，不替换 pre 节点，不干扰主题复制按钮。",
+          "default": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "katex": "^0.16.22",
+    "mermaid": "11.12.2",
+    "refractor": "^5.0.0"
+  }
+}

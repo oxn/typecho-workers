@@ -55,7 +55,8 @@
     "typecho-theme-oxn": "workspace:*",
     "typecho-theme-warm": "workspace:*",
     "typecho-plugin-wordpress-import": "workspace:*",
-    "fast-xml-parser": "^5.10.1"
+    "fast-xml-parser": "^5.10.1",
+    "typecho-plugin-markdown-rehype-oxn": "workspace:*"
   },
   "devDependencies": {
     "@libsql/client": "^0.17.4",
