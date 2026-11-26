@@ -108,11 +108,15 @@ declare global {
      }
      const renderId = 'oxn-mermaid-' + theme + '-' + Math.random().toString(36).slice(2);
      try {
-      // render() receives only the diagram source. mermaid.run() reads the
-      // entire target element and can accidentally include theme controls.
+      // Render SVG beside the source <pre>, never inside it. Theme copy
+      // controls commonly read the whole <pre>; keeping generated SVG/CSS
+      // outside prevents them from copying Mermaid's internal markup.
       const result = await mermaid.render(renderId, source);
-      node.insertAdjacentHTML('beforeend', result.svg);
-      if (typeof result.bindFunctions === 'function') result.bindFunctions(node);
+      const renderHost = document.createElement('div');
+      renderHost.className = 'oxn-mermaid-render rin-mermaid_' + theme;
+      renderHost.innerHTML = result.svg;
+      node.insertAdjacentElement('afterend', renderHost);
+      if (typeof result.bindFunctions === 'function') result.bindFunctions(renderHost);
       node.dataset.processed = 'true';
       delete node.dataset.oxnMermaidQueued;
      } catch (error) {
