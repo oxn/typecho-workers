@@ -1,3 +1,4 @@
+import { REFRACTOR_SUPPORTED_LANGUAGES } from '../lib/refractor-languages';
 type RuntimeApi = { initialize(root: Element): void };
 declare global {
  interface Window {
@@ -20,7 +21,30 @@ declare global {
  };
  const rootSelector = '.warm-prose, .toc-content, [itemprop="articleBody"]';
  const pending = new Map<string, Promise<void>>();
+ const stylePending = new Map<string, Promise<void>>();
  const roots = () => Array.from(document.querySelectorAll(rootSelector));
+ function loadStyle(file: string, id: string): Promise<void> {
+  if (document.getElementById(id)) return Promise.resolve();
+  const current = stylePending.get(file);
+  if (current) return current;
+  const promise = new Promise<void>((resolve, reject) => {
+   const link = document.createElement('link');
+   link.id = id;
+   link.rel = 'stylesheet';
+   link.href = '/__plugin-assets/typecho-plugin-markdown-rehype-oxn/' + file;
+   link.onload = () => resolve();
+   link.onerror = () => {
+    link.remove();
+    reject(new Error(file + ' failed to load'));
+   };
+   document.head.append(link);
+  }).catch(error => {
+   stylePending.delete(file);
+   console.error('[Markdown Rehype OXN]', error);
+  });
+  stylePending.set(file, promise);
+  return promise;
+ }
  function load(file: string, globalName: keyof Window): Promise<void> {
   if (window[globalName]) return Promise.resolve();
   const current = pending.get(file);
@@ -54,7 +78,15 @@ declare global {
   return !!root.querySelector('pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark');
  }
  function hasHighlight(root: Element): boolean {
-  return !!root.querySelector('pre > code[class*="language-"]:not(.language-mermaid)');
+  return Array.from(root.querySelectorAll<HTMLElement>('pre > code[class*="language-"]')).some(code => {
+   const match = /(?:^|\\s)language-([\\w+-]+)/.exec(code.className);
+   const language = match?.[1]?.toLowerCase() || '';
+   return !!language
+    && language !== 'mermaid'
+    && language !== 'text'
+    && language !== 'plain'
+    && REFRACTOR_SUPPORTED_LANGUAGES.includes(language as typeof REFRACTOR_SUPPORTED_LANGUAGES[number]);
+  });
  }
  let mermaidQueue: Promise<void> = Promise.resolve();
  async function renderMermaid(root: Element, mermaid: any): Promise<void> {
@@ -136,12 +168,24 @@ declare global {
  let scheduled = false;
  function initialize(): void {
   for (const root of roots()) {
-   if (flags.math && hasMath(root)) void load('math-runtime.js','__oxnMarkdownMathRuntime').then(() => window.__oxnMarkdownMathRuntime?.initialize(root));
-   if (flags.mermaid && hasMermaid(root)) void load('mermaid-runtime.js','__oxnMarkdownMermaidRuntime').then(() => {
-    const runtime = window.__oxnMarkdownMermaidRuntime;
-    if (runtime) void renderMermaid(root,runtime.mermaid);
-   });
-   if (flags.highlight && hasHighlight(root)) void load('highlight-runtime.js','__oxnMarkdownHighlightRuntime').then(() => window.__oxnMarkdownHighlightRuntime?.initialize(root));
+   if (flags.math && hasMath(root)) {
+    void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
+     .then(() => load('math-runtime.js','__oxnMarkdownMathRuntime'))
+     .then(() => window.__oxnMarkdownMathRuntime?.initialize(root));
+   }
+   if (flags.mermaid && hasMermaid(root)) {
+    void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
+     .then(() => load('mermaid-runtime.js','__oxnMarkdownMermaidRuntime'))
+     .then(() => {
+      const runtime = window.__oxnMarkdownMermaidRuntime;
+      if (runtime) void renderMermaid(root,runtime.mermaid);
+     });
+   }
+   if (flags.highlight && hasHighlight(root)) {
+    void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
+     .then(() => load('highlight-runtime.js','__oxnMarkdownHighlightRuntime'))
+     .then(() => window.__oxnMarkdownHighlightRuntime?.initialize(root));
+   }
   }
  }
  function schedule(): void {
