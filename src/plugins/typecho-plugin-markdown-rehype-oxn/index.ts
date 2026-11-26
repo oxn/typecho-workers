@@ -80,7 +80,7 @@ function deferBlurhashImages(html: string): string {
       const source = tagHtml.match(/\bsrc=(["'])(.*?)\1/i);
       if (!source || !/#blurhash=/i.test(source[2])) return tagHtml;
       const original = source[2];
-      const fragment = original.slice(original.indexOf('#') + 1);
+      const fragment = original.replace(/&amp;/gi, '&').slice(original.indexOf('#') + 1);
       const params = new Map<string, string>();
       for (const part of fragment.split('&')) {
         const equal = part.indexOf('=');
