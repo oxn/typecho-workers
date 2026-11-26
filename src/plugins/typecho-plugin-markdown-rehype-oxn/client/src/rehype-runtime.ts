@@ -58,74 +58,71 @@ declare global {
  }
  let mermaidQueue: Promise<void> = Promise.resolve();
  async function renderMermaid(root: Element, mermaid: any): Promise<void> {
+  // The original renderer emits two source-only <pre> nodes (one per theme)
+  // and lets Mermaid.run() measure and render those nodes. Keep that rendering
+  // path here; only the source discovery happens against the finished article DOM.
   root.querySelectorAll<HTMLElement>('pre > code.language-mermaid').forEach(code => {
    const original = code.parentElement as HTMLElement | null;
    if (!original || original.dataset.oxnMermaidPrepared === '1') return;
    const source = code.textContent || '';
-   const variant = (theme: 'default' | 'dark') => {
-    // Keep the original pre/code subtree intact for theme-owned copy controls.
-    // Mermaid SVG is appended beside the hidden source code, never parsed from
-    // the whole pre element (which may also contain buttons or other controls).
-    const pre = original.cloneNode(true) as HTMLElement;
-    pre.removeAttribute('id');
-    pre.removeAttribute('data-processed');
-    pre.classList.add('rin-mermaid_' + theme);
+   if (!source.trim()) return;
+   const makeVariant = (theme: 'default' | 'dark') => {
+    const pre = document.createElement('pre');
+    pre.className = theme === 'default'
+     ? 'rin-mermaid_default dark:hidden'
+     : 'rin-mermaid_dark dark:block hidden';
     pre.dataset.oxnMermaidPrepared = '1';
-    const clonedCode = pre.querySelector('code.language-mermaid');
-    if (clonedCode) {
-     clonedCode.textContent = source;
-     // Visually hide the source while keeping its text readable to existing
-     // copy handlers that read code.innerText.
-     clonedCode.style.position = 'absolute';
-     clonedCode.style.width = '1px';
-     clonedCode.style.height = '1px';
-     clonedCode.style.padding = '0';
-     clonedCode.style.margin = '-1px';
-     clonedCode.style.overflow = 'hidden';
-     clonedCode.style.clipPath = 'inset(50%)';
-     clonedCode.style.whiteSpace = 'pre';
-     clonedCode.setAttribute('aria-hidden', 'true');
-    }
+    pre.textContent = source;
     return pre;
    };
-   original.replaceWith(variant('default'), variant('dark'));
+   original.replaceWith(makeVariant('default'), makeVariant('dark'));
   });
 
-  const light = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_default:not([data-processed]):not([data-oxn-mermaid-queued])'));
-  const dark = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_dark:not([data-processed]):not([data-oxn-mermaid-queued])'));
-  [...light, ...dark].forEach(node => { node.dataset.oxnMermaidQueued = '1'; });
+  const light = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_default:not([data-processed])'));
+  const dark = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_dark:not([data-processed])'));
 
-  mermaidQueue = mermaidQueue.then(async () => {
-   const renderVariant = async (nodes: HTMLElement[], theme: 'default' | 'dark') => {
-    if (!nodes.length) return;
+  const renderVariant = async (nodes: HTMLElement[], theme: 'default' | 'dark') => {
+   if (!nodes.length) return;
+   // This is the original renderer's hidden-theme measurement workaround:
+   // temporarily make hidden nodes measurable without flashing them onscreen.
+   const restore: Array<{
+    node: HTMLElement;
+    display: string;
+    displayPriority: string;
+    visibility: string;
+    visibilityPriority: string;
+   }> = [];
+   nodes.forEach(node => {
+    if (getComputedStyle(node).display !== 'none') return;
+    restore.push({
+     node,
+     display: node.style.getPropertyValue('display'),
+     displayPriority: node.style.getPropertyPriority('display'),
+     visibility: node.style.getPropertyValue('visibility'),
+     visibilityPriority: node.style.getPropertyPriority('visibility'),
+    });
+    node.style.setProperty('display', 'block', 'important');
+    node.style.setProperty('visibility', 'hidden', 'important');
+   });
+   try {
     mermaid.initialize({startOnLoad:false,theme});
-    for (const node of nodes) {
-     const code = node.querySelector('code.language-mermaid');
-     const source = code?.textContent || '';
-     if (!source.trim()) {
-      delete node.dataset.oxnMermaidQueued;
-      continue;
-     }
-     const renderId = 'oxn-mermaid-' + theme + '-' + Math.random().toString(36).slice(2);
-     try {
-      // render() receives only the diagram source. mermaid.run() reads the
-      // entire target element and can accidentally include theme controls.
-      const result = await mermaid.render(renderId, source);
-      node.insertAdjacentHTML('beforeend', result.svg);
-      if (typeof result.bindFunctions === 'function') result.bindFunctions(node);
-      node.dataset.processed = 'true';
-      delete node.dataset.oxnMermaidQueued;
-     } catch (error) {
-      delete node.dataset.oxnMermaidQueued;
-      console.error('[Markdown Rehype OXN] Mermaid diagram failed:', error);
-     }
-    }
-   };
-   await renderVariant(light,'default');
-   await renderVariant(dark,'dark');
+    await mermaid.run({nodes});
+   } finally {
+    restore.forEach(item => {
+     if (item.display) item.node.style.setProperty('display', item.display, item.displayPriority);
+     else item.node.style.removeProperty('display');
+     if (item.visibility) item.node.style.setProperty('visibility', item.visibility, item.visibilityPriority);
+     else item.node.style.removeProperty('visibility');
+    });
+   }
+  };
+
+  // Mermaid uses global configuration/state, so render the two themes in order.
+  mermaidQueue = mermaidQueue.then(async () => {
+   await renderVariant(light, 'default');
+   await renderVariant(dark, 'dark');
   }).catch(error => {
-   [...light, ...dark].forEach(node => { delete node.dataset.oxnMermaidQueued; });
-   console.error('[Markdown Rehype OXN] Mermaid render failed:',error);
+   console.error('[Markdown Rehype OXN] Mermaid render failed:', error);
   });
   await mermaidQueue;
  }
