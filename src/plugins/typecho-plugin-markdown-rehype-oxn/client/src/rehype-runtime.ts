@@ -168,15 +168,46 @@ declare global {
  }
  let scheduled = false;
  function initialize(): void {
-  for (const root of roots()) {
-   // Full mode skips all content checks and loads every enabled feature.
-   // On-demand mode checks each article root and loads only matching features.
-   if (flags.math && (flags.loadingMode === 'full' || hasMath(root))) {
+  const currentRoots = roots();
+  if (flags.loadingMode === 'full') {
+   // Full mode loads every enabled feature even when this page has no article root.
+   if (flags.math) {
+    void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
+     .then(() => load('math-runtime.js','__oxnMarkdownMathRuntime'))
+     .then(() => {
+      const runtime = window.__oxnMarkdownMathRuntime;
+      if (runtime) currentRoots.forEach(root => runtime.initialize(root));
+     });
+   }
+   if (flags.mermaid) {
+    void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
+     .then(() => load('mermaid-runtime.js','__oxnMarkdownMermaidRuntime'))
+     .then(async () => {
+      const runtime = window.__oxnMarkdownMermaidRuntime;
+      if (runtime) {
+       for (const root of currentRoots) await renderMermaid(root,runtime.mermaid);
+      }
+     });
+   }
+   if (flags.highlight) {
+    void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
+     .then(() => load('highlight-runtime.js','__oxnMarkdownHighlightRuntime'))
+     .then(() => {
+      const runtime = window.__oxnMarkdownHighlightRuntime;
+      if (runtime) currentRoots.forEach(root => runtime.initialize(root));
+     });
+   }
+   return;
+  }
+
+  // On-demand mode checks each article root and loads only matching features.
+  for (const root of currentRoots) {
+   if (flags.math && hasMath(root)) {
     void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
      .then(() => load('math-runtime.js','__oxnMarkdownMathRuntime'))
      .then(() => window.__oxnMarkdownMathRuntime?.initialize(root));
    }
-   if (flags.mermaid && (flags.loadingMode === 'full' || hasMermaid(root))) {
+   if (flags.mermaid && hasMermaid(root)) {
     void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
      .then(() => load('mermaid-runtime.js','__oxnMarkdownMermaidRuntime'))
      .then(() => {
@@ -184,7 +215,7 @@ declare global {
       if (runtime) void renderMermaid(root,runtime.mermaid);
      });
    }
-   if (flags.highlight && (flags.loadingMode === 'full' || hasHighlight(root))) {
+   if (flags.highlight && hasHighlight(root)) {
     void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
      .then(() => load('highlight-runtime.js','__oxnMarkdownHighlightRuntime'))
      .then(() => window.__oxnMarkdownHighlightRuntime?.initialize(root));
