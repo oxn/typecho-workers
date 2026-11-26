@@ -71,10 +71,13 @@ function discoverPluginClients(rootDir: string): ClientSource[] {
       const outDir = pluginId === 'typecho-plugin-markdown-rehype-oxn'
         ? join(clientDir, 'dist')
         : join(rootDir, 'public', 'plugin-assets', pluginId);
+      const publicUrl = pluginId === 'typecho-plugin-markdown-rehype-oxn'
+        ? `/__plugin-assets/${pluginId}/${jsName}`
+        : `/plugin-assets/${pluginId}/${jsName}`;
       sources.push({
         sourcePath,
         outDir,
-        publicUrl: `/plugin-assets/${pluginId}/${jsName}`,
+        publicUrl,
       });
     }
   }
