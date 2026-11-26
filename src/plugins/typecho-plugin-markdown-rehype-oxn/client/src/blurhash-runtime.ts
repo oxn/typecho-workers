@@ -69,7 +69,7 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
    originalStyles.set(img,{opacity:img.style.opacity,transition:img.style.transition,backgroundImage:img.style.backgroundImage,backgroundSize:img.style.backgroundSize,backgroundPosition:img.style.backgroundPosition});
    img.style.backgroundImage='url("'+data+'")';img.style.backgroundSize='cover';img.style.backgroundPosition='center';
    img.style.transition=img.style.transition||'opacity 180ms ease';img.style.opacity='0';
-   const finish=()=>restore(img);img.addEventListener('load',finish,{once:true});img.addEventListener('error',finish,{once:true});
+   const finish=()=>restore(img);img.addEventListener('load',finish,{once:true});
   }catch(error){console.warn('[Markdown Rehype OXN] Invalid BlurHash:',error);}
  }
  function process(img:HTMLImageElement):void {
