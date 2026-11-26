@@ -10,8 +10,6 @@ import mathRuntime from './client/dist/math-runtime.js?raw';
 import mermaidRuntime from './client/dist/mermaid-runtime.js?raw';
 import highlightRuntime from './client/dist/highlight-runtime.js?raw';
 
-const STYLE_ID = 'oxn-markdown-rehype-styles';
-const KATEX_STYLE_ID = 'oxn-markdown-rehype-katex';
 const ASSET_PREFIX = '/__plugin-assets/typecho-plugin-markdown-rehype-oxn/';
 
 const runtimeAssets: Record<string, string> = {
@@ -91,7 +89,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
 
   // The lightweight client entry performs all content detection in the browser.
   // Feature CSS and heavy runtimes are requested only after matching content is found.
-  // Client enhancements run after the theme has produced the final article HTML.
   // The only earlier content hook protects TeX backslashes; Markdown parsing remains host-owned.
   addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
     const config = featureConfig(extra?.options, pluginId);
