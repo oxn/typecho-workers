@@ -35,6 +35,7 @@ function featureConfig(options: Record<string, unknown> | undefined, pluginId: s
     mermaid: enabled(saved.enableMermaid),
     highlight: enabled(saved.enableHighlight),
     blurhash: enabled(saved.enableBlurhash),
+    lazyImages: enabled(saved.enableImageLazyLoading),
     loadingMode: saved.resourceLoadingMode === 'full' ? 'full' : 'ondemand',
   };
 }
@@ -101,6 +102,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       config.mermaid ? 'data-mermaid="1"' : '',
       config.highlight ? 'data-highlight="1"' : '',
       config.blurhash ? 'data-blurhash="1"' : '',
+      config.blurhash && config.lazyImages ? 'data-lazy-images="1"' : '',
       `data-loading="${config.loadingMode}"`,
     ].filter(Boolean).join(' ');
     return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
