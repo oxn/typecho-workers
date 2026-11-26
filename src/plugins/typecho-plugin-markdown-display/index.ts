@@ -48,7 +48,7 @@ function buildClientScript(config: DisplayConfig): string {
     '    katex: "' + ASSET_BASE + '/katex/dist/katex.min.js",'
     '    autoRender: "' + ASSET_BASE + '/katex/dist/contrib/auto-render.min.js",'
     '    mermaid: "' + ASSET_BASE + '/mermaid/dist/mermaid.min.js",'
-    '    highlight: "' + ASSET_BASE + '/highlight/build/highlight.min.js'
+    '    highlight: "' + ASSET_BASE + '/highlight/build/highlight.min.js"'
     '  };',
     '  function load(key, test) {',
     '    if (test()) return Promise.resolve();',
