@@ -46,6 +46,16 @@
           "label": "启用代码高亮",
           "description": "使用 Refractor 高亮已有代码块，不替换 pre 节点，不干扰主题复制按钮。",
           "default": true
+        },
+        "resourceLoadingMode": {
+          "type": "select",
+          "label": "资源加载方式",
+          "description": "按需加载：先在浏览器轻量检测文章内容，只有发现已启用的公式、流程图或代码高亮内容时，才下载对应 CSS/JS；普通文章资源开销更低，但会执行一次轻量 DOM 检测。全量加载：不检测文章内容，直接加载所有已开启功能的资源；省去内容检测，但普通文章也会下载可能用不到的资源。",
+          "default": "ondemand",
+          "options": {
+            "ondemand": "按需加载",
+            "full": "全量加载"
+          }
         }
       }
     }
