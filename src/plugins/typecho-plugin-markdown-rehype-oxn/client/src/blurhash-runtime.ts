@@ -1,11 +1,11 @@
-type BlurhashRuntimeApi = { initialize(root: Element): void };
+type BlurhashRuntimeApi = { initialize(root: Element, lazy: boolean): void };
 declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRuntimeApi } }
 
 (() => {
  const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~';
  const selector = 'img[src*="#blurhash="]';
  const processed = new WeakSet<HTMLImageElement>();
- const originalStyles = new WeakMap<HTMLImageElement, {opacity:string;transition:string;backgroundImage:string;backgroundSize:string;backgroundPosition:string}>();
+ let observer: IntersectionObserver | null = null;
 
  function decode83(value:string,start:number,length:number):number {
   let result=0;
@@ -35,7 +35,6 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
   }
   return pixels;
  }
- // Decode only valid %HH triplets. A stray literal '%' is preserved instead of throwing.
  function decodePercent(value:string):string{return value.replace(/%([0-9a-f]{2})/gi,(_m,hex:string)=>String.fromCharCode(parseInt(hex,16)));}
  function dimension(value:string|undefined):number|undefined {if(!value||!/^\d+$/.test(value))return;const n=Number(value);return Number.isSafeInteger(n)&&n>0&&n<=100000?n:undefined;}
  function parseSource(img:HTMLImageElement):{src:string;hash:string;width?:number;height?:number}|null {
@@ -52,39 +51,53 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
   if(!hash)return null;
   return{src:base+(remaining.length?'#'+remaining.join('&'):''),hash,width,height};
  }
- function restore(img:HTMLImageElement):void {
-  const old=originalStyles.get(img);if(!old)return;
-  img.style.opacity=old.opacity;img.style.transition=old.transition;img.style.backgroundImage=old.backgroundImage;
-  img.style.backgroundSize=old.backgroundSize;img.style.backgroundPosition=old.backgroundPosition;originalStyles.delete(img);
+ function makePreview(hash:string,width?:number,height?:number):string {
+  const ratio=width&&height?width/height:1;
+  const w=Math.max(1,Math.min(32,Math.round(ratio>=1?32:32*ratio)));
+  const h=Math.max(1,Math.min(32,Math.round(ratio>=1?32/ratio:32)));
+  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  const context=canvas.getContext('2d');if(!context)throw new Error('Canvas 2D is unavailable');
+  context.putImageData(new ImageData(decodeBlurhash(hash,w,h),w,h),0,0);
+  return canvas.toDataURL('image/png');
  }
- function preview(img:HTMLImageElement,hash:string,width?:number,height?:number):void {
-  if(img.complete&&img.naturalWidth>0)return;
+ function loadOriginal(img:HTMLImageElement):void {
+  const source=img.dataset.oxnOriginalSrc;if(!source)return;
+  if(observer)observer.unobserve(img);
+  delete img.dataset.oxnOriginalSrc;
+  img.loading='eager';
+  img.src=source;
+ }
+ function watch(img:HTMLImageElement,lazy:boolean):void {
+  if(!lazy||!('IntersectionObserver' in window)){loadOriginal(img);return;}
+  if(!observer)observer=new IntersectionObserver(entries=>{
+   for(const entry of entries)if(entry.isIntersecting)loadOriginal(entry.target as HTMLImageElement);
+  },{root:null,rootMargin:'300px 0px',threshold:0});
+  observer.observe(img);
+ }
+ function process(img:HTMLImageElement,lazy:boolean):void {
+  if(processed.has(img))return;
+  const parsed=parseSource(img);if(!parsed)return;
+  processed.add(img);
+  if(img.complete&&img.naturalWidth>0){img.dataset.oxnBlurhash=parsed.hash;img.setAttribute('src',parsed.src);return;}
   try{
-   const ratio=width&&height?width/height:img.naturalWidth&&img.naturalHeight?img.naturalWidth/img.naturalHeight:1;
-   const w=Math.max(1,Math.min(32,Math.round(ratio>=1?32:32*ratio))),h=Math.max(1,Math.min(32,Math.round(ratio>=1?32/ratio:32)));
-   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-   const context=canvas.getContext('2d');if(!context)return;
-   context.putImageData(new ImageData(decodeBlurhash(hash,w,h),w,h),0,0);
-   const data=canvas.toDataURL('image/png');
-   originalStyles.set(img,{opacity:img.style.opacity,transition:img.style.transition,backgroundImage:img.style.backgroundImage,backgroundSize:img.style.backgroundSize,backgroundPosition:img.style.backgroundPosition});
-   img.style.backgroundImage='url("'+data+'")';img.style.backgroundSize='cover';img.style.backgroundPosition='center';
-   img.style.transition=img.style.transition||'opacity 180ms ease';img.style.opacity='0';
-   const finish=()=>restore(img);img.addEventListener('load',finish,{once:true});
-  }catch(error){console.warn('[Markdown Rehype OXN] Invalid BlurHash:',error);}
+   const preview=makePreview(parsed.hash,parsed.width,parsed.height);
+   img.dataset.oxnBlurhash=parsed.hash;
+   if(parsed.width&&!img.hasAttribute('width'))img.setAttribute('width',String(parsed.width));
+   if(parsed.height&&!img.hasAttribute('height'))img.setAttribute('height',String(parsed.height));
+   img.dataset.oxnOriginalSrc=parsed.src;
+   img.addEventListener('load',()=>{if(img.dataset.oxnOriginalSrc===undefined){img.dataset.oxnImageLoaded='1';img.style.filter='';}}, {once:true});
+   img.src=preview;
+   img.style.filter='blur(0.15px)';
+   watch(img,lazy);
+  }catch(error){
+   console.warn('[Markdown Rehype OXN] Invalid BlurHash:',error);
+   img.src=parsed.src;
+  }
  }
- function process(img:HTMLImageElement):void {
-  if(processed.has(img))return;const parsed=parseSource(img);if(!parsed)return;processed.add(img);
-  img.dataset.oxnBlurhash=parsed.hash;if(parsed.width)img.dataset.oxnWidth=String(parsed.width);if(parsed.height)img.dataset.oxnHeight=String(parsed.height);
-  if(parsed.width&&!img.hasAttribute('width'))img.setAttribute('width',String(parsed.width));
-  if(parsed.height&&!img.hasAttribute('height'))img.setAttribute('height',String(parsed.height));
-  preview(img,parsed.hash,parsed.width,parsed.height);
-  if(parsed.src!==img.getAttribute('src'))img.setAttribute('src',parsed.src);
-  if(img.complete&&img.naturalWidth>0)restore(img);
- }
- function initialize(root:Element):void {
+ function initialize(root:Element,lazy:boolean):void {
   const images=Array.from(root.querySelectorAll<HTMLImageElement>(selector));
   if(root.matches(selector))images.unshift(root as HTMLImageElement);
-  images.forEach(process);
+  images.forEach(img=>process(img,lazy));
  }
  window.__oxnMarkdownBlurhashRuntime={initialize};
 })();
