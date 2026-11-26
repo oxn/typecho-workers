@@ -66,20 +66,62 @@ declare global {
  }
  function hasMath(root: Element): boolean {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const pattern = /(?:\$\$|\$[^\n$]+\$|\\\(|\\\[)/;
+  const excluded = 'pre,code,script,style,textarea,.katex,.tex2jax_ignore,[data-tex2jax-ignore]';
+  const blockSelector = 'p,div,li,blockquote,td,th,h1,h2,h3,h4,h5,h6,section,article';
+  let text = '';
+  let previousBlock: Element | null = null;
   let node: Node | null;
+
   while ((node = walker.nextNode())) {
    const parent = node.parentElement;
-   if (!parent || parent.closest('pre,code,script,style,textarea,.katex,.tex2jax_ignore,[data-tex2jax-ignore]')) continue;
-   if (pattern.test(node.textContent || '')) return true;
+   if (!parent || parent.closest(excluded)) {
+    text += '\n';
+    previousBlock = null;
+    continue;
+   }
+   const block = parent.closest(blockSelector) || root;
+   if (previousBlock && block !== previousBlock) text += '\n';
+   text += node.textContent || '';
+   previousBlock = block;
+  }
+
+  const isEscaped = (value: string, index: number): boolean => {
+   let slashes = 0;
+   for (let i = index - 1; i >= 0 && value[i] === '\\'; i--) slashes++;
+   return slashes % 2 === 1;
+  };
+  const hasDollarPair = (value: string, start: number, width: number): boolean => {
+   for (let i = start + width; i < value.length; i++) {
+    if (value[i] !== '$' || isEscaped(value, i)) continue;
+    if (width === 1 && value[i + 1] === '$') continue;
+    if (width === 2 && value[i + 1] !== '$') continue;
+    return true;
+   }
+   return false;
+  };
+
+  for (let i = 0; i < text.length; i++) {
+   if (text[i] === '$' && !isEscaped(text, i)) {
+    const width = text[i + 1] === '$' ? 2 : 1;
+    if (hasDollarPair(text, i, width)) return true;
+   }
+   if (text[i] === '\\' && (text[i + 1] === '(' || text[i + 1] === '[')) {
+    const closing = text[i + 1] === '(' ? '\\)' : '\\]';
+    if (text.indexOf(closing, i + 2) !== -1) return true;
+   }
   }
   return false;
  }
  function hasMermaid(root: Element): boolean {
-  return !!root.querySelector('pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark');
+  const selector = 'pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark';
+  return root.matches(selector) || !!root.querySelector(selector);
  }
  function hasHighlight(root: Element): boolean {
-  return Array.from(root.querySelectorAll<HTMLElement>('pre > code[class*="language-"]')).some(code => {
+  if (!Array.isArray(REFRACTOR_SUPPORTED_LANGUAGES)) return false;
+  const selector = 'pre > code[class*="language-"]';
+  const codes = Array.from(root.querySelectorAll<HTMLElement>(selector));
+  if (root.matches(selector)) codes.unshift(root as HTMLElement);
+  return codes.some(code => {
    const match = /(?:^|\s)language-([\w+-]+)/.exec(code.className);
    const language = match?.[1]?.toLowerCase() || '';
    return !!language
@@ -90,15 +132,61 @@ declare global {
   });
  }
  let mermaidQueue: Promise<void> = Promise.resolve();
- async function renderMermaid(root: Element, mermaid: any): Promise<void> {
-  root.querySelectorAll<HTMLElement>('pre > code.language-mermaid').forEach(code => {
-   const original = code.parentElement as HTMLElement | null;
-   if (!original || original.dataset.oxnMermaidPrepared === '1') return;
+ let mermaidObserver: IntersectionObserver | null = null;
+ function renderMermaidNode(node: HTMLElement, mermaid: any): void {
+  if (node.dataset.processed === 'true' || node.dataset.oxnMermaidQueued === '1') return;
+  node.dataset.oxnMermaidQueued = '1';
+  mermaidQueue = mermaidQueue.then(async () => {
+   const theme = node.classList.contains('rin-mermaid_dark') ? 'dark' : 'default';
+   const code = node.querySelector('code.language-mermaid');
+   const source = code?.textContent || '';
+   if (!source.trim()) {
+    delete node.dataset.oxnMermaidQueued;
+    return;
+   }
+   mermaid.initialize({startOnLoad:false,theme});
+   const renderId = 'oxn-mermaid-' + theme + '-' + Math.random().toString(36).slice(2);
+   const result = await mermaid.render(renderId, source);
+   const renderHost = document.createElement('div');
+   renderHost.className = 'oxn-mermaid-render rin-mermaid_' + theme;
+   renderHost.innerHTML = result.svg;
+   node.insertAdjacentElement('afterend', renderHost);
+   if (typeof result.bindFunctions === 'function') result.bindFunctions(renderHost);
+   node.dataset.processed = 'true';
+   delete node.dataset.oxnMermaidQueued;
+  }).catch(error => {
+   delete node.dataset.oxnMermaidQueued;
+   console.error('[Markdown Rehype OXN] Mermaid render failed:',error);
+  });
+ }
+ function observeMermaid(root: Element, mermaid: any): void {
+  if (!('IntersectionObserver' in window)) {
+   prepareAndRenderMermaid(root, mermaid);
+   return;
+  }
+  if (!mermaidObserver) {
+   mermaidObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+     if (!entry.isIntersecting) continue;
+     const node = entry.target as HTMLElement;
+     mermaidObserver?.unobserve(node);
+     renderMermaidNode(node, mermaid);
+    }
+   }, {root:null,rootMargin:'300px 0px',threshold:0});
+  }
+  const selector = 'pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark';
+  const codes = Array.from(root.querySelectorAll<HTMLElement>(selector));
+  if (root.matches(selector)) codes.unshift(root as HTMLElement);
+  codes.forEach(code => {
+   const original = code.matches('code.language-mermaid') ? code.parentElement as HTMLElement | null : code;
+   if (!original) return;
+   if (original.matches('pre.rin-mermaid_default,pre.rin-mermaid_dark')) {
+    if (original.dataset.processed !== 'true' && original.dataset.oxnMermaidQueued !== '1') mermaidObserver?.observe(original);
+    return;
+   }
+   if (original.dataset.oxnMermaidPrepared === '1') return;
    const source = code.textContent || '';
    const variant = (theme: 'default' | 'dark') => {
-    // Keep the original pre/code subtree intact for theme-owned copy controls.
-    // Mermaid SVG is appended beside the hidden source code, never parsed from
-    // the whole pre element (which may also contain buttons or other controls).
     const pre = original.cloneNode(true) as HTMLElement;
     pre.removeAttribute('id');
     pre.removeAttribute('data-processed');
@@ -107,8 +195,6 @@ declare global {
     const clonedCode = pre.querySelector('code.language-mermaid');
     if (clonedCode) {
      clonedCode.textContent = source;
-     // Visually hide the source while keeping its text readable to existing
-     // copy handlers that read code.innerText.
      clonedCode.style.position = 'absolute';
      clonedCode.style.width = '1px';
      clonedCode.style.height = '1px';
@@ -121,72 +207,59 @@ declare global {
     }
     return pre;
    };
-   original.replaceWith(variant('default'), variant('dark'));
+   const light = variant('default');
+   const dark = variant('dark');
+   original.replaceWith(light, dark);
+   mermaidObserver?.observe(light);
+   mermaidObserver?.observe(dark);
   });
-
-  const light = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_default:not([data-processed]):not([data-oxn-mermaid-queued])'));
-  const dark = Array.from(root.querySelectorAll<HTMLElement>('pre.rin-mermaid_dark:not([data-processed]):not([data-oxn-mermaid-queued])'));
-  [...light, ...dark].forEach(node => { node.dataset.oxnMermaidQueued = '1'; });
-
-  mermaidQueue = mermaidQueue.then(async () => {
-   const renderVariant = async (nodes: HTMLElement[], theme: 'default' | 'dark') => {
-    if (!nodes.length) return;
-    mermaid.initialize({startOnLoad:false,theme});
-    for (const node of nodes) {
-     const code = node.querySelector('code.language-mermaid');
-     const source = code?.textContent || '';
-     if (!source.trim()) {
-      delete node.dataset.oxnMermaidQueued;
-      continue;
-     }
-     const renderId = 'oxn-mermaid-' + theme + '-' + Math.random().toString(36).slice(2);
-     try {
-      // Render SVG beside the source <pre>, never inside it. Theme copy
-      // controls commonly read the whole <pre>; keeping generated SVG/CSS
-      // outside prevents them from copying Mermaid's internal markup.
-      const result = await mermaid.render(renderId, source);
-      const renderHost = document.createElement('div');
-      renderHost.className = 'oxn-mermaid-render rin-mermaid_' + theme;
-      renderHost.innerHTML = result.svg;
-      node.insertAdjacentElement('afterend', renderHost);
-      if (typeof result.bindFunctions === 'function') result.bindFunctions(renderHost);
-      node.dataset.processed = 'true';
-      delete node.dataset.oxnMermaidQueued;
-     } catch (error) {
-      delete node.dataset.oxnMermaidQueued;
-      console.error('[Markdown Rehype OXN] Mermaid diagram failed:', error);
-     }
-    }
-   };
-   await renderVariant(light,'default');
-   await renderVariant(dark,'dark');
-  }).catch(error => {
-   [...light, ...dark].forEach(node => { delete node.dataset.oxnMermaidQueued; });
-   console.error('[Markdown Rehype OXN] Mermaid render failed:',error);
+ }
+ function prepareAndRenderMermaid(root: Element, mermaid: any): void {
+  const selector = 'pre > code.language-mermaid';
+  const codes = Array.from(root.querySelectorAll<HTMLElement>(selector));
+  if (root.matches(selector)) codes.unshift(root as HTMLElement);
+  codes.forEach(code => {
+   const original = code.parentElement as HTMLElement | null;
+   if (!original || original.dataset.oxnMermaidPrepared === '1') return;
+   const source = code.textContent || '';
+   const pre = original.cloneNode(true) as HTMLElement;
+   pre.dataset.oxnMermaidPrepared = '1';
+   pre.classList.add('rin-mermaid_default');
+   const clonedCode = pre.querySelector('code.language-mermaid');
+   if (clonedCode) clonedCode.textContent = source;
+   original.replaceWith(pre);
+   renderMermaidNode(pre, mermaid);
   });
-  await mermaidQueue;
  }
  let scheduled = false;
- function initialize(): void {
-  const currentRoots = roots();
+ let fullModeInitialized = false;
+ const pendingScopes = new Set<Element>();
+ function rootsWithin(node: Element): Element[] {
+  if (node.matches(rootSelector)) return [node];
+  const nested = Array.from(node.querySelectorAll(rootSelector));
+  if (nested.length) return nested;
+  return node.closest(rootSelector) ? [node] : [];
+ }
+ function initialize(scope?: Element): void {
+  const currentRoots = scope ? rootsWithin(scope) : roots();
   if (flags.loadingMode === 'full') {
-   // Full mode loads every enabled feature even when this page has no article root.
+   if (fullModeInitialized && !scope) return;
+   fullModeInitialized = true;
+   const targets = scope ? currentRoots : roots();
    if (flags.math) {
     void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
      .then(() => load('math-runtime.js','__oxnMarkdownMathRuntime'))
      .then(() => {
       const runtime = window.__oxnMarkdownMathRuntime;
-      if (runtime) currentRoots.forEach(root => runtime.initialize(root));
+      if (runtime) targets.forEach(root => runtime.initialize(root));
      });
    }
    if (flags.mermaid) {
     void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
      .then(() => load('mermaid-runtime.js','__oxnMarkdownMermaidRuntime'))
-     .then(async () => {
+     .then(() => {
       const runtime = window.__oxnMarkdownMermaidRuntime;
-      if (runtime) {
-       for (const root of currentRoots) await renderMermaid(root,runtime.mermaid);
-      }
+      if (runtime) targets.forEach(root => observeMermaid(root,runtime.mermaid));
      });
    }
    if (flags.highlight) {
@@ -194,13 +267,12 @@ declare global {
      .then(() => load('highlight-runtime.js','__oxnMarkdownHighlightRuntime'))
      .then(() => {
       const runtime = window.__oxnMarkdownHighlightRuntime;
-      if (runtime) currentRoots.forEach(root => runtime.initialize(root));
+      if (runtime) targets.forEach(root => runtime.initialize(root));
      });
    }
    return;
   }
 
-  // On-demand mode checks each article root and loads only matching features.
   for (const root of currentRoots) {
    if (flags.math && hasMath(root)) {
     void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
@@ -212,7 +284,7 @@ declare global {
      .then(() => load('mermaid-runtime.js','__oxnMarkdownMermaidRuntime'))
      .then(() => {
       const runtime = window.__oxnMarkdownMermaidRuntime;
-      if (runtime) void renderMermaid(root,runtime.mermaid);
+      if (runtime) observeMermaid(root,runtime.mermaid);
      });
    }
    if (flags.highlight && hasHighlight(root)) {
@@ -222,19 +294,39 @@ declare global {
    }
   }
  }
- function schedule(): void {
+ function schedule(scopes?: Element[]): void {
+  scopes?.forEach(scope => pendingScopes.add(scope));
   if (scheduled) return;
   scheduled = true;
-  Promise.resolve().then(() => { scheduled = false; initialize(); });
+  Promise.resolve().then(() => {
+   scheduled = false;
+   if (!pendingScopes.size) {
+    initialize();
+    return;
+   }
+   const scopesToProcess = Array.from(pendingScopes);
+   pendingScopes.clear();
+   scopesToProcess.forEach(scope => initialize(scope));
+  });
  }
  if (flags.loadingMode === 'ondemand') {
   const observer = new MutationObserver(records => {
-   if (records.some(record => record.addedNodes.length)) schedule();
+   const scopes = new Set<Element>();
+   for (const record of records) {
+    record.addedNodes.forEach(added => {
+     const element = added.nodeType === Node.ELEMENT_NODE
+      ? added as Element
+      : added.parentElement;
+     if (!element) return;
+     rootsWithin(element).forEach(root => scopes.add(root));
+    });
+   }
+   if (scopes.size) schedule(Array.from(scopes));
   });
   observer.observe(document.documentElement,{childList:true,subtree:true});
  }
- if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',initialize,{once:true});
+ if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',() => initialize(),{once:true});
  else initialize();
- window.addEventListener('instantclick:newpage',schedule);
+ window.addEventListener('instantclick:newpage',() => schedule());
  window.__oxnMarkdownEnhancer = {initialize};
 })();
