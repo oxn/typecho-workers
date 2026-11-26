@@ -3,13 +3,12 @@
  *
  * Scans for TypeScript browser-side source files in:
  *   - src/client/*.ts          → compiled to public/js/
- *   - src/plugins/<id>/client/*.ts → compiled to public/plugin-assets/<id>/
+ *   - src/plugins/<id>/client/*.ts → compiled to plugin-local client/dist/ for
+ *     Markdown Rehype OXN; other plugins keep their existing public asset path
  *
- * Uses esbuild to compile TypeScript to IIFE JavaScript, then copies
- * the output into public/ so Astro serves it as static files.
- *
- * Pattern matches theme-loader.ts: discover at build time, copy to public/,
- * no runtime overhead beyond <script src="...">.
+ * Uses esbuild to compile TypeScript to IIFE JavaScript. Markdown Rehype OXN
+ * keeps its bundles inside its own plugin directory and serves them through
+ * its route:request hook; other existing client bundles retain their paths.
  */
 import type { AstroIntegration } from 'astro';
 import { existsSync, readdirSync, mkdirSync, writeFileSync, statSync, cpSync } from 'node:fs';
