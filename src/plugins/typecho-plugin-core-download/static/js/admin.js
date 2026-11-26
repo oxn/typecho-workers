@@ -130,7 +130,45 @@
       var color=document.getElementById('core-download-content-color');
       if(color)color.addEventListener('input',function(event){editor.focus();document.execCommand('foreColor',false,event.target.value);contentDirty=true});
       var fullscreen=document.getElementById('core-download-content-fullscreen');
-      if(fullscreen)fullscreen.addEventListener('click',function(){editor.classList.toggle('is-fullscreen')});
+      var editorWrap=document.getElementById('wp-core_download_content-wrap');
+      var exitFullscreenButton=null;
+      function setEditorFullscreen(active){
+        if(!editorWrap||!fullscreen)return;
+        editorWrap.classList.toggle('is-fullscreen',active);
+        editor.classList.toggle('is-fullscreen',active);
+        fullscreen.setAttribute('aria-pressed',active?'true':'false');
+        fullscreen.textContent=active?'退出全屏':'全屏';
+        if(active&&!exitFullscreenButton&&toolbar){
+          exitFullscreenButton=document.createElement('button');
+          exitFullscreenButton.type='button';
+          exitFullscreenButton.className='core-download-content-exit';
+          exitFullscreenButton.setAttribute('aria-label','退出全屏');
+          exitFullscreenButton.setAttribute('title','退出全屏');
+          exitFullscreenButton.textContent='×';
+          exitFullscreenButton.addEventListener('click',function(event){
+            event.preventDefault();
+            event.stopPropagation();
+            setEditorFullscreen(false);
+          });
+          toolbar.appendChild(exitFullscreenButton);
+        }else if(!active&&exitFullscreenButton){
+          exitFullscreenButton.remove();
+          exitFullscreenButton=null;
+        }
+      }
+      if(fullscreen)fullscreen.addEventListener('click',function(){
+        setEditorFullscreen(!editorWrap.classList.contains('is-fullscreen'));
+      });
+      document.addEventListener('keydown',function(event){
+        if(event.key==='Escape'&&editorWrap&&editorWrap.classList.contains('is-fullscreen')){
+          event.preventDefault();
+          setEditorFullscreen(false);
+        }
+      });
+      document.addEventListener('click',function(event){
+        if(!editorWrap||!editorWrap.classList.contains('is-fullscreen'))return;
+        if(event.target===editorWrap||!editorWrap.contains(event.target))setEditorFullscreen(false);
+      });
     }
 
     form.addEventListener('submit',function(event){
