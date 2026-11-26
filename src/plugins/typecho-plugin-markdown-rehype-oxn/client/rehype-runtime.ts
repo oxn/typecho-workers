@@ -18,7 +18,7 @@ declare global {
   mermaid: entry?.dataset.mermaid === '1',
   highlight: entry?.dataset.highlight === '1',
  };
- const rootSelector = '.toc-content';
+ const rootSelector = '.warm-prose, .toc-content, [itemprop="articleBody"]';
  const pending = new Map<string, Promise<void>>();
  const roots = () => Array.from(document.querySelectorAll(rootSelector));
  function load(file: string, globalName: keyof Window): Promise<void> {
