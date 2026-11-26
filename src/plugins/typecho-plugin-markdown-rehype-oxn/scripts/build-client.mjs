@@ -16,6 +16,7 @@ for (const entry of [
   'math-runtime.ts',
   'mermaid-runtime.ts',
   'highlight-runtime.ts',
+  'blurhash-runtime.ts',
 ]) {
   await build({
     entryPoints: [join(sourceDir, entry)],

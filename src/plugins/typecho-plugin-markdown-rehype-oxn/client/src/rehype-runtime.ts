@@ -6,6 +6,7 @@ declare global {
   __oxnMarkdownMathRuntime?: RuntimeApi;
   __oxnMarkdownMermaidRuntime?: { mermaid: any };
   __oxnMarkdownHighlightRuntime?: RuntimeApi;
+  __oxnMarkdownBlurhashRuntime?: RuntimeApi;
  }
 }
 (() => {
@@ -18,6 +19,7 @@ declare global {
   math: entry?.dataset.math === '1',
   mermaid: entry?.dataset.mermaid === '1',
   highlight: entry?.dataset.highlight === '1',
+  blurhash: entry?.dataset.blurhash === '1',
   loadingMode: entry?.dataset.loading === 'full' ? 'full' : 'ondemand',
  };
  const rootSelector = '.warm-prose, .toc-content, [itemprop="articleBody"]';
@@ -114,6 +116,10 @@ declare global {
  }
  function hasMermaid(root: Element): boolean {
   const selector = 'pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark';
+  return root.matches(selector) || !!root.querySelector(selector);
+ }
+ function hasBlurhash(root: Element): boolean {
+  const selector = 'img[src*="#blurhash="]';
   return root.matches(selector) || !!root.querySelector(selector);
  }
  function hasHighlight(root: Element): boolean {
@@ -262,6 +268,13 @@ declare global {
   const currentRoots = scope ? rootsWithin(scope) : roots();
   if (flags.loadingMode === 'full') {
    const targets = scope ? currentRoots : roots();
+   if (flags.blurhash) {
+    const blurhashTargets = scope ? [scope] : roots();
+    void load('blurhash-runtime.js','__oxnMarkdownBlurhashRuntime').then(() => {
+     const runtime = window.__oxnMarkdownBlurhashRuntime;
+     if (runtime) blurhashTargets.forEach(root => runtime.initialize(root));
+    });
+   }
    if (flags.math) {
     void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
      .then(() => load('math-runtime.js','__oxnMarkdownMathRuntime'))
@@ -290,6 +303,11 @@ declare global {
   }
 
   for (const root of currentRoots) {
+   const blurhashTarget = scope || root;
+   if (flags.blurhash && hasBlurhash(blurhashTarget)) {
+    void load('blurhash-runtime.js','__oxnMarkdownBlurhashRuntime')
+     .then(() => window.__oxnMarkdownBlurhashRuntime?.initialize(blurhashTarget));
+   }
    if (flags.math && hasMath(root)) {
     void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
      .then(() => load('math-runtime.js','__oxnMarkdownMathRuntime'))

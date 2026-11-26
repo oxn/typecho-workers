@@ -9,6 +9,7 @@ import rehypeRuntime from './client/dist/rehype-runtime.js?raw';
 import mathRuntime from './client/dist/math-runtime.js?raw';
 import mermaidRuntime from './client/dist/mermaid-runtime.js?raw';
 import highlightRuntime from './client/dist/highlight-runtime.js?raw';
+import blurhashRuntime from './client/dist/blurhash-runtime.js?raw';
 
 const ASSET_PREFIX = '/__plugin-assets/typecho-plugin-markdown-rehype-oxn/';
 
@@ -17,6 +18,7 @@ const runtimeAssets: Record<string, string> = {
   'math-runtime.js': mathRuntime,
   'mermaid-runtime.js': mermaidRuntime,
   'highlight-runtime.js': highlightRuntime,
+  'blurhash-runtime.js': blurhashRuntime,
   'katex-inline.css': katexCss,
   'rehype-styles.css': enhancerCss,
 };
@@ -32,6 +34,7 @@ function featureConfig(options: Record<string, unknown> | undefined, pluginId: s
     math: enabled(saved.enableMath),
     mermaid: enabled(saved.enableMermaid),
     highlight: enabled(saved.enableHighlight),
+    blurhash: enabled(saved.enableBlurhash),
     loadingMode: saved.resourceLoadingMode === 'full' ? 'full' : 'ondemand',
   };
 }
@@ -92,11 +95,12 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
   // The only content hook above protects TeX backslashes; Markdown parsing remains host-owned.
   addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
     const config = featureConfig(extra?.options, pluginId);
-    if (!config.math && !config.mermaid && !config.highlight) return html;
+    if (!config.math && !config.mermaid && !config.highlight && !config.blurhash) return html;
     const attrs = [
       config.math ? 'data-math="1"' : '',
       config.mermaid ? 'data-mermaid="1"' : '',
       config.highlight ? 'data-highlight="1"' : '',
+      config.blurhash ? 'data-blurhash="1"' : '',
       `data-loading="${config.loadingMode}"`,
     ].filter(Boolean).join(' ');
     return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;

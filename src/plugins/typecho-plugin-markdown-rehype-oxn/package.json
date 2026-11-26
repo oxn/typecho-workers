@@ -1,7 +1,7 @@
 {
   "name": "typecho-plugin-markdown-rehype-oxn",
   "version": "1.0.0",
-  "description": "Front-end enhancement for rendered article HTML: KaTeX math, Mermaid diagrams and Refractor syntax highlighting.",
+  "description": "Front-end article enhancement: KaTeX math, Mermaid diagrams, syntax highlighting and BlurHash image previews.",
   "author": "怸歪",
   "license": "MIT",
   "type": "module",
@@ -18,7 +18,7 @@
     "plugin": {
       "id": "typecho-plugin-markdown-rehype-oxn",
       "name": "Markdown Rehype OXN",
-      "description": "对已经输出的文章 HTML 增强数学公式、Mermaid 流程图和代码高亮，不接管 Markdown 解析",
+      "description": "对已经输出的文章 HTML 增强数学公式、Mermaid 流程图、代码高亮和 BlurHash 图片模糊预览，不接管 Markdown 解析",
       "version": "1.0.0",
       "author": "怸歪",
       "homepage": "https://oook.top",
@@ -27,7 +27,9 @@
         "markdown",
         "math",
         "mermaid",
-        "code-highlight"
+        "code-highlight",
+        "blurhash",
+        "image-preview"
       ],
       "config": {
         "enableMath": {
@@ -57,6 +59,12 @@
             "ondemand": "按需加载",
             "full": "全量加载"
           }
+        },
+        "enableBlurhash": {
+          "type": "checkbox",
+          "label": "启用 BlurHash 图片模糊预览",
+          "description": "识别图片地址中的 #blurhash=...、width 和 height 参数；提取后清理图片地址，使用本地解码生成模糊占位图，原图加载完成后显示清晰图片。只处理带 blurhash 参数的图片。",
+          "default": true
         }
       }
     }
