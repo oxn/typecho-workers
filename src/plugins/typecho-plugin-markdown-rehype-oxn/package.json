@@ -54,5 +54,9 @@
     "katex": "^0.16.22",
     "mermaid": "11.12.2",
     "refractor": "^5.0.0"
+  },
+  "scripts": {
+    "postinstall": "node ./scripts/build-client.mjs",
+    "build:client": "node ./scripts/build-client.mjs"
   }
 }
