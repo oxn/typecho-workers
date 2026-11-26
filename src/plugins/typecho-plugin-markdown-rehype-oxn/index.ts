@@ -12,7 +12,7 @@ import highlightRuntime from './client/dist/highlight-runtime.js?raw';
 
 const STYLE_ID = 'oxn-markdown-rehype-styles';
 const KATEX_STYLE_ID = 'oxn-markdown-rehype-katex';
-const ASSET_PREFIX = '/plugin-assets/typecho-plugin-markdown-rehype-oxn/';
+const ASSET_PREFIX = '/__plugin-assets/typecho-plugin-markdown-rehype-oxn/';
 
 const runtimeAssets: Record<string, string> = {
   'rehype-runtime.js': rehypeRuntime,
