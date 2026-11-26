@@ -193,7 +193,6 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     (html: string, extra?: { pageContext?: { pageType?: string } }) => {
       if (extra?.pageContext?.pageType !== 'post' && extra?.pageContext?.pageType !== 'page') return html;
       return html
-        + '<link rel="stylesheet" href="/__plugin-assets/typecho-plugin-core-download/css/front.css">'
         + '<script src="/api/core-download/client.js" defer></script>';
     },
   );
