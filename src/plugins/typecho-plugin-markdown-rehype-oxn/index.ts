@@ -153,6 +153,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       config.blurhash && config.lazyImages ? 'data-lazy-images="1"' : '',
       `data-loading="${config.loadingMode}"`,
     ].filter(Boolean).join(' ');
-    const preparedHtml = config.blurhash ? deferBlurhashImages(html) : html;\n    return preparedHtml + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
+    const preparedHtml = config.blurhash ? deferBlurhashImages(html) : html;
+    return preparedHtml + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
   }, 1000);
 }
