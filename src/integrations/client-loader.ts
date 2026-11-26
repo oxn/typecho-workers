@@ -90,7 +90,7 @@ async function compileAll(sources: ClientSource[], silent = false): Promise<void
   });
   for (const src of sources) {
     mkdirSync(src.outDir, { recursive: true });
-    const outfile = join(src.outDir, basename(src.sourcePath).replace(/\\.ts$/, '.js'));
+    const outfile = join(src.outDir, basename(src.sourcePath).replace(/\.ts$/, '.js'));
     await esbuild.build({
       entryPoints: [src.sourcePath],
       outfile,
