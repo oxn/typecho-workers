@@ -105,7 +105,7 @@ declare global {
     const width = text[i + 1] === '$' ? 2 : 1;
     if (hasDollarPair(text, i, width)) return true;
    }
-   if (text[i] === '\\' && (text[i + 1] === '(' || text[i + 1] === '[')) {
+   if (text[i] === '\\' && !isEscaped(text, i) && (text[i + 1] === '(' || text[i + 1] === '[')) {
     const closing = text[i + 1] === '(' ? '\\)' : '\\]';
     if (text.indexOf(closing, i + 2) !== -1) return true;
    }
