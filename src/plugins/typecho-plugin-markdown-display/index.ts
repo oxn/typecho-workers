@@ -45,10 +45,10 @@ function buildClientScript(config: DisplayConfig): string {
     '  var flags = ' + JSON.stringify(config).replace(/</g, '\\u003c') + ';',
     '  if (!flags.enableMath && !flags.enableMermaid && !flags.enableCodeHighlight) return;',
     '  var sources = {',
-    '    katex: "' + ASSET_BASE + '/katex/dist/katex.min.js",'
-    '    autoRender: "' + ASSET_BASE + '/katex/dist/contrib/auto-render.min.js",'
-    '    mermaid: "' + ASSET_BASE + '/mermaid/dist/mermaid.min.js",'
-    '    highlight: "' + ASSET_BASE + '/highlight/build/highlight.min.js"'
+    '    katex: "' + ASSET_BASE + '/katex/dist/katex.min.js",',
+    '    autoRender: "' + ASSET_BASE + '/katex/dist/contrib/auto-render.min.js",',
+    '    mermaid: "' + ASSET_BASE + '/mermaid/dist/mermaid.min.js",',
+    '    highlight: "' + ASSET_BASE + '/highlight/build/highlight.min.js"',
     '  };',
     '  function load(key, test) {',
     '    if (test()) return Promise.resolve();',
