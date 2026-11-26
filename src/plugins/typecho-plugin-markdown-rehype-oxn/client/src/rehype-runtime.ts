@@ -1,12 +1,13 @@
 import { REFRACTOR_SUPPORTED_LANGUAGES } from '../lib/refractor-languages';
 type RuntimeApi = { initialize(root: Element): void };
+type BlurhashRuntimeApi = { initialize(root: Element, lazy: boolean): void };
 declare global {
  interface Window {
   __oxnMarkdownEnhancer?: { initialize(): void };
   __oxnMarkdownMathRuntime?: RuntimeApi;
   __oxnMarkdownMermaidRuntime?: { mermaid: any };
   __oxnMarkdownHighlightRuntime?: RuntimeApi;
-  __oxnMarkdownBlurhashRuntime?: RuntimeApi;
+  __oxnMarkdownBlurhashRuntime?: BlurhashRuntimeApi;
  }
 }
 (() => {
@@ -20,9 +21,10 @@ declare global {
   mermaid: entry?.dataset.mermaid === '1',
   highlight: entry?.dataset.highlight === '1',
   blurhash: entry?.dataset.blurhash === '1',
+  lazyImages: entry?.dataset.lazyImages === '1',
   loadingMode: entry?.dataset.loading === 'full' ? 'full' : 'ondemand',
  };
- const rootSelector = '.warm-prose, .toc-content, [itemprop="articleBody"]';
+ const rootSelector = '[itemprop="articleBody"]';
  const pending = new Map<string, Promise<void>>();
  const stylePending = new Map<string, Promise<void>>();
  const roots = () => Array.from(document.querySelectorAll(rootSelector));
@@ -272,7 +274,7 @@ declare global {
     const blurhashTargets = scope ? [scope] : roots();
     void load('blurhash-runtime.js','__oxnMarkdownBlurhashRuntime').then(() => {
      const runtime = window.__oxnMarkdownBlurhashRuntime;
-     if (runtime) blurhashTargets.forEach(root => runtime.initialize(root));
+     if (runtime) blurhashTargets.forEach(root => runtime.initialize(root, flags.lazyImages));
     });
    }
    if (flags.math) {
