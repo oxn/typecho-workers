@@ -27,7 +27,7 @@ declare global {
   if (current) return current;
   const promise = new Promise<void>((resolve, reject) => {
    const script = document.createElement('script');
-   script.src = '/plugin-assets/typecho-plugin-markdown-rehype-oxn/' + file;
+   script.src = '/__plugin-assets/typecho-plugin-markdown-rehype-oxn/' + file;
    script.async = true;
    script.onload = () => window[globalName] ? resolve() : reject(new Error(file + ' did not expose runtime'));
    script.onerror = () => reject(new Error(file + ' failed to load'));
