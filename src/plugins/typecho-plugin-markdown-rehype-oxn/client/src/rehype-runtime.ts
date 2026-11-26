@@ -68,76 +68,86 @@ declare global {
   pending.set(file, promise);
   return promise;
  }
- function hasMath(root: Element): boolean {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+ type DetectedFeatures = { math: boolean; mermaid: boolean; highlight: boolean; blurhash: boolean };
+ function detectFeatures(root: Element, scanContent: boolean, scanBlurhash: boolean): DetectedFeatures {
+  const detected: DetectedFeatures = {math:false,mermaid:false,highlight:false,blurhash:false};
+  const mermaidSelector = 'pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark';
+  const highlightSelector = 'pre > code[class*="language-"]';
+  const blurhashSelector = 'img[data-oxn-blurhash-src],img[src*="#blurhash="]';
+  const inspectElement = (element: Element): void => {
+   if (scanContent) {
+    if (element.matches(mermaidSelector)) detected.mermaid = true;
+    if (element.matches(highlightSelector) && Array.isArray(REFRACTOR_SUPPORTED_LANGUAGES)) {
+     const code = element as HTMLElement;
+     const match = /(?:^|\\s)language-([\\w+-]+)/.exec(code.className);
+     const language = match?.[1]?.toLowerCase() || '';
+     if (language && language !== 'mermaid' && language !== 'text' && language !== 'plain'
+      && REFRACTOR_SUPPORTED_LANGUAGES.includes(language as typeof REFRACTOR_SUPPORTED_LANGUAGES[number])) {
+      detected.highlight = true;
+     }
+    }
+   }
+   if (scanBlurhash && element.matches(blurhashSelector)) detected.blurhash = true;
+  };
+  if (root.matches(mermaidSelector) || root.matches(highlightSelector) || root.matches(blurhashSelector)) inspectElement(root);
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
   const excluded = 'pre,code,script,style,textarea,.katex,.tex2jax_ignore,[data-tex2jax-ignore]';
   const blockSelector = 'p,div,li,blockquote,td,th,h1,h2,h3,h4,h5,h6,section,article';
   let text = '';
   let previousBlock: Element | null = null;
   let node: Node | null;
-
   while ((node = walker.nextNode())) {
+   if (node.nodeType === Node.ELEMENT_NODE) {
+    inspectElement(node as Element);
+    continue;
+   }
+   if (!scanContent || !flags.math) continue;
    const parent = node.parentElement;
    if (!parent || parent.closest(excluded)) {
-    text += '\n';
+    text += '\\n';
     previousBlock = null;
     continue;
    }
    const block = parent.closest(blockSelector) || root;
-   if (previousBlock && block !== previousBlock) text += '\n';
+   if (previousBlock && block !== previousBlock) text += '\\n';
    text += node.textContent || '';
    previousBlock = block;
   }
 
-  const isEscaped = (value: string, index: number): boolean => {
-   let slashes = 0;
-   for (let i = index - 1; i >= 0 && value[i] === '\\'; i--) slashes++;
-   return slashes % 2 === 1;
-  };
-  const hasDollarPair = (value: string, start: number, width: number): boolean => {
-   for (let i = start + width; i < value.length; i++) {
-    if (value[i] !== '$' || isEscaped(value, i)) continue;
-    if (width === 1 && value[i + 1] === '$') continue;
-    if (width === 2 && value[i + 1] !== '$') continue;
-    return true;
-   }
-   return false;
-  };
-
-  for (let i = 0; i < text.length; i++) {
-   if (text[i] === '$' && !isEscaped(text, i)) {
-    const width = text[i + 1] === '$' ? 2 : 1;
-    if (hasDollarPair(text, i, width)) return true;
-   }
-   if (text[i] === '\\' && !isEscaped(text, i) && (text[i + 1] === '(' || text[i + 1] === '[')) {
-    const closing = text[i + 1] === '(' ? '\\)' : '\\]';
-    if (text.indexOf(closing, i + 2) !== -1) return true;
+  if (scanContent && flags.math) {
+   const isEscaped = (value: string, index: number): boolean => {
+    let slashes = 0;
+    for (let i = index - 1; i >= 0 && value[i] === '\\\\'; i--) slashes++;
+    return slashes % 2 === 1;
+   };
+   const hasDollarPair = (value: string, start: number, width: number): boolean => {
+    for (let i = start + width; i < value.length; i++) {
+     if (value[i] !== '$' || isEscaped(value, i)) continue;
+     if (width === 1 && value[i + 1] === '$') continue;
+     if (width === 2 && value[i + 1] !== '$') continue;
+     return true;
+    }
+    return false;
+   };
+   for (let i = 0; i < text.length; i++) {
+    if (text[i] === '$' && !isEscaped(text, i)) {
+     const width = text[i + 1] === '$' ? 2 : 1;
+     if (hasDollarPair(text, i, width)) {
+      detected.math = true;
+      break;
+     }
+    }
+    if (text[i] === '\\\\' && !isEscaped(text, i) && (text[i + 1] === '(' || text[i + 1] === '[')) {
+     const closing = text[i + 1] === '(' ? '\\\\)' : '\\\\]';
+     if (text.indexOf(closing, i + 2) !== -1) {
+      detected.math = true;
+      break;
+     }
+    }
    }
   }
-  return false;
- }
- function hasMermaid(root: Element): boolean {
-  const selector = 'pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark';
-  return root.matches(selector) || !!root.querySelector(selector);
- }
- function hasBlurhash(root: Element): boolean {
-  const selector = 'img[data-oxn-blurhash-src],img[src*="#blurhash="]';
-  return root.matches(selector) || !!root.querySelector(selector);
- }
- function hasHighlight(root: Element): boolean {
-  if (!Array.isArray(REFRACTOR_SUPPORTED_LANGUAGES)) return false;
-  const selector = 'pre > code[class*="language-"]';
-  const codes = Array.from(root.querySelectorAll<HTMLElement>(selector));
-  if (root.matches(selector)) codes.unshift(root as HTMLElement);
-  return codes.some(code => {
-   const match = /(?:^|\s)language-([\w+-]+)/.exec(code.className);
-   const language = match?.[1]?.toLowerCase() || '';
-   return !!language
-    && language !== 'mermaid'
-    && language !== 'text'
-    && language !== 'plain'
-    && REFRACTOR_SUPPORTED_LANGUAGES.includes(language as typeof REFRACTOR_SUPPORTED_LANGUAGES[number]);
-  });
+  return detected;
  }
  let mermaidQueue: Promise<void> = Promise.resolve();
  let mermaidObserver: IntersectionObserver | null = null;
@@ -304,18 +314,20 @@ declare global {
    return;
   }
 
+  const scanContent = flags.math || flags.mermaid || flags.highlight;
   for (const root of currentRoots) {
    const blurhashTarget = scope || root;
-   if (flags.blurhash && hasBlurhash(blurhashTarget)) {
+   const detected = detectFeatures(root, scanContent, flags.blurhash);
+   if (flags.blurhash && detected.blurhash) {
     void load('blurhash-runtime.js','__oxnMarkdownBlurhashRuntime')
      .then(() => window.__oxnMarkdownBlurhashRuntime?.initialize(blurhashTarget, flags.lazyImages));
    }
-   if (flags.math && hasMath(root)) {
+   if (flags.math && detected.math) {
     void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
      .then(() => load('math-runtime.js','__oxnMarkdownMathRuntime'))
      .then(() => window.__oxnMarkdownMathRuntime?.initialize(root));
    }
-   if (flags.mermaid && hasMermaid(root)) {
+   if (flags.mermaid && detected.mermaid) {
     void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
      .then(() => load('mermaid-runtime.js','__oxnMarkdownMermaidRuntime'))
      .then(() => {
@@ -323,7 +335,7 @@ declare global {
       if (runtime) observeMermaid(root,runtime.mermaid);
      });
    }
-   if (flags.highlight && hasHighlight(root)) {
+   if (flags.highlight && detected.highlight) {
     void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
      .then(() => load('highlight-runtime.js','__oxnMarkdownHighlightRuntime'))
      .then(() => window.__oxnMarkdownHighlightRuntime?.initialize(root));
