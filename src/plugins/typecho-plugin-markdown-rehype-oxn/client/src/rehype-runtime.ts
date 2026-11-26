@@ -102,7 +102,7 @@ declare global {
     inspectElement(node as Element);
     continue;
    }
-   if (!scanContent || !flags.math) continue;
+   if (!scanContent) continue;
    const parent = node.parentElement;
    if (!parent || parent.closest(excluded)) {
     text += '\\n';
@@ -115,7 +115,7 @@ declare global {
    previousBlock = block;
   }
 
-  if (scanContent && flags.math) {
+  if (scanContent) {
    const isEscaped = (value: string, index: number): boolean => {
     let slashes = 0;
     for (let i = index - 1; i >= 0 && value[i] === '\\\\'; i--) slashes++;
