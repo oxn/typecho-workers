@@ -54,7 +54,7 @@ declare global {
   return !!root.querySelector('pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark');
  }
  function hasHighlight(root: Element): boolean {
-  return !!root.querySelector('pre > code[class*="language-"]');
+  return !!root.querySelector('pre > code[class*="language-"]:not(.language-mermaid)');
  }
  let mermaidQueue: Promise<void> = Promise.resolve();
  async function renderMermaid(root: Element, mermaid: any): Promise<void> {
