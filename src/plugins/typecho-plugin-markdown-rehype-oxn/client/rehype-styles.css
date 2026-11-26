@@ -1,31 +1,31 @@
-.toc-content pre.oxn-code-pre{box-sizing:border-box;max-width:100%;margin:.5em 0;padding:1em;border-radius:.25rem;background:#f5f7ff;color:#5e6687;overflow-x:auto;white-space:pre;tab-size:4;font:14px/1.375 ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace}
-.toc-content pre.oxn-code-pre>code{white-space:pre-wrap;font:inherit;font-variant-ligatures:normal}
-.toc-content pre.oxn-code-pre .token.comment,.toc-content pre.oxn-code-pre .token.prolog,.toc-content pre.oxn-code-pre .token.doctype,.toc-content pre.oxn-code-pre .token.cdata{color:#898ea4}
-.toc-content pre.oxn-code-pre .token.punctuation{color:#5e6687}
-.toc-content pre.oxn-code-pre .token.operator,.toc-content pre.oxn-code-pre .token.boolean,.toc-content pre.oxn-code-pre .token.number{color:#c76b29}
-.toc-content pre.oxn-code-pre .token.property,.toc-content pre.oxn-code-pre .token.attr-name{color:#c08b30}
-.toc-content pre.oxn-code-pre .token.tag{color:#3d8fd1}
-.toc-content pre.oxn-code-pre .token.string,.toc-content pre.oxn-code-pre .token.entity,.toc-content pre.oxn-code-pre .token.url,.toc-content pre.oxn-code-pre .token.statement,.toc-content pre.oxn-code-pre .token.regex,.toc-content pre.oxn-code-pre .token.atrule{color:#22a2c9}
-.toc-content pre.oxn-code-pre .token.selector,.toc-content pre.oxn-code-pre .token.placeholder,.toc-content pre.oxn-code-pre .token.variable{color:#6679cc}
-.toc-content pre.oxn-code-pre .token.keyword,.toc-content pre.oxn-code-pre .token.control,.toc-content pre.oxn-code-pre .token.directive,.toc-content pre.oxn-code-pre .token.unit{color:#ac9739}
-.toc-content pre.oxn-code-pre .token.deleted{text-decoration:line-through}
-.toc-content pre.oxn-code-pre .token.inserted{border-bottom:1px dotted #202746}
-.toc-content pre.oxn-code-pre .token.italic{font-style:italic}
-.toc-content pre.oxn-code-pre .token.important{color:#c94922;font-weight:bold}
-.toc-content pre.oxn-code-pre .token.bold{font-weight:bold}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre{background:#1e1e1e;color:#d4d4d4;font-size:13px;line-height:1.5}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.comment,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.prolog{color:#6a9955}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.punctuation,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.operator{color:#d4d4d4}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.property,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.attr-name,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.variable{color:#9cdcfe}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.tag,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.boolean,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.keyword{color:#569cd6}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.number,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.symbol{color:#b5cea8}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.string,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.char,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.builtin{color:#ce9178}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.function{color:#dcdcaa}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.class-name{color:#4ec9b0}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.regex{color:#d16969}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.important{color:#569cd6;font-weight:normal}
-.toc-content .rin-mermaid_dark{display:none}
-:is(.dark,.is-dark) .toc-content .rin-mermaid_default,[data-color-mode="dark"] .toc-content .rin-mermaid_default{display:none}
-:is(.dark,.is-dark) .toc-content .rin-mermaid_dark,[data-color-mode="dark"] .toc-content .rin-mermaid_dark{display:block}
-.toc-content pre.rin-mermaid_default,.toc-content pre.rin-mermaid_dark{box-sizing:border-box;max-width:100%;margin:1.5rem auto;padding:1rem 0;overflow-x:auto;overflow-y:hidden;background:transparent!important;text-align:center;white-space:normal}
-.toc-content pre.rin-mermaid_default svg,.toc-content pre.rin-mermaid_dark svg{display:block;width:max-content;max-width:none;height:auto;margin:0 auto;background:transparent!important}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre{box-sizing:border-box;max-width:100%;margin:.5em 0;padding:1em;border-radius:.25rem;background:#f5f7ff;color:#5e6687;overflow-x:auto;white-space:pre;tab-size:4;font:14px/1.375 ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre>code{white-space:pre-wrap;font:inherit;font-variant-ligatures:normal}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.comment,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.prolog,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.doctype,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.cdata{color:#898ea4}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.punctuation{color:#5e6687}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.operator,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.boolean,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.number{color:#c76b29}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.property,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.attr-name{color:#c08b30}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.tag{color:#3d8fd1}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.string,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.entity,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.url,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.statement,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.regex,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.atrule{color:#22a2c9}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.selector,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.placeholder,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.variable{color:#6679cc}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.keyword,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.control,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.directive,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.unit{color:#ac9739}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.deleted{text-decoration:line-through}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.inserted{border-bottom:1px dotted #202746}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.italic{font-style:italic}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.important{color:#c94922;font-weight:bold}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.bold{font-weight:bold}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre{background:#1e1e1e;color:#d4d4d4;font-size:13px;line-height:1.5}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.comment,:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.prolog{color:#6a9955}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.punctuation,:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.operator{color:#d4d4d4}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.property,:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.attr-name,:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.variable{color:#9cdcfe}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.tag,:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.boolean,:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.keyword{color:#569cd6}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.number,:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.symbol{color:#b5cea8}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.string,:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.char,:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.builtin{color:#ce9178}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.function{color:#dcdcaa}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.class-name{color:#4ec9b0}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.regex{color:#d16969}
+:is(.dark,.is-dark,[data-color-mode="dark"]) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.oxn-code-pre .token.important{color:#569cd6;font-weight:normal}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) .rin-mermaid_dark{display:none}
+:is(.dark,.is-dark) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) .rin-mermaid_default,[data-color-mode="dark"] :is(.toc-content,.warm-prose,[itemprop="articleBody"]) .rin-mermaid_default{display:none}
+:is(.dark,.is-dark) :is(.toc-content,.warm-prose,[itemprop="articleBody"]) .rin-mermaid_dark,[data-color-mode="dark"] :is(.toc-content,.warm-prose,[itemprop="articleBody"]) .rin-mermaid_dark{display:block}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.rin-mermaid_default,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.rin-mermaid_dark{box-sizing:border-box;max-width:100%;margin:1.5rem auto;padding:1rem 0;overflow-x:auto;overflow-y:hidden;background:transparent!important;text-align:center;white-space:normal}
+:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.rin-mermaid_default svg,:is(.toc-content,.warm-prose,[itemprop="articleBody"]) pre.rin-mermaid_dark svg{display:block;width:max-content;max-width:none;height:auto;margin:0 auto;background:transparent!important}
