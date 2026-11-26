@@ -305,7 +305,7 @@ declare global {
   }
 
   for (const root of currentRoots) {
-   if (flags.blurhash && hasBlurhash(scope || root)) {
+   if (flags.blurhash && hasBlurhash(root)) {
     const blurhashTarget = scope || root;
     void load('blurhash-runtime.js','__oxnMarkdownBlurhashRuntime')
      .then(() => window.__oxnMarkdownBlurhashRuntime?.initialize(blurhashTarget, flags.lazyImages));
