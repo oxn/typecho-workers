@@ -8172,9 +8172,6 @@
     "typecho-plugin-pinyin": [
       "typecho-plugin-pinyin@workspace:src/plugins/typecho-plugin-pinyin"
     ],
-    "typecho-plugin-warm-cy": [
-      "typecho-plugin-warm-cy@workspace:src/plugins/typecho-plugin-warm-cy"
-    ],
     "typecho-theme-warm-cy": [
       "typecho-theme-warm-cy@workspace:src/themes/typecho-theme-warm-cy"
     ],
