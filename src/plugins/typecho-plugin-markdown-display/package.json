@@ -1,0 +1,50 @@
+{
+  "name": "typecho-plugin-markdown-display",
+  "version": "1.0.0",
+  "description": "Client-side Markdown display enhancements for math, diagrams, and code highlighting.",
+  "keywords": [
+    "typecho",
+    "plugin",
+    "markdown",
+    "math",
+    "mermaid",
+    "highlight"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "typecho": {
+    "plugin": {
+      "id": "typecho-plugin-markdown-display",
+      "name": "Markdown 显示增强",
+      "description": "仅增强已输出文章内容的公式、流程图和代码高亮显示，不重写 Markdown、不修改数据库。",
+      "version": "1.0.0",
+      "tags": [
+        "markdown",
+        "math",
+        "mermaid",
+        "code"
+      ],
+      "config": {
+        "enableMath": {
+          "type": "checkbox",
+          "label": "数学公式",
+          "default": "1",
+          "description": "渲染 $...$、$$...$$、\\(...\\) 和 \\[...\\] 数学公式。"
+        },
+        "enableMermaid": {
+          "type": "checkbox",
+          "label": "流程图",
+          "default": "1",
+          "description": "将 Mermaid 代码块增强为流程图等图表，同时保留原始代码块和复制功能。"
+        },
+        "enableCodeHighlight": {
+          "type": "checkbox",
+          "label": "代码高亮",
+          "default": "1",
+          "description": "为带语言标记的代码块添加语法高亮，不替换原有 pre 结构。"
+        }
+      }
+    }
+  }
+}
