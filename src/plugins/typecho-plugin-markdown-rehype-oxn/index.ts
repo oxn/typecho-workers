@@ -55,7 +55,7 @@ function protectMathSegment(source: string): string {
 /** Defer the original image request before the browser parses article-body images. */
 function deferBlurhashImages(html: string): string {
   const transparent = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-  const rootPattern = /<([a-z][\\w:-]*)\\b[^>]*\\bitemprop=(["'])articleBody\\2[^>]*>/gi;
+  const rootPattern = /<([a-z][\w:-]*)\b[^>]*\bitemprop=(["'])articleBody\2[^>]*>/gi;
   const decode = (value: string) => {
     try { return decodeURIComponent(value); } catch { return value.replace(/%([0-9a-f]{2})/gi, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16))); }
   };
@@ -64,21 +64,20 @@ function deferBlurhashImages(html: string): string {
   let root: RegExpExecArray | null;
   while ((root = rootPattern.exec(html))) {
     const tag = root[1];
-    const start = root.index;
     const contentStart = rootPattern.lastIndex;
-    const tagPattern = new RegExp('<\\/?' + tag + '\\b[^>]*>', 'gi');
+    const tagPattern = new RegExp('</?' + tag + '\\b[^>]*>', 'gi');
     tagPattern.lastIndex = contentStart;
     let depth = 1;
     let end = html.length;
     let token: RegExpExecArray | null;
     while ((token = tagPattern.exec(html))) {
-      if (/^<\\//.test(token[0])) depth--;
-      else if (!/\\/>$/.test(token[0])) depth++;
+      if (/^<\//.test(token[0])) depth--;
+      else if (!/\/>$/.test(token[0])) depth++;
       if (depth === 0) { end = token.index; break; }
     }
     let body = html.slice(contentStart, end);
-    body = body.replace(/<img\\b[^>]*>/gi, tagHtml => {
-      const source = tagHtml.match(/\\bsrc=(["'])(.*?)\\1/i);
+    body = body.replace(/<img\b[^>]*>/gi, tagHtml => {
+      const source = tagHtml.match(/\bsrc=(["'])(.*?)\1/i);
       if (!source || !/#blurhash=/i.test(source[2])) return tagHtml;
       const original = source[2];
       const fragment = original.slice(original.indexOf('#') + 1);
@@ -90,8 +89,8 @@ function deferBlurhashImages(html: string): string {
       }
       if (!params.get('blurhash')) return tagHtml;
       let updated = tagHtml.replace(source[0], 'src="' + transparent + '" data-oxn-blurhash-src="' + original.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"');
-      if (params.has('width') && !/\\bwidth=/i.test(updated) && /^\\d+$/.test(params.get('width')!)) updated = updated.replace(/>$/, ' width="' + params.get('width') + '">');
-      if (params.has('height') && !/\\bheight=/i.test(updated) && /^\\d+$/.test(params.get('height')!)) updated = updated.replace(/>$/, ' height="' + params.get('height') + '">');
+      if (params.has('width') && !/\bwidth=/i.test(updated) && /^\d+$/.test(params.get('width')!)) updated = updated.replace(/>$/, ' width="' + params.get('width') + '">');
+      if (params.has('height') && !/\bheight=/i.test(updated) && /^\d+$/.test(params.get('height')!)) updated = updated.replace(/>$/, ' height="' + params.get('height') + '">');
       return updated;
     });
     output += html.slice(cursor, contentStart) + body;
@@ -100,7 +99,6 @@ function deferBlurhashImages(html: string): string {
   }
   return output + html.slice(cursor);
 }
-
 function protectMathSource(source: string): string {
   const segments = source.split(/(^\x60{3,}[^\n]*\n[\s\S]*?^\x60{3,}[ \t]*$|^~{3,}[^\n]*\n[\s\S]*?^~{3,}[ \t]*$)/gm);
   return segments.map((part, index) => index % 2 === 1 ? part : protectMathSegment(part)).join('');
