@@ -78,7 +78,7 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
   if(processed.has(img))return;
   const parsed=parseSource(img);if(!parsed)return;
   processed.add(img);
-  if(img.complete&&img.naturalWidth>0){img.dataset.oxnBlurhash=parsed.hash;img.removeAttribute('data-oxn-blurhash-src');img.setAttribute('src',parsed.src);return;}
+  if(!img.hasAttribute('data-oxn-blurhash-src')&&img.complete&&img.naturalWidth>0){img.dataset.oxnBlurhash=parsed.hash;img.removeAttribute('data-oxn-blurhash-src');img.setAttribute('src',parsed.src);return;}
   try{
    const preview=makePreview(parsed.hash,parsed.width,parsed.height);
    img.dataset.oxnBlurhash=parsed.hash;
