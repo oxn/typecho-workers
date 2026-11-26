@@ -103,7 +103,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
         }
         return { handled: true, response: new Response(body, { headers: {
           'Content-Type': asset.contentType,
-          'Cache-Control': 'public, max-age=86400',
+          'Cache-Control': 'public, max-age=300',
           'X-Content-Type-Options': 'nosniff',
         } }) };
       }

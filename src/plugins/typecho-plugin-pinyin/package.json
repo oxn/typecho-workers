@@ -54,6 +54,7 @@
     }
   },
   "scripts": {
+    "postinstall": "node ./scripts/build-client.mjs",
     "build:client": "bun ./scripts/build-client.mjs"
   },
   "devDependencies": {
