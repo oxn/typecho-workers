@@ -156,16 +156,13 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
         return { tagName, attribs };
       }
 
-      const hashIndex = src.indexOf('#');
-      const cleanSrc = hashIndex >= 0
-        ? src.slice(0, hashIndex)
-        : src.replace(/[?&](?:width|height)=\d{1,5}(?=[&#]|$)/g, '').replace(/[?&]$/, '');
-
+      // Preserve the complete image URL, including its query and fragment.
+      // The Markdown enhancement plugin consumes BlurHash and sizing parameters
+      // from the original src after this sanitizer has finished.
       return {
         tagName,
         attribs: {
           ...attribs,
-          src: cleanSrc,
           ...(width > 0 && width <= 16384 ? { width: String(width) } : {}),
           ...(height > 0 && height <= 16384 ? { height: String(height) } : {}),
         },
