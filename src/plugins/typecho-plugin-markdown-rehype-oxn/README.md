@@ -13,6 +13,6 @@
 ## 运行机制
 通过 `archive:header` 注入样式，通过 `archive:footer` 加载主入口。主入口扫描 `.warm-prose`、`.toc-content` 和 `[itemprop="articleBody"]` 中已经生成的 DOM，并按页面实际内容加载对应功能包。支持 InstantClick 页面切换及重复初始化。
 
-浏览器运行时源码位于本插件的 `client/src/`，插件自己的 `scripts/build-client.mjs` 负责生成 `client/dist/`。插件包安装时会通过自身的 `postinstall` 执行构建；也可以在插件目录执行 `bun run build:client` 手动构建。KaTeX 字体会内嵌到插件生成的 CSS 中。运行时由插件自己的 `route:request` 路由（`/__plugin-assets/`）提供，不写入 `public/`。
+浏览器运行时源码位于本插件的 `client/src/`，插件自己的 `scripts/build-client.mjs` 负责生成 `client/dist/`。本插件提供的 Astro 构建集成会在 `astro build` 和 `astro dev` 的配置阶段先执行该脚本，再加载插件入口，因此干净环境只要安装了项目构建依赖，便不依赖 Bun 是否执行 workspace 的 `postinstall`。也可以在插件目录执行 `bun run build:client` 手动构建。KaTeX 字体会内嵌到插件生成的 CSS 中。运行时由插件自己的 `route:request` 路由（`/__plugin-assets/`）提供，不写入 `public/`。
 
 不修改主题、其他插件、数据库或 Markdown 核心解析流程。资源源码、构建脚本和生成目录均位于本插件目录；`client/dist/` 是本插件构建生成目录。
