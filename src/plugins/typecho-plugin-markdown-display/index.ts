@@ -30,7 +30,7 @@ function buildHead(config: DisplayConfig): string {
     html.push('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css">');
     html.push('<link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">');
   }
-  if (html.length) {
+  if (config.enableMath || config.enableMermaid || config.enableCodeHighlight) {
     html.push('<style data-typecho-markdown-display>.typecho-md-enhance-diagram{max-width:100%;overflow-x:auto;margin:1.25em 0;text-align:center}.typecho-md-enhance-diagram svg{max-width:100%;height:auto}</style>');
   }
   return html.join('');
