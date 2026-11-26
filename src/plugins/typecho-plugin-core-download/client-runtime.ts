@@ -82,10 +82,37 @@ export function buildCoreDownloadClientScript(): string {
         copy.title = '复制提取码';
         copy.setAttribute('aria-label', '复制提取码');
         copy.style.backgroundImage = 'url("' + IMAGE_BASE + 'copy.svg")';
+        const copyText = async text => {
+          try {
+            if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+            await navigator.clipboard.writeText(text);
+            return true;
+          } catch {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '0';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+            let copied = false;
+            try {
+              copied = document.execCommand('copy');
+            } finally {
+              textarea.remove();
+            }
+            if (!copied) throw new Error('Fallback copy failed');
+            return true;
+          }
+        };
         const copyKey = async event => {
           event.preventDefault();
           try {
-            await navigator.clipboard.writeText(key);
+            await copyText(key);
             copy.title = '已复制';
             copy.classList.add('copied');
             window.setTimeout(() => {
