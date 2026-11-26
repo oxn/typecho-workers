@@ -121,7 +121,7 @@ declare global {
   return root.matches(selector) || !!root.querySelector(selector);
  }
  function hasBlurhash(root: Element): boolean {
-  const selector = 'img[src*="#blurhash="]';
+  const selector = 'img[data-oxn-blurhash-src],img[src*="#blurhash="]';
   return root.matches(selector) || !!root.querySelector(selector);
  }
  function hasHighlight(root: Element): boolean {
