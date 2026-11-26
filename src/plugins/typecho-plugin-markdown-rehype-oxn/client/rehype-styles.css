@@ -1,4 +1,4 @@
-.toc-content pre.oxn-code-pre{box-sizing:border-box;max-width:100%;overflow-x:auto;white-space:pre;tab-size:4;font:14px/1.5 ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace}
+.toc-content pre.oxn-code-pre{box-sizing:border-box;max-width:100%;margin:.5em 0;padding:1em;border-radius:.25rem;background:#f5f7ff;color:#5e6687;overflow-x:auto;white-space:pre;tab-size:4;font:14px/1.375 ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace}
 .toc-content pre.oxn-code-pre>code{white-space:pre-wrap;font:inherit;font-variant-ligatures:normal}
 .toc-content pre.oxn-code-pre .token.comment,.toc-content pre.oxn-code-pre .token.prolog,.toc-content pre.oxn-code-pre .token.doctype,.toc-content pre.oxn-code-pre .token.cdata{color:#898ea4}
 .toc-content pre.oxn-code-pre .token.punctuation{color:#5e6687}
@@ -13,7 +13,7 @@
 .toc-content pre.oxn-code-pre .token.italic{font-style:italic}
 .toc-content pre.oxn-code-pre .token.important{color:#c94922;font-weight:bold}
 .toc-content pre.oxn-code-pre .token.bold{font-weight:bold}
-:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre{background:#1e1e1e;color:#d4d4d4}
+:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre{background:#1e1e1e;color:#d4d4d4;font-size:13px;line-height:1.5}
 :is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.comment,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.prolog{color:#6a9955}
 :is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.punctuation,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.operator{color:#d4d4d4}
 :is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.property,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.attr-name,:is(.dark,.is-dark,[data-color-mode="dark"]) .toc-content pre.oxn-code-pre .token.variable{color:#9cdcfe}

@@ -8,6 +8,10 @@ declare global {
  }
 }
 (() => {
+ if (window.__oxnMarkdownEnhancer) {
+  window.__oxnMarkdownEnhancer.initialize();
+  return;
+ }
  const entry = document.currentScript as HTMLScriptElement | null;
  const flags = {
   math: entry?.dataset.math === '1',
@@ -60,6 +64,8 @@ declare global {
    const source = code.textContent || '';
    const variant = (theme: 'default' | 'dark') => {
     const pre = original.cloneNode(false) as HTMLElement;
+    pre.removeAttribute('id');
+    pre.removeAttribute('data-processed');
     pre.classList.add('mermaid', 'rin-mermaid_' + theme);
     pre.dataset.oxnMermaidPrepared = '1';
     pre.textContent = source;

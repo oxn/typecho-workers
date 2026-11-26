@@ -18,7 +18,7 @@ function featureConfig(options: Record<string, unknown> | undefined, pluginId: s
   };
 }
 function styleTag(id: string, css: string): string {
-  return `<style id="${id}">${css.replace(/<\\/style/gi, '<\\\\/style')}</style>`;
+  return `<style id="${id}">${css.replace(/<\/style/gi, '<\\/style')}</style>`;
 }
 
 export default function init({ addHook, pluginId }: PluginInitContext): void {
