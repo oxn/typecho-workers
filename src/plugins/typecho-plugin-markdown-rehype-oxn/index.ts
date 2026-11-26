@@ -32,6 +32,7 @@ function featureConfig(options: Record<string, unknown> | undefined, pluginId: s
     math: enabled(saved.enableMath),
     mermaid: enabled(saved.enableMermaid),
     highlight: enabled(saved.enableHighlight),
+    loadingMode: saved.resourceLoadingMode === 'full' ? 'full' : 'ondemand',
   };
 }
 /** Preserve TeX row separators before the host's ordinary Markdown parser. */
@@ -87,8 +88,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
     };
   }, 5);
 
-  // Load enabled feature assets based on plugin settings, without inspecting article content.
-  // The client initializes enabled renderers on article roots; browser caching can reuse assets.
+  // The client supports on-demand content detection or unconditional loading of enabled features.
   // The only content hook above protects TeX backslashes; Markdown parsing remains host-owned.
   addHook('archive:footer', pluginId, (html: string, extra?: { options?: Record<string, unknown> }) => {
     const config = featureConfig(extra?.options, pluginId);
@@ -97,6 +97,7 @@ export default function init({ addHook, pluginId }: PluginInitContext): void {
       config.math ? 'data-math="1"' : '',
       config.mermaid ? 'data-mermaid="1"' : '',
       config.highlight ? 'data-highlight="1"' : '',
+      `data-loading="${config.loadingMode}"`,
     ].filter(Boolean).join(' ');
     return html + `<script src="${ASSET_PREFIX}rehype-runtime.js" ${attrs} defer></script>`;
   }, 1000);
