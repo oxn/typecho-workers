@@ -63,7 +63,6 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
  function loadOriginal(img:HTMLImageElement):void {
   const source=img.dataset.oxnOriginalSrc;if(!source)return;
   if(observer)observer.unobserve(img);
-  delete img.dataset.oxnOriginalSrc;
   img.loading='eager';
   img.src=source;
  }
@@ -92,7 +91,11 @@ declare global { interface Window { __oxnMarkdownBlurhashRuntime?: BlurhashRunti
     if(fallback&&img.src!==fallback)img.src=fallback;
    });
    img.addEventListener('load',()=>{
-    if(!img.dataset.oxnOriginalSrc&&img.dataset.oxnPreviewSrc&&img.src!==img.dataset.oxnPreviewSrc)delete img.dataset.oxnPreviewSrc;
+    const source=img.dataset.oxnOriginalSrc;
+    if(source&&img.src===new URL(source,document.baseURI).href){
+     delete img.dataset.oxnOriginalSrc;
+     delete img.dataset.oxnPreviewSrc;
+    }
    });
    img.src=preview;
    watch(img,lazy);
