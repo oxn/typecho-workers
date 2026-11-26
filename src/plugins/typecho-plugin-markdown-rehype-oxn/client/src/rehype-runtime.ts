@@ -1,4 +1,3 @@
-import { REFRACTOR_SUPPORTED_LANGUAGES } from '../lib/refractor-languages';
 type RuntimeApi = { initialize(root: Element): void };
 declare global {
  interface Window {
@@ -62,31 +61,6 @@ declare global {
   });
   pending.set(file, promise);
   return promise;
- }
- function hasMath(root: Element): boolean {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const pattern = /(?:\$\$|\$[^\n$]+\$|\\\(|\\\[)/;
-  let node: Node | null;
-  while ((node = walker.nextNode())) {
-   const parent = node.parentElement;
-   if (!parent || parent.closest('pre,code,script,style,textarea,.katex,.tex2jax_ignore,[data-tex2jax-ignore]')) continue;
-   if (pattern.test(node.textContent || '')) return true;
-  }
-  return false;
- }
- function hasMermaid(root: Element): boolean {
-  return !!root.querySelector('pre > code.language-mermaid,pre.rin-mermaid_default,pre.rin-mermaid_dark');
- }
- function hasHighlight(root: Element): boolean {
-  return Array.from(root.querySelectorAll<HTMLElement>('pre > code[class*="language-"]')).some(code => {
-   const match = /(?:^|\s)language-([\w+-]+)/.exec(code.className);
-   const language = match?.[1]?.toLowerCase() || '';
-   return !!language
-    && language !== 'mermaid'
-    && language !== 'text'
-    && language !== 'plain'
-    && REFRACTOR_SUPPORTED_LANGUAGES.includes(language as typeof REFRACTOR_SUPPORTED_LANGUAGES[number]);
-  });
  }
  let mermaidQueue: Promise<void> = Promise.resolve();
  async function renderMermaid(root: Element, mermaid: any): Promise<void> {
@@ -165,40 +139,37 @@ declare global {
   });
   await mermaidQueue;
  }
- let scheduled = false;
  function initialize(): void {
-  for (const root of roots()) {
-   if (flags.math && hasMath(root)) {
-    void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
-     .then(() => load('math-runtime.js','__oxnMarkdownMathRuntime'))
-     .then(() => window.__oxnMarkdownMathRuntime?.initialize(root));
-   }
-   if (flags.mermaid && hasMermaid(root)) {
-    void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
-     .then(() => load('mermaid-runtime.js','__oxnMarkdownMermaidRuntime'))
-     .then(() => {
-      const runtime = window.__oxnMarkdownMermaidRuntime;
-      if (runtime) void renderMermaid(root,runtime.mermaid);
-     });
-   }
-   if (flags.highlight && hasHighlight(root)) {
-    void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
-     .then(() => load('highlight-runtime.js','__oxnMarkdownHighlightRuntime'))
-     .then(() => window.__oxnMarkdownHighlightRuntime?.initialize(root));
-   }
+  const currentRoots = roots();
+  if (flags.math) {
+   void loadStyle('katex-inline.css','oxn-markdown-rehype-katex')
+    .then(() => load('math-runtime.js','__oxnMarkdownMathRuntime'))
+    .then(() => {
+     const runtime = window.__oxnMarkdownMathRuntime;
+     if (runtime) currentRoots.forEach(root => runtime.initialize(root));
+    });
+  }
+  if (flags.mermaid) {
+   void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
+    .then(() => load('mermaid-runtime.js','__oxnMarkdownMermaidRuntime'))
+    .then(async () => {
+     const runtime = window.__oxnMarkdownMermaidRuntime;
+     if (runtime) {
+      for (const root of currentRoots) await renderMermaid(root,runtime.mermaid);
+     }
+    });
+  }
+  if (flags.highlight) {
+   void loadStyle('rehype-styles.css','oxn-markdown-rehype-styles')
+    .then(() => load('highlight-runtime.js','__oxnMarkdownHighlightRuntime'))
+    .then(() => {
+     const runtime = window.__oxnMarkdownHighlightRuntime;
+     if (runtime) currentRoots.forEach(root => runtime.initialize(root));
+    });
   }
  }
- function schedule(): void {
-  if (scheduled) return;
-  scheduled = true;
-  Promise.resolve().then(() => { scheduled = false; initialize(); });
- }
- const observer = new MutationObserver(records => {
-  if (records.some(record => record.addedNodes.length)) schedule();
- });
- observer.observe(document.documentElement,{childList:true,subtree:true});
  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',initialize,{once:true});
  else initialize();
- window.addEventListener('instantclick:newpage',schedule);
+ window.addEventListener('instantclick:newpage',initialize);
  window.__oxnMarkdownEnhancer = {initialize};
 })();
