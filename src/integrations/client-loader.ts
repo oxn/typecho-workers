@@ -85,26 +85,42 @@ function discoverPluginClients(rootDir: string): ClientSource[] {
 }
 
 async function compileAll(sources: ClientSource[], silent = false): Promise<void> {
-  // A missing browser bundle means an enabled plugin will emit dead script
-  // URLs. Fail the build instead of silently producing a broken deployment.
+  const hasPluginLocalAssets = sources.some(src => src.outDir.endsWith(join('client', 'dist')));
   const esbuild = await import('esbuild').catch((err) => {
-    throw new Error('[client-loader] esbuild is required to compile browser assets.', { cause: err });
+    if (hasPluginLocalAssets) {
+      throw new Error('[client-loader] esbuild is required to compile Markdown Rehype OXN assets.', { cause: err });
+    }
+    console.error('[client-loader] esbuild not available, skipping client compilation:', err);
+    return null;
   });
+  if (!esbuild) return;
+
   for (const src of sources) {
     mkdirSync(src.outDir, { recursive: true });
-    const outfile = join(src.outDir, basename(src.sourcePath).replace(/\.ts$/, '.js'));
-    await esbuild.build({
-      entryPoints: [src.sourcePath],
-      outfile,
-      bundle: true,
-      format: 'iife',
-      target: 'es2020',
-      minify: false,
-      sourcemap: process.env.NODE_ENV !== 'production' ? 'inline' : false,
-      logLevel: 'warning',
-      // External: browser scripts must not bundle server-side modules
-      external: ['cloudflare:*', 'typecho/*', '@/*', 'astro:*', 'node:*'],
-    });
+    const outfile = join(src.outDir, basename(src.sourcePath).replace(/\\.ts$/, '.js'));
+    try {
+      await esbuild.build({
+        entryPoints: [src.sourcePath],
+        outfile,
+        bundle: true,
+        format: 'iife',
+        target: 'es2020',
+        minify: false,
+        sourcemap: src.outDir.endsWith(join('client', 'dist'))
+          ? false
+          : process.env.NODE_ENV !== 'production' ? 'inline' : false,
+        logLevel: 'warning',
+        // External: browser scripts must not bundle server-side modules
+        external: ['cloudflare:*', 'typecho/*', '@/*', 'astro:*', 'node:*'],
+      });
+    } catch (err) {
+      // Rehype imports these generated bundles into its server module. A
+      // missing bundle would make the plugin unusable, so this one must fail
+      // the build. Preserve the legacy skip behavior for unrelated clients.
+      if (src.outDir.endsWith(join('client', 'dist'))) throw err;
+      console.error(`[client-loader] Failed to compile ${src.sourcePath}; skipping remaining client sources:`, err);
+      break;
+    }
     if (!silent) {
       console.log(`[client-loader] ${src.sourcePath} → ${relative(process.cwd(), outfile)}`);
     }
