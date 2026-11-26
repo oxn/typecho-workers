@@ -113,12 +113,37 @@ export function buildCoreDownloadClientScript(): string {
           event.preventDefault();
           try {
             await copyText(key);
-            copy.title = '已复制';
+            copy.title = '复制提取码';
             copy.classList.add('copied');
-            window.setTimeout(() => {
-              copy.title = '复制提取码';
-              copy.classList.remove('copied');
-            }, 1500);
+            let toast = document.querySelector('.core-download-copy-toast');
+            if (!toast) {
+              toast = document.createElement('div');
+              toast.className = 'core-download-copy-toast';
+              Object.assign(toast.style, {
+                position: 'fixed',
+                left: '50%',
+                bottom: '24px',
+                transform: 'translateX(-50%)',
+                zIndex: '2147483647',
+                padding: '8px 14px',
+                borderRadius: '6px',
+                background: 'rgba(0, 0, 0, 0.78)',
+                color: '#fff',
+                fontSize: '13px',
+                lineHeight: '1.4',
+                pointerEvents: 'none',
+                opacity: '0',
+                transition: 'opacity .15s ease'
+              });
+              document.body.appendChild(toast);
+            }
+            toast.textContent = '复制成功';
+            toast.style.opacity = '1';
+            window.clearTimeout(toast._hideTimer);
+            toast._hideTimer = window.setTimeout(() => {
+              toast.style.opacity = '0';
+            }, 2000);
+            window.setTimeout(() => copy.classList.remove('copied'), 2000);
           } catch {
             copy.title = '复制失败';
           }
